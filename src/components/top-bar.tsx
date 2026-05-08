@@ -2,6 +2,7 @@
 
 import {
   ArrowUpDown,
+  Boxes,
   Check,
   Database,
   LayoutGrid,
@@ -75,6 +76,7 @@ export function TopBar({
   const pathname = usePathname();
   const isDiscover = pathname?.startsWith("/discover");
   const isRadar = pathname?.startsWith("/radar");
+  const isStackBuilder = pathname?.startsWith("/stack-builder");
   const userAvatar = session?.user?.image
     ? getAvatarImageAttrs(session.user.image, 32)
     : null;
@@ -129,7 +131,18 @@ export function TopBar({
         </Button>
         <Button
           asChild
-          variant={!isDiscover && !isRadar ? "secondary" : "ghost"}
+          variant={isStackBuilder ? "secondary" : "ghost"}
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-xs"
+        >
+          <Link href="/stack-builder">
+            <Boxes className="size-3.5" />
+            Stack
+          </Link>
+        </Button>
+        <Button
+          asChild
+          variant={!isDiscover && !isRadar && !isStackBuilder ? "secondary" : "ghost"}
           size="sm"
           className="h-7 gap-1.5 px-2 text-xs"
         >
