@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildStackBuilderReport, type StackRepoInput } from "@/lib/stack-builder";
+import { buildStackBuilderReport, parseStackGoal, type StackRepoInput } from "@/lib/stack-builder";
 
 const baseRepo: StackRepoInput = {
   id: 1,
@@ -19,7 +19,7 @@ const baseRepo: StackRepoInput = {
 describe("stack builder", () => {
   const now = new Date("2026-05-08T00:00:00Z");
 
-  it("selects lane candidates from starred repo signals", () => {
+  it("classifies starred repos into product stack roles", () => {
     const report = buildStackBuilderReport(
       [
         {
@@ -27,73 +27,106 @@ describe("stack builder", () => {
           id: 1,
           name: "next.js",
           fullName: "vercel/next.js",
-          description: "The React framework for production",
+          description: "The React framework for production web apps",
           topics: ["react", "framework", "frontend"],
         },
         {
           ...baseRepo,
           id: 2,
-          name: "hono",
-          fullName: "honojs/hono",
-          description: "Web framework for building APIs on workers",
-          topics: ["api", "server", "cloudflare"],
-        },
-        {
-          ...baseRepo,
-          id: 3,
           name: "drizzle-orm",
           fullName: "drizzle-team/drizzle-orm",
           description: "TypeScript ORM for SQL databases",
           topics: ["orm", "sql", "database"],
         },
+        {
+          ...baseRepo,
+          id: 3,
+          name: "playwright",
+          fullName: "microsoft/playwright",
+          description: "Reliable end-to-end testing for modern web apps",
+          topics: ["testing", "e2e"],
+        },
       ],
-      now
+      { goal: "web-app", now }
     );
 
     expect(report.summary.totalRepos).toBe(3);
-    expect(report.summary.coveredLanes).toBeGreaterThanOrEqual(3);
-    expect(report.lanes.find((lane) => lane.id === "frontend")?.selected?.fullName).toBe("vercel/next.js");
-    expect(report.lanes.find((lane) => lane.id === "backend")?.selected?.fullName).toBe("honojs/hono");
-    expect(report.lanes.find((lane) => lane.id === "database")?.selected?.fullName).toBe("drizzle-team/drizzle-orm");
+    expect(report.summary.coveredRoles).toBeGreaterThanOrEqual(3);
+    expect(report.roles.find((role) => role.id === "framework")?.selected?.fullName).toBe("vercel/next.js");
+    expect(report.roles.find((role) => role.id === "database")?.selected?.fullName).toBe("drizzle-team/drizzle-orm");
+    expect(report.roles.find((role) => role.id === "testing")?.selected?.fullName).toBe("microsoft/playwright");
   });
 
-  it("penalizes archived repositories when picking a lane", () => {
+  it("flags stale and archived recommendations", () => {
     const report = buildStackBuilderReport(
       [
         {
           ...baseRepo,
           id: 1,
-          name: "old-ui",
-          fullName: "owner/old-ui",
+          name: "old-auth",
+          fullName: "owner/old-auth",
           archived: true,
-          stargazersCount: 50_000,
-          topics: ["frontend", "react"],
+          stargazersCount: 20_000,
+          topics: ["auth", "oauth"],
+          repoUpdatedAt: "2023-01-01T00:00:00Z",
+        },
+      ],
+      { goal: "web-app", now }
+    );
+
+    const authPick = report.roles.find((role) => role.id === "auth")?.selected;
+    expect(authPick?.warnings).toContain("Archived repository");
+    expect(authPick?.warnings).toContain("No release activity in 12 months");
+    expect(report.summary.warningCount).toBeGreaterThan(0);
+  });
+
+  it("detects close alternatives as role conflicts", () => {
+    const report = buildStackBuilderReport(
+      [
+        {
+          ...baseRepo,
+          id: 1,
+          name: "alpha-framework",
+          fullName: "owner/alpha-framework",
+          topics: ["framework", "react"],
         },
         {
           ...baseRepo,
           id: 2,
-          name: "active-ui",
-          fullName: "owner/active-ui",
-          stargazersCount: 5_000,
-          topics: ["frontend", "react"],
+          name: "beta-framework",
+          fullName: "owner/beta-framework",
+          topics: ["framework", "react"],
         },
       ],
-      now
+      { goal: "web-app", now }
     );
 
-    expect(report.lanes.find((lane) => lane.id === "frontend")?.selected?.fullName).toBe("owner/active-ui");
+    expect(report.roles.find((role) => role.id === "framework")?.conflicts[0]).toContain("Choose one primary");
   });
 
-  it("summarizes top languages", () => {
+  it("exports selected roles as markdown", () => {
     const report = buildStackBuilderReport(
       [
-        baseRepo,
-        { ...baseRepo, id: 2, fullName: "owner/js", language: "JavaScript" },
-        { ...baseRepo, id: 3, fullName: "owner/ts-two", language: "TypeScript" },
+        {
+          ...baseRepo,
+          id: 1,
+          name: "hono",
+          fullName: "honojs/hono",
+          description: "Web framework for building APIs on workers",
+          topics: ["api", "server", "framework"],
+        },
       ],
-      now
+      { goal: "api-service", now }
     );
 
-    expect(report.summary.topLanguages[0]).toEqual(["TypeScript", 2]);
+    expect(report.goalLabel).toBe("API service");
+    expect(report.selectedRepoIds).toEqual([1]);
+    expect(report.markdown).toContain("# API service stack");
+    expect(report.markdown).toContain("[honojs/hono](https://github.com/owner/repo)");
+  });
+
+  it("parses unknown goals as web app", () => {
+    expect(parseStackGoal("nope")).toBe("web-app");
+    expect(parseStackGoal("ai-app")).toBe("ai-app");
   });
 });

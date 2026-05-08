@@ -81,6 +81,10 @@ export function TopBar({
     ? getAvatarImageAttrs(session.user.image, 32)
     : null;
   const visibleSortOptions = sortOptions ?? (Object.keys(sortLabels) as SortOption[]);
+  const stackHref =
+    searchQuery.trim().length > 0
+      ? `/stack-builder?q=${encodeURIComponent(searchQuery.trim())}`
+      : "/stack-builder";
 
   return (
     <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 border-b bg-background/80 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:px-4 sm:py-3 md:px-6">
@@ -135,7 +139,7 @@ export function TopBar({
           size="sm"
           className="h-7 gap-1.5 px-2 text-xs"
         >
-          <Link href="/stack-builder">
+          <Link href={stackHref}>
             <Boxes className="size-3.5" />
             Stack
           </Link>
