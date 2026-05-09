@@ -1,7 +1,7 @@
 # Starboard
 
 [![100% AI](https://img.shields.io/badge/Built%20with-100%25%20AI-blueviolet?style=for-the-badge)](https://claude.ai)
-[![Live](https://img.shields.io/badge/Live-mystarboard.vercel.app-black?style=for-the-badge)](https://mystarboard.vercel.app)
+[![Live](https://img.shields.io/badge/Live-starboard.workers.dev-black?style=for-the-badge)](https://starboard.sarthakagrawal927.workers.dev)
 
 Organize and filter your GitHub starred repos. Search, tag, categorize, and collect your stars in one place.
 
