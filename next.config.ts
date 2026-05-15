@@ -30,6 +30,15 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: securityHeaders,
       },
+      {
+        source: "/",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
+          },
+        ],
+      },
     ];
   },
 };

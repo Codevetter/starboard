@@ -1,17 +1,9 @@
-import type { NextRequest} from "next/server";
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { db } from "@/db";
 import { auth } from "@/lib/auth";
-
-function generateSlug(name: string): string {
-  const base = name
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  const suffix = Math.random().toString(16).slice(2, 6);
-  return `${base}-${suffix}`;
-}
+import { generateUniqueListSlug } from "@/lib/list-sharing";
 
 export async function POST(
   _request: NextRequest,
@@ -53,10 +45,16 @@ export async function POST(
       slug: list.slug as string,
     });
   } else {
-    // Make public — generate slug if none exists
+    // Make public — generate a readable slug once and keep it stable.
     const slug = list.slug
       ? (list.slug as string)
-      : generateSlug(list.name as string);
+      : await generateUniqueListSlug(list.name as string, async (candidate) => {
+          const existing = await db.execute({
+            sql: "SELECT 1 FROM user_lists WHERE slug = ? LIMIT 1",
+            args: [candidate],
+          });
+          return existing.rows.length > 0;
+        });
 
     await db.execute({
       sql: "UPDATE user_lists SET is_public = 1, slug = ? WHERE id = ? AND user_id = ?",

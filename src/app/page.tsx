@@ -1,14 +1,13 @@
-import { redirect } from "next/navigation";
-
+import { LandingSessionRedirect } from "@/components/landing-session-redirect";
 import { SaaSMakerChangelog, SaaSMakerTestimonials } from "@/components/saasmaker-feedback";
 import { SignInButton } from "@/components/sign-in-button";
-import { auth } from "@/lib/auth";
 
-export default async function Home() {
-  const session = await auth();
-  if (session) redirect("/discover");
+export const dynamic = "force-static";
+
+export default function Home() {
   return (
     <div className="flex min-h-svh flex-col items-center bg-background dark:bg-[oklch(0.1_0_0)]">
+      <LandingSessionRedirect />
       <main className="flex w-full max-w-4xl flex-col items-center gap-16 px-6 py-24">
         {/* Hero */}
         <div className="flex flex-col items-center gap-6 text-center">
