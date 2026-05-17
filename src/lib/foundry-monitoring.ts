@@ -4,6 +4,8 @@ import { initPostHog, track } from "@saas-maker/posthog-client";
 
 type AuthFailureStage = "signin" | "signup" | "callback" | "session" | "unknown";
 const PROJECT_SLUG = "starboard";
+const POSTHOG_KEY = "phc_qgiAarw4Co4pw9fz3Fxj4UJaHmqzFetqs4JrXhGc35Nd";
+const POSTHOG_HOST = "https://us.i.posthog.com";
 
 function route() {
   if (typeof window === "undefined") return undefined;
@@ -44,7 +46,7 @@ export function capturePageCrash(error: unknown, source: "window_error" | "unhan
 
 export function installBrowserMonitoring() {
   if (typeof window === "undefined") return () => {};
-  initPostHog();
+  initPostHog({ apiKey: POSTHOG_KEY, host: POSTHOG_HOST });
 
   const onError = (event: ErrorEvent) => capturePageCrash(event.error ?? event.message, "window_error");
   const onUnhandledRejection = (event: PromiseRejectionEvent) => capturePageCrash(event.reason, "unhandled_rejection");
