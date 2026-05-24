@@ -27,16 +27,16 @@ const baseRepo: MaintainerDigestRepoInput = {
 describe("maintainer digest", () => {
   const now = new Date("2026-05-08T00:00:00Z");
 
-  it("groups recent star activity and follow-up actions", () => {
+  it("groups new additions and suggested actions", () => {
     const digest = buildMaintainerDigest([baseRepo], now);
 
-    expect(digest.summary.starActivity).toBe(1);
-    expect(digest.summary.followUps).toBe(1);
-    expect(digest.groups.find((group) => group.id === "star_activity")?.items[0]?.starboardUrl).toBe("/explore/owner/repo");
-    expect(digest.groups.find((group) => group.id === "follow_up")?.items[0]?.actionLabel).toBe("Assign collection");
+    expect(digest.summary.newlyStarred).toBe(1);
+    expect(digest.summary.suggestedActions).toBe(1);
+    expect(digest.groups.find((group) => group.id === "newly_starred")?.items[0]?.starboardUrl).toBe("/explore/owner/repo");
+    expect(digest.groups.find((group) => group.id === "suggested_actions")?.items[0]?.actionLabel).toBe("Assign collection");
   });
 
-  it("flags new high-signal repositories from stars and thresholds", () => {
+  it("flags high-momentum repositories from stars and thresholds", () => {
     const digest = buildMaintainerDigest(
       [
         {
@@ -52,9 +52,9 @@ describe("maintainer digest", () => {
       now
     );
 
-    const highSignal = digest.groups.find((group) => group.id === "high_signal");
-    expect(highSignal?.items).toHaveLength(1);
-    expect(highSignal?.items[0]?.detail).toContain("threshold");
+    const highMomentum = digest.groups.find((group) => group.id === "high_momentum");
+    expect(highMomentum?.items).toHaveLength(1);
+    expect(highMomentum?.items[0]?.detail).toContain("threshold");
   });
 
   it("surfaces stale saved repos for review", () => {
@@ -74,8 +74,51 @@ describe("maintainer digest", () => {
       now
     );
 
-    const stale = digest.groups.find((group) => group.id === "stale_saved");
-    expect(stale?.items).toHaveLength(1);
-    expect(stale?.items[0]?.actionLabel).toBe("Review saved status");
+    const atRisk = digest.groups.find((group) => group.id === "at_risk");
+    expect(atRisk?.items).toHaveLength(1);
+    expect(atRisk?.items[0]?.actionLabel).toBe("Review saved status");
+  });
+
+  it("surfaces repos that are losing stars", () => {
+    const digest = buildMaintainerDigest(
+      [
+        {
+          ...baseRepo,
+          id: 4,
+          fullName: "owner/losing",
+          htmlUrl: "https://github.com/owner/losing",
+          stargazersCount: 1000,
+          starsSevenDaysAgo: 1100,
+        },
+      ],
+      now
+    );
+
+    const atRisk = digest.groups.find((group) => group.id === "at_risk");
+    expect(atRisk?.items).toHaveLength(1);
+    expect(atRisk?.items[0]?.actionLabel).toBe("Re-evaluate");
+    expect(atRisk?.items[0]?.priority).toBe("urgent");
+  });
+
+  it("surfaces archived repos for review", () => {
+    const digest = buildMaintainerDigest(
+      [
+        {
+          ...baseRepo,
+          id: 5,
+          fullName: "owner/archived",
+          htmlUrl: "https://github.com/owner/archived",
+          isSaved: true,
+          archived: true,
+          repoUpdatedAt: "2024-01-01T00:00:00Z",
+        },
+      ],
+      now
+    );
+
+    const atRisk = digest.groups.find((group) => group.id === "at_risk");
+    expect(atRisk?.items).toHaveLength(1);
+    expect(atRisk?.items[0]?.actionLabel).toBe("Archive or remove");
+    expect(atRisk?.items[0]?.priority).toBe("urgent");
   });
 });

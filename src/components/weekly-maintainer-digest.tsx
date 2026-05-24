@@ -183,7 +183,7 @@ function DigestGroupSection({
   );
 }
 
-export function WeeklyMaintainerDigest() {
+export function WeeklyActionDigest() {
   const { data, error, isLoading } = useSWR<MaintainerDigest>(
     "/api/digest/weekly",
     fetcher,
@@ -248,7 +248,7 @@ export function WeeklyMaintainerDigest() {
       <section className="mb-4 rounded-lg border bg-card p-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin" />
-          Loading weekly maintainer digest
+          Loading your weekly action digest
         </div>
       </section>
     );
@@ -267,31 +267,31 @@ export function WeeklyMaintainerDigest() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base font-semibold">Weekly maintainer digest</h2>
+            <h2 className="text-base font-semibold">Your Weekly Action Digest</h2>
             <Badge variant="secondary" className="text-xs">
               {visibleCount} open
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Star activity, high-signal additions, stale saves, and next actions from your library.
+            Opportunities, risks, and suggested next actions from your library.
           </p>
         </div>
         <div className="grid grid-cols-4 gap-1 text-center text-xs">
           <div className="rounded-md border px-2 py-1.5">
-            <div className="font-medium">{data.summary.starActivity}</div>
-            <div className="text-muted-foreground">stars</div>
+            <div className="font-medium">{data.summary.newlyStarred}</div>
+            <div className="text-muted-foreground">New</div>
           </div>
           <div className="rounded-md border px-2 py-1.5">
-            <div className="font-medium">{data.summary.highSignal}</div>
-            <div className="text-muted-foreground">signals</div>
+            <div className="font-medium">{data.summary.highMomentum}</div>
+            <div className="text-muted-foreground">Growth</div>
           </div>
           <div className="rounded-md border px-2 py-1.5">
-            <div className="font-medium">{data.summary.staleSaved}</div>
-            <div className="text-muted-foreground">stale</div>
+            <div className="font-medium">{data.summary.atRisk}</div>
+            <div className="text-muted-foreground">At Risk</div>
           </div>
           <div className="rounded-md border px-2 py-1.5">
-            <div className="font-medium">{data.summary.followUps}</div>
-            <div className="text-muted-foreground">actions</div>
+            <div className="font-medium">{data.summary.suggestedActions}</div>
+            <div className="text-muted-foreground">Actions</div>
           </div>
         </div>
       </div>

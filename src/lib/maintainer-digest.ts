@@ -1,8 +1,8 @@
 export type DigestGroupId =
-  | "star_activity"
-  | "high_signal"
-  | "stale_saved"
-  | "follow_up";
+  | "newly_starred"
+  | "high_momentum"
+  | "at_risk"
+  | "suggested_actions";
 
 export interface MaintainerDigestRepoInput {
   id: number;
@@ -50,10 +50,10 @@ export interface MaintainerDigest {
   lookbackDays: number;
   summary: {
     totalItems: number;
-    starActivity: number;
-    highSignal: number;
-    staleSaved: number;
-    followUps: number;
+    newlyStarred: number;
+    highMomentum: number;
+    atRisk: number;
+    suggestedActions: number;
   };
   groups: DigestGroup[];
 }
@@ -93,7 +93,7 @@ function formatAge(days: number | null): string {
 
 function starDelta(repo: MaintainerDigestRepoInput): number | null {
   if (typeof repo.starsSevenDaysAgo !== "number") return null;
-  return Math.max(0, repo.stargazersCount - repo.starsSevenDaysAgo);
+  return repo.stargazersCount - repo.starsSevenDaysAgo;
 }
 
 function repoDescription(repo: MaintainerDigestRepoInput): string {
@@ -122,14 +122,14 @@ function sortByOldestUpdate(
   return bDays - aDays;
 }
 
-function buildStarActivityItem(
+function buildNewlyStarredItem(
   repo: MaintainerDigestRepoInput,
   now: Date
 ): DigestItem {
   const starredAge = formatAge(daysBetween(now, repo.starredAt));
   return {
-    id: itemId("star_activity", repo),
-    group: "star_activity",
+    id: itemId("newly_starred", repo),
+    group: "newly_starred",
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -142,7 +142,7 @@ function buildStarActivityItem(
   };
 }
 
-function buildHighSignalItem(
+function buildHighMomentumItem(
   repo: MaintainerDigestRepoInput
 ): DigestItem {
   const delta = starDelta(repo);
@@ -154,8 +154,8 @@ function buildHighSignalItem(
         : `${compactNumber(repo.stargazersCount)} total stars`;
 
   return {
-    id: itemId("high_signal", repo),
-    group: "high_signal",
+    id: itemId("high_momentum", repo),
+    group: "high_momentum",
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -163,39 +163,50 @@ function buildHighSignalItem(
     detail: signal,
     sourceUrl: repo.htmlUrl,
     starboardUrl: toStarboardUrl(repo),
-    actionLabel: "Decide follow-up",
+    actionLabel: "Investigate Trend",
     priority: "watch",
   };
 }
 
-function buildStaleSavedItem(
+function buildAtRiskItem(
   repo: MaintainerDigestRepoInput,
   now: Date
 ): DigestItem {
-  const updateAge = formatAge(daysBetween(now, repo.repoUpdatedAt));
+  const updateAge = daysBetween(now, repo.repoUpdatedAt);
+  const delta = starDelta(repo);
+  let detail = `Saved repo last updated ${updateAge}.`;
+  let actionLabel = repo.archived ? "Archive or remove" : "Review saved status";
+  let priority: "watch" | "urgent" = repo.archived ? "urgent" : "watch";
+
+  if (delta !== null && delta < -50) {
+    detail = `Lost ${compactNumber(Math.abs(delta))} stars this week.`;
+    actionLabel = "Re-evaluate";
+    priority = "urgent";
+  }
+
   return {
-    id: itemId("stale_saved", repo),
-    group: "stale_saved",
+    id: itemId("at_risk", repo),
+    group: "at_risk",
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
     description: repoDescription(repo),
-    detail: `Saved repo last updated ${updateAge}.`,
+    detail,
     sourceUrl: repo.htmlUrl,
     starboardUrl: toStarboardUrl(repo),
-    actionLabel: repo.archived ? "Archive or remove" : "Review saved status",
-    priority: repo.archived ? "urgent" : "watch",
+    actionLabel,
+    priority,
   };
 }
 
-function buildFollowUpItem(
+function buildSuggestedActionItem(
   repo: MaintainerDigestRepoInput,
   reason: string,
   actionLabel: string
 ): DigestItem {
   return {
-    id: `follow_up:${repo.id}:${actionLabel.toLowerCase().replaceAll(" ", "-")}`,
-    group: "follow_up",
+    id: `suggested_actions:${repo.id}:${actionLabel.toLowerCase().replaceAll(" ", "-")}`,
+    group: "suggested_actions",
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -221,7 +232,7 @@ export function buildMaintainerDigest(
       return bTime - aTime;
     });
 
-  const highSignalRepos = repos
+  const highMomentumRepos = repos
     .filter((repo) => {
       const delta = starDelta(repo) ?? 0;
       return (
@@ -237,38 +248,39 @@ export function buildMaintainerDigest(
       return bScore - aScore;
     });
 
-  const staleSavedRepos = repos
+  const atRiskRepos = repos
     .filter((repo) => {
       const updateAge = daysBetween(now, repo.repoUpdatedAt);
-      return repo.isSaved && updateAge !== null && updateAge >= 365;
+      const delta = starDelta(repo);
+      return (repo.isSaved && updateAge !== null && updateAge >= 365) || (delta !== null && delta < -50);
     })
     .sort((a, b) => sortByOldestUpdate(a, b, now));
 
-  const followUps: DigestItem[] = [];
+  const suggestedActions: DigestItem[] = [];
   for (const repo of recentRepos.filter((item) => item.collectionCount === 0).slice(0, 4)) {
-    followUps.push(
-      buildFollowUpItem(
+    suggestedActions.push(
+      buildSuggestedActionItem(
         repo,
         "Newly added and not assigned to a collection yet.",
         "Assign collection"
       )
     );
   }
-  for (const repo of staleSavedRepos.filter((item) => !item.notes).slice(0, 3)) {
-    followUps.push(
-      buildFollowUpItem(
+  for (const repo of atRiskRepos.filter((item) => !item.notes).slice(0, 3)) {
+    suggestedActions.push(
+      buildSuggestedActionItem(
         repo,
         "Saved for later with no note explaining why it still matters.",
         "Add decision note"
       )
     );
   }
-  for (const repo of highSignalRepos.filter((item) => !item.notes).sort(sortByStarsDesc).slice(0, 3)) {
-    if (followUps.some((item) => item.repoId === repo.id)) continue;
-    followUps.push(
-      buildFollowUpItem(
+  for (const repo of highMomentumRepos.filter((item) => !item.notes).sort(sortByStarsDesc).slice(0, 3)) {
+    if (suggestedActions.some((item) => item.repoId === repo.id)) continue;
+    suggestedActions.push(
+      buildSuggestedActionItem(
         repo,
-        "High-signal repo has no maintainer note.",
+        "High-momentum repo has no maintainer note.",
         "Capture why"
       )
     );
@@ -276,28 +288,28 @@ export function buildMaintainerDigest(
 
   const groups: DigestGroup[] = [
     {
-      id: "star_activity",
-      title: "Star activity",
+      id: "newly_starred",
+      title: "Review New Additions",
       description: "Repos added to your library in the last week.",
-      items: recentRepos.slice(0, 6).map((repo) => buildStarActivityItem(repo, now)),
+      items: recentRepos.slice(0, 6).map((repo) => buildNewlyStarredItem(repo, now)),
     },
     {
-      id: "high_signal",
-      title: "New high-signal repositories",
+      id: "high_momentum",
+      title: "Growth & Momentum",
       description: "Fresh additions with strong star counts or recent momentum.",
-      items: highSignalRepos.slice(0, 6).map(buildHighSignalItem),
+      items: highMomentumRepos.slice(0, 6).map(buildHighMomentumItem),
     },
     {
-      id: "stale_saved",
-      title: "Stale saved repos",
+      id: "at_risk",
+      title: "At-Risk & Stale",
       description: "Saved repos that may need pruning or a note.",
-      items: staleSavedRepos.slice(0, 6).map((repo) => buildStaleSavedItem(repo, now)),
+      items: atRiskRepos.slice(0, 6).map((repo) => buildAtRiskItem(repo, now)),
     },
     {
-      id: "follow_up",
-      title: "Suggested follow-up actions",
+      id: "suggested_actions",
+      title: "Suggested Actions",
       description: "Small cleanup decisions to keep the library useful.",
-      items: followUps.slice(0, 8),
+      items: suggestedActions.slice(0, 8),
     },
   ];
 
@@ -307,10 +319,10 @@ export function buildMaintainerDigest(
     lookbackDays,
     summary: {
       totalItems: groups.reduce((sum, group) => sum + group.items.length, 0),
-      starActivity: groups.find((group) => group.id === "star_activity")?.items.length ?? 0,
-      highSignal: groups.find((group) => group.id === "high_signal")?.items.length ?? 0,
-      staleSaved: groups.find((group) => group.id === "stale_saved")?.items.length ?? 0,
-      followUps: groups.find((group) => group.id === "follow_up")?.items.length ?? 0,
+      newlyStarred: groups.find((group) => group.id === "newly_starred")?.items.length ?? 0,
+      highMomentum: groups.find((group) => group.id === "high_momentum")?.items.length ?? 0,
+      atRisk: groups.find((group) => group.id === "at_risk")?.items.length ?? 0,
+      suggestedActions: groups.find((group) => group.id === "suggested_actions")?.items.length ?? 0,
     },
     groups,
   };

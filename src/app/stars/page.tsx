@@ -17,7 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
-import { WeeklyMaintainerDigest } from "@/components/weekly-maintainer-digest";
+import { WeeklyActionDigest } from "@/components/weekly-maintainer-digest";
 import { useLists } from "@/hooks/use-lists";
 import { useStarredRepos } from "@/hooks/use-starred-repos";
 
@@ -353,7 +353,7 @@ function StarsContent() {
 
         <ScrollArea className="flex-1">
           <main className="p-4 md:p-6">
-            <WeeklyMaintainerDigest />
+            <WeeklyActionDigest />
             <RepoGrid
               repos={repos}
               viewMode={viewMode}
