@@ -3,8 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 
+import { ActiveFilterChips } from "@/components/active-filter-chips";
+import { BulkActionBar } from "@/components/bulk-action-bar";
+import { CompareSheet } from "@/components/compare-sheet";
 import { RepoGrid } from "@/components/repo-grid";
 import { Sidebar } from "@/components/sidebar";
 import { SyncAnimation, SyncProgressBar } from "@/components/sync-animation";
@@ -108,15 +111,31 @@ function StarsContent() {
   });
 
   // Local-only state
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const [selectedByFilter, setSelectedByFilter] = useState<{
+    filterKey: string;
+    ids: Set<number>;
+  }>(() => ({ filterKey: "", ids: new Set() }));
+  const [compareRequested, setCompareRequested] = useState(false);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   // Debounce search input
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 200);
     return () => clearTimeout(t);
   }, [searchQuery]);
+
+  const filterKey = [
+    debouncedSearch,
+    selectedLanguages.join(","),
+    selectedListId ?? "",
+    sortBy,
+  ].join("|");
+  const selectedRepoIds =
+    selectedByFilter.filterKey === filterKey ? selectedByFilter.ids : new Set<number>();
+  const compareOpen = compareRequested && selectedRepoIds.size >= 2;
 
   // Data hooks
   const { repos, total, facets, isLoading: reposLoading, isValidating, loadingMore, hasMore, loadMore, syncing, sync, syncResult, syncError, dismissSyncResult, dismissSyncError, mutate } = useStarredRepos({
@@ -185,6 +204,112 @@ function StarsContent() {
     });
     mutate();
   }, [mutate]);
+
+  const handleToggleSelect = useCallback(
+    (repoId: number, selected: boolean) => {
+      setSelectedByFilter((prev) => {
+        const ids =
+          prev.filterKey === filterKey ? new Set(prev.ids) : new Set<number>();
+        if (selected) ids.add(repoId);
+        else ids.delete(repoId);
+        return { filterKey, ids };
+      });
+    },
+    [filterKey]
+  );
+
+  const selectedRepos = useMemo(
+    () => repos.filter((repo) => selectedRepoIds.has(repo.id)),
+    [repos, selectedRepoIds]
+  );
+  const selectedCount = selectedRepoIds.size;
+  const allSelectedSaved =
+    selectedRepos.length > 0 && selectedRepos.every((repo) => Boolean(repo.is_saved));
+  const noneSelectedSaved =
+    selectedRepos.length > 0 && selectedRepos.every((repo) => !repo.is_saved);
+
+  const handleBulkSave = useCallback(async () => {
+    const targets = selectedRepos.filter((repo) => !repo.is_saved);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    try {
+      await Promise.all(
+        targets.map((repo) =>
+          fetch(`/api/repos/${repo.id}/save`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ saved: true }),
+          })
+        )
+      );
+      mutate();
+    } finally {
+      setBulkBusy(false);
+    }
+  }, [mutate, selectedRepos]);
+
+  const handleBulkUnsave = useCallback(async () => {
+    const targets = selectedRepos.filter((repo) => repo.is_saved);
+    if (targets.length === 0) return;
+    setBulkBusy(true);
+    try {
+      await Promise.all(
+        targets.map((repo) =>
+          fetch(`/api/repos/${repo.id}/save`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ saved: false }),
+          })
+        )
+      );
+      mutate();
+    } finally {
+      setBulkBusy(false);
+    }
+  }, [mutate, selectedRepos]);
+
+  const handleBulkAssignToList = useCallback(async (listId: number) => {
+    if (selectedRepos.length === 0) return;
+    setBulkBusy(true);
+    try {
+      await Promise.all(
+        selectedRepos
+          .filter((repo) => !(repo.collection_ids ?? []).includes(listId))
+          .map((repo) => assignRepoToList(repo.id, listId, true))
+      );
+      mutate();
+    } finally {
+      setBulkBusy(false);
+    }
+  }, [assignRepoToList, mutate, selectedRepos]);
+
+  const handleCompare = useCallback(() => {
+    if (selectedCount >= 2) setCompareRequested(true);
+  }, [selectedCount]);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedByFilter({ filterKey, ids: new Set() });
+    setCompareRequested(false);
+  }, [filterKey]);
+
+  const handleCompareDeselect = useCallback(
+    (repoId: number) => {
+      setSelectedByFilter((prev) => {
+        const ids =
+          prev.filterKey === filterKey ? new Set(prev.ids) : new Set<number>();
+        ids.delete(repoId);
+        return { filterKey, ids };
+      });
+    },
+    [filterKey]
+  );
+
+  const handleRemoveLanguage = useCallback(
+    (language: string) => {
+      setSelectedLanguages((prev) => (prev ?? []).filter((lang) => lang !== language));
+    },
+    [setSelectedLanguages]
+  );
 
   const handleDeleteList = useCallback(async (id: number) => {
     await deleteList(id);
@@ -354,6 +479,16 @@ function StarsContent() {
         <ScrollArea className="flex-1">
           <main className="p-4 md:p-6">
             <WeeklyActionDigest />
+            <ActiveFilterChips
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery("")}
+              selectedLanguages={selectedLanguages}
+              onRemoveLanguage={handleRemoveLanguage}
+              selectedListId={selectedListId}
+              lists={lists}
+              onClearList={() => setSelectedListId(null)}
+              onClearAll={clearFilters}
+            />
             <RepoGrid
               repos={repos}
               viewMode={viewMode}
@@ -368,10 +503,33 @@ function StarsContent() {
               hasMore={hasMore}
               loadingMore={loadingMore}
               onLoadMore={loadMore}
+              selectedRepoIds={selectedRepoIds}
+              onToggleSelect={handleToggleSelect}
+              selectionActive={selectedCount > 0}
             />
           </main>
         </ScrollArea>
       </div>
+
+      <BulkActionBar
+        selectedCount={selectedCount}
+        onClear={handleClearSelection}
+        onSaveAll={handleBulkSave}
+        onUnsaveAll={handleBulkUnsave}
+        onCompare={handleCompare}
+        onAssignToList={handleBulkAssignToList}
+        lists={lists}
+        busy={bulkBusy}
+        allSaved={allSelectedSaved}
+        noneSaved={noneSelectedSaved}
+      />
+
+      <CompareSheet
+        open={compareOpen}
+        onOpenChange={setCompareRequested}
+        repos={selectedRepos}
+        onDeselect={handleCompareDeselect}
+      />
     </>
   );
 }

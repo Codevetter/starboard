@@ -31,6 +31,9 @@ interface RepoGridProps {
   hasMore?: boolean;
   loadingMore?: boolean;
   onLoadMore?: () => void;
+  selectedRepoIds?: Set<number>;
+  onToggleSelect?: (repoId: number, selected: boolean) => void;
+  selectionActive?: boolean;
 }
 
 function SkeletonCard({ viewMode }: { viewMode: "grid" | "list" }) {
@@ -87,6 +90,9 @@ export function RepoGrid({
   hasMore,
   loadingMore,
   onLoadMore,
+  selectedRepoIds,
+  onToggleSelect,
+  selectionActive = false,
 }: RepoGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [columns, setColumns] = useState(viewMode === "grid" ? 3 : 1);
@@ -197,7 +203,7 @@ export function RepoGrid({
       )}
       <div
         ref={parentRef}
-        className={`h-[calc(100svh-65px)] overflow-auto transition-opacity duration-100${showPending ? " opacity-75" : ""}`}
+        className={`h-[calc(100svh-65px)] overflow-auto transition-opacity duration-100${showPending ? " opacity-75" : ""}${selectionActive ? " pb-24" : ""}`}
       >
         <div
           style={{
@@ -236,6 +242,8 @@ export function RepoGrid({
                     lists={lists}
                     onAssignList={onAssignList}
                     onToggleSave={onToggleSave}
+                    isSelected={selectedRepoIds?.has(repo.id) ?? false}
+                    onToggleSelect={onToggleSelect}
                   />
                 ))}
               </div>

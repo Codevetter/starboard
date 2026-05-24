@@ -6,9 +6,11 @@ import { memo } from "react";
 
 import { ListPicker } from "@/components/list-picker";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { UserList } from "@/hooks/use-lists";
 import type { UserRepo } from "@/hooks/use-starred-repos";
 import { getAvatarImageAttrs } from "@/lib/avatar";
+import { cn } from "@/lib/utils";
 
 const languageColors: Record<string, string> = {
   JavaScript: "#f1e05a",
@@ -67,6 +69,8 @@ interface RepoCardProps {
   onAssignList?: (repoId: number, listId: number, assigned: boolean) => void;
   onToggleSave?: (repoId: number, saved: boolean) => void;
   viewMode?: "grid" | "list";
+  isSelected?: boolean;
+  onToggleSelect?: (repoId: number, selected: boolean) => void;
 }
 
 export const RepoCard = memo(function RepoCard({
@@ -75,6 +79,8 @@ export const RepoCard = memo(function RepoCard({
   onAssignList,
   onToggleSave,
   viewMode = "grid",
+  isSelected = false,
+  onToggleSelect,
 }: RepoCardProps) {
   const langColor = repo.language
     ? languageColors[repo.language] ?? "#8b8b8b"
@@ -111,9 +117,32 @@ export const RepoCard = memo(function RepoCard({
     </button>
   ) : null;
 
+  const cardClassName = cn(
+    "group rounded-lg border bg-card transition-colors hover:bg-accent/50",
+    isSelected && "border-primary/60 bg-primary/5 ring-1 ring-primary/20"
+  );
+  const selectCheckbox = onToggleSelect ? (
+    <Checkbox
+      checked={isSelected}
+      onCheckedChange={(checked) => onToggleSelect(repo.id, checked === true)}
+      className="size-4 shrink-0"
+      aria-label={`Select ${repo.full_name}`}
+      onClick={(event) => event.stopPropagation()}
+    />
+  ) : null;
+
   if (viewMode === "list") {
     return (
-      <div className="group grid grid-cols-[auto_minmax(0,1fr)] gap-3 rounded-lg border bg-card p-3 transition-colors hover:bg-accent/50 sm:grid-cols-[auto_minmax(0,1fr)_auto] sm:gap-4 sm:p-4">
+      <div
+        className={cn(
+          cardClassName,
+          "grid grid-cols-[auto_auto_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:gap-4 sm:p-3.5",
+          !onToggleSelect && "grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]"
+        )}
+      >
+        {selectCheckbox && (
+          <div className="flex items-start pt-0.5">{selectCheckbox}</div>
+        )}
         <div className="shrink-0">{avatar}</div>
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
@@ -190,8 +219,9 @@ export const RepoCard = memo(function RepoCard({
   }
 
   return (
-    <div className="group flex flex-col rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50">
-      <div className="flex items-start gap-3">
+    <div className={cn(cardClassName, "flex flex-col p-3.5 sm:p-4")}>
+      <div className="flex items-start gap-2.5">
+        {selectCheckbox}
         <div className="shrink-0">{avatar}</div>
         <div className="min-w-0 flex-1">
           <Link
