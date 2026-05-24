@@ -276,10 +276,14 @@ export function WeeklyActionDigest() {
             Opportunities, risks, and suggested next actions from your library.
           </p>
         </div>
-        <div className="grid grid-cols-4 gap-1 text-center text-xs">
+        <div className="grid grid-cols-5 gap-1 text-center text-xs">
           <div className="rounded-md border px-2 py-1.5">
             <div className="font-medium">{data.summary.newlyStarred}</div>
             <div className="text-muted-foreground">New</div>
+          </div>
+          <div className="rounded-md border px-2 py-1.5">
+            <div className="font-medium">{data.summary.recentReleases}</div>
+            <div className="text-muted-foreground">Releases</div>
           </div>
           <div className="rounded-md border px-2 py-1.5">
             <div className="font-medium">{data.summary.highMomentum}</div>

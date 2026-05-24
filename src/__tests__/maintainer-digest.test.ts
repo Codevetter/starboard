@@ -100,6 +100,71 @@ describe("maintainer digest", () => {
     expect(atRisk?.items[0]?.priority).toBe("urgent");
   });
 
+  it("surfaces recently updated library repos in recent_releases group", () => {
+    const digest = buildMaintainerDigest(
+      [
+        {
+          ...baseRepo,
+          id: 6,
+          fullName: "owner/updated",
+          htmlUrl: "https://github.com/owner/updated",
+          starredAt: "2026-03-01T00:00:00Z",
+          repoUpdatedAt: "2026-04-30T00:00:00Z",
+        },
+      ],
+      now
+    );
+
+    const recentReleases = digest.groups.find((group) => group.id === "recent_releases");
+    expect(recentReleases?.items).toHaveLength(1);
+    expect(recentReleases?.items[0]?.fullName).toBe("owner/updated");
+    expect(recentReleases?.items[0]?.detail).toContain("Updated");
+    expect(digest.summary.recentReleases).toBe(1);
+  });
+
+  it("excludes newly-starred repos from recent_releases to avoid duplication", () => {
+    const digest = buildMaintainerDigest(
+      [
+        {
+          ...baseRepo,
+          id: 7,
+          fullName: "owner/new-and-updated",
+          htmlUrl: "https://github.com/owner/new-and-updated",
+          starredAt: "2026-05-07T00:00:00Z",
+          repoUpdatedAt: "2026-05-07T00:00:00Z",
+        },
+      ],
+      now
+    );
+
+    const recentReleases = digest.groups.find((group) => group.id === "recent_releases");
+    const newlyStarred = digest.groups.find((group) => group.id === "newly_starred");
+    expect(recentReleases?.items).toHaveLength(0);
+    expect(newlyStarred?.items).toHaveLength(1);
+  });
+
+  it("includes high-momentum repos not recently starred", () => {
+    const digest = buildMaintainerDigest(
+      [
+        {
+          ...baseRepo,
+          id: 8,
+          fullName: "owner/trending",
+          htmlUrl: "https://github.com/owner/trending",
+          starredAt: "2026-01-01T00:00:00Z",
+          stargazersCount: 8000,
+          starsSevenDaysAgo: 7800,
+          thresholdEventsSevenDays: 0,
+        },
+      ],
+      now
+    );
+
+    const highMomentum = digest.groups.find((group) => group.id === "high_momentum");
+    expect(highMomentum?.items).toHaveLength(1);
+    expect(highMomentum?.items[0]?.fullName).toBe("owner/trending");
+  });
+
   it("surfaces archived repos for review", () => {
     const digest = buildMaintainerDigest(
       [
