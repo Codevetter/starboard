@@ -1,9 +1,11 @@
 import { Bookmark, GitCompare, Search } from "lucide-react";
 import Link from "next/link";
 
-import { LandingHeroPreview } from "@/components/landing-hero-preview";
 import { LandingSessionRedirect } from "@/components/landing-session-redirect";
 import { SaaSMakerChangelog, SaaSMakerTestimonials } from "@/components/saasmaker-feedback";
+import { SampleStaleCleanup } from "@/components/sample-stale-cleanup";
+import { SampleStarsBoard } from "@/components/sample-stars-board";
+import { SampleWeeklyDigest } from "@/components/sample-weekly-digest";
 import { SignInButton } from "@/components/sign-in-button";
 
 export const dynamic = "force-static";
@@ -18,50 +20,60 @@ export default function Home() {
           <div className="flex min-w-0 flex-col items-start gap-6 text-left">
             <span className="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
               <span className="inline-block size-1.5 rounded-full bg-emerald-500" />
-              Semantic search across your stars
+              Ranked by what matters this week
             </span>
             <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              Repo intelligence for the things you star.
+              Know which of your GitHub stars matter right now.
             </h1>
             <p className="max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-              Starboard imports your GitHub stars, embeds them alongside the
-              top open-source projects, and lets you{" "}
-              <span className="text-foreground">scan, compare, save, and act</span>{" "}
-              — instead of forgetting them in a 2,000-row list.
+              GitHub shows you a flat list. Starboard ranks your stars by
+              recent releases, active development, and what you haven&apos;t
+              revisited — so you act on what matters, not scroll through noise.
             </p>
 
             <ul className="grid w-full gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-              <HeroPoint icon={<Search className="size-4" />}>
-                Ask in plain English, not by keyword
+              <HeroPoint icon={<span className="text-base leading-none">🟢</span>}>
+                See new releases from repos you starred
               </HeroPoint>
               <HeroPoint icon={<GitCompare className="size-4" />}>
                 Compare repos side-by-side
               </HeroPoint>
-              <HeroPoint icon={<Bookmark className="size-4" />}>
-                Save into your own collections
+              <HeroPoint icon={<Search className="size-4" />}>
+                Semantic search across all your stars
               </HeroPoint>
-              <HeroPoint icon={<span className="text-base leading-none">★</span>}>
-                Track activity on what you starred
+              <HeroPoint icon={<Bookmark className="size-4" />}>
+                Organize into tagged collections
               </HeroPoint>
             </ul>
 
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-3 pt-2">
+            <div className="flex w-full flex-col items-start gap-4 pt-2">
               <SignInButton />
-              <Link
-                href="/discover"
-                className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                or browse discover →
-              </Link>
+              <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+                <Link
+                  href="/discover"
+                  className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                >
+                  or browse public repos →
+                </Link>
+              </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Read-only access · no write scopes · revoke anytime
+              Read-only · we only read your public profile and starred repos · no write scopes · revoke anytime in GitHub settings
             </p>
           </div>
 
           <div className="relative min-w-0">
             <div className="absolute -inset-x-4 -top-6 -bottom-6 -z-10 rounded-3xl bg-gradient-to-br from-primary/15 via-transparent to-transparent blur-2xl" />
-            <LandingHeroPreview />
+            <SampleStarsBoard />
+            <div className="mt-3 flex flex-col items-center gap-2 rounded-xl border bg-card/60 px-5 py-4 text-center shadow-sm backdrop-blur">
+              <p className="text-sm text-muted-foreground">
+                Connect GitHub to see your stars ranked like this
+              </p>
+              <SignInButton />
+              <p className="text-xs text-muted-foreground">
+                Read-only · no write scopes · revoke anytime in GitHub settings
+              </p>
+            </div>
           </div>
         </section>
 
@@ -85,6 +97,28 @@ export default function Home() {
               description="Filter by language, run semantic search, and group repos into collections."
             />
           </ol>
+        </div>
+
+        {/* Stale cleanup proof */}
+        <div className="w-full max-w-3xl">
+          <h2 className="mb-2 text-center text-2xl font-bold">Turn noise into decisions</h2>
+          <p className="mb-6 text-center text-sm text-muted-foreground">
+            Starboard identifies stars you haven&apos;t touched in months, checks
+            if the repo is still alive, and gives you a one-line verdict — keep
+            or remove — so cleanup takes minutes instead of hours.
+          </p>
+          <SampleStaleCleanup />
+        </div>
+
+        {/* Weekly digest preview */}
+        <div className="w-full max-w-4xl">
+          <h2 className="mb-2 text-center text-2xl font-bold">Never miss what matters in your stars</h2>
+          <p className="mb-6 text-center text-sm text-muted-foreground">
+            Starboard watches every repo you&apos;ve starred and delivers a ranked
+            weekly digest — releases, momentum shifts, and dormant gems that
+            just came back to life.
+          </p>
+          <SampleWeeklyDigest />
         </div>
 
         {/* Testimonials */}

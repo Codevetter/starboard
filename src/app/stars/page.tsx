@@ -1,5 +1,7 @@
 "use client";
 
+import { Bookmark, GitCompare, Search, Tag } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
@@ -442,25 +444,9 @@ function StarsContent() {
       {!reposLoading && total === 0 && !hasActiveFilters && syncing && (
         <SyncAnimation />
       )}
-
       {!reposLoading && total === 0 && !hasActiveFilters && !syncing && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4 p-8 text-center">
-          <svg viewBox="0 0 24 24" className="size-12 fill-muted-foreground/30" aria-hidden="true">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-          </svg>
-          <p className="text-lg font-medium">No library repos yet</p>
-          <p className="text-sm text-muted-foreground">
-            Sync your GitHub stars or save repos from Discover to get started.
-          </p>
-          <button
-            onClick={sync}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            Sync now
-          </button>
-        </div>
+        <EmptyState onSync={sync} syncing={syncing} />
       )}
-
       <div className="flex min-h-0 flex-1">
         <aside className="hidden w-[280px] shrink-0 border-r md:block">
           {sidebarContent}
@@ -531,5 +517,72 @@ function StarsContent() {
         onDeselect={handleCompareDeselect}
       />
     </>
+  );
+}
+
+function EmptyState({ onSync, syncing }: { onSync: () => void; syncing: boolean }) {
+  return (
+    <div className="flex w-full flex-1 flex-col items-center justify-center p-6 text-center">
+      <div className="flex max-w-xl flex-col items-center gap-6 text-center">
+        <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+          Your GitHub stars, organized and searchable.
+        </h1>
+        <p className="max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
+          Stop losing track of interesting repos. Starboard turns your
+          stars into a personal, searchable library so you can find what
+          you need, when you need it.
+        </p>
+
+        <ul className="grid w-full max-w-md gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+          <HeroPoint icon={<Search className="size-4" />}>
+            Ask in plain English, not by keyword
+          </HeroPoint>
+          <HeroPoint icon={<GitCompare className="size-4" />}>
+            Compare repos side-by-side
+          </HeroPoint>
+          <HeroPoint icon={<Bookmark className="size-4" />}>
+            Save into your own collections
+          </HeroPoint>
+          <HeroPoint icon={<span className="text-base leading-none">★</span>}>
+            Track activity on what you starred
+          </HeroPoint>
+        </ul>
+
+        <div className="flex w-full flex-col items-center gap-4 pt-2">
+          <button
+            onClick={onSync}
+            disabled={syncing}
+            className="h-11 rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+          >
+            Sync stars
+          </button>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+            <Link
+              href="/discover"
+              className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            >
+              or browse public repos →
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroPoint({
+  icon,
+  children,
+}: {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
+      <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        {icon}
+      </span>
+      <span className="text-foreground/90">{children}</span>
+    </li>
   );
 }

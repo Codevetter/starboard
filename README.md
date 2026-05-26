@@ -140,3 +140,24 @@ smallest relevant database script or Cloudflare build:
 pnpm db:migrate
 pnpm build:cf
 ```
+
+<!-- ACTIVE-AI-TASK-LOG:START -->
+## Active AI Task Log
+
+This section is maintained by the SaaS Maker Active-AI product/design loop so future agents do not reopen duplicate UI tasks.
+
+- Business lane: P0 Can make money
+- Rule: do not create another broad "improve the UI" task unless the acceptance criteria differ materially from the tasks listed here.
+- Source of truth for task status: SaaS Maker task board. README entries are durable context only.
+
+| Task | Status | Priority | Last known note |
+| --- | --- | --- | --- |
+| `9e6e8441` starboard: review and ship local onboarding UI change | done | medium | 2026-05-25 18:56:07 |
+| `b019da19` starboard: first-run UX needs obvious value + GitHub sign-in CTA | done | medium | 2026-05-25 17:09:26 |
+| `5c5f9479` starboard: show a sample prioritized stars board | done | high | 2026-05-26 |
+| `e187b3a9` starboard: add why-this-repo-is-hot explanation | done | high | 2026-05-26 |
+| `cd76368b` starboard: add weekly digest preview | done | high | 2026-05-26 |
+| `5a0a8e62` starboard: add stale-star cleanup proof | done | medium | 2026-05-26 |
+| `b3d3b34c` starboard: add GitHub permission trust note | done | medium | 2026-05-26 |
+| `14253981` starboard: add paid weekly intelligence digest preview | done | high | 2026-05-26 |
+<!-- ACTIVE-AI-TASK-LOG:END -->
