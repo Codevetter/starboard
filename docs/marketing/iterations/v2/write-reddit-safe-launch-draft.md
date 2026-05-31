@@ -51,7 +51,7 @@ This is early. Honest signal on whether the intelligence is actually useful:
 
 ### Disclosure
 
-I'm the solo developer (with heavy AI assistance on implementation per the project's own README). Starboard is a personal tool I built because my own star list had become a black hole. It's deployed on Cloudflare Workers + Turso, uses Cloudflare Workers AI for embeddings, and the source is public at https://github.com/sarthakagrawal927/starboard (or current repo).
+I'm the solo developer (with heavy AI assistance on implementation per the project's own README). Starboard is a personal tool I built because my own star list had become a black hole. It's deployed on Cloudflare Workers + Turso, uses Cloudflare Workers AI for embeddings, and the source is public at https://github.com/sarthak-fleet/starboard (or current repo).
 
 Core sync + search + radar is free. There are previews of deeper paid weekly action digests in the UI. No dark patterns, no "growth hacks."
 
