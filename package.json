@@ -15,8 +15,8 @@
     "db:enrich-repos": "tsx scripts/enrich-repos.ts",
     "db:seed-popular": "tsx scripts/seed-popular.ts",
     "weekly:threshold-digest": "tsx scripts/weekly-threshold-digest.ts",
-    "cf:build": "next build --webpack && opennextjs-cloudflare build --skipNextBuild",
-    "build:cf": "next build --webpack && opennextjs-cloudflare build --skipNextBuild",
+    "cf:build": "next build --webpack && node scripts/inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local",
+    "build:cf": "next build --webpack && node scripts/inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local",
     "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview",
     "deploy:cf": "pnpm build:cf && opennextjs-cloudflare deploy",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
@@ -41,12 +41,12 @@
     "next-auth": "5.0.0-beta.31",
     "next-themes": "0.4.6",
     "nuqs": "2.8.9",
+    "posthog-js": "^1.372.1",
     "radix-ui": "1.4.3",
     "react": "19.2.5",
     "react-dom": "19.2.5",
     "swr": "2.4.1",
-    "tailwind-merge": "3.5.0",
-    "posthog-js": "^1.372.1"
+    "tailwind-merge": "3.5.0"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "1.19.4",
@@ -58,6 +58,7 @@
     "@types/react": "19",
     "@types/react-dom": "19",
     "babel-plugin-react-compiler": "1.0.0",
+    "beasties": "^0.4.2",
     "eslint": "10.2.1",
     "eslint-config-next": "16.2.4",
     "husky": "9.1.7",
