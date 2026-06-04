@@ -51,6 +51,26 @@ export default {
       return openNext.fetch(request, env, ctx);
     }
 
+    // Short-circuit: the Astro landing is overlaid into
+    // `.open-next/assets/index.html` by `scripts/overlay-astro-landing.mjs`.
+    // For anon GET /, serve straight from the assets binding instead of
+    // booting the full OpenNext stack (next-server, middleware handler,
+    // Beasties pipeline, etc.). Cuts TTFB from ~250ms to ~30ms.
+    if (env.ASSETS) {
+      const assetResp = await env.ASSETS.fetch(request);
+      if (assetResp.ok) {
+        const body = await assetResp.arrayBuffer();
+        const headers = new Headers(assetResp.headers);
+        headers.set("Cache-Control", CACHE_CONTROL);
+        headers.set("x-edge-cache", "ASSET");
+        return new Response(body, {
+          status: assetResp.status,
+          statusText: assetResp.statusText,
+          headers,
+        });
+      }
+    }
+
     const cache = caches.default;
     const cached = await cache.match(request);
     if (cached) {

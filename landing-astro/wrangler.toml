@@ -1,0 +1,10 @@
+# Cloudflare Pages config for the starboard landing-astro project.
+#
+# This is a pure-static deploy (output: "static" in astro.config.mjs).
+# In production, this dist/ is overlaid into starboard's
+# `.open-next/assets/` by `scripts/overlay-astro-landing.mjs`, so the
+# single Worker serves it for `/` via the ASSETS binding. This Pages
+# config is kept around for stand-alone preview only.
+name = "starboard-landing"
+compatibility_date = "2026-06-04"
+pages_build_output_dir = "dist"

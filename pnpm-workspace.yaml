@@ -1,0 +1,10 @@
+packages:
+  - "."
+  - "landing-astro"
+
+# Pin packages that were published in the last 24h so the
+# supply-chain policy on `pnpm install --frozen-lockfile` doesn't
+# reject the lockfile. Bump these as they age past the cutoff.
+overrides:
+  rollup: 4.60.2
+  wrangler: 4.85.0

@@ -1,0 +1,162 @@
+---
+import Layout from '@/layouts/Layout.astro';
+
+// Starboard landing — Astro static port of `src/app/page.tsx`.
+//
+// Scoped to the LCP-critical surface only: hero (h1 + sub + 4 value
+// props) and the GitHub sign-in CTA. The deeper sections from the
+// Next.js page (sample stars board, how-it-works, weekly digest,
+// testimonials, changelog) are intentionally omitted — they don't
+// affect LCP and pulling them in would re-introduce the lucide-react
+// + saas-maker widget chains that the Next.js build was racing.
+//
+// Sign-in is a plain `<a>` to NextAuth v5's default sign-in page
+// (`/api/auth/signin?callbackUrl=/stars`). NextAuth handles CSRF on the
+// follow-up POST, so no JS is needed on the landing.
+
+const TITLE = 'Starboard — Your GitHub stars, organized';
+const DESCRIPTION =
+  'Sync, search, and organize your GitHub stars. Filter by language, find similar repos with semantic search, and group everything into collections.';
+---
+
+<Layout title={TITLE} description={DESCRIPTION}>
+  <div
+    class="flex min-h-svh w-full flex-col items-center overflow-x-hidden"
+    style="background-color: oklch(0.1 0 0);"
+  >
+    <main
+      class="flex w-full max-w-6xl flex-col items-center gap-16 overflow-x-hidden px-5 py-12 sm:px-6 sm:py-20"
+      style="font-family: var(--font-geist-sans);"
+    >
+      <section class="grid w-full items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-14">
+        <div class="flex min-w-0 flex-col items-start gap-6 text-left">
+          <span class="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
+            <span class="inline-block size-1.5 rounded-full bg-emerald-500"></span>
+            Ranked by what matters this week
+          </span>
+
+          <h1 class="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+            Know which of your GitHub stars matter right now.
+          </h1>
+
+          <p class="max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
+            GitHub shows you a flat list. Starboard ranks your stars by
+            recent releases, active development, and what you haven&apos;t
+            revisited — so you act on what matters, not scroll through noise.
+          </p>
+
+          <ul class="grid w-full gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <span class="text-base leading-none">🟢</span>
+              </span>
+              <span class="text-foreground/90">See new releases from repos you starred</span>
+            </li>
+            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                {/* GitCompare icon — inlined to avoid a lucide-react chunk on LCP. */}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="size-4"
+                  aria-hidden="true"
+                >
+                  <circle cx="18" cy="18" r="3" />
+                  <circle cx="6" cy="6" r="3" />
+                  <path d="M13 6h3a2 2 0 0 1 2 2v7" />
+                  <line x1="6" y1="9" x2="6" y2="21" />
+                </svg>
+              </span>
+              <span class="text-foreground/90">Compare repos side-by-side</span>
+            </li>
+            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="size-4"
+                  aria-hidden="true"
+                >
+                  <circle cx="11" cy="11" r="8" />
+                  <path d="m21 21-4.3-4.3" />
+                </svg>
+              </span>
+              <span class="text-foreground/90">Semantic search across all your stars</span>
+            </li>
+            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  class="size-4"
+                  aria-hidden="true"
+                >
+                  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
+                </svg>
+              </span>
+              <span class="text-foreground/90">Organize into tagged collections</span>
+            </li>
+          </ul>
+
+          <div class="flex w-full flex-col items-start gap-4 pt-2">
+            {/* NextAuth v5 sign-in URL — preserves the same destination
+               (`/stars`) that the React `<SignInButton />` used. */}
+            <a
+              href="/api/auth/signin?callbackUrl=%2Fstars"
+              class="inline-flex h-12 items-center justify-center gap-3 rounded-md bg-primary px-8 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                class="size-5"
+                aria-hidden="true"
+              >
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
+              </svg>
+              Sign in with GitHub
+            </a>
+            <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
+              <a
+                href="/discover"
+                class="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+              >
+                or browse public repos →
+              </a>
+            </div>
+          </div>
+
+          <p class="text-xs text-muted-foreground">
+            Read-only · we only read your public profile and starred repos · no write scopes · revoke anytime in GitHub settings
+          </p>
+        </div>
+
+        {/* Right-column ambient gradient — mirrors the Next.js hero
+           layout so the two columns visually balance. The
+           SampleStarsBoard component is intentionally not ported (would
+           add ~6kb of inline markup and isn't LCP-critical). */}
+        <div class="relative min-w-0 hidden lg:block">
+          <div
+            class="absolute -inset-x-4 -top-6 -bottom-6 -z-10 rounded-3xl blur-2xl"
+            style="background: linear-gradient(to bottom right, oklch(0.488 0.243 264.376 / 0.15), transparent 50%, transparent);"
+          ></div>
+          <div class="aspect-[5/4] w-full rounded-2xl border bg-card/40 shadow-xl shadow-black/30"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</Layout>
