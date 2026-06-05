@@ -1,5 +1,7 @@
 ---
 import '@/styles/landing.css';
+import '@fontsource-variable/geist';
+import '@fontsource-variable/geist-mono';
 
 interface Props {
   title: string;
@@ -44,38 +46,22 @@ const OG_IMAGE = `${SITE_URL}/opengraph-image`;
     <meta name="twitter:image" content={OG_IMAGE} />
 
     {/* ── Fonts ────────────────────────────────────────────────────
-       Only Geist (the LCP-h1 face) is on the critical path. Preload
-       + media=print swap pattern so the stylesheet never blocks first
-       paint; <noscript> fallback covers no-JS clients. Geist Mono is
-       loaded as part of the same Google Fonts request because the
-       browser dedupes the css2 fetch, but it's not LCP-critical. */}
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
-      media="print"
-      onload="this.media='all'"
-    />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
-      />
-    </noscript>
+       Self-hosted via @fontsource-variable/{geist,geist-mono} (imported
+       in the frontmatter). Astro/Vite inlines the @font-face into the
+       page CSS and serves the woff2 from /_astro/ same-origin, so there
+       is no external CSS fetch on the LCP path. font-display: swap is
+       preserved by Fontsource. Only Geist (the LCP-h1 face) is the
+       critical path; Geist Mono is shipped alongside but is not
+       LCP-critical. */}
 
     {/* Wire the same CSS vars Next.js's next/font sets up, so any
        Tailwind class using --font-geist-sans / --font-geist-mono keeps
-       working without a rebuild. */}
+       working without a rebuild. Fontsource registers the families as
+       'Geist Variable' / 'Geist Mono Variable'. */}
     <style is:inline>
       :root {
-        --font-geist-sans: 'Geist', system-ui, -apple-system, sans-serif;
-        --font-geist-mono: 'Geist Mono', ui-monospace, Menlo, monospace;
+        --font-geist-sans: 'Geist Variable', system-ui, -apple-system, sans-serif;
+        --font-geist-mono: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
       }
       html.dark { color-scheme: dark; }
       body { margin: 0; }
