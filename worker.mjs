@@ -56,14 +56,41 @@ export default {
     // For anon GET /, serve straight from the assets binding instead of
     // booting the full OpenNext stack (next-server, middleware handler,
     // Beasties pipeline, etc.). Cuts TTFB from ~250ms to ~30ms.
+    //
+    // The Workers Static Assets binding does NOT auto-compress its
+    // responses (Lighthouse flagged ~80 KB wasted on uncompressed HTML
+    // even with CF Edge cache HIT). Compress with gzip here so the
+    // response — and the downstream CF Edge cache entry — is small.
     if (env.ASSETS) {
       const assetResp = await env.ASSETS.fetch(request);
-      if (assetResp.ok) {
-        const body = await assetResp.arrayBuffer();
+      if (assetResp.ok && assetResp.body) {
+        const acceptEnc = request.headers.get("accept-encoding") ?? "";
+        const wantsGzip = acceptEnc.includes("gzip");
         const headers = new Headers(assetResp.headers);
         headers.set("Cache-Control", CACHE_CONTROL);
         headers.set("x-edge-cache", "ASSET");
-        return new Response(body, {
+
+        if (wantsGzip && !headers.has("content-encoding")) {
+          headers.set("content-encoding", "gzip");
+          headers.delete("content-length");
+          // `Vary: Accept-Encoding` so a future no-encoding client
+          // gets a separately negotiated entry.
+          const vary = headers.get("vary");
+          headers.set(
+            "vary",
+            vary ? `${vary}, Accept-Encoding` : "Accept-Encoding",
+          );
+          return new Response(
+            assetResp.body.pipeThrough(new CompressionStream("gzip")),
+            {
+              status: assetResp.status,
+              statusText: assetResp.statusText,
+              headers,
+            },
+          );
+        }
+
+        return new Response(assetResp.body, {
           status: assetResp.status,
           statusText: assetResp.statusText,
           headers,
