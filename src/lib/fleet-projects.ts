@@ -96,8 +96,10 @@ const GENERIC_TOKENS = new Set([
   "app",
   "apps",
   "and",
+  "any",
   "are",
   "auth",
+  "based",
   "build",
   "built",
   "code",
@@ -106,8 +108,10 @@ const GENERIC_TOKENS = new Set([
   "data",
   "dev",
   "docs",
+  "done",
   "for",
   "from",
+  "generated",
   "github",
   "helper",
   "http",
@@ -115,27 +119,39 @@ const GENERIC_TOKENS = new Set([
   "into",
   "local",
   "main",
+  "many",
+  "more",
+  "next",
+  "one",
+  "open",
   "platform",
+  "platform.",
   "project",
   "projects",
+  "public",
   "repo",
   "repos",
   "service",
   "source",
+  "stack",
   "system",
   "that",
   "the",
+  "them",
   "tool",
   "tools",
   "type",
   "typed",
   "typescript",
   "use",
+  "uses",
+  "using",
   "user",
   "users",
   "via",
   "web",
   "with",
+  "your",
 ]);
 
 const LOW_VALUE_MATCH_TERMS = new Set([
@@ -144,6 +160,8 @@ const LOW_VALUE_MATCH_TERMS = new Set([
   "interactive",
   "model",
   "models",
+  "next",
+  "react",
   "runtime",
   "system",
   "systems",
@@ -153,6 +171,22 @@ const LOW_VALUE_MATCH_TERMS = new Set([
   "users",
   "workflow",
   "workflows",
+]);
+
+const LOW_VALUE_PROJECT_OVERLAP = new Set([
+  ...GENERIC_TOKENS,
+  "actions",
+  "api",
+  "core",
+  "deploy",
+  "google",
+  "node",
+  "openai",
+  "product",
+  "software",
+  "storage",
+  "worker",
+  "workers",
 ]);
 
 const FEATURE_RULES: Omit<FleetFeatureArea, "source">[] = [
@@ -468,7 +502,10 @@ function scoreCandidateForFeature(
   const strongFeatureTerms = matchedFeatureTerms.filter(
     (term) => !LOW_VALUE_MATCH_TERMS.has(term.toLowerCase())
   );
-  const projectOverlap = projectTokens.filter((token) => tokenOrPhraseMatch(candidateText, token)).slice(0, 8);
+  const projectOverlap = projectTokens
+    .filter((token) => !LOW_VALUE_PROJECT_OVERLAP.has(token))
+    .filter((token) => tokenOrPhraseMatch(candidateText, token))
+    .slice(0, 8);
   const semanticDistance = semanticDistances.get(semanticKey(candidate.id, featureArea.id)) ?? null;
   const cautions = repoCautions(candidate, now);
   const reasons: string[] = [];
@@ -524,6 +561,7 @@ function scoreCandidateForFeature(
   score += freshnessScore(candidate.repoUpdatedAt, now);
   if (candidate.isSaved) score += 4;
 
+  if (isCuratedListRepo(candidate)) score -= 18;
   if (candidate.archived) score -= 60;
   if (cautions.some((caution) => caution.includes("quiet"))) score -= 14;
   if (!candidate.description && candidate.topics.length === 0) score -= 12;
@@ -631,10 +669,23 @@ function freshnessScore(repoUpdatedAt: string | null, now: Date): number {
 function repoCautions(candidate: FleetRepoCandidate, now: Date): string[] {
   const cautions: string[] = [];
   const ageDays = daysSince(candidate.repoUpdatedAt, now);
+  if (isCuratedListRepo(candidate)) cautions.push("curated list, not an implementation");
   if (candidate.archived) cautions.push("archived");
   if (ageDays !== null && ageDays > 365) cautions.push("quiet for 12 months");
   if (!candidate.description && candidate.topics.length === 0) cautions.push("sparse metadata");
   return cautions;
+}
+
+function isCuratedListRepo(candidate: FleetRepoCandidate): boolean {
+  const text = [
+    candidate.name,
+    candidate.fullName,
+    candidate.description ?? "",
+    ...candidate.topics,
+  ]
+    .join(" ")
+    .toLowerCase();
+  return /\bawesome[-\s]/.test(text) || text.includes("awesome-list");
 }
 
 function actionForScore(score: number, cautions: string[]): FleetRecommendationAction {
