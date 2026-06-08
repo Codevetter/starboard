@@ -304,6 +304,11 @@ async function embedPending(db: Client, limit: number): Promise<number> {
   return toEmbed.length;
 }
 
+function isEmbeddingAuthError(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  return /Embedding API error 401|invalid_api_key|Unauthorized/i.test(err.message);
+}
+
 async function loadCursor(db: Client) {
   const r = await executeDb(db, "SELECT * FROM seed_cursor WHERE id = 1");
   if (r.rows.length === 0) {
@@ -394,7 +399,20 @@ async function main() {
   await walkAndUpsert(db, ghToken);
 
   console.info(`[embed] generating up to ${DAILY_LIMIT} embeddings`);
-  const embedded = await embedPending(db, DAILY_LIMIT);
+  let embedded = 0;
+  try {
+    embedded = await embedPending(db, DAILY_LIMIT);
+  } catch (err) {
+    if (!isEmbeddingAuthError(err)) throw err;
+    console.warn(
+      "[embed] skipped: AI gateway authentication failed. Repo seeding completed; rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings."
+    );
+    if (process.env.GITHUB_ACTIONS) {
+      console.warn(
+        "::warning title=Starboard embeddings skipped::AI gateway authentication failed after repo seeding completed. Rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings."
+      );
+    }
+  }
   console.info(`[embed] generated ${embedded} embeddings`);
 
   const totals = await executeDb(
