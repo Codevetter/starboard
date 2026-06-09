@@ -1,6 +1,6 @@
 # Project Status
 
-Last updated: 2026-06-06
+Last updated: 2026-06-09
 
 ## Current Scope
 
@@ -16,13 +16,14 @@ Starboard organizes, searches, and rediscovers a user's GitHub starred repositor
 - Scheduled Actions seed and enrich popular repositories for discovery surfaces.
 - My Projects is implemented as a Starboard helper workflow: a local snapshot extractor reads current fleet project context, and production Starboard ranks the user's saved/starred repositories against each project.
 - Project recommendations are grouped by inferred feature area, suppress dependencies already used by the selected project, and use deterministic scoring with optional embedding-distance boosts when repo embeddings are available.
+- OSS recommendation integrations were evaluated in `docs/oss-integration-evaluation.md`; the current decision is no new search/vector dependency yet, and the next slice is a fixture-backed RRF-style ranking eval inside the existing Turso/Workers AI flow.
 - Audit residuals and operational risks are documented.
 
 ## Planned Next
 
 1. Stabilize scheduled Actions so seed/enrichment and digest workflows stay green.
 2. Add a checked-in `.env.example` that documents required local variables without secrets.
-3. Improve project recommendation explainability with better feature-area labels and stronger use-case summaries.
+3. Add a fixture-backed My Projects ranking evaluation harness before changing recommendation scoring.
 4. Keep sync, tag, collection, and project recommendation flows fast enough for large star libraries.
 
 ## Deferred / Parked
