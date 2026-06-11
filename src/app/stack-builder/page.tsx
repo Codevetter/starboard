@@ -188,6 +188,7 @@ function StackBuilderContent() {
   const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""));
   const [saving, setSaving] = useState(false);
   const [savedListId, setSavedListId] = useState<number | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const language = searchParams.get("language")?.trim() ?? "";
   const listId = searchParams.get("list_id")?.trim() ?? "";
   const apiUrl = useMemo(() => {
@@ -246,6 +247,7 @@ function StackBuilderContent() {
     if (report.selectedRepoIds.length === 0 || saving) return;
     setSaving(true);
     setSavedListId(null);
+    setSaveError(null);
     try {
       const listResponse = await fetch("/api/lists", {
         method: "POST",
@@ -258,7 +260,7 @@ function StackBuilderContent() {
       });
       if (!listResponse.ok) throw new Error(`${listResponse.status}`);
       const list = (await listResponse.json()) as { id: number };
-      await Promise.all(
+      const responses = await Promise.all(
         report.selectedRepoIds.map((repoId) =>
           fetch(`/api/repos/${repoId}/list`, {
             method: "PUT",
@@ -267,7 +269,17 @@ function StackBuilderContent() {
           })
         )
       );
+      const failed = responses.find((response) => !response.ok);
+      if (failed) {
+        throw new Error(`Failed to assign one or more repos (${failed.status})`);
+      }
       setSavedListId(list.id);
+    } catch (error) {
+      setSaveError(
+        error instanceof Error
+          ? error.message
+          : "Failed to save the selected stack repositories."
+      );
     } finally {
       setSaving(false);
     }
@@ -356,6 +368,11 @@ function StackBuilderContent() {
         {savedListId !== null && (
           <div className="rounded-md border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
             Saved selected stack repositories to list #{savedListId}.
+          </div>
+        )}
+        {saveError !== null && (
+          <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300">
+            {saveError}
           </div>
         )}
       </section>

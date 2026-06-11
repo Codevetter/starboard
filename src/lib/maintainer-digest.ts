@@ -176,7 +176,7 @@ function buildAtRiskItem(
 ): DigestItem {
   const updateAge = daysBetween(now, repo.repoUpdatedAt);
   const delta = starDelta(repo);
-  let detail = `Saved repo last updated ${updateAge}.`;
+  let detail = `Saved repo last updated ${formatAge(updateAge)}.`;
   let actionLabel = repo.archived ? "Archive or remove" : "Review saved status";
   let priority: "watch" | "urgent" = repo.archived ? "urgent" : "watch";
 
