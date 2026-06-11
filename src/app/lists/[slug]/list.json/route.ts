@@ -99,7 +99,9 @@ export async function GET(
     },
     {
       headers: {
-        "Cache-Control": "public, s-maxage=300, stale-while-revalidate=900",
+        // Public list visibility can be revoked, so do not let CDN caches
+        // serve stale public copies after the owner makes the list private.
+        "Cache-Control": "private, no-store",
       },
     },
   );
