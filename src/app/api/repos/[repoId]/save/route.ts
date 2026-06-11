@@ -19,7 +19,12 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid repo ID" }, { status: 400 });
   }
 
-  const body = (await request.json()) as { saved?: unknown };
+  let body: { saved?: unknown };
+  try {
+    body = (await request.json()) as { saved?: unknown };
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const isSaved = Boolean(body.saved);
 
   await db.execute({
