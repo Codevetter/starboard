@@ -30,22 +30,25 @@ export function useLists() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, color }),
     });
+    if (!res.ok) throw new Error(`Failed to create list (${res.status})`);
     const list = await res.json();
     mutate();
     return list;
   };
 
   const updateList = async (id: number, updates: Partial<Pick<UserList, "name" | "color" | "icon" | "position">>) => {
-    await fetch(`/api/lists/${id}`, {
+    const res = await fetch(`/api/lists/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
     });
+    if (!res.ok) throw new Error(`Failed to update list (${res.status})`);
     mutate();
   };
 
   const deleteList = async (id: number) => {
-    await fetch(`/api/lists/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/lists/${id}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(`Failed to delete list (${res.status})`);
     mutate();
   };
 
