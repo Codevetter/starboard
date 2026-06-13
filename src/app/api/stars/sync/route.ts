@@ -98,7 +98,10 @@ export async function POST() {
         ],
       });
       statements.push({
-        sql: "INSERT INTO repo_star_snapshots (repo_id, stargazers_count) VALUES (?, ?)",
+        sql: `INSERT INTO repo_star_snapshots (repo_id, stargazers_count)
+              VALUES (?, ?)
+              ON CONFLICT(repo_id, captured_at) DO UPDATE SET
+                stargazers_count = excluded.stargazers_count`,
         args: [repo.id, repo.stargazers_count],
       });
     }
