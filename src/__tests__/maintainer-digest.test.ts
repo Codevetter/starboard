@@ -186,4 +186,25 @@ describe("maintainer digest", () => {
     expect(atRisk?.items[0]?.actionLabel).toBe("Archive or remove");
     expect(atRisk?.items[0]?.priority).toBe("urgent");
   });
+
+  it("formats stale saved repos with a readable age", () => {
+    const digest = buildMaintainerDigest(
+      [
+        {
+          ...baseRepo,
+          id: 9,
+          fullName: "owner/stale-readable",
+          htmlUrl: "https://github.com/owner/stale-readable",
+          isSaved: true,
+          isStarred: false,
+          repoUpdatedAt: "2024-01-01T00:00:00Z",
+        },
+      ],
+      now
+    );
+
+    const atRisk = digest.groups.find((group) => group.id === "at_risk");
+    expect(atRisk?.items[0]?.detail).toMatch(/last updated .*ago\./);
+    expect(atRisk?.items[0]?.detail).not.toMatch(/\b\d{3,}\b/);
+  });
 });
