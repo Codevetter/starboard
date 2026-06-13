@@ -21,7 +21,12 @@ export async function POST(
     return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
   }
 
-  const body = (await request.json()) as { value?: unknown };
+  let body: { value?: unknown };
+  try {
+    body = (await request.json()) as { value?: unknown };
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const value = body?.value;
   if (value !== 1 && value !== -1) {
     return NextResponse.json(
