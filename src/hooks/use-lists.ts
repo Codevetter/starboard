@@ -50,11 +50,12 @@ export function useLists() {
   };
 
   const assignRepoToList = async (repoId: number, listId: number, assigned: boolean) => {
-    await fetch(`/api/repos/${repoId}/list`, {
+    const res = await fetch(`/api/repos/${repoId}/list`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ listId, assigned }),
     });
+    if (!res.ok) throw new Error(`Failed to assign repo to list (${res.status})`);
   };
 
   const shareList = async (id: number) => {
