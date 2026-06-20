@@ -21,8 +21,8 @@
     "fleet:audit-recommendation-context": "tsx scripts/audit-fleet-recommendation-context.ts",
     "fleet:extract-projects": "tsx scripts/extract-fleet-projects.ts",
     "weekly:threshold-digest": "tsx scripts/weekly-threshold-digest.ts",
-    "cf:build": "next build --webpack && astro-landing inline-css && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local && pnpm --filter ./landing-astro build && astro-landing overlay",
-    "build:cf": "next build --webpack && astro-landing inline-css && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local && pnpm --filter ./landing-astro build && astro-landing overlay",
+    "cf:build": "next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
+    "build:cf": "next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
     "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview",
     "deploy:cf": "pnpm build:cf && opennextjs-cloudflare deploy",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
@@ -56,18 +56,19 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.0",
     "@opennextjs/cloudflare": "1.19.4",
-    "@saas-maker/eslint-config": "^1.0.4",
-    "@saas-maker/prettier-config": "^1.0.0",
-    "@saas-maker/tsconfig": "^1.0.0",
     "@tailwindcss/postcss": "4",
     "@types/node": "25.6.0",
     "@types/react": "19",
     "@types/react-dom": "19",
     "babel-plugin-react-compiler": "1.0.0",
-    "@saas-maker/astro-landing": "file:../saas-maker/packages/tooling/astro-landing",
+    "beasties": "^0.3.5",
     "eslint": "10.2.1",
     "eslint-config-next": "16.2.4",
+    "eslint-config-prettier": "10.1.8",
+    "eslint-plugin-simple-import-sort": "13.0.0",
     "husky": "9.1.7",
+    "prettier": "3.8.3",
+    "prettier-plugin-tailwindcss": "0.8.0",
     "shadcn": "4.4.0",
     "tailwindcss": "4",
     "tsx": "^4.21.0",
@@ -76,7 +77,6 @@
     "vitest": "4.1.5",
     "wrangler": "4.85.0"
   },
-  "prettier": "@saas-maker/prettier-config",
   "pnpm": {
     "patchedDependencies": {
       "eslint-plugin-react@7.37.5": "patches/eslint-plugin-react@7.37.5.patch"

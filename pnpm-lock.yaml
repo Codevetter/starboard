@@ -81,9 +81,9 @@ importers:
       '@opennextjs/cloudflare':
         specifier: 1.19.4
         version: 1.19.4(next@16.2.4(@babel/core@7.29.0)(@opentelemetry/api@1.9.1)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.5(react@19.2.5))(react@19.2.5))(wrangler@4.85.0)
-      '@saas-maker/eslint-config':
-        specifier: ^1.0.4
-        version: 1.0.4(@typescript-eslint/parser@8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint-config-next@16.2.4(@typescript-eslint/parser@8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3)
+      '@saas-maker/astro-landing':
+        specifier: file:../saas-maker/packages/tooling/astro-landing
+        version: file:../saas-maker/packages/tooling/astro-landing
       '@saas-maker/prettier-config':
         specifier: ^1.0.0
         version: 1.0.0
@@ -105,15 +105,18 @@ importers:
       babel-plugin-react-compiler:
         specifier: 1.0.0
         version: 1.0.0
-      beasties:
-        specifier: ^0.4.2
-        version: 0.4.2
       eslint:
         specifier: 10.2.1
         version: 10.2.1(jiti@2.6.1)
       eslint-config-next:
         specifier: 16.2.4
         version: 16.2.4(@typescript-eslint/parser@8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3)
+      eslint-config-prettier:
+        specifier: 10.1.8
+        version: 10.1.8(eslint@10.2.1(jiti@2.6.1))
+      eslint-plugin-simple-import-sort:
+        specifier: 13.0.0
+        version: 13.0.0(eslint@10.2.1(jiti@2.6.1))
       husky:
         specifier: 9.1.7
         version: 9.1.7
@@ -1069,15 +1072,6 @@ packages:
   '@eslint/core@1.2.1':
     resolution: {integrity: sha512-MwcE1P+AZ4C6DWlpin/OmOA54mmIZ/+xZuJiQd4SyB29oAJjN30UW9wkKNptW2ctp4cEsvhlLY/CsQ1uoHDloQ==}
     engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-
-  '@eslint/js@10.0.1':
-    resolution: {integrity: sha512-zeR9k5pd4gxjZ0abRoIaxdc7I3nDktoXZk2qOv9gCNWx3mVwEn32VRhyLaRsDiJjTs0xq/T8mfPtyuXu7GWBcA==}
-    engines: {node: ^20.19.0 || ^22.13.0 || >=24}
-    peerDependencies:
-      eslint: ^10.0.0
-    peerDependenciesMeta:
-      eslint:
-        optional: true
 
   '@eslint/object-schema@3.0.5':
     resolution: {integrity: sha512-vqTaUEgxzm+YDSdElad6PiRoX4t8VGDjCtt05zn4nU810UIx/uNEV7/lZJ6KwFThKZOzOxzXy48da+No7HZaMw==}
@@ -2643,25 +2637,15 @@ packages:
   '@rtsao/scc@1.1.0':
     resolution: {integrity: sha512-zt6OdqaDoOnJ1ZYsCYGt9YmWzDXl4vQdKTyJev62gFhRGKdx7mcT54V9KIjg+d2wi9EXsPvAPKe7i7WjfVWB8g==}
 
+  '@saas-maker/astro-landing@file:../saas-maker/packages/tooling/astro-landing':
+    resolution: {directory: ../saas-maker/packages/tooling/astro-landing, type: directory}
+    hasBin: true
+
   '@saas-maker/changelog-widget@0.2.1':
     resolution: {integrity: sha512-tAQb6hr5mOzbyQxKUNWePlllsdNDquHW0G2FG7u9Um2BzgNNi8WF94M5Khz/SlvVoSYvKl1yMFX6sxnj07kynw==}
     peerDependencies:
       react: '>=18'
       react-dom: '>=18'
-
-  '@saas-maker/eslint-config@1.0.4':
-    resolution: {integrity: sha512-k7xjpLoTpNyaE3wYvGetc+Zw3ib7n4AR1LXPOngLtAw/GNfMNexMsrFxmtglSBwMao9xCeYOQw+DRVLYXuGKww==}
-    peerDependencies:
-      eslint: 10.2.1
-      eslint-config-next: '>=15.0.0'
-    peerDependenciesMeta:
-      eslint-config-next:
-        optional: true
-
-  '@saas-maker/eslint-plugin-fallow@1.0.2':
-    resolution: {integrity: sha512-DHvPUNlLg/WotUaCJXKxna6AehXarOYvFBIks8MAFa+DGd6sLqZFqY+Q4v3YwsiHKbB+x6YAz1rOSYcRPQIsAA==}
-    peerDependencies:
-      eslint: '>=8.0.0'
 
   '@saas-maker/feedback@0.2.1':
     resolution: {integrity: sha512-ajtrH7t/hhzxrNzX2BU0i5nfGpXNu7w4EQCFBajsuFn255O29trRCu3VNL1NoQhWwypjEEdeaK4DqoEY4zd7rw==}
@@ -3578,9 +3562,9 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
-  beasties@0.4.2:
-    resolution: {integrity: sha512-NvcGjG/7AVUAfRbvrJmHunDQS9uHnE6Q/7AkaPr8oKE8HjOlpjRG5075z/th2Tmlezk3VlaaS8+X9I1RwHJMQw==}
-    engines: {node: '>=18.0.0'}
+  beasties@0.3.5:
+    resolution: {integrity: sha512-NaWu+f4YrJxEttJSm16AzMIFtVldCvaJ68b1L098KpqXmxt9xOLtKoLkKxb8ekhOrLqEJAbvT6n6SEvB/sac7A==}
+    engines: {node: '>=14.0.0'}
 
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
@@ -4187,22 +4171,11 @@ packages:
     peerDependencies:
       eslint: ^3 || ^4 || ^5 || ^6 || ^7 || ^8 || ^9
 
-  eslint-plugin-promise@7.2.1:
-    resolution: {integrity: sha512-SWKjd+EuvWkYaS+uN2csvj0KoP43YTu7+phKQ5v+xw6+A0gutVX2yqCeCkC3uLCJFiPfR2dD8Es5L7yUsmvEaA==}
-    engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-    peerDependencies:
-      eslint: ^7.0.0 || ^8.0.0 || ^9.0.0
-
   eslint-plugin-react-hooks@7.1.1:
     resolution: {integrity: sha512-f2I7Gw6JbvCexzIInuSbZpfdQ44D7iqdWX01FKLvrPgqxoE7oMj8clOfto8U6vYiz4yd5oKu39rRSVOe1zRu0g==}
     engines: {node: '>=18'}
     peerDependencies:
       eslint: ^3.0.0 || ^4.0.0 || ^5.0.0 || ^6.0.0 || ^7.0.0 || ^8.0.0-0 || ^9.0.0 || ^10.0.0
-
-  eslint-plugin-react-refresh@0.5.2:
-    resolution: {integrity: sha512-hmgTH57GfzoTFjVN0yBwTggnsVUF2tcqi7RJZHqi9lIezSs4eFyAMktA68YD4r5kNw1mxyY4dmkyoFDb3FIqrA==}
-    peerDependencies:
-      eslint: ^9 || ^10
 
   eslint-plugin-react@7.37.5:
     resolution: {integrity: sha512-Qteup0SqU15kdocexFNAJMvCJEfa2xUKNV4CC1xsVMrIIqEy3SQ/rqyxCWNzfrd3/ldy6HMlD2e0JDVpDg2qIA==}
@@ -4531,10 +4504,6 @@ packages:
 
   globals@16.4.0:
     resolution: {integrity: sha512-ob/2LcVVaVGCYN+r14cnwnoDPUufjiYgSqRhiFD0Q1iI4Odora5RE8Iv1D24hAz5oMophRGkGz+yuvQmmUMnMw==}
-    engines: {node: '>=18'}
-
-  globals@17.5.0:
-    resolution: {integrity: sha512-qoV+HK2yFl/366t2/Cb3+xxPUo5BuMynomoDmiaZBIdbs+0pYbjfZU+twLhGKp4uCZ/+NbtpVepH5bGCxRyy2g==}
     engines: {node: '>=18'}
 
   globalthis@1.0.4:
@@ -5656,12 +5625,6 @@ packages:
 
   postcss-media-query-parser@0.2.3:
     resolution: {integrity: sha512-3sOlxmbKcSHMjlUXQZKQ06jOswE7oVkXPxmZdoB1r5l0q6gTFTQSHxNxOrCccElbW7dxNytifNEo8qidX2Vsig==}
-
-  postcss-safe-parser@7.0.1:
-    resolution: {integrity: sha512-0AioNCJZ2DPYz5ABT6bddIqlhgwhpHZ/l65YAYo0BCIn0xiDpsnTHz0gnoTGk0OXZW0JRs+cDwL8u/teRdz+8A==}
-    engines: {node: '>=18.0'}
-    peerDependencies:
-      postcss: ^8.4.31
 
   postcss-selector-parser@7.1.1:
     resolution: {integrity: sha512-orRsuYpJVw8LdAwqqLykBj9ecS5/cRHlI5+nvTo8LcCKmzDmqVORXtOIYEEQuL9D4BxtA1lm5isAqzQZCoQ6Eg==}
@@ -8125,10 +8088,6 @@ snapshots:
     dependencies:
       '@types/json-schema': 7.0.15
 
-  '@eslint/js@10.0.1(eslint@10.2.1(jiti@2.6.1))':
-    optionalDependencies:
-      eslint: 10.2.1(jiti@2.6.1)
-
   '@eslint/object-schema@3.0.5': {}
 
   '@eslint/plugin-kit@0.7.1':
@@ -9581,36 +9540,14 @@ snapshots:
 
   '@rtsao/scc@1.1.0': {}
 
+  '@saas-maker/astro-landing@file:../saas-maker/packages/tooling/astro-landing':
+    dependencies:
+      beasties: 0.3.5
+
   '@saas-maker/changelog-widget@0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
     dependencies:
       react: 19.2.5
       react-dom: 19.2.5(react@19.2.5)
-
-  '@saas-maker/eslint-config@1.0.4(@typescript-eslint/parser@8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint-config-next@16.2.4(@typescript-eslint/parser@8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3)':
-    dependencies:
-      '@eslint/js': 10.0.1(eslint@10.2.1(jiti@2.6.1))
-      '@saas-maker/eslint-plugin-fallow': 1.0.2(eslint@10.2.1(jiti@2.6.1))
-      eslint: 10.2.1(jiti@2.6.1)
-      eslint-config-prettier: 10.1.8(eslint@10.2.1(jiti@2.6.1))
-      eslint-plugin-import: 2.32.0(@typescript-eslint/parser@8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint-import-resolver-typescript@3.10.1)(eslint@10.2.1(jiti@2.6.1))
-      eslint-plugin-promise: 7.2.1(eslint@10.2.1(jiti@2.6.1))
-      eslint-plugin-react-hooks: 7.1.1(eslint@10.2.1(jiti@2.6.1))
-      eslint-plugin-react-refresh: 0.5.2(eslint@10.2.1(jiti@2.6.1))
-      eslint-plugin-simple-import-sort: 13.0.0(eslint@10.2.1(jiti@2.6.1))
-      globals: 17.5.0
-      typescript-eslint: 8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3)
-    optionalDependencies:
-      eslint-config-next: 16.2.4(@typescript-eslint/parser@8.59.0(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3))(eslint@10.2.1(jiti@2.6.1))(typescript@6.0.3)
-    transitivePeerDependencies:
-      - '@typescript-eslint/parser'
-      - eslint-import-resolver-typescript
-      - eslint-import-resolver-webpack
-      - supports-color
-      - typescript
-
-  '@saas-maker/eslint-plugin-fallow@1.0.2(eslint@10.2.1(jiti@2.6.1))':
-    dependencies:
-      eslint: 10.2.1(jiti@2.6.1)
 
   '@saas-maker/feedback@0.2.1(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
     dependencies:
@@ -10708,7 +10645,7 @@ snapshots:
 
   baseline-browser-mapping@2.10.21: {}
 
-  beasties@0.4.2:
+  beasties@0.3.5:
     dependencies:
       css-select: 6.0.0
       css-what: 7.0.0
@@ -10718,7 +10655,6 @@ snapshots:
       picocolors: 1.1.1
       postcss: 8.5.12
       postcss-media-query-parser: 0.2.3
-      postcss-safe-parser: 7.0.1(postcss@8.5.12)
 
   blake3-wasm@2.1.5: {}
 
@@ -11436,11 +11372,6 @@ snapshots:
       safe-regex-test: 1.1.0
       string.prototype.includes: 2.0.1
 
-  eslint-plugin-promise@7.2.1(eslint@10.2.1(jiti@2.6.1)):
-    dependencies:
-      '@eslint-community/eslint-utils': 4.9.1(eslint@10.2.1(jiti@2.6.1))
-      eslint: 10.2.1(jiti@2.6.1)
-
   eslint-plugin-react-hooks@7.1.1(eslint@10.2.1(jiti@2.6.1)):
     dependencies:
       '@babel/core': 7.29.0
@@ -11451,10 +11382,6 @@ snapshots:
       zod-validation-error: 4.0.2(zod@4.3.6)
     transitivePeerDependencies:
       - supports-color
-
-  eslint-plugin-react-refresh@0.5.2(eslint@10.2.1(jiti@2.6.1)):
-    dependencies:
-      eslint: 10.2.1(jiti@2.6.1)
 
   eslint-plugin-react@7.37.5(patch_hash=c85aef47ce21227d3fed1c001ff411e2918198f88473e8516285845317df6cfd)(eslint@10.2.1(jiti@2.6.1)):
     dependencies:
@@ -11874,8 +11801,6 @@ snapshots:
       path-scurry: 1.11.1
 
   globals@16.4.0: {}
-
-  globals@17.5.0: {}
 
   globalthis@1.0.4:
     dependencies:
@@ -13154,10 +13079,6 @@ snapshots:
   possible-typed-array-names@1.1.0: {}
 
   postcss-media-query-parser@0.2.3: {}
-
-  postcss-safe-parser@7.0.1(postcss@8.5.12):
-    dependencies:
-      postcss: 8.5.12
 
   postcss-selector-parser@7.1.1:
     dependencies:

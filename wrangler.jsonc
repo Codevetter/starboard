@@ -39,6 +39,13 @@
   "vars": {
     "NEXT_PUBLIC_APP_NAME": "starboard",
     "AUTH_URL": "https://starboard.sarthakagrawal927.workers.dev",
-    "NEXTAUTH_URL": "https://starboard.sarthakagrawal927.workers.dev"
-  }
+    "NEXTAUTH_URL": "https://starboard.sarthakagrawal927.workers.dev",
+    "STARBOARD_RAG_INDEX_ID": "fe010bb4-1160-49ae-8345-84c8cd8faadc"
+  },
+  "services": [
+    {
+      "binding": "RAG_SERVICE",
+      "service": "knowledgebase"
+    }
+  ]
 }

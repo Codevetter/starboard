@@ -11,6 +11,7 @@ import {
   fetchPublicStarLists,
   type GitHubStarList,
 } from "@/lib/github-lists";
+import { ingestStarboardRagDocuments } from "@/lib/rag-service";
 import { isRateLimited } from "@/lib/rate-limit";
 
 const BOGUS_IMPORTED_SORT_LISTS = new Set([
@@ -155,16 +156,17 @@ export async function POST() {
     }
 
     let embedded = 0;
+    let ragIngested = 0;
     if (added.length > 0) {
+      const texts = added.map((r) =>
+        buildRepoEmbeddingText({
+          full_name: r.full_name,
+          description: r.description,
+          language: r.language,
+          topics: r.topics,
+        })
+      );
       try {
-        const texts = added.map((r) =>
-          buildRepoEmbeddingText({
-            full_name: r.full_name,
-            description: r.description,
-            language: r.language,
-            topics: r.topics,
-          })
-        );
         const embeddings = await generateEmbeddings(texts);
         const embStmts: InStatement[] = added.map((r, i) => ({
           sql: "INSERT OR REPLACE INTO repo_embeddings (repo_id, embedding, text_hash) VALUES (?, vector(?), ?)",
@@ -175,12 +177,29 @@ export async function POST() {
       } catch (error) {
         console.warn("Embedding generation failed:", error);
       }
+
+      try {
+        ragIngested = await ingestStarboardRagDocuments(
+          added.map((repo, i) => ({
+            content: texts[i] ?? "",
+            metadata: {
+              user_id: userId,
+              repo_id: repo.id,
+              full_name: repo.full_name,
+              language: repo.language,
+            },
+          }))
+        );
+      } catch (error) {
+        console.warn("RAG service ingest failed:", error);
+      }
     }
 
     return NextResponse.json({
       added: added.map((r) => ({ id: r.id, full_name: r.full_name, description: r.description })),
       removed: removedRepos,
       embedded,
+      ragIngested,
       importedLists: githubSync.importedLists,
       assignedRepos: githubSync.assignedRepos,
       totalRepos: freshRepos.length,

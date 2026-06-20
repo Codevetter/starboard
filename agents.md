@@ -78,7 +78,7 @@ The seed-popular GitHub Action runs `pnpm db:migrate` before `pnpm db:seed-popul
 
 ## Architecture notes
 - **NO ORM** — raw SQL via `@libsql/client`. Schema in `src/db/schema.sql`. Apply with `db:migrate`.
-- **Vector search**: `repo_embeddings` table stores `F32_BLOB(768)` with `libsql_vector_idx` cosine index. 768-dim embeddings for semantic search. Seed with `db:seed-embeddings`. Dimension contract enforced — see *Embedding dimension contract* above.
+- **Vector search**: relevance search prefers the shared Cloudflare `knowledgebase` Worker when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are configured; `repo_embeddings` remains the fallback path with `F32_BLOB(768)` and `libsql_vector_idx`. Seed fallback embeddings with `db:seed-embeddings`. Dimension contract enforced — see *Embedding dimension contract* above.
 - **nuqs**: all filter/sort state in URL params — shareable links. Search, sort, language, list, tag params all via nuqs.
 - **SWR**: all client data through SWR hooks. No React Query.
 - **Tags stored as JSON arrays** in `user_repos.tags` text column.

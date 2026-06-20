@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { auth } from "@/lib/auth";
 import { generateEmbedding } from "@/lib/embeddings";
+import { searchStarboardRag } from "@/lib/rag-service";
 import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from "@/lib/search";
 
 async function hasEmbeddings(userId: string): Promise<boolean> {
@@ -79,9 +80,10 @@ export async function GET(request: NextRequest) {
     // 2. Semantic matches via vector_top_k. Pull distance, drop the noisy tail.
     //    vector_top_k is global; user filtering happens in the main query.
     const semIdsPromise = useSemanticSearch
-      ? hasEmbeddings(userId)
-          .then(async (hasUserEmbeddings) => {
-            if (!hasUserEmbeddings) return [];
+      ? searchStarboardRag(userId, expandedSearchQuery(q), VEC_TOP_K)
+          .then(async (ragIds) => {
+            if (ragIds && ragIds.length > 0) return ragIds;
+            if (!(await hasEmbeddings(userId))) return [];
             const queryEmbedding = await generateEmbedding(expandedSearchQuery(q));
             const vectorResult = await db.execute({
               sql: `SELECT re.repo_id,
