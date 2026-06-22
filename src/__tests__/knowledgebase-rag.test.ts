@@ -34,6 +34,46 @@ describe('Starboard knowledgebase RAG documents', () => {
     });
   });
 
+  it('keeps README-only terms recallable through bounded ingest batches', () => {
+    const readmeOnlyNeedle = 'holographic scheduler webhooks';
+    const document = buildStarboardRagDocument(
+      'user-1',
+      repo,
+      [
+        '# Widgets',
+        '',
+        'The README documents adapters, recipes, plugin APIs, and holographic scheduler webhooks.',
+        'This phrase is intentionally absent from the GitHub repository description.',
+      ].join('\n')
+    );
+    const distractor = buildStarboardRagDocument(
+      'user-1',
+      {
+        ...repo,
+        id: 43,
+        full_name: 'acme/other',
+        description: 'Unrelated repository metadata',
+        topics: ['search'],
+      },
+      null
+    );
+
+    const batches = batchRagDocuments([document, distractor], 420);
+    const recallHits = batches
+      .flat()
+      .filter((candidate) =>
+        readmeOnlyNeedle.split(' ').every((term) => candidate.content.toLowerCase().includes(term))
+      );
+
+    expect(batches.length).toBeGreaterThan(1);
+    expect(recallHits).toHaveLength(1);
+    expect(recallHits[0]?.metadata).toMatchObject({
+      repo_id: 42,
+      has_readme: true,
+      source: 'github_readme',
+    });
+  });
+
   it('falls back to repo metadata when README is unavailable', () => {
     const document = buildStarboardRagDocument('user-1', repo, null);
 

@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-06-20
+Last updated: 2026-06-23
 
 ## Why/What
 
@@ -59,7 +59,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 |-------|-----------|
 | Foundation | GitHub OAuth (NextAuth v5), OpenNext Cloudflare deploy, core dashboard with sync, tags, collections, full-text search, virtual scroll |
 | Repo intelligence | Repo detail (`/explore`), comments/votes, public shared lists, legal/marketing shell |
-| Semantic search | knowledgebase Worker integration for relevance search; local embeddings retained for non-RAG Starboard features |
+| Semantic search | knowledgebase Worker integration for relevance search; README-backed sync ingest; local embeddings retained for non-RAG Starboard features |
 | Fleet recommendations | My Projects scorer against `fleet-projects.generated.json`, fixture-backed eval harness, OSS integration evaluation |
 | Discovery & radar | Discover page, scheduled seed/enrich/embed, radar maintainer signals, stack builder, first-run UX and digest preview surfaces |
 | Alerts & reports | Weekly alert inbox/preferences, digest payloads, shareable insight reports at stable public URLs |
@@ -98,7 +98,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 ### Search and embeddings
 - Workers AI embedding generation with runtime dimension assertion.
 - Turso vector index path (`repo_embeddings`, cosine `libsql_vector_idx`) retained for non-RAG Starboard features such as similar repos, discover, and recommendations.
-- Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are set as Worker secrets/vars or local env, relevance search uses the fleet `knowledgebase` Worker with sync ingest for new repos; new repo RAG documents include GitHub README text when available, fall back to repo metadata when unavailable, and are sent in bounded ingest batches. If shared RAG is unavailable, relevance search falls back to lexical results instead of local vector search.
+- Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are set as Worker secrets/vars or local env, relevance search uses the fleet `knowledgebase` Worker with sync ingest for new repos; new repo RAG documents include full GitHub README text when available, fall back to repo metadata when unavailable, and are sent in bounded ingest batches. `src/__tests__/knowledgebase-rag.test.ts` covers README-only recall terms plus batch splitting so Starboard does not regress to description-only ingestion. If shared RAG is unavailable, relevance search falls back to lexical results instead of local vector search.
 - `pnpm db:seed-embeddings` backfill script; embedding dimension guard in migrate runner.
 - free-ai HTTP fallback for Node-based GitHub Actions embedding contexts.
 
