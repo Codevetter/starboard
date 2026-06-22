@@ -13,6 +13,10 @@ import {
 } from "@/lib/github-lists";
 import { ingestStarboardRagDocuments } from "@/lib/knowledgebase";
 import { isRateLimited } from "@/lib/rate-limit";
+import {
+  buildStarboardRagDocument,
+  fetchRepoReadmes,
+} from "@/lib/starboard-rag-documents";
 
 const BOGUS_IMPORTED_SORT_LISTS = new Set([
   "name ascending (a-z)",
@@ -157,6 +161,7 @@ export async function POST() {
 
     let embedded = 0;
     let ragIngested = 0;
+    let ragReadmesFetched = 0;
     if (added.length > 0) {
       const texts = added.map((r) =>
         buildRepoEmbeddingText({
@@ -166,6 +171,11 @@ export async function POST() {
           topics: r.topics,
         })
       );
+      const readmesPromise = fetchRepoReadmes(session.accessToken, added, {
+        onError: (repo, error) => {
+          console.warn(`README fetch skipped for ${repo.full_name}:`, error);
+        },
+      });
       try {
         const embeddings = await generateEmbeddings(texts);
         const embStmts: InStatement[] = added.map((r, i) => ({
@@ -179,16 +189,14 @@ export async function POST() {
       }
 
       try {
+        const readmes = await readmesPromise;
+        ragReadmesFetched = readmes.size;
         ragIngested = await ingestStarboardRagDocuments(
-          added.map((repo, i) => ({
-            content: texts[i] ?? "",
-            metadata: {
-              user_id: userId,
-              repo_id: repo.id,
-              full_name: repo.full_name,
-              language: repo.language,
-            },
-          }))
+          added.map((repo) => buildStarboardRagDocument(
+            userId,
+            repo,
+            readmes.get(repo.full_name)
+          ))
         );
       } catch (error) {
         console.warn("knowledgebase ingest failed:", error);
@@ -200,6 +208,7 @@ export async function POST() {
       removed: removedRepos,
       embedded,
       ragIngested,
+      ragReadmesFetched,
       importedLists: githubSync.importedLists,
       assignedRepos: githubSync.assignedRepos,
       totalRepos: freshRepos.length,

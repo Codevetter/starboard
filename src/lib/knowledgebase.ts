@@ -25,6 +25,7 @@ interface RagDocument {
 
 const RAG_SERVICE_URL =
   process.env.RAG_SERVICE_URL || "https://knowledgebase.sarthakagrawal927.workers.dev";
+const DEFAULT_RAG_INGEST_BATCH_BYTES = 750_000;
 
 function cloudflareEnv(): CloudflareEnv {
   try {
@@ -90,11 +91,38 @@ export async function searchStarboardRag(userId: string, query: string, topK: nu
 export async function ingestStarboardRagDocuments(documents: RagDocument[]): Promise<number> {
   const ragIndexId = indexId();
   if (!serviceKey() || !ragIndexId || documents.length === 0) return 0;
-  const res = await ragFetch(`/v1/indexes/${ragIndexId}/ingest`, {
-    method: "POST",
-    body: JSON.stringify({ documents }),
-  });
-  if (!res.ok) throw new Error(`RAG ingest failed ${res.status}: ${await res.text()}`);
-  const body = (await res.json()) as { documents?: unknown[] };
-  return body.documents?.length ?? 0;
+  let ingested = 0;
+  for (const batch of batchRagDocuments(documents)) {
+    const res = await ragFetch(`/v1/indexes/${ragIndexId}/ingest`, {
+      method: "POST",
+      body: JSON.stringify({ documents: batch }),
+    });
+    if (!res.ok) throw new Error(`RAG ingest failed ${res.status}: ${await res.text()}`);
+    const body = (await res.json()) as { documents?: unknown[] };
+    ingested += body.documents?.length ?? 0;
+  }
+  return ingested;
+}
+
+export function batchRagDocuments(
+  documents: RagDocument[],
+  maxBytes = DEFAULT_RAG_INGEST_BATCH_BYTES
+): RagDocument[][] {
+  const batches: RagDocument[][] = [];
+  let current: RagDocument[] = [];
+  let currentBytes = JSON.stringify({ documents: [] }).length;
+
+  for (const document of documents) {
+    const documentBytes = JSON.stringify(document).length + 1;
+    if (current.length > 0 && currentBytes + documentBytes > maxBytes) {
+      batches.push(current);
+      current = [];
+      currentBytes = JSON.stringify({ documents: [] }).length;
+    }
+    current.push(document);
+    currentBytes += documentBytes;
+  }
+
+  if (current.length > 0) batches.push(current);
+  return batches;
 }

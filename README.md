@@ -52,7 +52,7 @@ both personal stars and seeded popular repositories.
 - **SWR** for client-side data fetching
 - **nuqs** for URL-backed filter/sort state
 - **@tanstack/react-virtual** for virtualized scrolling
-- **Shared knowledgebase RAG** for relevance search
+- **Shared knowledgebase RAG** for relevance search; sync ingests README-backed repo documents when GitHub exposes a README
 - **Cloudflare Workers AI** for non-RAG embeddings, with free-ai HTTP fallback in Node contexts
 
 ## Local Development

@@ -98,7 +98,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 ### Search and embeddings
 - Workers AI embedding generation with runtime dimension assertion.
 - Turso vector index path (`repo_embeddings`, cosine `libsql_vector_idx`) retained for non-RAG Starboard features such as similar repos, discover, and recommendations.
-- Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are set as Worker secrets/vars or local env, relevance search uses the fleet `knowledgebase` Worker with sync ingest for new repos; if shared RAG is unavailable, relevance search falls back to lexical results instead of local vector search.
+- Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are set as Worker secrets/vars or local env, relevance search uses the fleet `knowledgebase` Worker with sync ingest for new repos; new repo RAG documents include GitHub README text when available, fall back to repo metadata when unavailable, and are sent in bounded ingest batches. If shared RAG is unavailable, relevance search falls back to lexical results instead of local vector search.
 - `pnpm db:seed-embeddings` backfill script; embedding dimension guard in migrate runner.
 - free-ai HTTP fallback for Node-based GitHub Actions embedding contexts.
 
