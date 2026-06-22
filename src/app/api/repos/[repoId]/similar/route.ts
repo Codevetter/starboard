@@ -47,9 +47,11 @@ export async function GET(
   const scope = request.nextUrl.searchParams.get("scope") || "global"; // "user" | "global"
 
   try {
-    // 1. Fetch this repo's embedding and lightweight metadata.
+    // 1. Fetch this repo's embedding (as JSON via vector_extract) and lightweight
+    //    metadata in a single round-trip. vector_top_k requires a vector literal,
+    //    so we extract the embedding to its JSON form here.
     const seed = await db.execute({
-      sql: `SELECT re.embedding,
+      sql: `SELECT vector_extract(re.embedding) AS vec,
                    r.name,
                    r.full_name,
                    r.description,
@@ -64,14 +66,7 @@ export async function GET(
       return NextResponse.json({ similar: [], reason: "no_embedding" });
     }
 
-    // libsql returns F32_BLOB as a Buffer/Uint8Array; we re-feed it via vector_extract -> JSON.
-    // Simpler: query top-k seeded by repo_id directly using a CTE pattern, but vector_top_k
-    // requires a vector literal. Use vector_extract to get the JSON form.
-    const vecRow = await db.execute({
-      sql: "SELECT vector_extract(embedding) AS vec FROM repo_embeddings WHERE repo_id = ?",
-      args: [repoId],
-    });
-    const vec = vecRow.rows[0]?.vec as string | undefined;
+    const vec = seed.rows[0].vec as string | undefined;
     if (!vec) {
       return NextResponse.json({ similar: [], reason: "no_embedding" });
     }
