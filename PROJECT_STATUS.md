@@ -23,7 +23,7 @@ Out of scope: organization/team dashboards, non-GitHub providers, ATS features, 
 
 **Local dev:** `pnpm install && cp .env.example .env.local && pnpm dev` → http://localhost:3000
 
-**Key checks:** `pnpm test` · `pnpm build` · `pnpm build:cf` (Cloudflare path)
+**Key checks:** `pnpm test:coverage` · `pnpm build` · `pnpm build:cf` (Cloudflare path)
 
 ```
 GitHub OAuth (NextAuth)
@@ -125,7 +125,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ### Ops and developer experience
 - Checked-in `.env.example` documents required local variables without secrets.
-- Vitest unit tests; Playwright e2e path documented in README.
+- Vitest unit tests with v8 coverage thresholds (80% lines/functions/statements, 70% branches) on core logic modules (`src/lib/fleet-projects`, `recommendation-eval`, `search`, `stack-builder`, `starboard-rag-documents`, `release-radar`); Playwright e2e path documented in README.
 - Pre-push lint hook.
 - TypeScript config and Astro landing tooling made self-contained for green Cloudflare builds.
 
