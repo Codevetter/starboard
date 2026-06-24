@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useEffect } from "react";
+import Link from 'next/link';
+import { useEffect } from 'react';
 
-import { captureError } from "@/lib/foundry-monitoring";
+import { captureError } from '@/lib/foundry-monitoring';
 
 export default function ExploreError({
   error,
@@ -14,7 +14,7 @@ export default function ExploreError({
 }) {
   useEffect(() => {
     console.error(error);
-    captureError(error, { scope: "explore", digest: error.digest });
+    captureError(error, { scope: 'explore', digest: error.digest });
   }, [error]);
 
   return (
@@ -25,22 +25,14 @@ export default function ExploreError({
           Something went wrong while loading this repository — try again.
         </p>
         <div className="flex gap-3 justify-center">
-          <button
-            onClick={reset}
-            className="px-4 py-2 rounded border hover:opacity-80"
-          >
+          <button onClick={reset} className="px-4 py-2 rounded border hover:opacity-80">
             Try again
           </button>
-          <Link
-            href="/discover"
-            className="px-4 py-2 rounded border hover:opacity-80"
-          >
+          <Link href="/discover" className="px-4 py-2 rounded border hover:opacity-80">
             Discover
           </Link>
         </div>
-        {error.digest ? (
-          <p className="mt-6 text-xs opacity-40">Reference: {error.digest}</p>
-        ) : null}
+        {error.digest ? <p className="mt-6 text-xs opacity-40">Reference: {error.digest}</p> : null}
       </div>
     </div>
   );

@@ -1,18 +1,10 @@
-"use client";
+'use client';
 
-import {
-  Check,
-  Code2,
-  Link,
-  List,
-  Plus,
-  Share2,
-  Trash2,
-} from "lucide-react";
-import { useState } from "react";
+import { Check, Code2, Link, List, Plus, Share2, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -20,17 +12,25 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { UserList } from "@/hooks/use-lists";
-import { cn } from "@/lib/utils";
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { UserList } from '@/hooks/use-lists';
+import { cn } from '@/lib/utils';
 
 const PRESET_COLORS = [
-  "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4",
-  "#3b82f6", "#8b5cf6", "#ec4899", "#6366f1", "#64748b",
+  '#ef4444',
+  '#f97316',
+  '#eab308',
+  '#22c55e',
+  '#06b6d4',
+  '#3b82f6',
+  '#8b5cf6',
+  '#ec4899',
+  '#6366f1',
+  '#64748b',
 ];
 
 interface SidebarProps {
@@ -80,7 +80,6 @@ function SidebarSkeleton() {
           </div>
         ))}
       </div>
-
     </div>
   );
 }
@@ -99,7 +98,7 @@ export function Sidebar({
   onShareList,
 }: SidebarProps) {
   const [listDialogOpen, setListDialogOpen] = useState(false);
-  const [newListName, setNewListName] = useState("");
+  const [newListName, setNewListName] = useState('');
   const [newListColor, setNewListColor] = useState(PRESET_COLORS[5]);
   const [isCreatingList, setIsCreatingList] = useState(false);
   const [copiedListId, setCopiedListId] = useState<number | null>(null);
@@ -111,7 +110,7 @@ export function Sidebar({
     setIsCreatingList(true);
     try {
       await onCreateList(trimmed, newListColor);
-      setNewListName("");
+      setNewListName('');
       setNewListColor(PRESET_COLORS[5]);
       setListDialogOpen(false);
     } finally {
@@ -125,16 +124,12 @@ export function Sidebar({
     try {
       if (list.is_public === 1 && list.slug) {
         // Already public — just copy the link
-        await navigator.clipboard.writeText(
-          window.location.origin + "/lists/" + list.slug
-        );
+        await navigator.clipboard.writeText(`${window.location.origin}/lists/${list.slug}`);
       } else {
         // Make public, then copy
         const result = await onShareList(list.id);
         if (result.is_public && result.slug) {
-          await navigator.clipboard.writeText(
-            window.location.origin + "/lists/" + result.slug
-          );
+          await navigator.clipboard.writeText(`${window.location.origin}/lists/${result.slug}`);
         }
       }
       setCopiedListId(list.id);
@@ -149,7 +144,7 @@ export function Sidebar({
     if (!onDeleteList) return;
 
     const confirmed = window.confirm(
-              `Delete "${list.name}"? Imported GitHub collections may be recreated on the next sync.`
+      `Delete "${list.name}"? Imported GitHub collections may be recreated on the next sync.`
     );
     if (!confirmed) return;
 
@@ -182,15 +177,11 @@ export function Sidebar({
                   className="size-3.5"
                 />
                 <span className="flex-1 truncate">{lang}</span>
-                <span className="text-xs tabular-nums text-muted-foreground">
-                  {count}
-                </span>
+                <span className="text-xs tabular-nums text-muted-foreground">{count}</span>
               </label>
             ))}
             {languageFacets.length === 0 && (
-              <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                No languages yet
-              </p>
+              <p className="px-2 py-1.5 text-xs text-muted-foreground">No languages yet</p>
             )}
           </div>
 
@@ -219,19 +210,16 @@ export function Sidebar({
                   key={list.id}
                   role="button"
                   tabIndex={0}
-                  onClick={() =>
-                    onListSelect(selectedListId === list.id ? null : list.id)
-                  }
+                  onClick={() => onListSelect(selectedListId === list.id ? null : list.id)}
                   onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
+                    if (event.key === 'Enter' || event.key === ' ') {
                       event.preventDefault();
                       onListSelect(selectedListId === list.id ? null : list.id);
                     }
                   }}
                   className={cn(
-                    "group grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent",
-                    selectedListId === list.id &&
-                      "bg-accent text-accent-foreground"
+                    'group grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                    selectedListId === list.id && 'bg-accent text-accent-foreground'
                   )}
                 >
                   <div className="flex w-full min-w-0 items-center gap-2.5 text-left">
@@ -239,13 +227,11 @@ export function Sidebar({
                       className="inline-block size-2.5 shrink-0 rounded-full"
                       style={{ backgroundColor: list.color }}
                     />
-                    <span className="block min-w-0 flex-1 truncate text-left">
-                      {list.name}
-                    </span>
+                    <span className="block min-w-0 flex-1 truncate text-left">{list.name}</span>
                   </div>
                   <div className="flex shrink-0 items-center gap-1.5">
-                    {onShareList && (
-                      isCopied ? (
+                    {onShareList &&
+                      (isCopied ? (
                         <span className="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                           <Check className="size-3" />
                           Copied!
@@ -254,12 +240,12 @@ export function Sidebar({
                         <button
                           onClick={(e) => handleShareList(e, list)}
                           className={cn(
-                            "shrink-0 rounded p-0.5 transition-colors hover:bg-accent-foreground/10",
+                            'shrink-0 rounded p-0.5 transition-colors hover:bg-accent-foreground/10',
                             isShared
-                              ? "text-primary"
-                              : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                              ? 'text-primary'
+                              : 'text-muted-foreground opacity-0 group-hover:opacity-100'
                           )}
-                          title={isShared ? "Copy share link" : "Share list"}
+                          title={isShared ? 'Copy share link' : 'Share list'}
                         >
                           {isShared ? (
                             <Link className="size-3.5" />
@@ -267,8 +253,7 @@ export function Sidebar({
                             <Share2 className="size-3.5" />
                           )}
                         </button>
-                      )
-                    )}
+                      ))}
                     {onDeleteList && (
                       <button
                         onClick={(e) => handleDeleteList(e, list)}
@@ -299,9 +284,7 @@ export function Sidebar({
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Create Collection</DialogTitle>
-            <DialogDescription>
-              Add a new collection to organize your repos.
-            </DialogDescription>
+            <DialogDescription>Add a new collection to organize your repos.</DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateList} className="flex flex-col gap-4">
@@ -328,10 +311,8 @@ export function Sidebar({
                     aria-label={preset}
                     onClick={() => setNewListColor(preset)}
                     className={cn(
-                      "size-7 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                      newListColor === preset
-                        ? "border-foreground scale-110"
-                        : "border-transparent"
+                      'size-7 rounded-full border-2 transition-transform hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                      newListColor === preset ? 'border-foreground scale-110' : 'border-transparent'
                     )}
                     style={{ backgroundColor: preset }}
                   />
@@ -351,15 +332,11 @@ export function Sidebar({
             )}
 
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setListDialogOpen(false)}
-              >
+              <Button type="button" variant="outline" onClick={() => setListDialogOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={!newListName.trim() || isCreatingList}>
-                {isCreatingList ? "Creating..." : "Create"}
+                {isCreatingList ? 'Creating...' : 'Create'}
               </Button>
             </DialogFooter>
           </form>

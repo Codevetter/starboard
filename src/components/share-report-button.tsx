@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { Copy, Link2, Loader2 } from "lucide-react";
-import { useState } from "react";
+import { Copy, Link2, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 
-import { Button } from "@/components/ui/button";
-import type { InsightReportType } from "@/lib/insight-reports";
+import { Button } from '@/components/ui/button';
+import type { InsightReportType } from '@/lib/insight-reports';
 
 interface ShareReportButtonProps {
   type: InsightReportType;
@@ -15,7 +15,7 @@ interface ShareReportButtonProps {
 export function ShareReportButton({
   type,
   projectSlug,
-  label = "Share report",
+  label = 'Share report',
 }: ShareReportButtonProps) {
   const [loading, setLoading] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -25,24 +25,22 @@ export function ShareReportButton({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/reports", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           type,
           projectSlug,
           redactPrivate: true,
         }),
       });
-      if (!response.ok) throw new Error("Failed to create report");
+      if (!response.ok) throw new Error('Failed to create report');
       const payload = (await response.json()) as { url: string };
       const absolute =
-        typeof window !== "undefined"
-          ? `${window.location.origin}${payload.url}`
-          : payload.url;
+        typeof window !== 'undefined' ? `${window.location.origin}${payload.url}` : payload.url;
       setShareUrl(absolute);
     } catch {
-      setError("Could not create share link.");
+      setError('Could not create share link.');
     } finally {
       setLoading(false);
     }

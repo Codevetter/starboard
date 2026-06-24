@@ -1,32 +1,33 @@
-"use client";
+'use client';
 
-import { Bookmark, GitCompare, Search } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Bookmark, GitCompare, Search } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
-import { ActiveFilterChips } from "@/components/active-filter-chips";
-import { BulkActionBar } from "@/components/bulk-action-bar";
-import { CompareSheet } from "@/components/compare-sheet";
-import { RepoGrid } from "@/components/repo-grid";
-import { Sidebar } from "@/components/sidebar";
-import { SyncAnimation, SyncProgressBar } from "@/components/sync-animation";
-import { TopBar } from "@/components/top-bar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
-import { WeeklyActionDigest } from "@/components/weekly-maintainer-digest";
-import { useLists } from "@/hooks/use-lists";
-import { useStarredRepos } from "@/hooks/use-starred-repos";
+import { ActiveFilterChips } from '@/components/active-filter-chips';
+import { BulkActionBar } from '@/components/bulk-action-bar';
+import { CompareSheet } from '@/components/compare-sheet';
+import { RepoGrid } from '@/components/repo-grid';
+import { Sidebar } from '@/components/sidebar';
+import { SyncAnimation, SyncProgressBar } from '@/components/sync-animation';
+import { TopBar } from '@/components/top-bar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
+import { WeeklyActionDigest } from '@/components/weekly-maintainer-digest';
+import { useLists } from '@/hooks/use-lists';
+import { useStarredRepos } from '@/hooks/use-starred-repos';
 
-const sortOptions = ["relevance", "recently-starred", "most-stars", "recently-updated", "name-az"] as const;
+const sortOptions = [
+  'relevance',
+  'recently-starred',
+  'most-stars',
+  'recently-updated',
+  'name-az',
+] as const;
 
 function PageSkeleton() {
   return (
@@ -91,16 +92,16 @@ export default function StarsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/");
+    if (status === 'unauthenticated') {
+      router.replace('/');
     }
   }, [router, status]);
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return <PageSkeleton />;
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return null;
   }
 
@@ -112,25 +113,30 @@ export default function StarsPage() {
 }
 
 function StarsContent() {
-
   // URL-synced filter state via nuqs
-  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""));
-  const [sortBy, setSortBy] = useQueryState("sort", parseAsStringLiteral(sortOptions).withDefault("recently-starred"));
-  const [selectedLanguages, setSelectedLanguages] = useQueryState("lang", parseAsArrayOf(parseAsString, ",").withDefault([]));
-  const [selectedListId, setSelectedListId] = useQueryState("list", {
+  const [searchQuery, setSearchQuery] = useQueryState('q', parseAsString.withDefault(''));
+  const [sortBy, setSortBy] = useQueryState(
+    'sort',
+    parseAsStringLiteral(sortOptions).withDefault('recently-starred')
+  );
+  const [selectedLanguages, setSelectedLanguages] = useQueryState(
+    'lang',
+    parseAsArrayOf(parseAsString, ',').withDefault([])
+  );
+  const [selectedListId, setSelectedListId] = useQueryState('list', {
     parse: (v) => (v ? parseInt(v, 10) : null),
-    serialize: (v) => (v != null ? String(v) : ""),
+    serialize: (v) => (v != null ? String(v) : ''),
     defaultValue: null,
   });
 
   // Local-only state
-  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
   const [selectedByFilter, setSelectedByFilter] = useState<{
     filterKey: string;
     ids: Set<number>;
-  }>(() => ({ filterKey: "", ids: new Set() }));
+  }>(() => ({ filterKey: '', ids: new Set() }));
   const [compareRequested, setCompareRequested] = useState(false);
   const [bulkBusy, setBulkBusy] = useState(false);
 
@@ -142,34 +148,54 @@ function StarsContent() {
 
   const filterKey = [
     debouncedSearch,
-    selectedLanguages.join(","),
-    selectedListId ?? "",
+    selectedLanguages.join(','),
+    selectedListId ?? '',
     sortBy,
-  ].join("|");
+  ].join('|');
   const selectedRepoIds = useMemo(
-    () =>
-      selectedByFilter.filterKey === filterKey
-        ? selectedByFilter.ids
-        : new Set<number>(),
+    () => (selectedByFilter.filterKey === filterKey ? selectedByFilter.ids : new Set<number>()),
     [filterKey, selectedByFilter]
   );
   const compareOpen = compareRequested && selectedRepoIds.size >= 2;
 
   // Data hooks
-  const { repos, total, facets, isLoading: reposLoading, isValidating, loadingMore, hasMore, loadMore, syncing, sync, syncResult, syncError, dismissSyncResult, dismissSyncError, mutate } = useStarredRepos({
+  const {
+    repos,
+    total,
+    facets,
+    isLoading: reposLoading,
+    isValidating,
+    loadingMore,
+    hasMore,
+    loadMore,
+    syncing,
+    sync,
+    syncResult,
+    syncError,
+    dismissSyncResult,
+    dismissSyncError,
+    mutate,
+  } = useStarredRepos({
     q: debouncedSearch,
     language: selectedLanguages,
     listId: selectedListId,
     sort: sortBy,
     limit: 50,
   });
-  const { lists, isLoading: listsLoading, createList, deleteList, shareList, assignRepoToList } = useLists();
+  const {
+    lists,
+    isLoading: listsLoading,
+    createList,
+    deleteList,
+    shareList,
+    assignRepoToList,
+  } = useLists();
   const requestKey = [
     debouncedSearch,
-    selectedLanguages.join(","),
-    selectedListId ?? "",
+    selectedLanguages.join(','),
+    selectedListId ?? '',
     sortBy,
-  ].join("|");
+  ].join('|');
   const [settledRequestKey, setSettledRequestKey] = useState(requestKey);
 
   useEffect(() => {
@@ -181,53 +207,61 @@ function StarsContent() {
   }, [isValidating, reposLoading, requestKey]);
 
   const showSidebarSkeleton =
-    (reposLoading || listsLoading) &&
-    lists.length === 0 &&
-    facets.languages.length === 0;
+    (reposLoading || listsLoading) && lists.length === 0 && facets.languages.length === 0;
 
-  const hasActiveFilters = searchQuery.trim().length > 0 || selectedLanguages.length > 0 || selectedListId !== null;
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 || selectedLanguages.length > 0 || selectedListId !== null;
   const isGridPending =
-    searchQuery !== debouncedSearch ||
-    requestKey !== settledRequestKey ||
-    isValidating;
+    searchQuery !== debouncedSearch || requestKey !== settledRequestKey || isValidating;
 
   const clearFilters = useCallback(() => {
-    setSearchQuery("");
+    setSearchQuery('');
     setSelectedLanguages([]);
     setSelectedListId(null);
   }, [setSearchQuery, setSelectedLanguages, setSelectedListId]);
 
-  const handleLanguageToggle = useCallback((language: string) => {
-    setSelectedLanguages((prev) =>
-      (prev ?? []).includes(language)
-        ? (prev ?? []).filter((l) => l !== language)
-        : [...(prev ?? []), language]
-    );
-  }, [setSelectedLanguages]);
+  const handleLanguageToggle = useCallback(
+    (language: string) => {
+      setSelectedLanguages((prev) =>
+        (prev ?? []).includes(language)
+          ? (prev ?? []).filter((l) => l !== language)
+          : [...(prev ?? []), language]
+      );
+    },
+    [setSelectedLanguages]
+  );
 
-  const handleListSelect = useCallback((id: number | null) => {
-    setSelectedListId(id);
-  }, [setSelectedListId]);
+  const handleListSelect = useCallback(
+    (id: number | null) => {
+      setSelectedListId(id);
+    },
+    [setSelectedListId]
+  );
 
-  const handleAssignList = useCallback(async (repoId: number, listId: number, assigned: boolean) => {
-    await assignRepoToList(repoId, listId, assigned);
-    mutate();
-  }, [assignRepoToList, mutate]);
+  const handleAssignList = useCallback(
+    async (repoId: number, listId: number, assigned: boolean) => {
+      await assignRepoToList(repoId, listId, assigned);
+      mutate();
+    },
+    [assignRepoToList, mutate]
+  );
 
-  const handleToggleSave = useCallback(async (repoId: number, saved: boolean) => {
-    await fetch(`/api/repos/${repoId}/save`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ saved }),
-    });
-    mutate();
-  }, [mutate]);
+  const handleToggleSave = useCallback(
+    async (repoId: number, saved: boolean) => {
+      await fetch(`/api/repos/${repoId}/save`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ saved }),
+      });
+      mutate();
+    },
+    [mutate]
+  );
 
   const handleToggleSelect = useCallback(
     (repoId: number, selected: boolean) => {
       setSelectedByFilter((prev) => {
-        const ids =
-          prev.filterKey === filterKey ? new Set(prev.ids) : new Set<number>();
+        const ids = prev.filterKey === filterKey ? new Set(prev.ids) : new Set<number>();
         if (selected) ids.add(repoId);
         else ids.delete(repoId);
         return { filterKey, ids };
@@ -254,8 +288,8 @@ function StarsContent() {
       await Promise.all(
         targets.map((repo) =>
           fetch(`/api/repos/${repo.id}/save`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ saved: true }),
           })
         )
@@ -274,8 +308,8 @@ function StarsContent() {
       await Promise.all(
         targets.map((repo) =>
           fetch(`/api/repos/${repo.id}/save`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ saved: false }),
           })
         )
@@ -286,20 +320,23 @@ function StarsContent() {
     }
   }, [mutate, selectedRepos]);
 
-  const handleBulkAssignToList = useCallback(async (listId: number) => {
-    if (selectedRepos.length === 0) return;
-    setBulkBusy(true);
-    try {
-      await Promise.all(
-        selectedRepos
-          .filter((repo) => !(repo.collection_ids ?? []).includes(listId))
-          .map((repo) => assignRepoToList(repo.id, listId, true))
-      );
-      mutate();
-    } finally {
-      setBulkBusy(false);
-    }
-  }, [assignRepoToList, mutate, selectedRepos]);
+  const handleBulkAssignToList = useCallback(
+    async (listId: number) => {
+      if (selectedRepos.length === 0) return;
+      setBulkBusy(true);
+      try {
+        await Promise.all(
+          selectedRepos
+            .filter((repo) => !(repo.collection_ids ?? []).includes(listId))
+            .map((repo) => assignRepoToList(repo.id, listId, true))
+        );
+        mutate();
+      } finally {
+        setBulkBusy(false);
+      }
+    },
+    [assignRepoToList, mutate, selectedRepos]
+  );
 
   const handleCompare = useCallback(() => {
     if (selectedCount >= 2) setCompareRequested(true);
@@ -313,8 +350,7 @@ function StarsContent() {
   const handleCompareDeselect = useCallback(
     (repoId: number) => {
       setSelectedByFilter((prev) => {
-        const ids =
-          prev.filterKey === filterKey ? new Set(prev.ids) : new Set<number>();
+        const ids = prev.filterKey === filterKey ? new Set(prev.ids) : new Set<number>();
         ids.delete(repoId);
         return { filterKey, ids };
       });
@@ -329,19 +365,22 @@ function StarsContent() {
     [setSelectedLanguages]
   );
 
-  const handleDeleteList = useCallback(async (id: number) => {
-    await deleteList(id);
-    if (selectedListId === id) {
-      setSelectedListId(null);
-    }
-    mutate();
-  }, [deleteList, mutate, selectedListId, setSelectedListId]);
+  const handleDeleteList = useCallback(
+    async (id: number) => {
+      await deleteList(id);
+      if (selectedListId === id) {
+        setSelectedListId(null);
+      }
+      mutate();
+    },
+    [deleteList, mutate, selectedListId, setSelectedListId]
+  );
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return <PageSkeleton />;
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return null;
   }
 
@@ -411,24 +450,27 @@ function StarsContent() {
       {syncResult && !syncResult.unchanged && (
         <div
           className="border-b bg-card px-4 py-3 md:px-6"
-          style={{ animation: "slideDown 0.3s ease both" }}
+          style={{ animation: 'slideDown 0.3s ease both' }}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="text-sm">
               <p className="font-medium">Sync complete</p>
               {syncResult.added.length > 0 && (
                 <p className="mt-1 text-green-500">
-                  +{syncResult.added.length} new: {syncResult.added.map((r) => r.full_name).join(", ")}
+                  +{syncResult.added.length} new:{' '}
+                  {syncResult.added.map((r) => r.full_name).join(', ')}
                 </p>
               )}
               {syncResult.removed.length > 0 && (
                 <p className="mt-1 text-red-400">
-                  -{syncResult.removed.length} removed: {syncResult.removed.map((r) => r.full_name).join(", ")}
+                  -{syncResult.removed.length} removed:{' '}
+                  {syncResult.removed.map((r) => r.full_name).join(', ')}
                 </p>
               )}
               {syncResult.importedLists.length > 0 && (
                 <p className="mt-1 text-sky-500">
-                  Imported {syncResult.importedLists.length} GitHub collections: {syncResult.importedLists.join(", ")}
+                  Imported {syncResult.importedLists.length} GitHub collections:{' '}
+                  {syncResult.importedLists.join(', ')}
                 </p>
               )}
               {syncResult.assignedRepos > 0 && (
@@ -457,16 +499,12 @@ function StarsContent() {
       )}
 
       {/* Initial import: full animated screen */}
-      {!reposLoading && total === 0 && !hasActiveFilters && syncing && (
-        <SyncAnimation />
-      )}
+      {!reposLoading && total === 0 && !hasActiveFilters && syncing && <SyncAnimation />}
       {!reposLoading && total === 0 && !hasActiveFilters && !syncing && (
         <EmptyState onSync={sync} syncing={syncing} />
       )}
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[280px] shrink-0 border-r md:block">
-          {sidebarContent}
-        </aside>
+        <aside className="hidden w-[280px] shrink-0 border-r md:block">{sidebarContent}</aside>
 
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetContent side="left" className="w-[280px] p-0">
@@ -483,7 +521,7 @@ function StarsContent() {
             <WeeklyActionDigest />
             <ActiveFilterChips
               searchQuery={searchQuery}
-              onClearSearch={() => setSearchQuery("")}
+              onClearSearch={() => setSearchQuery('')}
               selectedLanguages={selectedLanguages}
               onRemoveLanguage={handleRemoveLanguage}
               selectedListId={selectedListId}
@@ -544,18 +582,15 @@ function EmptyState({ onSync, syncing }: { onSync: () => void; syncing: boolean 
           Your GitHub stars, organized and searchable.
         </h1>
         <p className="max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-          Stop losing track of interesting repos. Starboard turns your
-          stars into a personal, searchable library so you can find what
-          you need, when you need it.
+          Stop losing track of interesting repos. Starboard turns your stars into a personal,
+          searchable library so you can find what you need, when you need it.
         </p>
 
         <ul className="grid w-full max-w-md gap-2 text-sm text-muted-foreground sm:grid-cols-2">
           <HeroPoint icon={<Search className="size-4" />}>
             Ask in plain English, not by keyword
           </HeroPoint>
-          <HeroPoint icon={<GitCompare className="size-4" />}>
-            Compare repos side-by-side
-          </HeroPoint>
+          <HeroPoint icon={<GitCompare className="size-4" />}>Compare repos side-by-side</HeroPoint>
           <HeroPoint icon={<Bookmark className="size-4" />}>
             Save into your own collections
           </HeroPoint>
@@ -586,13 +621,7 @@ function EmptyState({ onSync, syncing }: { onSync: () => void; syncing: boolean 
   );
 }
 
-function HeroPoint({
-  icon,
-  children,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function HeroPoint({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
       <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">

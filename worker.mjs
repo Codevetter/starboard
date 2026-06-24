@@ -11,8 +11,8 @@
 //
 // All non-GET, non-`/` requests pass straight through to OpenNext.
 
-import openNext from "./.open-next/worker.js";
-import { withTiming } from "./timing.mjs";
+import openNext from './.open-next/worker.js';
+import { withTiming } from './timing.mjs';
 
 // Durable Objects must be re-exported from the entry that wrangler.toml
 // points at, otherwise the bindings can't resolve them at deploy time.
@@ -20,26 +20,25 @@ export {
   DOQueueHandler,
   DOShardedTagCache,
   BucketCachePurge,
-} from "./.open-next/worker.js";
+} from './.open-next/worker.js';
 
-const CACHE_PATH = "/";
-const CACHE_CONTROL =
-  "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
+const CACHE_PATH = '/';
+const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
 
 // Skip cache when ANY of these cookies are present — covers the better-auth
 // session in both prod (__Secure-) and dev variants so signed-in users
 // always see live SSR (e.g. redirect to /library).
-const AUTH_COOKIE_FRAGMENTS = ["session_token", "session-token"];
+const AUTH_COOKIE_FRAGMENTS = ['session_token', 'session-token'];
 
 function hasAuthCookie(request) {
-  const cookie = request.headers.get("cookie");
+  const cookie = request.headers.get('cookie');
   if (!cookie) return false;
   return AUTH_COOKIE_FRAGMENTS.some((c) => cookie.includes(c));
 }
 
 const worker = {
   fetch: withTiming(async function fetch(request, env, ctx) {
-    if (request.method !== "GET") {
+    if (request.method !== 'GET') {
       return openNext.fetch(request, env, ctx);
     }
     const url = new URL(request.url);
@@ -68,39 +67,33 @@ const worker = {
       // Pass those through — falling through would serve the wrong page.
       if (assetResp.status === 304) {
         const headers = new Headers(assetResp.headers);
-        headers.set("Cache-Control", CACHE_CONTROL);
-        headers.set("x-edge-cache", "ASSET");
+        headers.set('Cache-Control', CACHE_CONTROL);
+        headers.set('x-edge-cache', 'ASSET');
         return new Response(null, { status: 304, headers });
       }
       if (assetResp.ok && assetResp.body) {
-        const acceptEnc = request.headers.get("accept-encoding") ?? "";
-        const wantsGzip = acceptEnc.includes("gzip");
+        const acceptEnc = request.headers.get('accept-encoding') ?? '';
+        const wantsGzip = acceptEnc.includes('gzip');
         const headers = new Headers(assetResp.headers);
-        headers.set("Cache-Control", CACHE_CONTROL);
-        headers.set("x-edge-cache", "ASSET");
+        headers.set('Cache-Control', CACHE_CONTROL);
+        headers.set('x-edge-cache', 'ASSET');
 
-        if (wantsGzip && !headers.has("content-encoding")) {
-          headers.set("content-encoding", "gzip");
-          headers.delete("content-length");
+        if (wantsGzip && !headers.has('content-encoding')) {
+          headers.set('content-encoding', 'gzip');
+          headers.delete('content-length');
           // `Vary: Accept-Encoding` so a future no-encoding client
           // gets a separately negotiated entry.
-          const vary = headers.get("vary");
-          headers.set(
-            "vary",
-            vary ? `${vary}, Accept-Encoding` : "Accept-Encoding",
-          );
-          return new Response(
-            assetResp.body.pipeThrough(new CompressionStream("gzip")),
-            {
-              status: assetResp.status,
-              statusText: assetResp.statusText,
-              headers,
-              // Body is already gzip-encoded; without this the runtime
-              // gzips it a second time (encodeBody defaults to
-              // "automatic") and browsers receive garbled bytes.
-              encodeBody: "manual",
-            },
-          );
+          const vary = headers.get('vary');
+          headers.set('vary', vary ? `${vary}, Accept-Encoding` : 'Accept-Encoding');
+          return new Response(assetResp.body.pipeThrough(new CompressionStream('gzip')), {
+            status: assetResp.status,
+            statusText: assetResp.statusText,
+            headers,
+            // Body is already gzip-encoded; without this the runtime
+            // gzips it a second time (encodeBody defaults to
+            // "automatic") and browsers receive garbled bytes.
+            encodeBody: 'manual',
+          });
         }
 
         return new Response(assetResp.body, {
@@ -115,15 +108,15 @@ const worker = {
     const cached = await cache.match(request);
     if (cached) {
       const hit = new Response(cached.body, cached);
-      hit.headers.set("x-edge-cache", "HIT");
+      hit.headers.set('x-edge-cache', 'HIT');
       return hit;
     }
 
     const response = await openNext.fetch(request, env, ctx);
 
     // Only cache 2xx HTML responses — never error pages or redirects.
-    const contentType = response.headers.get("content-type") ?? "";
-    if (response.status !== 200 || !contentType.includes("text/html")) {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (response.status !== 200 || !contentType.includes('text/html')) {
       return response;
     }
 
@@ -135,7 +128,7 @@ const worker = {
     // the same Uint8Array sidesteps the streaming edge case entirely.
     const body = await response.arrayBuffer();
     const headers = new Headers(response.headers);
-    headers.set("Cache-Control", CACHE_CONTROL);
+    headers.set('Cache-Control', CACHE_CONTROL);
 
     const cacheable = new Response(body, {
       status: response.status,
@@ -149,7 +142,7 @@ const worker = {
       statusText: response.statusText,
       headers,
     });
-    clientResponse.headers.set("x-edge-cache", "MISS");
+    clientResponse.headers.set('x-edge-cache', 'MISS');
     return clientResponse;
   }),
 };

@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
-import { captureError } from "@/lib/foundry-monitoring";
+import { captureError } from '@/lib/foundry-monitoring';
 
 /**
  * Catches failures in the root layout itself (where `error.tsx` cannot run).
@@ -17,7 +17,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     console.error(error);
-    captureError(error, { scope: "global", digest: error.digest });
+    captureError(error, { scope: 'global', digest: error.digest });
   }, [error]);
 
   return (
@@ -25,40 +25,39 @@ export default function GlobalError({
       <body
         style={{
           margin: 0,
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontFamily:
-            "system-ui, -apple-system, Segoe UI, Roboto, sans-serif",
-          background: "#0a0a0a",
-          color: "#ededed",
-          padding: "2rem",
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+          background: '#0a0a0a',
+          color: '#ededed',
+          padding: '2rem',
         }}
       >
-        <div style={{ textAlign: "center", maxWidth: 420 }}>
-          <h2 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: 12 }}>
+        <div style={{ textAlign: 'center', maxWidth: 420 }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: 12 }}>
             Something went wrong
           </h2>
-          <p style={{ fontSize: "0.875rem", opacity: 0.7, marginBottom: 24 }}>
-            The app failed to load. Please reload the page — if it keeps
-            happening, try again in a few minutes.
+          <p style={{ fontSize: '0.875rem', opacity: 0.7, marginBottom: 24 }}>
+            The app failed to load. Please reload the page — if it keeps happening, try again in a
+            few minutes.
           </p>
           <button
             onClick={reset}
             style={{
-              padding: "0.5rem 1rem",
+              padding: '0.5rem 1rem',
               borderRadius: 6,
-              border: "1px solid #333",
-              background: "transparent",
-              color: "inherit",
-              cursor: "pointer",
+              border: '1px solid #333',
+              background: 'transparent',
+              color: 'inherit',
+              cursor: 'pointer',
             }}
           >
             Reload
           </button>
           {error.digest ? (
-            <p style={{ marginTop: 24, fontSize: "0.75rem", opacity: 0.4 }}>
+            <p style={{ marginTop: 24, fontSize: '0.75rem', opacity: 0.4 }}>
               Reference: {error.digest}
             </p>
           ) : null}

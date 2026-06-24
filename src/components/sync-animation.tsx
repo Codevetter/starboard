@@ -1,12 +1,12 @@
-"use client";
+'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 const STEPS = [
-  "Connecting to GitHub…",
-  "Fetching your starred repos…",
-  "Processing repository data…",
-  "Almost there…",
+  'Connecting to GitHub…',
+  'Fetching your starred repos…',
+  'Processing repository data…',
+  'Almost there…',
 ];
 
 export function SyncAnimation() {
@@ -60,13 +60,11 @@ export function SyncAnimation() {
         <p
           key={step}
           className="text-base font-medium text-foreground"
-          style={{ animation: "fadeSlideIn 0.4s ease both" }}
+          style={{ animation: 'fadeSlideIn 0.4s ease both' }}
         >
           {STEPS[step]}
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          This only takes a moment
-        </p>
+        <p className="mt-1 text-sm text-muted-foreground">This only takes a moment</p>
       </div>
 
       {/* Bouncing dots */}
@@ -76,7 +74,7 @@ export function SyncAnimation() {
             key={i}
             className="size-1.5 rounded-full bg-primary/60"
             style={{
-              animation: "bounce 1.2s ease-in-out infinite",
+              animation: 'bounce 1.2s ease-in-out infinite',
               animationDelay: `${i * 0.2}s`,
             }}
           />
@@ -106,7 +104,7 @@ export function SyncProgressBar() {
     <div className="pointer-events-none fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden">
       <div
         className="h-full bg-primary"
-        style={{ animation: "indeterminate 1.6s ease-in-out infinite" }}
+        style={{ animation: 'indeterminate 1.6s ease-in-out infinite' }}
       />
       <style>{`
         @keyframes indeterminate {

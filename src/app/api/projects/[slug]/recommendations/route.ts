@@ -1,34 +1,34 @@
-import type { InValue } from "@libsql/client";
-import { type NextRequest, NextResponse } from "next/server";
+import type { InValue } from '@libsql/client';
+import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { generateEmbedding } from "@/lib/embeddings";
-import { getFleetProject } from "@/lib/fleet-project-data";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { generateEmbedding } from '@/lib/embeddings';
+import { getFleetProject } from '@/lib/fleet-project-data';
 import {
   buildProjectRecommendationReport,
   type FleetRepoCandidate,
   type SemanticDistanceMap,
   semanticKey,
-} from "@/lib/fleet-projects";
+} from '@/lib/fleet-projects';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
 
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { slug } = await params;
   const project = getFleetProject(slug);
   if (!project) {
-    return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 
-  const limit = Math.min(Math.max(parseInt(request.nextUrl.searchParams.get("limit") || "30", 10) || 30, 20), 30);
+  const limit = Math.min(
+    Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '30', 10) || 30, 20),
+    30
+  );
   const userId = session.user.githubId;
   const [repos, semanticDistances] = await Promise.all([
     fetchCandidateRepos(userId),
@@ -114,8 +114,8 @@ async function fetchSemanticDistances(
           project.recommendationContext,
           `Feature: ${featureArea.label}`,
           featureArea.description,
-          featureArea.keywords.join(", "),
-        ].join("\n");
+          featureArea.keywords.join(', '),
+        ].join('\n');
         const embedding = await generateEmbedding(query);
         const result = await db.execute({
           sql: `SELECT re.repo_id,
@@ -142,7 +142,7 @@ async function fetchSemanticDistances(
       })
     );
   } catch (error) {
-    console.warn("Project recommendation semantic scoring failed:", error);
+    console.warn('Project recommendation semantic scoring failed:', error);
   }
 
   return distances;
@@ -153,7 +153,7 @@ function parseStringArray(value: string | null | undefined): string[] {
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string")
+      ? parsed.filter((item): item is string => typeof item === 'string')
       : [];
   } catch {
     return [];

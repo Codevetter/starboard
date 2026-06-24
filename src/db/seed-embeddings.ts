@@ -1,15 +1,11 @@
-import type { InStatement } from "@libsql/client";
-import { createClient } from "@libsql/client";
+import type { InStatement } from '@libsql/client';
+import { createClient } from '@libsql/client';
 
-import {
-  buildRepoEmbeddingText,
-  generateEmbeddings,
-  textHash,
-} from "../lib/embeddings";
+import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../lib/embeddings';
 
 const BATCH_SIZE = 50;
-const EMBED_LIMIT = parseInt(process.env.EMBED_LIMIT || "0", 10);
-const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || "5000", 10);
+const EMBED_LIMIT = parseInt(process.env.EMBED_LIMIT || '0', 10);
+const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
 
 async function seed() {
   const db = createClient({
@@ -17,9 +13,7 @@ async function seed() {
     authToken: process.env.TURSO_AUTH_TOKEN,
   });
 
-  const existing = await db.execute(
-    "SELECT repo_id, text_hash FROM repo_embeddings"
-  );
+  const existing = await db.execute('SELECT repo_id, text_hash FROM repo_embeddings');
   const existingHashes = new Map(
     existing.rows.map((r) => [r.repo_id as number, r.text_hash as string])
   );
@@ -73,12 +67,10 @@ async function seed() {
     }
   }
 
-  console.info(
-    `${repos.rows.length} eligible repos, ${toEmbed.length} need embedding`
-  );
+  console.info(`${repos.rows.length} eligible repos, ${toEmbed.length} need embedding`);
 
   if (toEmbed.length === 0) {
-    console.info("Nothing to do");
+    console.info('Nothing to do');
     process.exit(0);
   }
 
@@ -104,12 +96,12 @@ async function seed() {
     await db.batch(stmts);
   }
 
-  const count = await db.execute("SELECT COUNT(*) as c FROM repo_embeddings");
+  const count = await db.execute('SELECT COUNT(*) as c FROM repo_embeddings');
   console.info(`Done. ${count.rows[0]?.c} repos now have embeddings.`);
   process.exit(0);
 }
 
 seed().catch((err) => {
-  console.error("Seed failed:", err);
+  console.error('Seed failed:', err);
   process.exit(1);
 });

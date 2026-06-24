@@ -1,17 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import {
-  buildMaintainerDigest,
-  type MaintainerDigestRepoInput,
-} from "@/lib/maintainer-digest";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { buildMaintainerDigest, type MaintainerDigestRepoInput } from '@/lib/maintainer-digest';
 
 export async function GET() {
   const session = await auth();
 
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const result = await db.execute({

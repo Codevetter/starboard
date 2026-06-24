@@ -24,18 +24,14 @@
  *   STAR_THRESHOLDS       — comma-separated digest thresholds, default 5000,10000,20000,50000,100000
  */
 
-import { type Client, createClient, type InStatement } from "@libsql/client";
+import { type Client, createClient, type InStatement } from '@libsql/client';
 
-import {
-  buildRepoEmbeddingText,
-  generateEmbeddings,
-  textHash,
-} from "../src/lib/embeddings";
+import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../src/lib/embeddings';
 
-const DAILY_LIMIT = parseInt(process.env.SEED_DAILY_LIMIT || "1000", 10);
-const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || "5000", 10);
-const STAR_THRESHOLDS = (process.env.STAR_THRESHOLDS || "5000,10000,20000,50000,100000")
-  .split(",")
+const DAILY_LIMIT = parseInt(process.env.SEED_DAILY_LIMIT || '1000', 10);
+const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
+const STAR_THRESHOLDS = (process.env.STAR_THRESHOLDS || '5000,10000,20000,50000,100000')
+  .split(',')
   .map((value) => parseInt(value.trim(), 10))
   .filter((value) => Number.isFinite(value) && value >= MIN_STARS_FLOOR)
   .sort((a, b) => a - b);
@@ -69,11 +65,11 @@ function isRetryableDbError(err: unknown): boolean {
   const cause = (err as { cause?: { code?: string } })?.cause;
   const message = err instanceof Error ? err.message : String(err);
   return (
-    cause?.code === "UND_ERR_CONNECT_TIMEOUT" ||
-    message.includes("fetch failed") ||
-    message.includes("Connect Timeout") ||
-    message.includes("ECONNRESET") ||
-    message.includes("ETIMEDOUT")
+    cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
+    message.includes('fetch failed') ||
+    message.includes('Connect Timeout') ||
+    message.includes('ECONNRESET') ||
+    message.includes('ETIMEDOUT')
   );
 }
 
@@ -86,41 +82,31 @@ async function withDbRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
         throw err;
       }
       const waitMs = DB_RETRY_BASE_MS * 2 ** (attempt - 1);
-      console.warn(
-        `[db] ${label} failed on attempt ${attempt}; retrying in ${waitMs}ms`
-      );
+      console.warn(`[db] ${label} failed on attempt ${attempt}; retrying in ${waitMs}ms`);
       await new Promise((r) => setTimeout(r, waitMs));
     }
   }
 }
 
 function executeDb(db: Client, stmt: InStatement | string) {
-  return withDbRetry("execute", () => db.execute(stmt));
+  return withDbRetry('execute', () => db.execute(stmt));
 }
 
 function batchDb(db: Client, stmts: InStatement[]) {
-  return withDbRetry("batch", () => db.batch(stmts));
+  return withDbRetry('batch', () => db.batch(stmts));
 }
 
-async function loadPreviousStarCounts(
-  db: Client,
-  repoIds: number[]
-): Promise<Map<number, number>> {
+async function loadPreviousStarCounts(db: Client, repoIds: number[]): Promise<Map<number, number>> {
   if (repoIds.length === 0) return new Map();
 
   const result = await executeDb(db, {
     sql: `SELECT id, stargazers_count FROM repos WHERE id IN (${repoIds
-      .map(() => "?")
-      .join(", ")})`,
+      .map(() => '?')
+      .join(', ')})`,
     args: repoIds,
   });
 
-  return new Map(
-    result.rows.map((row) => [
-      row.id as number,
-      row.stargazers_count as number,
-    ])
-  );
+  return new Map(result.rows.map((row) => [row.id as number, row.stargazers_count as number]));
 }
 
 function buildThresholdEventStatements(
@@ -144,12 +130,7 @@ function buildThresholdEventStatements(
         sql: `INSERT OR IGNORE INTO repo_threshold_events
               (repo_id, threshold, previous_stars, current_stars)
               VALUES (?, ?, ?, ?)`,
-        args: [
-          repo.id,
-          threshold,
-          previousStars ?? null,
-          repo.stargazers_count,
-        ],
+        args: [repo.id, threshold, previousStars ?? null, repo.stargazers_count],
       });
     }
   }
@@ -157,22 +138,18 @@ function buildThresholdEventStatements(
   return stmts;
 }
 
-async function ghSearch(
-  q: string,
-  page: number,
-  token: string
-): Promise<GhSearchResponse> {
+async function ghSearch(q: string, page: number, token: string): Promise<GhSearchResponse> {
   const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=${PER_PAGE}&page=${page}`;
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "starboard-seed-bot",
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+      'User-Agent': 'starboard-seed-bot',
     },
   });
   if (res.status === 403 || res.status === 429) {
-    const reset = res.headers.get("x-ratelimit-reset");
+    const reset = res.headers.get('x-ratelimit-reset');
     const waitMs = reset ? parseInt(reset, 10) * 1000 - Date.now() : 60_000;
     console.warn(`Rate limited. Sleeping ${Math.round(waitMs / 1000)}s...`);
     await new Promise((r) => setTimeout(r, Math.max(waitMs, 1000)));
@@ -227,10 +204,7 @@ async function upsertRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
           VALUES (?, ?)`,
     args: [repo.id, repo.stargazers_count],
   }));
-  const thresholdEventStmts = buildThresholdEventStatements(
-    repos,
-    previousStarCounts
-  );
+  const thresholdEventStmts = buildThresholdEventStatements(repos, previousStarCounts);
 
   await batchDb(db, [...stmts, ...snapshotStmts, ...thresholdEventStmts]);
   return repos.map((r) => r.id);
@@ -296,9 +270,7 @@ async function embedPending(db: Client, limit: number): Promise<number> {
       args: [item.id, JSON.stringify(embeddings[j]), item.hash],
     }));
     await batchDb(db, stmts);
-    console.info(
-      `  embedded ${i + batch.length}/${toEmbed.length} (${batch.length} this batch)`
-    );
+    console.info(`  embedded ${i + batch.length}/${toEmbed.length} (${batch.length} this batch)`);
   }
 
   return toEmbed.length;
@@ -310,9 +282,9 @@ function isEmbeddingAuthError(err: unknown): boolean {
 }
 
 async function loadCursor(db: Client) {
-  const r = await executeDb(db, "SELECT * FROM seed_cursor WHERE id = 1");
+  const r = await executeDb(db, 'SELECT * FROM seed_cursor WHERE id = 1');
   if (r.rows.length === 0) {
-    await executeDb(db, "INSERT INTO seed_cursor (id) VALUES (1)");
+    await executeDb(db, 'INSERT INTO seed_cursor (id) VALUES (1)');
     return { next_max_stars: 999999999, next_page: 1 };
   }
   return {
@@ -338,9 +310,7 @@ async function saveCursor(db: Client, next_max_stars: number, next_page: number)
  */
 async function walkAndUpsert(db: Client, ghToken: string) {
   const cursor = await loadCursor(db);
-  console.info(
-    `[walk] resume cursor: max_stars=${cursor.next_max_stars} page=${cursor.next_page}`
-  );
+  console.info(`[walk] resume cursor: max_stars=${cursor.next_max_stars} page=${cursor.next_page}`);
 
   let max_stars = cursor.next_max_stars;
   let page = cursor.next_page;
@@ -382,14 +352,12 @@ async function walkAndUpsert(db: Client, ghToken: string) {
   // Walk complete. Reset cursor so the next run rediscovers from the top —
   // catches new ≥5k repos and refreshes star counts on existing rows.
   await saveCursor(db, 999999999, 1);
-  console.info(
-    `[walk] complete. upserted ${upsertedThisRun} repo rows. cursor reset.`
-  );
+  console.info(`[walk] complete. upserted ${upsertedThisRun} repo rows. cursor reset.`);
 }
 
 async function main() {
   const ghToken = process.env.GITHUB_TOKEN;
-  if (!ghToken) throw new Error("GITHUB_TOKEN required");
+  if (!ghToken) throw new Error('GITHUB_TOKEN required');
 
   const db = createClient({
     url: process.env.TURSO_DATABASE_URL!,
@@ -405,11 +373,11 @@ async function main() {
   } catch (err) {
     if (!isEmbeddingAuthError(err)) throw err;
     console.warn(
-      "[embed] skipped: AI gateway authentication failed. Repo seeding completed; rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings."
+      '[embed] skipped: AI gateway authentication failed. Repo seeding completed; rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings.'
     );
     if (process.env.GITHUB_ACTIONS) {
       console.warn(
-        "::warning title=Starboard embeddings skipped::AI gateway authentication failed after repo seeding completed. Rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings."
+        '::warning title=Starboard embeddings skipped::AI gateway authentication failed after repo seeding completed. Rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings.'
       );
     }
   }
@@ -430,6 +398,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Seed run failed:", err);
+  console.error('Seed run failed:', err);
   process.exit(1);
 });

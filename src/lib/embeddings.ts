@@ -10,7 +10,7 @@
  * Changing the model requires updating all three together. See agents.md ›
  * "Embedding dimension contract".
  */
-const EMBEDDING_MODEL = "@cf/baai/bge-base-en-v1.5";
+const EMBEDDING_MODEL = '@cf/baai/bge-base-en-v1.5';
 const EMBEDDING_DIM = 768;
 const BATCH_SIZE = 50;
 
@@ -39,7 +39,7 @@ interface RepoAiMetadataInput {
  */
 async function getAiBinding(): Promise<AiBinding | null> {
   try {
-    const mod = await import("@opennextjs/cloudflare");
+    const mod = await import('@opennextjs/cloudflare');
     const ctx = mod.getCloudflareContext();
     return (ctx.env as { AI?: AiBinding }).AI ?? null;
   } catch {
@@ -47,10 +47,7 @@ async function getAiBinding(): Promise<AiBinding | null> {
   }
 }
 
-async function embedViaBinding(
-  ai: AiBinding,
-  texts: string[]
-): Promise<number[][]> {
+async function embedViaBinding(ai: AiBinding, texts: string[]): Promise<number[][]> {
   const res = await ai.run(EMBEDDING_MODEL, { text: texts });
   return res.data;
 }
@@ -70,9 +67,7 @@ async function embedViaHttp(texts: string[]): Promise<number[][]> {
   const url = process.env.AI_GATEWAY_URL;
   const key = process.env.AI_GATEWAY_API_KEY;
   if (!url || !key) {
-    throw new Error(
-      "No AI binding available and AI_GATEWAY_URL/AI_GATEWAY_API_KEY not set"
-    );
+    throw new Error('No AI binding available and AI_GATEWAY_URL/AI_GATEWAY_API_KEY not set');
   }
 
   // Exponential backoff — transient gateway downtime shouldn't break search.
@@ -83,11 +78,11 @@ async function embedViaHttp(texts: string[]): Promise<number[][]> {
     }
     try {
       const res = await fetch(`${url}/v1/embeddings`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Authorization: `Bearer ${key}`,
-          "x-gateway-project-id": "starboard",
+          'x-gateway-project-id': 'starboard',
         },
         body: JSON.stringify({
           model: EMBEDDING_MODEL,
@@ -111,7 +106,7 @@ async function embedViaHttp(texts: string[]): Promise<number[][]> {
       if (attempt === MAX_EMBED_ATTEMPTS - 1) throw err;
     }
   }
-  throw lastError ?? new Error("Embedding request failed after retries");
+  throw lastError ?? new Error('Embedding request failed after retries');
 }
 
 /** Build the text we embed for a repo — cheap, no extra API calls. */
@@ -122,23 +117,22 @@ export function buildRepoEmbeddingText(repo: {
   topics: string | string[];
   ai?: RepoAiMetadataInput | null;
 }): string {
-  const parts = [repo.full_name.replace("/", " ")];
+  const parts = [repo.full_name.replace('/', ' ')];
   if (repo.description) parts.push(repo.description);
   if (repo.language) parts.push(repo.language);
-  const topics =
-    typeof repo.topics === "string" ? JSON.parse(repo.topics) : repo.topics;
-  if (topics?.length) parts.push(topics.join(", "));
+  const topics = typeof repo.topics === 'string' ? JSON.parse(repo.topics) : repo.topics;
+  if (topics?.length) parts.push(topics.join(', '));
   if (repo.ai) {
     if (repo.ai.summary) parts.push(repo.ai.summary);
     if (repo.ai.category) parts.push(repo.ai.category);
     const subcategories = parseStringList(repo.ai.subcategories);
-    if (subcategories.length) parts.push(subcategories.join(", "));
+    if (subcategories.length) parts.push(subcategories.join(', '));
     const useCases = parseStringList(repo.ai.use_cases);
-    if (useCases.length) parts.push(useCases.join(", "));
+    if (useCases.length) parts.push(useCases.join(', '));
     const keywords = parseStringList(repo.ai.keywords);
-    if (keywords.length) parts.push(keywords.join(", "));
+    if (keywords.length) parts.push(keywords.join(', '));
   }
-  return parts.join(" | ");
+  return parts.join(' | ');
 }
 
 function parseStringList(value: string | string[] | null | undefined): string[] {
@@ -147,7 +141,7 @@ function parseStringList(value: string | string[] | null | undefined): string[] 
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string")
+      ? parsed.filter((item): item is string => typeof item === 'string')
       : [];
   } catch {
     return [];
@@ -183,9 +177,7 @@ function normalizeEmbeddingDimensions(vec: number[]): number[] {
  * Prefers the direct CF Workers AI binding (when running inside a Worker via
  * opennext); falls back to the AI Gateway HTTP path otherwise (Node CLI scripts).
  */
-export async function generateEmbeddings(
-  texts: string[]
-): Promise<number[][]> {
+export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
   const ai = await getAiBinding();
@@ -193,9 +185,7 @@ export async function generateEmbeddings(
 
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     const batch = texts.slice(i, i + BATCH_SIZE);
-    const embeddings = ai
-      ? await embedViaBinding(ai, batch)
-      : await embedViaHttp(batch);
+    const embeddings = ai ? await embedViaBinding(ai, batch) : await embedViaHttp(batch);
     for (let j = 0; j < embeddings.length; j++) {
       const vec = normalizeEmbeddingDimensions(embeddings[j]);
       if (vec.length !== EMBEDDING_DIM) {

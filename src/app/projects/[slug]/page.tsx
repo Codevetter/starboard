@@ -1,4 +1,4 @@
-import { ProjectsWorkspace } from "@/components/projects-workspace";
+import { ProjectsWorkspace } from '@/components/projects-workspace';
 
 export default async function ProjectRecommendationsPage({
   params,

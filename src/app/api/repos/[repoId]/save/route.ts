@@ -1,8 +1,8 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
 
 export async function PUT(
   request: NextRequest,
@@ -10,20 +10,20 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { repoId: rawRepoId } = await params;
   const repoId = parseInt(rawRepoId, 10);
   if (Number.isNaN(repoId)) {
-    return NextResponse.json({ error: "Invalid repo ID" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid repo ID' }, { status: 400 });
   }
 
   let body: { saved?: unknown };
   try {
     body = (await request.json()) as { saved?: unknown };
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
   const isSaved = Boolean(body.saved);
 

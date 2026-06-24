@@ -1,14 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { DEFAULT_ALERT_RULES, parseAlertRules } from "@/lib/alert-preferences";
-import { auth } from "@/lib/auth";
-import type { RadarRepoInput } from "@/lib/release-radar";
-import { filterRadarAlerts } from "@/lib/weekly-alerts";
+import { db } from '@/db';
+import { DEFAULT_ALERT_RULES, parseAlertRules } from '@/lib/alert-preferences';
+import { auth } from '@/lib/auth';
+import type { RadarRepoInput } from '@/lib/release-radar';
+import { filterRadarAlerts } from '@/lib/weekly-alerts';
 
 async function loadAlertRules(userId: string) {
   const result = await db.execute({
-    sql: "SELECT rules FROM user_alert_preferences WHERE user_id = ?",
+    sql: 'SELECT rules FROM user_alert_preferences WHERE user_id = ?',
     args: [userId],
   });
   if (result.rows.length === 0) return { ...DEFAULT_ALERT_RULES };
@@ -64,7 +64,7 @@ async function loadRadarRepos(userId: string): Promise<RadarRepoInput[]> {
     language: row.language as string | null,
     stargazersCount: row.stargazers_count as number,
     archived: Boolean(row.archived),
-    topics: JSON.parse((row.topics as string) || "[]"),
+    topics: JSON.parse((row.topics as string) || '[]'),
     repoUpdatedAt: row.repo_updated_at as string | null,
     starredAt: row.starred_at as string | null,
     starsThirtyDaysAgo: row.stars_30d_ago as number | null,
@@ -75,7 +75,7 @@ async function loadRadarRepos(userId: string): Promise<RadarRepoInput[]> {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const [rules, radarRepos] = await Promise.all([

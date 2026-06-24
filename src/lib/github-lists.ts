@@ -1,8 +1,8 @@
-const GITHUB_ORIGIN = "https://github.com";
+const GITHUB_ORIGIN = 'https://github.com';
 
 const HTML_HEADERS = {
-  Accept: "text/html,application/xhtml+xml",
-  "User-Agent": "starboard",
+  Accept: 'text/html,application/xhtml+xml',
+  'User-Agent': 'starboard',
 };
 
 export interface GitHubStarList {
@@ -47,8 +47,8 @@ export function parsePublicStarLists(html: string, username: string): GitHubStar
   const usernamePath = `/stars/${username.toLowerCase()}/lists/`;
 
   for (const match of cards) {
-    const href = decodeHtml(match[1] ?? "");
-    const body = match[2] ?? "";
+    const href = decodeHtml(match[1] ?? '');
+    const body = match[2] ?? '';
     const lowerHref = href.toLowerCase();
 
     if (!lowerHref.includes(usernamePath)) {
@@ -67,14 +67,14 @@ export function parsePublicStarLists(html: string, username: string): GitHubStar
 
     const name = cleanText(title);
     const description = cleanText(rawDescription);
-    const repoCount = parseInt((rawCount ?? "0").replace(/,/g, ""), 10) || 0;
+    const repoCount = parseInt((rawCount ?? '0').replace(/,/g, ''), 10) || 0;
 
     if (!name) {
       continue;
     }
 
     const absoluteHref = new URL(href, GITHUB_ORIGIN).toString();
-    const slug = absoluteHref.split("/lists/")[1]?.split("?")[0]?.split("#")[0] ?? "";
+    const slug = absoluteHref.split('/lists/')[1]?.split('?')[0]?.split('#')[0] ?? '';
     if (!slug || seenSlugs.has(slug)) {
       continue;
     }
@@ -103,7 +103,7 @@ export function parsePublicStarListRepoPage(html: string): {
   const seen = new Set<string>();
 
   for (const match of repoMatches) {
-    const fullName = decodeHtml(match[1] ?? "");
+    const fullName = decodeHtml(match[1] ?? '');
     const normalized = fullName.toLowerCase();
     if (!fullName || seen.has(normalized)) {
       continue;
@@ -135,26 +135,26 @@ function extractFirst(value: string, pattern: RegExp): string | null {
 
 function cleanText(value: string | null): string {
   if (!value) {
-    return "";
+    return '';
   }
 
   return collapseWhitespace(stripTags(decodeHtml(value)));
 }
 
 function stripTags(value: string): string {
-  return value.replace(/<[^>]+>/g, " ");
+  return value.replace(/<[^>]+>/g, ' ');
 }
 
 function collapseWhitespace(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return value.replace(/\s+/g, ' ').trim();
 }
 
 function decodeHtml(value: string): string {
   return value
-    .replace(/&amp;/g, "&")
+    .replace(/&amp;/g, '&')
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&#x27;/g, "'")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">");
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>');
 }

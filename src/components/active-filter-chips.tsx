@@ -1,9 +1,9 @@
-"use client";
+'use client';
 
-import { X } from "lucide-react";
+import { X } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
-import type { UserList } from "@/hooks/use-lists";
+import { Button } from '@/components/ui/button';
+import type { UserList } from '@/hooks/use-lists';
 
 interface ActiveFilterChipsProps {
   searchQuery: string;
@@ -28,8 +28,7 @@ export function ActiveFilterChips({
 }: ActiveFilterChipsProps) {
   const trimmedQuery = searchQuery.trim();
   const selectedList = selectedListId != null ? lists.find((l) => l.id === selectedListId) : null;
-  const totalChips =
-    (trimmedQuery ? 1 : 0) + selectedLanguages.length + (selectedList ? 1 : 0);
+  const totalChips = (trimmedQuery ? 1 : 0) + selectedLanguages.length + (selectedList ? 1 : 0);
 
   if (totalChips === 0) return null;
 
@@ -44,12 +43,7 @@ export function ActiveFilterChips({
       )}
 
       {selectedLanguages.map((lang) => (
-        <Chip
-          key={lang}
-          onRemove={() => onRemoveLanguage(lang)}
-          label={lang}
-          prefix="Lang"
-        />
+        <Chip key={lang} onRemove={() => onRemoveLanguage(lang)} label={lang} prefix="Lang" />
       ))}
 
       {selectedList && (
@@ -94,15 +88,13 @@ function Chip({
           style={{ backgroundColor: dotColor }}
         />
       )}
-      {prefix && (
-        <span className="text-muted-foreground">{prefix}:</span>
-      )}
+      {prefix && <span className="text-muted-foreground">{prefix}:</span>}
       <span className="max-w-[14rem] truncate font-medium">{label}</span>
       <button
         type="button"
         onClick={onRemove}
         className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
-        aria-label={`Remove ${prefix ?? ""} ${label}`}
+        aria-label={`Remove ${prefix ?? ''} ${label}`}
       >
         <X className="size-3" />
       </button>

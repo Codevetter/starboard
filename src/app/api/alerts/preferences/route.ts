@@ -1,18 +1,18 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
+import { db } from '@/db';
 import {
   type AlertRules,
   DEFAULT_ALERT_RULES,
   mergeAlertRules,
   parseAlertRules,
   serializeAlertRules,
-} from "@/lib/alert-preferences";
-import { auth } from "@/lib/auth";
+} from '@/lib/alert-preferences';
+import { auth } from '@/lib/auth';
 
 async function getOrCreateRules(userId: string): Promise<AlertRules> {
   const existing = await db.execute({
-    sql: "SELECT rules FROM user_alert_preferences WHERE user_id = ?",
+    sql: 'SELECT rules FROM user_alert_preferences WHERE user_id = ?',
     args: [userId],
   });
 
@@ -22,7 +22,7 @@ async function getOrCreateRules(userId: string): Promise<AlertRules> {
 
   const rules = { ...DEFAULT_ALERT_RULES };
   await db.execute({
-    sql: "INSERT INTO user_alert_preferences (user_id, rules) VALUES (?, ?)",
+    sql: 'INSERT INTO user_alert_preferences (user_id, rules) VALUES (?, ?)',
     args: [userId, serializeAlertRules(rules)],
   });
   return rules;
@@ -31,7 +31,7 @@ async function getOrCreateRules(userId: string): Promise<AlertRules> {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const rules = await getOrCreateRules(session.user.githubId);
@@ -41,7 +41,7 @@ export async function GET() {
 export async function PATCH(request: Request) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const body = (await request.json()) as Partial<AlertRules>;

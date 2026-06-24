@@ -1,24 +1,28 @@
-"use client";
+'use client';
 
-import { AlertTriangle, Archive, ArrowUpRight, GitBranch, Loader2, Radar, Star, Wrench } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useEffect } from "react";
-import useSWR from "swr";
-
-import { AlertInboxPanel } from "@/components/alert-inbox";
-import { AlertSettingsPanel } from "@/components/alert-settings";
-import { ShareReportButton } from "@/components/share-report-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import type { RadarRepo,RadarReport } from "@/lib/release-radar";
+  AlertTriangle,
+  Archive,
+  ArrowUpRight,
+  GitBranch,
+  Loader2,
+  Radar,
+  Star,
+  Wrench,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useEffect } from 'react';
+import useSWR from 'swr';
+
+import { AlertInboxPanel } from '@/components/alert-inbox';
+import { AlertSettingsPanel } from '@/components/alert-settings';
+import { ShareReportButton } from '@/components/share-report-button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { RadarRepo, RadarReport } from '@/lib/release-radar';
 
 const fetcher = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
@@ -27,33 +31,34 @@ const fetcher = async <T,>(url: string): Promise<T> => {
 };
 
 function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: "compact" }).format(value);
+  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
 }
 
 function formatAge(days: number | null): string {
-  if (days === null) return "unknown";
-  if (days < 1) return "today";
+  if (days === null) return 'unknown';
+  if (days < 1) return 'today';
   if (days < 31) return `${days}d ago`;
   if (days < 365) return `${Math.round(days / 30)}mo ago`;
   return `${Math.round(days / 365)}y ago`;
 }
 
-function laneIcon(lane: RadarRepo["primaryLane"]) {
-  if (lane === "release") return <GitBranch className="size-4" />;
-  if (lane === "momentum") return <Star className="size-4" />;
+function laneIcon(lane: RadarRepo['primaryLane']) {
+  if (lane === 'release') return <GitBranch className="size-4" />;
+  if (lane === 'momentum') return <Star className="size-4" />;
   return <Wrench className="size-4" />;
 }
 
-function laneLabel(lane: RadarRepo["primaryLane"]): string {
-  if (lane === "release") return "Release";
-  if (lane === "momentum") return "Momentum";
-  return "Maintenance";
+function laneLabel(lane: RadarRepo['primaryLane']): string {
+  if (lane === 'release') return 'Release';
+  if (lane === 'momentum') return 'Momentum';
+  return 'Maintenance';
 }
 
-function toneClass(tone: RadarRepo["signals"][number]["tone"]): string {
-  if (tone === "good") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-  if (tone === "risk") return "border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300";
-  return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
+function toneClass(tone: RadarRepo['signals'][number]['tone']): string {
+  if (tone === 'good')
+    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+  if (tone === 'risk') return 'border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300';
+  return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
 }
 
 function RepoRadarCard({ repo }: { repo: RadarRepo }) {
@@ -82,7 +87,12 @@ function RepoRadarCard({ repo }: { repo: RadarRepo }) {
               </Link>
             </CardTitle>
           </div>
-          <Button asChild variant="ghost" size="icon-sm" aria-label={`Open ${repo.fullName} on GitHub`}>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Open ${repo.fullName} on GitHub`}
+          >
             <Link href={repo.htmlUrl} target="_blank" rel="noreferrer">
               <ArrowUpRight className="size-4" />
             </Link>
@@ -91,7 +101,7 @@ function RepoRadarCard({ repo }: { repo: RadarRepo }) {
       </CardHeader>
       <CardContent className="space-y-4 px-4">
         <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">
-          {repo.description ?? "No description available."}
+          {repo.description ?? 'No description available.'}
         </p>
         <div className="grid grid-cols-3 gap-2 text-xs">
           <div className="rounded-md border p-2">
@@ -105,21 +115,30 @@ function RepoRadarCard({ repo }: { repo: RadarRepo }) {
           <div className="rounded-md border p-2">
             <div className="text-muted-foreground">30d</div>
             <div className="mt-1 font-medium">
-              {repo.starDeltaThirtyDays === null ? "n/a" : `+${formatNumber(repo.starDeltaThirtyDays)}`}
+              {repo.starDeltaThirtyDays === null
+                ? 'n/a'
+                : `+${formatNumber(repo.starDeltaThirtyDays)}`}
             </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {repo.signals.slice(0, 3).map((signal) => (
-            <Badge key={`${repo.id}-${signal.label}`} variant="outline" className={toneClass(signal.tone)}>
+            <Badge
+              key={`${repo.id}-${signal.label}`}
+              variant="outline"
+              className={toneClass(signal.tone)}
+            >
               {signal.label}
             </Badge>
           ))}
         </div>
-        {topSignal?.tone === "risk" && (
+        {topSignal?.tone === 'risk' && (
           <div className="flex items-start gap-2 rounded-md border border-red-500/20 bg-red-500/5 p-2 text-xs text-muted-foreground">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-red-500" />
-            <span>Review whether this repo still belongs in an active library or should move to an archive list.</span>
+            <span>
+              Review whether this repo still belongs in an active library or should move to an
+              archive list.
+            </span>
           </div>
         )}
       </CardContent>
@@ -132,12 +151,12 @@ export default function RadarPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/");
+    if (status === 'unauthenticated') {
+      router.replace('/');
     }
   }, [router, status]);
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -145,7 +164,7 @@ export default function RadarPage() {
     );
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return null;
   }
 
@@ -153,7 +172,7 @@ export default function RadarPage() {
 }
 
 function RadarContent() {
-  const { data, error, isLoading } = useSWR<RadarReport>("/api/radar", fetcher, {
+  const { data, error, isLoading } = useSWR<RadarReport>('/api/radar', fetcher, {
     revalidateOnFocus: false,
   });
 
@@ -180,7 +199,9 @@ function RadarContent() {
             </div>
             <div>
               <h1 className="text-lg font-semibold">Release Radar</h1>
-              <p className="text-sm text-muted-foreground">Maintenance, momentum, and recent release signals from your library.</p>
+              <p className="text-sm text-muted-foreground">
+                Maintenance, momentum, and recent release signals from your library.
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">

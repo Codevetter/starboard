@@ -1,18 +1,18 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { trackCoreAction } from "@/lib/analytics";
-import { auth } from "@/lib/auth";
+import { db } from '@/db';
+import { trackCoreAction } from '@/lib/analytics';
+import { auth } from '@/lib/auth';
 
 export async function GET() {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const result = await db.execute({
-    sql: "SELECT * FROM user_lists WHERE user_id = ? ORDER BY position ASC",
+    sql: 'SELECT * FROM user_lists WHERE user_id = ? ORDER BY position ASC',
     args: [session.user.githubId],
   });
 
@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { name, color, icon } = (await request.json()) as {
@@ -30,29 +30,35 @@ export async function POST(request: NextRequest) {
     color?: unknown;
     icon?: unknown;
   };
-  if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 100) {
-    return NextResponse.json({ error: "name must be a non-empty string (max 100 chars)" }, { status: 400 });
+  if (!name || typeof name !== 'string' || name.trim().length === 0 || name.length > 100) {
+    return NextResponse.json(
+      { error: 'name must be a non-empty string (max 100 chars)' },
+      { status: 400 }
+    );
   }
-  if (color !== undefined && (typeof color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(color))) {
-    return NextResponse.json({ error: "color must be a valid hex color (e.g. #6366f1)" }, { status: 400 });
+  if (color !== undefined && (typeof color !== 'string' || !/^#[0-9a-fA-F]{6}$/.test(color))) {
+    return NextResponse.json(
+      { error: 'color must be a valid hex color (e.g. #6366f1)' },
+      { status: 400 }
+    );
   }
   const listName = name.trim();
-  const listColor = typeof color === "string" ? color : "#6366f1";
-  const listIcon = typeof icon === "string" ? icon : null;
+  const listColor = typeof color === 'string' ? color : '#6366f1';
+  const listIcon = typeof icon === 'string' ? icon : null;
 
   const posResult = await db.execute({
-    sql: "SELECT COALESCE(MAX(position), -1) + 1 as next_pos FROM user_lists WHERE user_id = ?",
+    sql: 'SELECT COALESCE(MAX(position), -1) + 1 as next_pos FROM user_lists WHERE user_id = ?',
     args: [session.user.githubId],
   });
   const nextPos = posResult.rows[0].next_pos as number;
 
   const result = await db.execute({
-    sql: "INSERT INTO user_lists (user_id, name, color, icon, position) VALUES (?, ?, ?, ?, ?) RETURNING *",
+    sql: 'INSERT INTO user_lists (user_id, name, color, icon, position) VALUES (?, ?, ?, ?, ?) RETURNING *',
     args: [session.user.githubId, listName, listColor, listIcon, nextPos],
   });
 
   // Owner-facing analytics — creating a collection is a core action.
-  trackCoreAction("list_created", session.user.githubId);
+  trackCoreAction('list_created', session.user.githubId);
 
   return NextResponse.json(result.rows[0], { status: 201 });
 }

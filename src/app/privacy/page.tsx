@@ -1,8 +1,8 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 export const metadata = {
-  title: "Privacy — Starboard",
-  description: "What Starboard stores and what it never collects.",
+  title: 'Privacy — Starboard',
+  description: 'What Starboard stores and what it never collects.',
 };
 
 export default function PrivacyPage() {
@@ -24,16 +24,17 @@ export default function PrivacyPage() {
 
       <h2 className="mt-8 text-base font-semibold">What we don&apos;t</h2>
       <ul className="mt-2 list-disc space-y-1 pl-5">
-        <li>No private-repo content. We only ever read the starred-repo list, which is already public.</li>
+        <li>
+          No private-repo content. We only ever read the starred-repo list, which is already public.
+        </li>
         <li>No third-party tracking pixels or marketing tags.</li>
         <li>No sharing of star data with anyone.</li>
       </ul>
 
       <h2 className="mt-8 text-base font-semibold">Deletion</h2>
       <p className="mt-2">
-        Revoke Starboard&apos;s GitHub OAuth grant from your GitHub
-        settings to disconnect, or email the maintainer to delete your
-        Starboard data entirely.
+        Revoke Starboard&apos;s GitHub OAuth grant from your GitHub settings to disconnect, or email
+        the maintainer to delete your Starboard data entirely.
       </p>
     </main>
   );

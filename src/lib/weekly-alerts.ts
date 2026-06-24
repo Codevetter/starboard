@@ -1,12 +1,12 @@
-import type { AlertLane, AlertRules } from "@/lib/alert-preferences";
-import type { MaintainerDigest, MaintainerDigestRepoInput } from "@/lib/maintainer-digest";
-import { buildMaintainerDigest } from "@/lib/maintainer-digest";
+import type { AlertLane, AlertRules } from '@/lib/alert-preferences';
+import type { MaintainerDigest, MaintainerDigestRepoInput } from '@/lib/maintainer-digest';
+import { buildMaintainerDigest } from '@/lib/maintainer-digest';
 import {
   analyzeRadarRepo,
   buildRadarReport,
   type RadarRepo,
   type RadarRepoInput,
-} from "@/lib/release-radar";
+} from '@/lib/release-radar';
 
 export interface WeeklyAlertItem {
   id: string;
@@ -17,7 +17,7 @@ export interface WeeklyAlertItem {
   detail: string;
   sourceUrl: string;
   starboardUrl: string;
-  priority: "info" | "watch" | "urgent";
+  priority: 'info' | 'watch' | 'urgent';
 }
 
 export interface WeeklyAlertDigest {
@@ -36,9 +36,9 @@ export interface WeeklyAlertDigest {
 }
 
 function laneFromDigestGroup(groupId: string): AlertLane | null {
-  if (groupId === "recent_releases") return "release";
-  if (groupId === "high_momentum") return "momentum";
-  if (groupId === "at_risk") return "maintenance";
+  if (groupId === 'recent_releases') return 'release';
+  if (groupId === 'high_momentum') return 'momentum';
+  if (groupId === 'at_risk') return 'maintenance';
   return null;
 }
 
@@ -46,14 +46,14 @@ function laneFromRadarRepo(repo: RadarRepo, rules: AlertRules): AlertLane | null
   const primary = repo.primaryLane;
   if (!rules.lanes.includes(primary)) return null;
 
-  if (primary === "momentum") {
+  if (primary === 'momentum') {
     const delta = repo.starDeltaThirtyDays ?? 0;
     if (delta < rules.momentumMinDelta && (repo.thresholdEventsThirtyDays ?? 0) === 0) {
       return null;
     }
   }
 
-  if (primary === "maintenance") {
+  if (primary === 'maintenance') {
     const dormant = repo.daysSinceUpdate ?? 0;
     if (dormant < rules.dormantDays && !repo.archived) return null;
   }
@@ -69,10 +69,10 @@ function radarAlertItem(repo: RadarRepo, lane: AlertLane): WeeklyAlertItem {
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
-    detail: topSignal?.label ?? "Signal detected",
+    detail: topSignal?.label ?? 'Signal detected',
     sourceUrl: repo.htmlUrl,
     starboardUrl: `/explore/${repo.fullName}`,
-    priority: topSignal?.tone === "risk" ? "urgent" : topSignal?.tone === "good" ? "info" : "watch",
+    priority: topSignal?.tone === 'risk' ? 'urgent' : topSignal?.tone === 'good' ? 'info' : 'watch',
   };
 }
 
@@ -133,14 +133,16 @@ export function buildWeeklyAlertDigest(
 
   const sortedAlerts = alerts.sort((a, b) => {
     const priorityScore = { urgent: 3, watch: 2, info: 1 };
-    return priorityScore[b.priority] - priorityScore[a.priority] || a.fullName.localeCompare(b.fullName);
+    return (
+      priorityScore[b.priority] - priorityScore[a.priority] || a.fullName.localeCompare(b.fullName)
+    );
   });
 
   const summary = {
     totalAlerts: sortedAlerts.length,
-    release: sortedAlerts.filter((item) => item.lane === "release").length,
-    maintenance: sortedAlerts.filter((item) => item.lane === "maintenance").length,
-    momentum: sortedAlerts.filter((item) => item.lane === "momentum").length,
+    release: sortedAlerts.filter((item) => item.lane === 'release').length,
+    maintenance: sortedAlerts.filter((item) => item.lane === 'maintenance').length,
+    momentum: sortedAlerts.filter((item) => item.lane === 'momentum').length,
   };
 
   return {
@@ -156,29 +158,29 @@ export function buildWeeklyAlertDigest(
 
 function buildWeeklyAlertMarkdown(
   alerts: WeeklyAlertItem[],
-  summary: WeeklyAlertDigest["summary"],
+  summary: WeeklyAlertDigest['summary'],
   now: Date
 ): string {
   const lines = [
     `# Weekly repository alerts`,
-    "",
+    '',
     `Generated: ${now.toISOString()}`,
     `Total alerts: ${summary.totalAlerts}`,
-    "",
+    '',
   ];
 
-  for (const lane of ["release", "momentum", "maintenance"] as AlertLane[]) {
+  for (const lane of ['release', 'momentum', 'maintenance'] as AlertLane[]) {
     const laneAlerts = alerts.filter((item) => item.lane === lane);
     if (laneAlerts.length === 0) continue;
     lines.push(`## ${lane}`);
-    lines.push("");
+    lines.push('');
     for (const alert of laneAlerts) {
       lines.push(`- [${alert.fullName}](${alert.sourceUrl}) — ${alert.detail}`);
     }
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n").trimEnd();
+  return lines.join('\n').trimEnd();
 }
 
 export function filterRadarAlerts(

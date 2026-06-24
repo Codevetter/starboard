@@ -38,7 +38,7 @@ function delay(ms: number): Promise<void> {
 async function fetchWithRetry(
   input: string,
   init: RequestInit,
-  attempts = MAX_GITHUB_ATTEMPTS,
+  attempts = MAX_GITHUB_ATTEMPTS
 ): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -55,7 +55,7 @@ async function fetchWithRetry(
       lastError = err;
     }
   }
-  throw lastError ?? new Error("GitHub request failed after retries");
+  throw lastError ?? new Error('GitHub request failed after retries');
 }
 
 /**
@@ -74,13 +74,13 @@ export async function fetchAllStarredRepos(
   while (true) {
     const headers: Record<string, string> = {
       Authorization: `Bearer ${accessToken}`,
-      Accept: "application/vnd.github.v3+json",
-      "User-Agent": "starboard",
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'starboard',
     };
 
     // Only send If-None-Match on the first page to check if anything changed
     if (page === 1 && cachedEtag) {
-      headers["If-None-Match"] = cachedEtag;
+      headers['If-None-Match'] = cachedEtag;
     }
 
     const response = await fetchWithRetry(
@@ -99,7 +99,7 @@ export async function fetchAllStarredRepos(
 
     // Capture ETag from first page
     if (page === 1) {
-      firstPageEtag = response.headers.get("etag");
+      firstPageEtag = response.headers.get('etag');
     }
 
     const data: StarredRepo[] = await response.json();

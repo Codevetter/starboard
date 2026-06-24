@@ -44,88 +44,88 @@ export function blendSearchIds(lexIds: number[], semIds: number[], k = 60): numb
 }
 
 const SEARCH_STOP_WORDS = new Set([
-  "a",
-  "an",
-  "and",
-  "app",
-  "apps",
-  "best",
-  "for",
-  "good",
-  "in",
-  "of",
-  "on",
-  "or",
-  "platform",
-  "platforms",
-  "project",
-  "projects",
-  "repo",
-  "repos",
-  "repository",
-  "repositories",
-  "the",
-  "thing",
-  "things",
-  "tool",
-  "tools",
-  "top",
-  "with",
+  'a',
+  'an',
+  'and',
+  'app',
+  'apps',
+  'best',
+  'for',
+  'good',
+  'in',
+  'of',
+  'on',
+  'or',
+  'platform',
+  'platforms',
+  'project',
+  'projects',
+  'repo',
+  'repos',
+  'repository',
+  'repositories',
+  'the',
+  'thing',
+  'things',
+  'tool',
+  'tools',
+  'top',
+  'with',
 ]);
 
 const QUERY_EXPANSIONS: { triggers: RegExp[]; terms: string[] }[] = [
   {
     triggers: [/\blang\s*chain\b/i, /\blang-?chain\b/i, /\blan-?chain\b/i],
     terms: [
-      "langchain",
-      "langgraph",
-      "llamaindex",
-      "llama-index",
-      "llama_index",
-      "haystack",
-      "crewai",
-      "autogen",
-      "semantic-kernel",
-      "semantic",
-      "kernel",
-      "agno",
-      "dify",
-      "langflow",
+      'langchain',
+      'langgraph',
+      'llamaindex',
+      'llama-index',
+      'llama_index',
+      'haystack',
+      'crewai',
+      'autogen',
+      'semantic-kernel',
+      'semantic',
+      'kernel',
+      'agno',
+      'dify',
+      'langflow',
     ],
   },
   {
     triggers: [/\breplacement/i, /\breplacements/i, /\balternative/i, /\balternatives/i],
-    terms: ["alternative", "alternatives"],
+    terms: ['alternative', 'alternatives'],
   },
   {
     triggers: [/\beval\b/i, /\bevals\b/i, /\bevaluation\b/i, /\bbenchmark/i],
     terms: [
-      "eval",
-      "evals",
-      "evaluation",
-      "benchmark",
-      "benchmarks",
-      "promptfoo",
-      "deepeval",
-      "ragas",
-      "langfuse",
-      "langsmith",
-      "langwatch",
-      "phoenix",
-      "helicone",
-      "opik",
-      "trulens",
-      "giskard",
-      "inspect_ai",
-      "lm-evaluation-harness",
-      "observability",
-      "testing",
+      'eval',
+      'evals',
+      'evaluation',
+      'benchmark',
+      'benchmarks',
+      'promptfoo',
+      'deepeval',
+      'ragas',
+      'langfuse',
+      'langsmith',
+      'langwatch',
+      'phoenix',
+      'helicone',
+      'opik',
+      'trulens',
+      'giskard',
+      'inspect_ai',
+      'lm-evaluation-harness',
+      'observability',
+      'testing',
     ],
   },
 ];
 
 function normalizeSearchTerm(term: string): string {
-  return term.toLowerCase().replace(/^[-_]+|[-_]+$/g, "");
+  return term.toLowerCase().replace(/^[-_]+|[-_]+$/g, '');
 }
 
 export function searchTerms(query: string, maxTerms = 24): string[] {
@@ -137,7 +137,7 @@ export function searchTerms(query: string, maxTerms = 24): string[] {
     if (term.length < 2 || SEARCH_STOP_WORDS.has(term)) continue;
     terms.add(term);
 
-    const compact = term.replace(/[-_.]/g, "");
+    const compact = term.replace(/[-_.]/g, '');
     if (compact !== term && compact.length >= 2) terms.add(compact);
   }
 
@@ -150,7 +150,7 @@ export function searchTerms(query: string, maxTerms = 24): string[] {
 }
 
 function ftsTerm(term: string): string | null {
-  const cleaned = term.replace(/"/g, " ").trim();
+  const cleaned = term.replace(/"/g, ' ').trim();
   if (cleaned.length < 2) return null;
   if (/^[a-z0-9]+$/i.test(cleaned)) return `${cleaned}*`;
   return `"${cleaned}"`;
@@ -161,11 +161,11 @@ export function ftsSearchQuery(query: string): string | null {
     .map(ftsTerm)
     .filter((term): term is string => term !== null);
   if (terms.length === 0) return null;
-  return terms.join(" OR ");
+  return terms.join(' OR ');
 }
 
 export function expandedSearchQuery(query: string): string {
   const terms = searchTerms(query);
   if (terms.length === 0) return query;
-  return `${query} ${terms.join(" ")}`;
+  return `${query} ${terms.join(' ')}`;
 }

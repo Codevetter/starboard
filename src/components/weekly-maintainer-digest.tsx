@@ -1,30 +1,15 @@
-"use client";
+'use client';
 
-import {
-  ArrowUpRight,
-  Check,
-  GitBranch,
-  Loader2,
-  MoreHorizontal,
-  X,
-} from "lucide-react";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
+import { ArrowUpRight, Check, GitBranch, Loader2, MoreHorizontal, X } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import useSWR from 'swr';
 
-import { ShareReportButton } from "@/components/share-report-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  type DigestItemAction,
-  trackDigestItemActioned,
-  trackDigestOpened,
-} from "@/lib/analytics";
-import type {
-  DigestGroup,
-  DigestItem,
-  MaintainerDigest,
-} from "@/lib/maintainer-digest";
+import { ShareReportButton } from '@/components/share-report-button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { type DigestItemAction, trackDigestItemActioned, trackDigestOpened } from '@/lib/analytics';
+import type { DigestGroup, DigestItem, MaintainerDigest } from '@/lib/maintainer-digest';
 
 type LocalDigestAction = DigestItemAction;
 type LocalDigestState = Record<string, LocalDigestAction>;
@@ -44,7 +29,7 @@ function localStorageKey(digestId: string): string {
 }
 
 function readLocalDigestState(digestId: string): LocalDigestState {
-  if (typeof window === "undefined") return {};
+  if (typeof window === 'undefined') return {};
   try {
     const raw = window.localStorage.getItem(localStorageKey(digestId));
     return raw ? (JSON.parse(raw) as LocalDigestState) : {};
@@ -53,15 +38,17 @@ function readLocalDigestState(digestId: string): LocalDigestState {
   }
 }
 
-function priorityVariant(priority: DigestItem["priority"]): "default" | "secondary" | "destructive" | "outline" {
-  if (priority === "urgent") return "destructive";
-  if (priority === "watch") return "secondary";
-  return "outline";
+function priorityVariant(
+  priority: DigestItem['priority']
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  if (priority === 'urgent') return 'destructive';
+  if (priority === 'watch') return 'secondary';
+  return 'outline';
 }
 
 function actionLabel(action: LocalDigestAction | undefined): string | null {
-  if (action === "reviewed") return "Reviewed";
-  if (action === "dismissed") return "Dismissed";
+  if (action === 'reviewed') return 'Reviewed';
+  if (action === 'dismissed') return 'Dismissed';
   return null;
 }
 
@@ -82,10 +69,7 @@ function DigestItemRow({
     <div className="grid gap-3 border-t py-3 first:border-t-0 sm:grid-cols-[minmax(0,1fr)_auto]">
       <div className="min-w-0">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          <Link
-            href={item.starboardUrl}
-            className="truncate text-sm font-medium hover:underline"
-          >
+          <Link href={item.starboardUrl} className="truncate text-sm font-medium hover:underline">
             {item.title}
           </Link>
           <Badge variant={priorityVariant(item.priority)} className="text-[10px]">
@@ -97,9 +81,7 @@ function DigestItemRow({
             </Badge>
           )}
         </div>
-        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-          {item.description}
-        </p>
+        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.description}</p>
         <p className="mt-1 text-xs text-muted-foreground">{item.detail}</p>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="xs">
@@ -119,9 +101,9 @@ function DigestItemRow({
       </div>
       <div className="flex shrink-0 items-center gap-1 sm:self-start">
         <Button
-          variant={action === "reviewed" ? "secondary" : "outline"}
+          variant={action === 'reviewed' ? 'secondary' : 'outline'}
           size="xs"
-          onClick={() => onAction(item, "reviewed")}
+          onClick={() => onAction(item, 'reviewed')}
           aria-label={`Mark ${item.fullName} reviewed in digest ${digestId}`}
         >
           <Check className="size-3" />
@@ -130,7 +112,7 @@ function DigestItemRow({
         <Button
           variant="ghost"
           size="icon-xs"
-          onClick={() => onAction(item, "dismissed")}
+          onClick={() => onAction(item, 'dismissed')}
           aria-label={`Dismiss ${item.fullName} from digest ${digestId}`}
           title="Dismiss"
         >
@@ -152,7 +134,7 @@ function DigestGroupSection({
   actions: LocalDigestState;
   onAction: (item: DigestItem, action: LocalDigestAction) => void;
 }) {
-  const visibleItems = group.items.filter((item) => actions[item.id] !== "dismissed");
+  const visibleItems = group.items.filter((item) => actions[item.id] !== 'dismissed');
 
   if (group.items.length === 0 || visibleItems.length === 0) {
     return null;
@@ -185,14 +167,10 @@ function DigestGroupSection({
 }
 
 export function WeeklyActionDigest() {
-  const { data, error, isLoading } = useSWR<MaintainerDigest>(
-    "/api/digest/weekly",
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 5 * 60_000,
-    }
-  );
+  const { data, error, isLoading } = useSWR<MaintainerDigest>('/api/digest/weekly', fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 5 * 60_000,
+  });
   const [localActions, setLocalActions] = useState<LocalDigestStateById>({
     digestId: null,
     actions: {},
@@ -203,16 +181,14 @@ export function WeeklyActionDigest() {
     [digestId]
   );
   const actions =
-    data && localActions.digestId === data.id
-      ? localActions.actions
-      : persistedActions;
+    data && localActions.digestId === data.id ? localActions.actions : persistedActions;
 
   useEffect(() => {
     if (!data) return;
     const openKey = `starboard.weeklyDigest.${data.id}.opened`;
     try {
       if (window.sessionStorage.getItem(openKey)) return;
-      window.sessionStorage.setItem(openKey, "1");
+      window.sessionStorage.setItem(openKey, '1');
     } catch {
       // Analytics should still attempt to fire if storage is unavailable.
     }
@@ -222,8 +198,7 @@ export function WeeklyActionDigest() {
   const visibleCount = useMemo(() => {
     if (!data) return 0;
     return data.groups.reduce(
-      (sum, group) =>
-        sum + group.items.filter((item) => actions[item.id] !== "dismissed").length,
+      (sum, group) => sum + group.items.filter((item) => actions[item.id] !== 'dismissed').length,
       0
     );
   }, [actions, data]);
@@ -231,8 +206,7 @@ export function WeeklyActionDigest() {
   const handleAction = (item: DigestItem, action: LocalDigestAction) => {
     if (!data) return;
     setLocalActions((current) => {
-      const base =
-        current.digestId === data.id ? current.actions : persistedActions;
+      const base = current.digestId === data.id ? current.actions : persistedActions;
       const next = { ...base, [item.id]: action };
       try {
         window.localStorage.setItem(localStorageKey(data.id), JSON.stringify(next));
@@ -265,7 +239,7 @@ export function WeeklyActionDigest() {
 
   return (
     <section className="mb-4 rounded-lg border bg-card p-4 md:p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-semibold">Your Weekly Action Digest</h2>

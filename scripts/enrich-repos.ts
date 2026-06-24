@@ -17,7 +17,7 @@
  *   AI_GATEWAY_MIN_REASONING_LEVEL  — free-AI minimum model level, default medium
  */
 
-import { type Client, createClient, type InStatement } from "@libsql/client";
+import { type Client, createClient, type InStatement } from '@libsql/client';
 
 import {
   generateRepoAiMetadata,
@@ -27,15 +27,14 @@ import {
   type RepoAiMetadata,
   repoAiSourceHash,
   type RepoMetadataSource,
-} from "../src/lib/repo-ai-metadata";
+} from '../src/lib/repo-ai-metadata';
 
-const REQUESTED_LIMIT = parseInt(process.env.ENRICH_LIMIT || "50", 10);
-const HARD_LIMIT = parseInt(process.env.ENRICH_HARD_LIMIT || "200", 10);
+const REQUESTED_LIMIT = parseInt(process.env.ENRICH_LIMIT || '50', 10);
+const HARD_LIMIT = parseInt(process.env.ENRICH_HARD_LIMIT || '200', 10);
 const LIMIT = Math.min(Math.max(REQUESTED_LIMIT || 0, 0), HARD_LIMIT);
-const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || "5000", 10);
-const DELAY_MS = parseInt(process.env.ENRICH_DELAY_MS || "500", 10);
-const ALLOW_HEURISTIC_FALLBACK =
-  process.env.ENRICH_ALLOW_HEURISTIC_FALLBACK !== "0";
+const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
+const DELAY_MS = parseInt(process.env.ENRICH_DELAY_MS || '500', 10);
+const ALLOW_HEURISTIC_FALLBACK = process.env.ENRICH_ALLOW_HEURISTIC_FALLBACK !== '0';
 
 interface PendingRepo extends RepoMetadataSource {
   id: number;
@@ -130,7 +129,7 @@ async function generateMetadataSafely(
 
 async function main() {
   if (LIMIT <= 0) {
-    console.info("[enrich] ENRICH_LIMIT is 0; nothing to do");
+    console.info('[enrich] ENRICH_LIMIT is 0; nothing to do');
     return;
   }
 
@@ -170,6 +169,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error("Enrichment failed:", err);
+  console.error('Enrichment failed:', err);
   process.exit(1);
 });

@@ -1,8 +1,8 @@
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
 
 export async function PUT(
   request: NextRequest,
@@ -10,27 +10,27 @@ export async function PUT(
 ) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { repoId } = await params;
   const parsedRepoId = parseInt(repoId, 10);
   if (Number.isNaN(parsedRepoId)) {
-    return NextResponse.json({ error: "Invalid repo ID" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid repo ID' }, { status: 400 });
   }
 
   const body = (await request.json()) as { listId?: unknown; assigned?: unknown };
-  if (typeof body.listId !== "number" || !Number.isInteger(body.listId)) {
-    return NextResponse.json({ error: "listId must be an integer" }, { status: 400 });
+  if (typeof body.listId !== 'number' || !Number.isInteger(body.listId)) {
+    return NextResponse.json({ error: 'listId must be an integer' }, { status: 400 });
   }
   const listId = body.listId;
   const assigned = body.assigned !== false;
   const listResult = await db.execute({
-    sql: "SELECT id FROM user_lists WHERE id = ? AND user_id = ?",
+    sql: 'SELECT id FROM user_lists WHERE id = ? AND user_id = ?',
     args: [listId, session.user.githubId],
   });
   if (listResult.rows.length === 0) {
-    return NextResponse.json({ error: "Collection not found" }, { status: 404 });
+    return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
   }
 
   await db.execute({
@@ -49,7 +49,7 @@ export async function PUT(
     });
   } else {
     await db.execute({
-      sql: "DELETE FROM user_repo_lists WHERE user_id = ? AND repo_id = ? AND list_id = ?",
+      sql: 'DELETE FROM user_repo_lists WHERE user_id = ? AND repo_id = ? AND list_id = ?',
       args: [session.user.githubId, parsedRepoId, listId],
     });
   }

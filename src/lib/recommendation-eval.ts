@@ -6,10 +6,10 @@ import {
   type FleetRepoCandidate,
   matchesExistingDependency,
   type SemanticDistanceMap,
-} from "@/lib/fleet-projects";
-import { rrfFuse } from "@/lib/search";
+} from '@/lib/fleet-projects';
+import { rrfFuse } from '@/lib/search';
 
-export type RecommendationScorer = "deterministic" | "hybrid-rrf";
+export type RecommendationScorer = 'deterministic' | 'hybrid-rrf';
 
 export interface RecommendationEvalExpectation {
   fullName: string;
@@ -19,7 +19,7 @@ export interface RecommendationEvalExpectation {
 
 export interface SuppressionExpectation {
   fullName: string;
-  reason: "dependency" | "archived" | "lowSignal";
+  reason: 'dependency' | 'archived' | 'lowSignal';
 }
 
 export interface RecommendationEvalFixture {
@@ -57,7 +57,7 @@ export interface RecommendationEvalResult {
   };
   suppressionChecks: Array<{
     fullName: string;
-    reason: SuppressionExpectation["reason"];
+    reason: SuppressionExpectation['reason'];
     matched: boolean;
   }>;
 }
@@ -102,8 +102,7 @@ function buildHybridRankedLists(
     const bySemantic = [...featureRecommendations]
       .sort(
         (a, b) =>
-          semanticScore(b.semanticDistance) - semanticScore(a.semanticDistance) ||
-          b.score - a.score
+          semanticScore(b.semanticDistance) - semanticScore(a.semanticDistance) || b.score - a.score
       )
       .map((item) => item.id);
     const byPopularity = [...featureRecommendations]
@@ -161,13 +160,13 @@ function featureRecommendationsForRepo(
 }
 
 function countFeatureTerms(recommendation: FleetRecommendation): number {
-  return recommendation.reasons.filter((reason) => reason.startsWith("matches ")).length;
+  return recommendation.reasons.filter((reason) => reason.startsWith('matches ')).length;
 }
 
 function countProjectOverlap(recommendation: FleetRecommendation): number {
-  const overlap = recommendation.reasons.find((reason) => reason.startsWith("project overlap:"));
+  const overlap = recommendation.reasons.find((reason) => reason.startsWith('project overlap:'));
   if (!overlap) return 0;
-  return overlap.replace("project overlap:", "").split(",").length;
+  return overlap.replace('project overlap:', '').split(',').length;
 }
 
 function semanticScore(distance: number | null): number {
@@ -204,9 +203,9 @@ export function buildHybridRecommendationReport(
     summary: {
       ...deterministic.summary,
       returned: recommendations.length,
-      useNow: recommendations.filter((item) => item.action === "use-now").length,
-      prototype: recommendations.filter((item) => item.action === "prototype").length,
-      research: recommendations.filter((item) => item.action === "research").length,
+      useNow: recommendations.filter((item) => item.action === 'use-now').length,
+      prototype: recommendations.filter((item) => item.action === 'prototype').length,
+      research: recommendations.filter((item) => item.action === 'research').length,
     },
   };
 }
@@ -217,7 +216,7 @@ function buildReportForScorer(
   now: Date
 ): FleetProjectRecommendationReport {
   const semanticDistances = fixture.semanticDistances ?? new Map<string, number>();
-  if (scorer === "hybrid-rrf") {
+  if (scorer === 'hybrid-rrf') {
     return buildHybridRecommendationReport(fixture.project, fixture.candidates, {
       now,
       semanticDistances,
@@ -235,11 +234,11 @@ function suppressionReasonForCandidate(
   project: FleetProjectSnapshot,
   candidate: FleetRepoCandidate,
   report: FleetProjectRecommendationReport
-): SuppressionExpectation["reason"] | null {
-  if (matchesExistingDependency(project, candidate)) return "dependency";
-  if (candidate.archived) return "archived";
+): SuppressionExpectation['reason'] | null {
+  if (matchesExistingDependency(project, candidate)) return 'dependency';
+  if (candidate.archived) return 'archived';
   if (!report.recommendations.some((item) => item.id === candidate.id)) {
-    return "lowSignal";
+    return 'lowSignal';
   }
   return null;
 }
@@ -247,7 +246,7 @@ function suppressionReasonForCandidate(
 export function evaluateRecommendationFixture(
   fixture: RecommendationEvalFixture,
   scorer: RecommendationScorer,
-  now = new Date("2026-06-06T00:00:00Z")
+  now = new Date('2026-06-06T00:00:00Z')
 ): RecommendationEvalResult {
   const report = buildReportForScorer(scorer, fixture, now);
   const topK = fixture.expectations.topK;
@@ -286,9 +285,7 @@ export function evaluateRecommendationFixture(
 
   const suppressionChecks =
     fixture.expectations.suppressed?.map((expectation) => {
-      const candidate = fixture.candidates.find(
-        (item) => item.fullName === expectation.fullName
-      );
+      const candidate = fixture.candidates.find((item) => item.fullName === expectation.fullName);
       if (!candidate) {
         return { ...expectation, matched: false };
       }
@@ -314,13 +311,13 @@ export function evaluateRecommendationFixture(
 
 export function compareRecommendationScorers(
   fixture: RecommendationEvalFixture,
-  now = new Date("2026-06-06T00:00:00Z")
+  now = new Date('2026-06-06T00:00:00Z')
 ): {
   deterministic: RecommendationEvalResult;
   hybrid: RecommendationEvalResult;
 } {
   return {
-    deterministic: evaluateRecommendationFixture(fixture, "deterministic", now),
-    hybrid: evaluateRecommendationFixture(fixture, "hybrid-rrf", now),
+    deterministic: evaluateRecommendationFixture(fixture, 'deterministic', now),
+    hybrid: evaluateRecommendationFixture(fixture, 'hybrid-rrf', now),
   };
 }

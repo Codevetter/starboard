@@ -1,8 +1,8 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
-import { captureError } from "@/lib/foundry-monitoring";
+import { captureError } from '@/lib/foundry-monitoring';
 
 export default function DiscoverError({
   error,
@@ -13,7 +13,7 @@ export default function DiscoverError({
 }) {
   useEffect(() => {
     console.error(error);
-    captureError(error, { scope: "discover", digest: error.digest });
+    captureError(error, { scope: 'discover', digest: error.digest });
   }, [error]);
 
   return (
@@ -24,22 +24,17 @@ export default function DiscoverError({
           Something went wrong while loading the discover feed — try again.
         </p>
         <div className="flex gap-3 justify-center">
-          <button
-            onClick={reset}
-            className="px-4 py-2 rounded border hover:opacity-80"
-          >
+          <button onClick={reset} className="px-4 py-2 rounded border hover:opacity-80">
             Try again
           </button>
           <button
-            onClick={() => window.location.replace("/")}
+            onClick={() => window.location.replace('/')}
             className="px-4 py-2 rounded border hover:opacity-80"
           >
             Home
           </button>
         </div>
-        {error.digest ? (
-          <p className="mt-6 text-xs opacity-40">Reference: {error.digest}</p>
-        ) : null}
+        {error.digest ? <p className="mt-6 text-xs opacity-40">Reference: {error.digest}</p> : null}
       </div>
     </div>
   );

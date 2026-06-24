@@ -1,21 +1,27 @@
-import { readFileSync } from "fs";
-import { join } from "path";
-import { describe, expect, it } from "vitest";
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { describe, expect, it } from 'vitest';
 
-import { cosineSimilarity } from "@/lib/embeddings";
-import { blendSearchIds, expandedSearchQuery, ftsSearchQuery, rrfFuse, searchTerms } from "@/lib/search";
+import { cosineSimilarity } from '@/lib/embeddings';
+import {
+  blendSearchIds,
+  expandedSearchQuery,
+  ftsSearchQuery,
+  rrfFuse,
+  searchTerms,
+} from '@/lib/search';
 
-describe("rrfFuse", () => {
-  it("returns empty for empty input", () => {
+describe('rrfFuse', () => {
+  it('returns empty for empty input', () => {
     expect(rrfFuse([])).toEqual([]);
     expect(rrfFuse([[], []])).toEqual([]);
   });
 
-  it("preserves single list order", () => {
+  it('preserves single list order', () => {
     expect(rrfFuse([[3, 1, 2]])).toEqual([3, 1, 2]);
   });
 
-  it("ranks items appearing in multiple lists higher than singletons", () => {
+  it('ranks items appearing in multiple lists higher than singletons', () => {
     // 1 appears in both lists at top => should win.
     // 2 appears only in list A. 3 appears only in list B.
     const result = rrfFuse([
@@ -26,7 +32,7 @@ describe("rrfFuse", () => {
     expect(result.slice(1).sort()).toEqual([2, 3]);
   });
 
-  it("rewards higher rank (lower index)", () => {
+  it('rewards higher rank (lower index)', () => {
     // 10 is rank 0 in list A, rank 0 in list B. 20 is rank 0 in list A, rank 5 in list B.
     const result = rrfFuse([
       [10, 20],
@@ -36,13 +42,13 @@ describe("rrfFuse", () => {
     expect(result[1]).toBe(20);
   });
 
-  it("respects custom k constant", () => {
+  it('respects custom k constant', () => {
     // With small k, top-of-list items get larger boost differential.
     const a = rrfFuse([[1, 2, 3]], 1);
     expect(a).toEqual([1, 2, 3]);
   });
 
-  it("dedupes ids appearing multiple times", () => {
+  it('dedupes ids appearing multiple times', () => {
     const result = rrfFuse([
       [1, 2, 3],
       [1, 2, 3],
@@ -52,51 +58,51 @@ describe("rrfFuse", () => {
   });
 });
 
-describe("searchTerms", () => {
-  it("expands LangChain replacement queries", () => {
-    const terms = searchTerms("top lan-chain replacements");
+describe('searchTerms', () => {
+  it('expands LangChain replacement queries', () => {
+    const terms = searchTerms('top lan-chain replacements');
 
-    expect(terms).toContain("lanchain");
-    expect(terms).toContain("langchain");
-    expect(terms).toContain("llamaindex");
-    expect(terms).toContain("llama_index");
-    expect(terms).toContain("haystack");
-    expect(terms).toContain("crewai");
-    expect(terms).toContain("semantic-kernel");
+    expect(terms).toContain('lanchain');
+    expect(terms).toContain('langchain');
+    expect(terms).toContain('llamaindex');
+    expect(terms).toContain('llama_index');
+    expect(terms).toContain('haystack');
+    expect(terms).toContain('crewai');
+    expect(terms).toContain('semantic-kernel');
   });
 
-  it("expands eval platform queries", () => {
-    const terms = searchTerms("top eval platforms");
+  it('expands eval platform queries', () => {
+    const terms = searchTerms('top eval platforms');
 
-    expect(terms).toContain("eval");
-    expect(terms).toContain("evaluation");
-    expect(terms).toContain("promptfoo");
-    expect(terms).toContain("deepeval");
-    expect(terms).toContain("langfuse");
-    expect(terms).toContain("opik");
-    expect(terms).toContain("trulens");
+    expect(terms).toContain('eval');
+    expect(terms).toContain('evaluation');
+    expect(terms).toContain('promptfoo');
+    expect(terms).toContain('deepeval');
+    expect(terms).toContain('langfuse');
+    expect(terms).toContain('opik');
+    expect(terms).toContain('trulens');
   });
 
-  it("builds an expanded semantic query", () => {
-    const query = expandedSearchQuery("top lan-chain replacements");
+  it('builds an expanded semantic query', () => {
+    const query = expandedSearchQuery('top lan-chain replacements');
 
-    expect(query).toContain("lan-chain");
-    expect(query).toContain("langchain");
-    expect(query).toContain("llamaindex");
-    expect(query).toContain("crewai");
+    expect(query).toContain('lan-chain');
+    expect(query).toContain('langchain');
+    expect(query).toContain('llamaindex');
+    expect(query).toContain('crewai');
   });
 
-  it("builds an FTS query from expanded terms", () => {
-    const query = ftsSearchQuery("top eval platforms");
+  it('builds an FTS query from expanded terms', () => {
+    const query = ftsSearchQuery('top eval platforms');
 
-    expect(query).toContain("eval*");
-    expect(query).toContain("promptfoo*");
-    expect(query).toContain("lm-evaluation-harness");
+    expect(query).toContain('eval*');
+    expect(query).toContain('promptfoo*');
+    expect(query).toContain('lm-evaluation-harness');
   });
 });
 
-describe("blendSearchIds", () => {
-  it("keeps high-rank lexical matches visible before semantic tail results", () => {
+describe('blendSearchIds', () => {
+  it('keeps high-rank lexical matches visible before semantic tail results', () => {
     const result = blendSearchIds([1, 2, 3], [90, 91, 1]);
 
     expect(result.slice(0, 3)).toEqual([1, 2, 3]);
@@ -104,52 +110,48 @@ describe("blendSearchIds", () => {
   });
 });
 
-describe("stars relevance RAG contract", () => {
-  it("uses knowledgebase RAG without a local vector-search fallback", () => {
-    const route = readFileSync(
-      join(process.cwd(), "src/app/api/stars/route.ts"),
-      "utf-8"
-    );
+describe('stars relevance RAG contract', () => {
+  it('uses knowledgebase RAG without a local vector-search fallback', () => {
+    const route = readFileSync(join(process.cwd(), 'src/app/api/stars/route.ts'), 'utf-8');
 
-    expect(route).toContain("searchStarboardRag");
-    expect(route).not.toContain("generateEmbedding");
-    expect(route).not.toContain("vector_top_k");
+    expect(route).toContain('searchStarboardRag');
+    expect(route).not.toContain('generateEmbedding');
+    expect(route).not.toContain('vector_top_k');
   });
 
-  it("reads Cloudflare Worker bindings and vars for knowledgebase RAG", () => {
-    const client = readFileSync(
-      join(process.cwd(), "src/lib/knowledgebase.ts"),
-      "utf-8"
-    );
+  it('reads Cloudflare Worker bindings and vars for knowledgebase RAG', () => {
+    const client = readFileSync(join(process.cwd(), 'src/lib/knowledgebase.ts'), 'utf-8');
 
-    expect(client).toContain("getCloudflareContext");
-    expect(client).toContain("RAG_SERVICE_KEY?.trim() || cloudflareEnv().RAG_SERVICE_KEY");
-    expect(client).toContain("STARBOARD_RAG_INDEX_ID?.trim() || cloudflareEnv().STARBOARD_RAG_INDEX_ID");
-    expect(client).toContain("RAG_SERVICE");
+    expect(client).toContain('getCloudflareContext');
+    expect(client).toContain('RAG_SERVICE_KEY?.trim() || cloudflareEnv().RAG_SERVICE_KEY');
+    expect(client).toContain(
+      'STARBOARD_RAG_INDEX_ID?.trim() || cloudflareEnv().STARBOARD_RAG_INDEX_ID'
+    );
+    expect(client).toContain('RAG_SERVICE');
   });
 });
 
-describe("cosineSimilarity", () => {
-  it("returns 1 for identical vectors", () => {
+describe('cosineSimilarity', () => {
+  it('returns 1 for identical vectors', () => {
     const v = [0.5, 0.3, 0.8];
     expect(cosineSimilarity(v, v)).toBeCloseTo(1, 6);
   });
 
-  it("returns 0 for orthogonal vectors", () => {
+  it('returns 0 for orthogonal vectors', () => {
     expect(cosineSimilarity([1, 0], [0, 1])).toBeCloseTo(0, 6);
   });
 
-  it("returns -1 for opposite vectors", () => {
+  it('returns -1 for opposite vectors', () => {
     expect(cosineSimilarity([1, 0], [-1, 0])).toBeCloseTo(-1, 6);
   });
 
-  it("is scale invariant", () => {
+  it('is scale invariant', () => {
     const a = [1, 2, 3];
     const b = [2, 4, 6];
     expect(cosineSimilarity(a, b)).toBeCloseTo(1, 6);
   });
 
-  it("returns 0 for zero vectors without NaN", () => {
+  it('returns 0 for zero vectors without NaN', () => {
     const r = cosineSimilarity([0, 0], [1, 1]);
     expect(Number.isNaN(r)).toBe(false);
     expect(r).toBe(0);

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import useSWR from "swr";
+import useSWR from 'swr';
 
 const fetcher = async <T>(url: string): Promise<T> =>
   fetch(url).then((r) => {
@@ -22,12 +22,12 @@ export interface UserList {
 }
 
 export function useLists() {
-  const { data, error, isLoading, mutate } = useSWR<UserList[]>("/api/lists", fetcher<UserList[]>);
+  const { data, error, isLoading, mutate } = useSWR<UserList[]>('/api/lists', fetcher<UserList[]>);
 
   const createList = async (name: string, color?: string) => {
-    const res = await fetch("/api/lists", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const res = await fetch('/api/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, color }),
     });
     if (!res.ok) throw new Error(`Failed to create list (${res.status})`);
@@ -36,10 +36,13 @@ export function useLists() {
     return list;
   };
 
-  const updateList = async (id: number, updates: Partial<Pick<UserList, "name" | "color" | "icon" | "position">>) => {
+  const updateList = async (
+    id: number,
+    updates: Partial<Pick<UserList, 'name' | 'color' | 'icon' | 'position'>>
+  ) => {
     const res = await fetch(`/api/lists/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates),
     });
     if (!res.ok) throw new Error(`Failed to update list (${res.status})`);
@@ -47,27 +50,37 @@ export function useLists() {
   };
 
   const deleteList = async (id: number) => {
-    const res = await fetch(`/api/lists/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/lists/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error(`Failed to delete list (${res.status})`);
     mutate();
   };
 
   const assignRepoToList = async (repoId: number, listId: number, assigned: boolean) => {
     const res = await fetch(`/api/repos/${repoId}/list`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ listId, assigned }),
     });
     if (!res.ok) throw new Error(`Failed to assign repo to list (${res.status})`);
   };
 
   const shareList = async (id: number) => {
-    const res = await fetch(`/api/lists/${id}/share`, { method: "POST" });
-    if (!res.ok) throw new Error("Failed to toggle share");
+    const res = await fetch(`/api/lists/${id}/share`, { method: 'POST' });
+    if (!res.ok) throw new Error('Failed to toggle share');
     const result = await res.json();
     mutate();
     return result as { is_public: boolean; slug: string };
   };
 
-  return { lists: data ?? [], error, isLoading, createList, updateList, deleteList, assignRepoToList, shareList, mutate };
+  return {
+    lists: data ?? [],
+    error,
+    isLoading,
+    createList,
+    updateList,
+    deleteList,
+    assignRepoToList,
+    shareList,
+    mutate,
+  };
 }

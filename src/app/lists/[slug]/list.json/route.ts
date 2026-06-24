@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
+import { db } from '@/db';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 interface ListRow {
   id: number;
@@ -32,10 +32,7 @@ interface RepoRow {
  * embedded into someone else's site, dashboard, or static-site sidebar
  * without scraping the HTML — same data, machine-readable.
  */
-export async function GET(
-  _req: Request,
-  ctx: { params: Promise<{ slug: string }> },
-) {
+export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params;
 
   const listResult = await db.execute({
@@ -48,7 +45,7 @@ export async function GET(
   });
 
   if (listResult.rows.length === 0) {
-    return NextResponse.json({ error: "not_found" }, { status: 404 });
+    return NextResponse.json({ error: 'not_found' }, { status: 404 });
   }
 
   const row = listResult.rows[0] as unknown as ListRow;
@@ -101,8 +98,8 @@ export async function GET(
       headers: {
         // Public list visibility can be revoked, so do not let CDN caches
         // serve stale public copies after the owner makes the list private.
-        "Cache-Control": "private, no-store",
+        'Cache-Control': 'private, no-store',
       },
-    },
+    }
   );
 }

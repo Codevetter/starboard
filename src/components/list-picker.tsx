@@ -1,14 +1,10 @@
-"use client";
+'use client';
 
-import { Check, List } from "lucide-react";
+import { Check, List } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import type { UserList } from "@/hooks/use-lists";
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { UserList } from '@/hooks/use-lists';
 
 interface ListPickerProps {
   repoId: number;
@@ -29,7 +25,11 @@ export function ListPicker({ repoId, currentListIds, lists, onAssign }: ListPick
           aria-label="Manage collections"
           className="size-11 text-muted-foreground transition-opacity md:size-7 md:opacity-0 md:group-hover:opacity-100"
         >
-          <List className={selectedIds.size > 0 ? "size-4 text-primary md:size-3.5" : "size-4 md:size-3.5"} />
+          <List
+            className={
+              selectedIds.size > 0 ? 'size-4 text-primary md:size-3.5' : 'size-4 md:size-3.5'
+            }
+          />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-48 p-1" onClick={(e) => e.stopPropagation()}>

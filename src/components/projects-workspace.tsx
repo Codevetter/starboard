@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   AlertTriangle,
@@ -12,25 +12,25 @@ import {
   Loader2,
   Search,
   SearchCheck,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { type RefObject, useEffect, useMemo, useRef, useState } from "react";
-import useSWR from "swr";
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import useSWR from 'swr';
 
-import { ShareReportButton } from "@/components/share-report-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { ShareReportButton } from '@/components/share-report-button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type {
   FleetFeatureArea,
   FleetProjectRecommendationReport,
   FleetRecommendation,
   FleetRecommendationAction,
-} from "@/lib/fleet-projects";
+} from '@/lib/fleet-projects';
 
 interface ProjectSummary {
   slug: string;
@@ -39,7 +39,7 @@ interface ProjectSummary {
   tier: string;
   category: string;
   priority: string;
-  maturity: "public" | "public-ready" | "internal-first";
+  maturity: 'public' | 'public-ready' | 'internal-first';
   featureAreas: FleetFeatureArea[];
   stack: {
     languages: string[];
@@ -65,40 +65,43 @@ const fetcher = async <T,>(url: string): Promise<T> => {
 };
 
 function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: "compact" }).format(value);
+  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
 }
 
 function actionLabel(action: FleetRecommendationAction): string {
-  if (action === "use-now") return "Use now";
-  if (action === "prototype") return "Prototype";
-  if (action === "research") return "Research";
-  return "Skip";
+  if (action === 'use-now') return 'Use now';
+  if (action === 'prototype') return 'Prototype';
+  if (action === 'research') return 'Research';
+  return 'Skip';
 }
 
 function actionClass(action: FleetRecommendationAction): string {
-  if (action === "use-now") return "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-  if (action === "prototype") return "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300";
-  if (action === "research") return "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300";
-  return "border-muted bg-muted/30 text-muted-foreground";
+  if (action === 'use-now')
+    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+  if (action === 'prototype')
+    return 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300';
+  if (action === 'research')
+    return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
+  return 'border-muted bg-muted/30 text-muted-foreground';
 }
 
 function actionIcon(action: FleetRecommendationAction) {
-  if (action === "use-now") return <CheckCircle2 className="size-3.5" />;
-  if (action === "prototype") return <FlaskConical className="size-3.5" />;
-  if (action === "research") return <SearchCheck className="size-3.5" />;
+  if (action === 'use-now') return <CheckCircle2 className="size-3.5" />;
+  if (action === 'prototype') return <FlaskConical className="size-3.5" />;
+  if (action === 'research') return <SearchCheck className="size-3.5" />;
   return <AlertTriangle className="size-3.5" />;
 }
 
-function maturityLabel(maturity: ProjectSummary["maturity"]): string {
-  if (maturity === "public") return "Public";
-  if (maturity === "public-ready") return "Public-ready";
-  return "Internal-first";
+function maturityLabel(maturity: ProjectSummary['maturity']): string {
+  if (maturity === 'public') return 'Public';
+  if (maturity === 'public-ready') return 'Public-ready';
+  return 'Internal-first';
 }
 
 function recommendationSortValue(recommendation: FleetRecommendation): number {
-  if (recommendation.action === "use-now") return 0;
-  if (recommendation.action === "prototype") return 1;
-  if (recommendation.action === "research") return 2;
+  if (recommendation.action === 'use-now') return 0;
+  if (recommendation.action === 'prototype') return 1;
+  if (recommendation.action === 'research') return 2;
   return 3;
 }
 
@@ -128,7 +131,12 @@ function RecommendationCard({ recommendation }: { recommendation: FleetRecommend
               </Link>
             </CardTitle>
           </div>
-          <Button asChild variant="ghost" size="icon-sm" aria-label={`Open ${recommendation.fullName} on GitHub`}>
+          <Button
+            asChild
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`Open ${recommendation.fullName} on GitHub`}
+          >
             <Link href={recommendation.htmlUrl} target="_blank" rel="noreferrer">
               <ArrowUpRight className="size-4" />
             </Link>
@@ -137,7 +145,7 @@ function RecommendationCard({ recommendation }: { recommendation: FleetRecommend
       </CardHeader>
       <CardContent className="space-y-3 px-4">
         <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">
-          {recommendation.description ?? "No description available."}
+          {recommendation.description ?? 'No description available.'}
         </p>
         <div className="rounded-md border bg-background/60 p-3 text-sm">
           {recommendation.suggestedUse}
@@ -159,7 +167,11 @@ function RecommendationCard({ recommendation }: { recommendation: FleetRecommend
             </Badge>
           )}
           {recommendation.cautions.map((caution) => (
-            <Badge key={caution} variant="outline" className="border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300">
+            <Badge
+              key={caution}
+              variant="outline"
+              className="border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300"
+            >
               {caution}
             </Badge>
           ))}
@@ -194,7 +206,7 @@ function ProjectSidebar({
         ...project.stack.languages,
         ...project.stack.frameworks,
       ]
-        .join(" ")
+        .join(' ')
         .toLowerCase()
         .includes(needle)
     );
@@ -231,10 +243,13 @@ function ProjectSidebar({
               <Button
                 key={project.slug}
                 asChild
-                variant={selected ? "secondary" : "ghost"}
+                variant={selected ? 'secondary' : 'ghost'}
                 className="h-auto min-w-64 shrink-0 justify-start rounded-md px-3 py-2 text-left md:min-w-0 md:w-full"
               >
-                <Link href={`/projects/${project.slug}`} aria-current={selected ? "page" : undefined}>
+                <Link
+                  href={`/projects/${project.slug}`}
+                  aria-current={selected ? 'page' : undefined}
+                >
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="truncate font-medium">{project.name}</span>
@@ -243,7 +258,10 @@ function ProjectSidebar({
                       </Badge>
                     </span>
                     <span className="mt-1 line-clamp-1 text-xs font-normal text-muted-foreground">
-                      {project.featureAreas.slice(0, 2).map((feature) => feature.label).join(" / ")}
+                      {project.featureAreas
+                        .slice(0, 2)
+                        .map((feature) => feature.label)
+                        .join(' / ')}
                     </span>
                   </span>
                 </Link>
@@ -259,9 +277,9 @@ function ProjectSidebar({
 export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
   const { status } = useSession();
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const { data, error, isLoading } = useSWR<ProjectsResponse>("/api/projects", fetcher, {
+  const { data, error, isLoading } = useSWR<ProjectsResponse>('/api/projects', fetcher, {
     revalidateOnFocus: false,
   });
   const projects = data?.projects ?? emptyProjects;
@@ -281,8 +299,8 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
   );
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/");
+    if (status === 'unauthenticated') {
+      router.replace('/');
     }
   }, [router, status]);
 
@@ -297,7 +315,7 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
       const element = target as HTMLElement | null;
       if (!element) return false;
       const tag = element.tagName.toLowerCase();
-      return tag === "input" || tag === "textarea" || element.isContentEditable;
+      return tag === 'input' || tag === 'textarea' || element.isContentEditable;
     };
     const navigateProject = (offset: number) => {
       if (!activeSlug || projects.length === 0) return;
@@ -309,34 +327,34 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key === "/" && !isTextEntry(event.target)) {
+      if (event.key === '/' && !isTextEntry(event.target)) {
         event.preventDefault();
         searchRef.current?.focus();
         return;
       }
       if (isTextEntry(event.target)) {
-        if (event.key === "Escape") {
+        if (event.key === 'Escape') {
           (event.target as HTMLElement).blur();
         }
         return;
       }
-      if (event.key === "j" || event.key === "ArrowDown") {
+      if (event.key === 'j' || event.key === 'ArrowDown') {
         event.preventDefault();
         navigateProject(1);
-      } else if (event.key === "k" || event.key === "ArrowUp") {
+      } else if (event.key === 'k' || event.key === 'ArrowUp') {
         event.preventDefault();
         navigateProject(-1);
-      } else if (event.key === "l") {
-        router.push("/stars");
-      } else if (event.key === "s") {
-        router.push("/stack-builder");
+      } else if (event.key === 'l') {
+        router.push('/stars');
+      } else if (event.key === 's') {
+        router.push('/stack-builder');
       }
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeSlug, projects, router]);
 
-  if (status === "loading" || isLoading) {
+  if (status === 'loading' || isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -344,13 +362,13 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
     );
   }
 
-  if (status === "unauthenticated") return null;
+  if (status === 'unauthenticated') return null;
 
   const exportMarkdown = () => {
     if (!recommendations?.markdown) return;
-    const blob = new Blob([recommendations.markdown], { type: "text/markdown" });
+    const blob = new Blob([recommendations.markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     link.download = `starboard-${recommendations.project.slug}-recommendations.md`;
     link.click();
@@ -383,16 +401,15 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
             <div className="min-w-0">
               <div className="flex flex-wrap gap-1.5">
                 {selectedProject && (
-                  <>
-                    <Badge variant="secondary">{maturityLabel(selectedProject.maturity)}</Badge>
-                  </>
+                  <Badge variant="secondary">{maturityLabel(selectedProject.maturity)}</Badge>
                 )}
               </div>
               <h2 className="mt-2 truncate text-lg font-semibold">
-                {selectedProject?.name ?? "My Projects"}
+                {selectedProject?.name ?? 'My Projects'}
               </h2>
               <p className="line-clamp-2 text-sm text-muted-foreground">
-                {selectedProject?.description ?? "Fleet projects matched against your Starboard repository library."}
+                {selectedProject?.description ??
+                  'Fleet projects matched against your Starboard repository library.'}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -403,7 +420,12 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
                   label="Share report"
                 />
               )}
-              <Button variant="outline" size="sm" onClick={exportMarkdown} disabled={!recommendations?.markdown}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportMarkdown}
+                disabled={!recommendations?.markdown}
+              >
                 <ArrowDownToLine className="mr-1.5 size-4" />
                 Markdown
               </Button>
@@ -477,7 +499,9 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
               </Card>
               <Card className="rounded-lg py-4 shadow-none">
                 <CardContent className="px-4">
-                  <div className="text-2xl font-semibold">{recommendations.suppressed.dependencyMatches}</div>
+                  <div className="text-2xl font-semibold">
+                    {recommendations.suppressed.dependencyMatches}
+                  </div>
                   <div className="text-sm text-muted-foreground">already in use</div>
                 </CardContent>
               </Card>
@@ -501,11 +525,16 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
                   <div key={group.featureArea.id} className="space-y-3">
                     <div>
                       <h3 className="text-base font-semibold">{group.featureArea.label}</h3>
-                      <p className="text-sm text-muted-foreground">{group.featureArea.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {group.featureArea.description}
+                      </p>
                     </div>
                     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                       {group.recommendations.map((recommendation) => (
-                        <RecommendationCard key={recommendation.id} recommendation={recommendation} />
+                        <RecommendationCard
+                          key={recommendation.id}
+                          recommendation={recommendation}
+                        />
                       ))}
                     </div>
                   </div>

@@ -20,9 +20,7 @@ async function walk(dir, rel = '') {
 }
 
 async function mergeHeaders(astroHeadersPath, targetHeadersPath) {
-  const astroHeaders = existsSync(astroHeadersPath)
-    ? await readFile(astroHeadersPath, 'utf8')
-    : '';
+  const astroHeaders = existsSync(astroHeadersPath) ? await readFile(astroHeadersPath, 'utf8') : '';
   const targetHeaders = existsSync(targetHeadersPath)
     ? await readFile(targetHeadersPath, 'utf8')
     : '';
@@ -67,7 +65,7 @@ export async function runOverlay(opts = {}) {
     if (rel === '_headers') {
       const merged = await mergeHeaders(src, join(target, '_headers'));
       console.log(
-        `[overlay-astro] merged _headers (Astro wins for /)${merged ? '' : ' — no Astro headers found'}`,
+        `[overlay-astro] merged _headers (Astro wins for /)${merged ? '' : ' — no Astro headers found'}`
       );
       continue;
     }
@@ -77,6 +75,6 @@ export async function runOverlay(opts = {}) {
     copied += 1;
   }
   console.log(
-    `[overlay-astro] copied ${copied} file(s) from ${astroDist} → ${target}, skipped ${skipped} protected path(s)`,
+    `[overlay-astro] copied ${copied} file(s) from ${astroDist} → ${target}, skipped ${skipped} protected path(s)`
   );
 }

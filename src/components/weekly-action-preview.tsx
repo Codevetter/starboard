@@ -1,10 +1,10 @@
-import { ArrowUpRight, Flame, RotateCcw, Sparkles, TrendingUp, Zap } from "lucide-react";
+import { ArrowUpRight, Flame, RotateCcw, Sparkles, TrendingUp, Zap } from 'lucide-react';
 
-import { SignInButton } from "@/components/sign-in-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SignInButton } from '@/components/sign-in-button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-type InsightType = "release" | "momentum" | "reactivation";
+type InsightType = 'release' | 'momentum' | 'reactivation';
 
 type DigestInsight = {
   type: InsightType;
@@ -16,41 +16,38 @@ type DigestInsight = {
 
 const INSIGHTS: DigestInsight[] = [
   {
-    type: "release",
-    repo: "openai/gpt-3",
-    headline: "New model release: faster and more capable",
+    type: 'release',
+    repo: 'openai/gpt-3',
+    headline: 'New model release: faster and more capable',
     detail:
       "The new model shows a 25% performance improvement on key benchmarks. Your project 'My-AI-App' depends on this.",
-    age: "3 days ago",
+    age: '3 days ago',
   },
   {
-    type: "momentum",
-    repo: "google/material-design",
-    headline: "Major design update with new components",
+    type: 'momentum',
+    repo: 'google/material-design',
+    headline: 'Major design update with new components',
     detail:
-      "Material Design 3.0 is out with a new color system and dynamic theming. Time to upgrade your UI.",
-    age: "ongoing",
+      'Material Design 3.0 is out with a new color system and dynamic theming. Time to upgrade your UI.',
+    age: 'ongoing',
   },
 ];
 
-const insightMeta: Record<
-  InsightType,
-  { icon: React.ReactNode; label: string; color: string }
-> = {
+const insightMeta: Record<InsightType, { icon: React.ReactNode; label: string; color: string }> = {
   release: {
     icon: <Zap className="size-3.5" />,
-    label: "Release",
-    color: "text-blue-500 bg-blue-500/10",
+    label: 'Release',
+    color: 'text-blue-500 bg-blue-500/10',
   },
   momentum: {
     icon: <TrendingUp className="size-3.5" />,
-    label: "Momentum",
-    color: "text-emerald-500 bg-emerald-500/10",
+    label: 'Momentum',
+    color: 'text-emerald-500 bg-emerald-500/10',
   },
   reactivation: {
     icon: <RotateCcw className="size-3.5" />,
-    label: "Reactivated",
-    color: "text-amber-500 bg-amber-500/10",
+    label: 'Reactivated',
+    color: 'text-amber-500 bg-amber-500/10',
   },
 };
 
@@ -68,9 +65,7 @@ function InsightCard({ insight }: { insight: DigestInsight }) {
         <span className="text-xs text-muted-foreground">{insight.age}</span>
       </div>
       <p className="text-sm font-semibold text-foreground">
-        <span className="mr-1.5 font-mono text-xs text-muted-foreground">
-          {insight.repo}
-        </span>
+        <span className="mr-1.5 font-mono text-xs text-muted-foreground">{insight.repo}</span>
         {insight.headline}
       </p>
       <p className="mt-1.5 text-sm text-muted-foreground">{insight.detail}</p>
@@ -120,8 +115,8 @@ export function WeeklyActionPreview() {
       {/* CTA */}
       <div className="flex flex-col items-center gap-3 border-t bg-muted/20 px-5 py-5 text-center">
         <p className="text-sm font-medium">
-          Get actionable insights like these for your{" "}
-          <span className="text-primary">own</span> starred repos every week.
+          Get actionable insights like these for your <span className="text-primary">own</span>{' '}
+          starred repos every week.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <SignInButton label="Upgrade to Pro" />

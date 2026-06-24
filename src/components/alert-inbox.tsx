@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { ArrowUpRight, BellRing, Loader2 } from "lucide-react";
-import Link from "next/link";
-import useSWR from "swr";
+import { ArrowUpRight, BellRing, Loader2 } from 'lucide-react';
+import Link from 'next/link';
+import useSWR from 'swr';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import type { AlertRules } from "@/lib/alert-preferences";
-import type { WeeklyAlertItem } from "@/lib/weekly-alerts";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import type { AlertRules } from '@/lib/alert-preferences';
+import type { WeeklyAlertItem } from '@/lib/weekly-alerts';
 
 const fetcher = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
@@ -21,14 +21,14 @@ interface InboxResponse {
   rules: AlertRules;
 }
 
-function laneLabel(lane: WeeklyAlertItem["lane"]): string {
-  if (lane === "release") return "Release";
-  if (lane === "momentum") return "Momentum";
-  return "Maintenance";
+function laneLabel(lane: WeeklyAlertItem['lane']): string {
+  if (lane === 'release') return 'Release';
+  if (lane === 'momentum') return 'Momentum';
+  return 'Maintenance';
 }
 
 export function AlertInboxPanel() {
-  const { data, error, isLoading } = useSWR<InboxResponse>("/api/alerts/inbox", fetcher, {
+  const { data, error, isLoading } = useSWR<InboxResponse>('/api/alerts/inbox', fetcher, {
     revalidateOnFocus: false,
   });
 

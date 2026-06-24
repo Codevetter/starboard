@@ -1,17 +1,22 @@
-"use client";
+'use client';
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import useSWR, { useSWRConfig } from "swr";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
 
-export type SortOption = "relevance" | "recently-starred" | "most-stars" | "recently-updated" | "name-az";
+export type SortOption =
+  | 'relevance'
+  | 'recently-starred'
+  | 'most-stars'
+  | 'recently-updated'
+  | 'name-az';
 
 // Map frontend sort names to API sort params
 const sortMap: Record<SortOption, string> = {
-  relevance: "relevance",
-  "recently-starred": "starred",
-  "most-stars": "stars",
-  "recently-updated": "updated",
-  "name-az": "name",
+  relevance: 'relevance',
+  'recently-starred': 'starred',
+  'most-stars': 'stars',
+  'recently-updated': 'updated',
+  'name-az': 'name',
 };
 
 export interface UserRepo {
@@ -67,25 +72,25 @@ export interface UseStarredReposOptions {
 
 function buildStarsUrl(opts: UseStarredReposOptions, offset: number): string {
   const params = new URLSearchParams();
-  if (opts.q) params.set("q", opts.q);
-  if (opts.language?.length) params.set("language", opts.language.join(","));
-  if (opts.listId != null) params.set("list_id", String(opts.listId));
-  const apiSort = sortMap[opts.sort ?? "recently-starred"];
-  if (apiSort !== "starred") params.set("sort", apiSort);
+  if (opts.q) params.set('q', opts.q);
+  if (opts.language?.length) params.set('language', opts.language.join(','));
+  if (opts.listId != null) params.set('list_id', String(opts.listId));
+  const apiSort = sortMap[opts.sort ?? 'recently-starred'];
+  if (apiSort !== 'starred') params.set('sort', apiSort);
   const limit = opts.limit ?? 50;
-  if (limit !== 50) params.set("limit", String(limit));
-  if (offset > 0) params.set("offset", String(offset));
+  if (limit !== 50) params.set('limit', String(limit));
+  if (offset > 0) params.set('offset', String(offset));
   const qs = params.toString();
-  return `/api/stars${qs ? `?${qs}` : ""}`;
+  return `/api/stars${qs ? `?${qs}` : ''}`;
 }
 
 // Serialize filter options to a stable key for detecting filter changes
 function filterKey(opts: UseStarredReposOptions): string {
   return JSON.stringify({
-    q: opts.q ?? "",
+    q: opts.q ?? '',
     lang: opts.language ?? [],
     list: opts.listId ?? null,
-    sort: opts.sort ?? "recently-starred",
+    sort: opts.sort ?? 'recently-starred',
   });
 }
 
@@ -116,7 +121,7 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
       errorRetryCount: 1,
       onError: (err) => {
         // Don't let SWR retry aborted requests
-        if (err?.name === "AbortError") return;
+        if (err?.name === 'AbortError') return;
       },
     }
   );
@@ -150,7 +155,7 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
       const page: StarsResponse = await res.json();
       setLoadedRepos((prev) => [...prev, ...page.repos]);
     } catch (e) {
-      if ((e as Error).name === "AbortError") return;
+      if ((e as Error).name === 'AbortError') return;
       throw e;
     } finally {
       setLoadingMore(false);
@@ -166,15 +171,15 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
     setSyncResult(null);
     setSyncError(null);
     try {
-      const res = await fetch("/api/stars/sync", { method: "POST" });
+      const res = await fetch('/api/stars/sync', { method: 'POST' });
       if (!res.ok) {
         // Surface a clear, user-facing message instead of letting an error
         // body ({ error }) be treated as a successful SyncResult.
         const message =
           res.status === 401
-            ? "Sign in with GitHub again to sync your stars."
+            ? 'Sign in with GitHub again to sync your stars.'
             : res.status === 429
-              ? "Too many sync requests — wait a minute and try again."
+              ? 'Too many sync requests — wait a minute and try again.'
               : "Couldn't sync your GitHub stars. Try again in a moment.";
         setSyncError(message);
         return null;
@@ -182,14 +187,14 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
       const result: SyncResult = await res.json();
       setSyncResult(result);
       setLoadedRepos([]);
-      await Promise.all([mutate(), globalMutate("/api/lists")]);
+      await Promise.all([mutate(), globalMutate('/api/lists')]);
       // Auto-generate embeddings for all repos missing them
-      fetch("/api/embeddings/generate", { method: "POST" }).catch(() => {});
+      fetch('/api/embeddings/generate', { method: 'POST' }).catch(() => {});
       return result;
     } catch (err) {
-      console.error("Star sync failed", err);
+      console.error('Star sync failed', err);
       setSyncError(
-        "Couldn't reach GitHub to sync your stars. Check your connection and try again.",
+        "Couldn't reach GitHub to sync your stars. Check your connection and try again."
       );
       return null;
     } finally {

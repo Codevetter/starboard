@@ -1,14 +1,14 @@
-"use client";
+'use client';
 
-import { useVirtualizer } from "@tanstack/react-virtual";
-import { Inbox, Loader2, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { Inbox, Loader2, RotateCcw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { RepoCard } from "@/components/repo-card";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import type { UserList } from "@/hooks/use-lists";
-import type { UserRepo } from "@/hooks/use-starred-repos";
+import { RepoCard } from '@/components/repo-card';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { UserList } from '@/hooks/use-lists';
+import type { UserRepo } from '@/hooks/use-starred-repos';
 
 function widthToColumns(width: number): number {
   if (width >= 1080) return 4;
@@ -19,7 +19,7 @@ function widthToColumns(width: number): number {
 
 interface RepoGridProps {
   repos: UserRepo[];
-  viewMode: "grid" | "list";
+  viewMode: 'grid' | 'list';
   isLoading: boolean;
   isPending?: boolean;
   isValidating?: boolean;
@@ -36,8 +36,8 @@ interface RepoGridProps {
   selectionActive?: boolean;
 }
 
-function SkeletonCard({ viewMode }: { viewMode: "grid" | "list" }) {
-  if (viewMode === "list") {
+function SkeletonCard({ viewMode }: { viewMode: 'grid' | 'list' }) {
+  if (viewMode === 'list') {
     return (
       <div className="flex items-start gap-4 rounded-lg border bg-card p-4">
         <Skeleton className="size-8 rounded-full" />
@@ -95,11 +95,11 @@ export function RepoGrid({
   selectionActive = false,
 }: RepoGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const [columns, setColumns] = useState(viewMode === "grid" ? 3 : 1);
+  const [columns, setColumns] = useState(viewMode === 'grid' ? 3 : 1);
 
   // Track container width to compute responsive column count
   useEffect(() => {
-    if (viewMode !== "grid") {
+    if (viewMode !== 'grid') {
       setColumns(1);
       return;
     }
@@ -115,7 +115,7 @@ export function RepoGrid({
   }, [viewMode]);
 
   const rows = useMemo(() => {
-    if (viewMode === "list") return repos.map((r) => [r]);
+    if (viewMode === 'list') return repos.map((r) => [r]);
     const result: UserRepo[][] = [];
     for (let i = 0; i < repos.length; i += columns) {
       result.push(repos.slice(i, i + columns));
@@ -123,10 +123,7 @@ export function RepoGrid({
     return result;
   }, [repos, viewMode, columns]);
 
-  const estimateSize = useCallback(
-    () => (viewMode === "grid" ? 240 : 100),
-    [viewMode]
-  );
+  const estimateSize = useCallback(() => (viewMode === 'grid' ? 240 : 100), [viewMode]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -148,17 +145,17 @@ export function RepoGrid({
       }
     };
 
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    return () => el.removeEventListener("scroll", handleScroll);
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
   }, [onLoadMore, hasMore, loadingMore]);
 
   if (isLoading) {
     return (
       <div
         className={
-          viewMode === "grid"
-            ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-            : "flex flex-col gap-2"
+          viewMode === 'grid'
+            ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+            : 'flex flex-col gap-2'
         }
       >
         {Array.from({ length: 8 }).map((_, i) => (
@@ -172,20 +169,12 @@ export function RepoGrid({
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center">
         <Inbox className="mb-4 size-12 text-muted-foreground/50" />
-        <h3 className="text-lg font-medium text-foreground">
-          No repos match your filters
-        </h3>
+        <h3 className="text-lg font-medium text-foreground">No repos match your filters</h3>
         <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Try adjusting your search or filter criteria to find what you are
-          looking for.
+          Try adjusting your search or filter criteria to find what you are looking for.
         </p>
         {hasActiveFilters && onClearFilters && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="mt-4 gap-2"
-            onClick={onClearFilters}
-          >
+          <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}>
             <RotateCcw className="size-3.5" />
             Reset all filters
           </Button>
@@ -203,13 +192,13 @@ export function RepoGrid({
       )}
       <div
         ref={parentRef}
-        className={`h-[calc(100svh-65px)] overflow-auto transition-opacity duration-100${showPending ? " opacity-75" : ""}${selectionActive ? " pb-24" : ""}`}
+        className={`h-[calc(100svh-65px)] overflow-auto transition-opacity duration-100${showPending ? ' opacity-75' : ''}${selectionActive ? ' pb-24' : ''}`}
       >
         <div
           style={{
             height: `${virtualizer.getTotalSize()}px`,
-            width: "100%",
-            position: "relative",
+            width: '100%',
+            position: 'relative',
           }}
         >
           {virtualizer.getVirtualItems().map((virtualRow) => {
@@ -218,21 +207,17 @@ export function RepoGrid({
               <div
                 key={virtualRow.key}
                 style={{
-                  position: "absolute",
+                  position: 'absolute',
                   top: 0,
                   left: 0,
-                  width: "100%",
+                  width: '100%',
                   height: `${virtualRow.size}px`,
                   transform: `translateY(${virtualRow.start}px)`,
-                  ...(viewMode === "grid"
+                  ...(viewMode === 'grid'
                     ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
                     : {}),
                 }}
-                className={
-                  viewMode === "grid"
-                    ? "grid gap-3 px-0 pb-3"
-                    : "pb-2"
-                }
+                className={viewMode === 'grid' ? 'grid gap-3 px-0 pb-3' : 'pb-2'}
               >
                 {rowRepos.map((repo) => (
                   <RepoCard

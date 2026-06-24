@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import { Archive, ExternalLink, Star } from "lucide-react";
-import Link from "next/link";
+import { Archive, ExternalLink, Star } from 'lucide-react';
+import Link from 'next/link';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
-} from "@/components/ui/sheet";
-import type { UserRepo } from "@/hooks/use-starred-repos";
-import { getAvatarImageAttrs } from "@/lib/avatar";
+} from '@/components/ui/sheet';
+import type { UserRepo } from '@/hooks/use-starred-repos';
+import { getAvatarImageAttrs } from '@/lib/avatar';
 
 interface CompareSheetProps {
   open: boolean;
@@ -27,10 +27,10 @@ function formatNumber(n: number): string {
 }
 
 function formatDate(value: string | null | undefined): string {
-  if (!value) return "—";
+  if (!value) return '—';
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export function CompareSheet({ open, onOpenChange, repos, onDeselect }: CompareSheetProps) {
@@ -82,9 +82,7 @@ export function CompareSheet({ open, onOpenChange, repos, onDeselect }: CompareS
                           className="block truncate text-sm font-semibold hover:underline"
                           title={repo.full_name}
                         >
-                          <span className="text-muted-foreground">
-                            {repo.owner.login}/
-                          </span>
+                          <span className="text-muted-foreground">{repo.owner.login}/</span>
                           {repo.name}
                         </Link>
                         <a
@@ -112,7 +110,7 @@ export function CompareSheet({ open, onOpenChange, repos, onDeselect }: CompareS
                           {formatNumber(repo.stargazers_count)}
                         </span>
                       </Row>
-                      <Row label="Language">{repo.language ?? "—"}</Row>
+                      <Row label="Language">{repo.language ?? '—'}</Row>
                       <Row label="Updated">{formatDate(repo.updated_at)}</Row>
                       <Row label="Starred">{formatDate(repo.starred_at)}</Row>
                       <Row label="Status">
@@ -125,9 +123,7 @@ export function CompareSheet({ open, onOpenChange, repos, onDeselect }: CompareS
                           <span className="text-emerald-500">Active</span>
                         )}
                       </Row>
-                      <Row label="Saved">
-                        {repo.is_saved ? "Yes" : "No"}
-                      </Row>
+                      <Row label="Saved">{repo.is_saved ? 'Yes' : 'No'}</Row>
                     </dl>
 
                     {repo.topics.length > 0 && (
@@ -145,12 +141,7 @@ export function CompareSheet({ open, onOpenChange, repos, onDeselect }: CompareS
                     )}
 
                     <div className="mt-auto flex items-center justify-between gap-2 border-t pt-2">
-                      <Button
-                        asChild
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                      >
+                      <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
                         <Link href={`/explore/${repo.full_name}`}>Open</Link>
                       </Button>
                       <Button

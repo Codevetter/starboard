@@ -1,4 +1,4 @@
-import { getCloudflareContext } from "@opennextjs/cloudflare";
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 type ServiceBinding = {
   fetch(request: Request): Promise<Response>;
@@ -24,7 +24,7 @@ interface RagDocument {
 }
 
 const RAG_SERVICE_URL =
-  process.env.RAG_SERVICE_URL || "https://knowledgebase.sarthakagrawal927.workers.dev";
+  process.env.RAG_SERVICE_URL || 'https://knowledgebase.sarthakagrawal927.workers.dev';
 const DEFAULT_RAG_INGEST_BATCH_BYTES = 750_000;
 
 function cloudflareEnv(): CloudflareEnv {
@@ -37,11 +37,15 @@ function cloudflareEnv(): CloudflareEnv {
 }
 
 function serviceKey(): string {
-  return process.env.RAG_SERVICE_KEY?.trim() || cloudflareEnv().RAG_SERVICE_KEY?.trim() || "";
+  return process.env.RAG_SERVICE_KEY?.trim() || cloudflareEnv().RAG_SERVICE_KEY?.trim() || '';
 }
 
 function indexId(): string {
-  return process.env.STARBOARD_RAG_INDEX_ID?.trim() || cloudflareEnv().STARBOARD_RAG_INDEX_ID?.trim() || "";
+  return (
+    process.env.STARBOARD_RAG_INDEX_ID?.trim() ||
+    cloudflareEnv().STARBOARD_RAG_INDEX_ID?.trim() ||
+    ''
+  );
 }
 
 function serviceBinding(): ServiceBinding | null {
@@ -54,29 +58,34 @@ export function isRagServiceConfigured(): boolean {
 
 async function ragFetch(path: string, init: RequestInit): Promise<Response> {
   const key = serviceKey();
-  if (!key) throw new Error("RAG_SERVICE_KEY is not configured");
+  if (!key) throw new Error('RAG_SERVICE_KEY is not configured');
   const requestInit: RequestInit = {
     ...init,
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${key}`,
       ...(init.headers ?? {}),
     },
   };
   const binding = serviceBinding();
-  if (binding) return binding.fetch(new Request(`https://knowledgebase.internal${path}`, requestInit));
-  return fetch(`${RAG_SERVICE_URL.replace(/\/+$/, "")}${path}`, requestInit);
+  if (binding)
+    return binding.fetch(new Request(`https://knowledgebase.internal${path}`, requestInit));
+  return fetch(`${RAG_SERVICE_URL.replace(/\/+$/, '')}${path}`, requestInit);
 }
 
-export async function searchStarboardRag(userId: string, query: string, topK: number): Promise<number[] | null> {
+export async function searchStarboardRag(
+  userId: string,
+  query: string,
+  topK: number
+): Promise<number[] | null> {
   const ragIndexId = indexId();
   if (!serviceKey() || !ragIndexId) return null;
   const res = await ragFetch(`/v1/indexes/${ragIndexId}/query`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({
       query,
       top_k: topK,
-      mode: "semantic",
+      mode: 'semantic',
       filter: { user_id: userId },
     }),
   });
@@ -94,7 +103,7 @@ export async function ingestStarboardRagDocuments(documents: RagDocument[]): Pro
   let ingested = 0;
   for (const batch of batchRagDocuments(documents)) {
     const res = await ragFetch(`/v1/indexes/${ragIndexId}/ingest`, {
-      method: "POST",
+      method: 'POST',
       body: JSON.stringify({ documents: batch }),
     });
     if (!res.ok) throw new Error(`RAG ingest failed ${res.status}: ${await res.text()}`);

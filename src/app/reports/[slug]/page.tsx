@@ -1,10 +1,10 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
-import { Badge } from "@/components/ui/badge";
-import { db } from "@/db";
-import { parseInsightReportPayload } from "@/lib/insight-reports";
+import { Badge } from '@/components/ui/badge';
+import { db } from '@/db';
+import { parseInsightReportPayload } from '@/lib/insight-reports';
 
 async function getPublicReport(slug: string) {
   const result = await db.execute({
@@ -45,18 +45,14 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const report = await getPublicReport(slug);
-  if (!report) return { title: "Report not found" };
+  if (!report) return { title: 'Report not found' };
   return {
     title: `${report.title} - Starboard`,
     description: `Read-only Starboard insight report shared by @${report.ownerUsername}`,
   };
 }
 
-export default async function PublicReportPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function PublicReportPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const report = await getPublicReport(slug);
   if (!report) notFound();
@@ -99,7 +95,12 @@ export default async function PublicReportPage({
                 <article key={item.id} className="rounded-lg border p-4">
                   <h3 className="text-sm font-semibold">
                     {item.sourceUrl ? (
-                      <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="hover:underline">
+                      <a
+                        href={item.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="hover:underline"
+                      >
                         {item.title}
                       </a>
                     ) : (
@@ -123,7 +124,10 @@ export default async function PublicReportPage({
 
       <footer className="border-t">
         <div className="mx-auto max-w-5xl px-4 py-4 text-center sm:px-6">
-          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground hover:underline">
+          <Link
+            href="/"
+            className="text-sm text-muted-foreground hover:text-foreground hover:underline"
+          >
             Built with Starboard
           </Link>
         </div>

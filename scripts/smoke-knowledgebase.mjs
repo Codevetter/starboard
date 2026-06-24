@@ -7,7 +7,10 @@
  *   STARBOARD_SESSION_COOKIE='authjs.session-token=...' pnpm smoke:knowledgebase -- --sync
  */
 
-const baseUrl = readArg('--base-url') || process.env.STARBOARD_BASE_URL || 'https://starboard.sarthakagrawal927.workers.dev';
+const baseUrl =
+  readArg('--base-url') ||
+  process.env.STARBOARD_BASE_URL ||
+  'https://starboard.sarthakagrawal927.workers.dev';
 const cookie = process.env.STARBOARD_SESSION_COOKIE || '';
 const query = readArg('--query') || process.env.STARBOARD_SMOKE_QUERY || 'typescript testing';
 const shouldSync = process.argv.includes('--sync') || process.env.STARBOARD_SMOKE_SYNC === '1';
@@ -55,7 +58,9 @@ await check('public app responds', async () => {
 });
 
 await check('stars API requires auth', async () => {
-  const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/api/stars?q=${encodeURIComponent(query)}&sort=relevance`);
+  const res = await fetch(
+    `${baseUrl.replace(/\/+$/, '')}/api/stars?q=${encodeURIComponent(query)}&sort=relevance`
+  );
   if (res.status !== 401) throw new Error(`expected 401, got ${res.status}`);
 });
 
@@ -91,4 +96,3 @@ if (failures.length > 0) {
 }
 
 console.log('\nStarboard knowledgebase smoke complete');
-

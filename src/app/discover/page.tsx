@@ -1,25 +1,20 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
-import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 
-import { RepoGrid } from "@/components/repo-grid";
-import { Sidebar } from "@/components/sidebar";
-import { TopBar } from "@/components/top-bar";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useDiscoverRepos } from "@/hooks/use-discover-repos";
-import { useLists } from "@/hooks/use-lists";
+import { RepoGrid } from '@/components/repo-grid';
+import { Sidebar } from '@/components/sidebar';
+import { TopBar } from '@/components/top-bar';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useDiscoverRepos } from '@/hooks/use-discover-repos';
+import { useLists } from '@/hooks/use-lists';
 
-const sortOptions = ["relevance", "most-stars", "recently-updated", "name-az"] as const;
+const sortOptions = ['relevance', 'most-stars', 'recently-updated', 'name-az'] as const;
 
 function PageSkeleton() {
   return (
@@ -84,16 +79,16 @@ export default function DiscoverPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/");
+    if (status === 'unauthenticated') {
+      router.replace('/');
     }
   }, [router, status]);
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return <PageSkeleton />;
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return null;
   }
 
@@ -105,16 +100,22 @@ export default function DiscoverPage() {
 }
 
 function DiscoverContent() {
-  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""));
-  const [sortBy, setSortBy] = useQueryState("sort", parseAsStringLiteral(sortOptions).withDefault("most-stars"));
-  const [selectedLanguages, setSelectedLanguages] = useQueryState("lang", parseAsArrayOf(parseAsString, ",").withDefault([]));
-  const [selectedListId, setSelectedListId] = useQueryState("list", {
+  const [searchQuery, setSearchQuery] = useQueryState('q', parseAsString.withDefault(''));
+  const [sortBy, setSortBy] = useQueryState(
+    'sort',
+    parseAsStringLiteral(sortOptions).withDefault('most-stars')
+  );
+  const [selectedLanguages, setSelectedLanguages] = useQueryState(
+    'lang',
+    parseAsArrayOf(parseAsString, ',').withDefault([])
+  );
+  const [selectedListId, setSelectedListId] = useQueryState('list', {
     parse: (v) => (v ? parseInt(v, 10) : null),
-    serialize: (v) => (v != null ? String(v) : ""),
+    serialize: (v) => (v != null ? String(v) : ''),
     defaultValue: null,
   });
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
 
@@ -123,20 +124,38 @@ function DiscoverContent() {
     return () => clearTimeout(t);
   }, [searchQuery]);
 
-  const { repos, total, facets, error: discoverError, isLoading: reposLoading, isValidating, loadingMore, hasMore, loadMore, mutate } = useDiscoverRepos({
+  const {
+    repos,
+    total,
+    facets,
+    error: discoverError,
+    isLoading: reposLoading,
+    isValidating,
+    loadingMore,
+    hasMore,
+    loadMore,
+    mutate,
+  } = useDiscoverRepos({
     q: debouncedSearch,
     language: selectedLanguages,
     listId: selectedListId,
     sort: sortBy,
     limit: 50,
   });
-  const { lists, isLoading: listsLoading, createList, deleteList, shareList, assignRepoToList } = useLists();
+  const {
+    lists,
+    isLoading: listsLoading,
+    createList,
+    deleteList,
+    shareList,
+    assignRepoToList,
+  } = useLists();
   const requestKey = [
     debouncedSearch,
-    selectedLanguages.join(","),
-    selectedListId ?? "",
+    selectedLanguages.join(','),
+    selectedListId ?? '',
     sortBy,
-  ].join("|");
+  ].join('|');
   const [settledRequestKey, setSettledRequestKey] = useState(requestKey);
 
   useEffect(() => {
@@ -148,60 +167,66 @@ function DiscoverContent() {
   }, [isValidating, reposLoading, requestKey]);
 
   const showSidebarSkeleton =
-    (reposLoading || listsLoading) &&
-    lists.length === 0 &&
-    facets.languages.length === 0;
+    (reposLoading || listsLoading) && lists.length === 0 && facets.languages.length === 0;
 
   const hasActiveFilters =
-    searchQuery.trim().length > 0 ||
-    selectedLanguages.length > 0 ||
-    selectedListId !== null;
+    searchQuery.trim().length > 0 || selectedLanguages.length > 0 || selectedListId !== null;
   const isGridPending =
-    searchQuery !== debouncedSearch ||
-    requestKey !== settledRequestKey ||
-    isValidating;
+    searchQuery !== debouncedSearch || requestKey !== settledRequestKey || isValidating;
 
   const clearFilters = useCallback(() => {
-    setSearchQuery("");
+    setSearchQuery('');
     setSelectedLanguages([]);
     setSelectedListId(null);
   }, [setSearchQuery, setSelectedLanguages, setSelectedListId]);
 
-  const handleLanguageToggle = useCallback((language: string) => {
-    setSelectedLanguages((prev) =>
-      (prev ?? []).includes(language)
-        ? (prev ?? []).filter((l) => l !== language)
-        : [...(prev ?? []), language]
-    );
-  }, [setSelectedLanguages]);
+  const handleLanguageToggle = useCallback(
+    (language: string) => {
+      setSelectedLanguages((prev) =>
+        (prev ?? []).includes(language)
+          ? (prev ?? []).filter((l) => l !== language)
+          : [...(prev ?? []), language]
+      );
+    },
+    [setSelectedLanguages]
+  );
 
-  const handleAssignList = useCallback(async (repoId: number, listId: number, assigned: boolean) => {
-    await assignRepoToList(repoId, listId, assigned);
-    mutate();
-  }, [assignRepoToList, mutate]);
+  const handleAssignList = useCallback(
+    async (repoId: number, listId: number, assigned: boolean) => {
+      await assignRepoToList(repoId, listId, assigned);
+      mutate();
+    },
+    [assignRepoToList, mutate]
+  );
 
-  const handleToggleSave = useCallback(async (repoId: number, saved: boolean) => {
-    await fetch(`/api/repos/${repoId}/save`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ saved }),
-    });
-    mutate();
-  }, [mutate]);
+  const handleToggleSave = useCallback(
+    async (repoId: number, saved: boolean) => {
+      await fetch(`/api/repos/${repoId}/save`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ saved }),
+      });
+      mutate();
+    },
+    [mutate]
+  );
 
-  const handleDeleteList = useCallback(async (id: number) => {
-    await deleteList(id);
-    if (selectedListId === id) {
-      setSelectedListId(null);
-    }
-    mutate();
-  }, [deleteList, mutate, selectedListId, setSelectedListId]);
+  const handleDeleteList = useCallback(
+    async (id: number) => {
+      await deleteList(id);
+      if (selectedListId === id) {
+        setSelectedListId(null);
+      }
+      mutate();
+    },
+    [deleteList, mutate, selectedListId, setSelectedListId]
+  );
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return <PageSkeleton />;
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return null;
   }
 
@@ -228,7 +253,7 @@ function DiscoverContent() {
         onSearchChange={setSearchQuery}
         sortBy={sortBy}
         onSortChange={(sort) => {
-          if (sort !== "recently-starred") setSortBy(sort);
+          if (sort !== 'recently-starred') setSortBy(sort);
         }}
         sortOptions={sortOptions}
         viewMode={viewMode}
@@ -240,9 +265,7 @@ function DiscoverContent() {
       />
 
       <div className="flex min-h-0 flex-1">
-        <aside className="hidden w-[280px] shrink-0 border-r md:block">
-          {sidebarContent}
-        </aside>
+        <aside className="hidden w-[280px] shrink-0 border-r md:block">{sidebarContent}</aside>
 
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetContent side="left" className="w-[280px] p-0">
@@ -259,8 +282,7 @@ function DiscoverContent() {
             {discoverError && !reposLoading && (
               <div className="mb-4 flex items-center justify-between gap-4 rounded-md border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm">
                 <span className="text-muted-foreground">
-                  Couldn&apos;t load discover results — search may be
-                  temporarily unavailable.
+                  Couldn&apos;t load discover results — search may be temporarily unavailable.
                 </span>
                 <button
                   onClick={() => mutate()}

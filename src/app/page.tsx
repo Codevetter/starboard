@@ -1,15 +1,15 @@
-import { Bookmark, GitCompare, Search } from "lucide-react";
-import Link from "next/link";
+import { Bookmark, GitCompare, Search } from 'lucide-react';
+import Link from 'next/link';
 
-import { LandingSessionRedirect } from "@/components/landing-session-redirect";
-import { SaaSMakerChangelog, SaaSMakerTestimonials } from "@/components/saasmaker-feedback";
-import { SampleStaleCleanup } from "@/components/sample-stale-cleanup";
-import { SampleStarsBoard } from "@/components/sample-stars-board";
-import { SampleWeeklyDigest } from "@/components/sample-weekly-digest";
-import { SignInButton } from "@/components/sign-in-button";
-import { WeeklyActionPreview } from "@/components/weekly-action-preview";
+import { LandingSessionRedirect } from '@/components/landing-session-redirect';
+import { SaaSMakerChangelog, SaaSMakerTestimonials } from '@/components/saasmaker-feedback';
+import { SampleStaleCleanup } from '@/components/sample-stale-cleanup';
+import { SampleStarsBoard } from '@/components/sample-stars-board';
+import { SampleWeeklyDigest } from '@/components/sample-weekly-digest';
+import { SignInButton } from '@/components/sign-in-button';
+import { WeeklyActionPreview } from '@/components/weekly-action-preview';
 
-export const dynamic = "force-static";
+export const dynamic = 'force-static';
 
 export default function Home() {
   return (
@@ -27,9 +27,9 @@ export default function Home() {
               Know which of your GitHub stars matter right now.
             </h1>
             <p className="max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-              GitHub shows you a flat list. Starboard ranks your stars by
-              recent releases, active development, and what you haven&apos;t
-              revisited — so you act on what matters, not scroll through noise.
+              GitHub shows you a flat list. Starboard ranks your stars by recent releases, active
+              development, and what you haven&apos;t revisited — so you act on what matters, not
+              scroll through noise.
             </p>
 
             <ul className="grid w-full gap-2 text-sm text-muted-foreground sm:grid-cols-2">
@@ -59,7 +59,8 @@ export default function Home() {
               </div>
             </div>
             <p className="text-xs text-muted-foreground">
-              Read-only · we only read your public profile and starred repos · no write scopes · revoke anytime in GitHub settings
+              Read-only · we only read your public profile and starred repos · no write scopes ·
+              revoke anytime in GitHub settings
             </p>
           </div>
 
@@ -104,20 +105,21 @@ export default function Home() {
         <div className="w-full max-w-3xl">
           <h2 className="mb-2 text-center text-2xl font-bold">Turn noise into decisions</h2>
           <p className="mb-6 text-center text-sm text-muted-foreground">
-            Starboard identifies stars you haven&apos;t touched in months, checks
-            if the repo is still alive, and gives you a one-line verdict — keep
-            or remove — so cleanup takes minutes instead of hours.
+            Starboard identifies stars you haven&apos;t touched in months, checks if the repo is
+            still alive, and gives you a one-line verdict — keep or remove — so cleanup takes
+            minutes instead of hours.
           </p>
           <SampleStaleCleanup />
         </div>
 
         {/* Weekly digest preview */}
         <div className="w-full max-w-4xl">
-          <h2 className="mb-2 text-center text-2xl font-bold">Never miss what matters in your stars</h2>
+          <h2 className="mb-2 text-center text-2xl font-bold">
+            Never miss what matters in your stars
+          </h2>
           <p className="mb-6 text-center text-sm text-muted-foreground">
-            Starboard watches every repo you&apos;ve starred and delivers a ranked
-            weekly digest — releases, momentum shifts, and dormant gems that
-            just came back to life.
+            Starboard watches every repo you&apos;ve starred and delivers a ranked weekly digest —
+            releases, momentum shifts, and dormant gems that just came back to life.
           </p>
           <SampleWeeklyDigest />
         </div>
@@ -126,7 +128,8 @@ export default function Home() {
         <div className="w-full max-w-4xl">
           <h2 className="mb-2 text-center text-2xl font-bold">Get actionable insights</h2>
           <p className="mb-6 text-center text-sm text-muted-foreground">
-            Upgrade to our Pro plan and receive a weekly action digest with key updates and trends from repositories you care about.
+            Upgrade to our Pro plan and receive a weekly action digest with key updates and trends
+            from repositories you care about.
           </p>
           <WeeklyActionPreview />
         </div>
@@ -147,13 +150,7 @@ export default function Home() {
   );
 }
 
-function HeroPoint({
-  icon,
-  children,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function HeroPoint({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
       <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">

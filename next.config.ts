@@ -1,12 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const securityHeaders = [
-  { key: "X-Content-Type-Options", value: "nosniff" },
-  { key: "X-Frame-Options", value: "DENY" },
-  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   {
-    key: "Content-Security-Policy",
+    key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us-assets.i.posthog.com", // unsafe-inline/eval required by Next.js
@@ -14,28 +14,28 @@ const securityHeaders = [
       "img-src 'self' data: https://avatars.githubusercontent.com https://github.com",
       "connect-src 'self' https://api.github.com https://*.turso.io https://us.i.posthog.com https://us-assets.i.posthog.com",
       "frame-ancestors 'none'",
-    ].join("; "),
+    ].join('; '),
   },
 ];
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
-  output: "standalone",
+  output: 'standalone',
   // Force-bundle libsql for the Worker target — opennext otherwise lazy-chunks
   // it as an external module and fails at runtime in workerd.
-  transpilePackages: ["@libsql/client"],
+  transpilePackages: ['@libsql/client'],
   async headers() {
     return [
       {
-        source: "/(.*)",
+        source: '/(.*)',
         headers: securityHeaders,
       },
       {
-        source: "/",
+        source: '/',
         headers: [
           {
-            key: "Cache-Control",
-            value: "public, max-age=60, s-maxage=600, stale-while-revalidate=86400",
+            key: 'Cache-Control',
+            value: 'public, max-age=60, s-maxage=600, stale-while-revalidate=86400',
           },
         ],
       },
@@ -48,8 +48,8 @@ export default nextConfig;
 // Wire opennext-cloudflare for `next dev` so the AI binding (and any others)
 // are available in development the same way they are in deployed Workers.
 // No-op when not running under Next dev / opennext.
-if (process.env.NODE_ENV === "development") {
-  import("@opennextjs/cloudflare")
+if (process.env.NODE_ENV === 'development') {
+  import('@opennextjs/cloudflare')
     .then((m) => m.initOpenNextCloudflareForDev?.())
     .catch(() => {
       /* package not installed in this context — fine */

@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import useSWR from "swr";
+import useSWR from 'swr';
 
 export interface SimilarRepo {
   id: number;

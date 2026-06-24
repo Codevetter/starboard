@@ -1,6 +1,6 @@
-import type { FleetProjectSnapshot } from "@/lib/fleet-projects";
+import type { FleetProjectSnapshot } from '@/lib/fleet-projects';
 
-import fleetProjectsData from "../../data/fleet-projects.generated.json";
+import fleetProjectsData from '../../data/fleet-projects.generated.json';
 
 export const fleetProjects = fleetProjectsData.projects as FleetProjectSnapshot[];
 

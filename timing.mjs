@@ -14,7 +14,7 @@ export function withTiming(handler) {
 
     // Add Server-Timing header
     const headers = new Headers(response.headers);
-    headers.set("Server-Timing", `app;dur=${Math.round(duration)}`);
+    headers.set('Server-Timing', `app;dur=${Math.round(duration)}`);
     const timedResponse = new Response(response.body, {
       status: response.status,
       statusText: response.statusText,

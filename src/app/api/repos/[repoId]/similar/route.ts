@@ -1,17 +1,19 @@
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
 
 const VEC_TOP_K = 200;
 const DIST_MAX = 0.62;
 const DEFAULT_LIMIT = 10;
 
 function parseTopics(value: unknown): string[] {
-  if (typeof value !== "string") return [];
+  if (typeof value !== 'string') return [];
   try {
     const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.filter((topic): topic is string => typeof topic === "string") : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((topic): topic is string => typeof topic === 'string')
+      : [];
   } catch {
     return [];
   }
@@ -19,7 +21,7 @@ function parseTopics(value: unknown): string[] {
 
 function wordSet(value: string | null | undefined): Set<string> {
   return new Set(
-    (value ?? "")
+    (value ?? '')
       .toLowerCase()
       .split(/[^a-z0-9+#]+/i)
       .filter((word) => word.length >= 3)
@@ -32,19 +34,19 @@ export async function GET(
 ) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const userId = session.user.githubId;
 
   const { repoId: rawId } = await params;
   const repoId = parseInt(rawId, 10);
-  if (isNaN(repoId)) {
-    return NextResponse.json({ error: "Invalid repo ID" }, { status: 400 });
+  if (Number.isNaN(repoId)) {
+    return NextResponse.json({ error: 'Invalid repo ID' }, { status: 400 });
   }
 
-  const limitParam = request.nextUrl.searchParams.get("limit");
-  const limit = Math.min(Math.max(parseInt(limitParam || "", 10) || DEFAULT_LIMIT, 1), 30);
-  const scope = request.nextUrl.searchParams.get("scope") || "global"; // "user" | "global"
+  const limitParam = request.nextUrl.searchParams.get('limit');
+  const limit = Math.min(Math.max(parseInt(limitParam || '', 10) || DEFAULT_LIMIT, 1), 30);
+  const scope = request.nextUrl.searchParams.get('scope') || 'global'; // "user" | "global"
 
   try {
     // 1. Fetch this repo's embedding (as JSON via vector_extract) and lightweight
@@ -63,12 +65,12 @@ export async function GET(
       args: [repoId],
     });
     if (seed.rows.length === 0) {
-      return NextResponse.json({ similar: [], reason: "no_embedding" });
+      return NextResponse.json({ similar: [], reason: 'no_embedding' });
     }
 
     const vec = seed.rows[0].vec as string | undefined;
     if (!vec) {
-      return NextResponse.json({ similar: [], reason: "no_embedding" });
+      return NextResponse.json({ similar: [], reason: 'no_embedding' });
     }
 
     // 2. ANN search.
@@ -95,9 +97,9 @@ export async function GET(
 
     // 3. Hydrate. Optionally restrict to user's own stars.
     const ids = candidates.map((c) => c.repo_id);
-    const placeholders = ids.map(() => "?").join(", ");
+    const placeholders = ids.map(() => '?').join(', ');
     const sql =
-      scope === "global"
+      scope === 'global'
         ? `SELECT r.id, r.name, r.full_name, r.owner_login, r.owner_avatar,
                  r.html_url, r.description, r.language, r.stargazers_count,
                  r.archived, r.topics, r.repo_updated_at
@@ -115,7 +117,7 @@ export async function GET(
            FROM user_repos ur
            JOIN repos r ON r.id = ur.repo_id
            WHERE ur.user_id = ? AND r.id IN (${placeholders})`;
-    const args = scope === "global" ? ids : [userId, ...ids];
+    const args = scope === 'global' ? ids : [userId, ...ids];
 
     const hydrated = await db.execute({ sql, args });
 
@@ -137,7 +139,9 @@ export async function GET(
         const similarity = 1 - dist;
         const topics = parseTopics(row.topics);
         const sharedTopics = topics.filter((topic) => seedTopics.has(topic)).length;
-        const candidateWords = wordSet(`${row.full_name as string} ${row.description as string | null}`);
+        const candidateWords = wordSet(
+          `${row.full_name as string} ${row.description as string | null}`
+        );
         let sharedWords = 0;
         for (const word of candidateWords) {
           if (seedWords.has(word)) sharedWords++;
@@ -170,14 +174,16 @@ export async function GET(
         topics: parseTopics(row.topics),
         updated_at: row.repo_updated_at as string | null,
         list_id: (row.list_id as number | null | undefined) ?? null,
-        collection_ids: row.collection_ids ? JSON.parse((row.collection_ids as string) || "[]") : [],
+        collection_ids: row.collection_ids
+          ? JSON.parse((row.collection_ids as string) || '[]')
+          : [],
         tags: [],
         similarity,
       }));
 
     return NextResponse.json({ similar: ordered });
   } catch (error) {
-    console.error("Failed to fetch similar repos:", error);
-    return NextResponse.json({ error: "Failed to fetch similar repos" }, { status: 500 });
+    console.error('Failed to fetch similar repos:', error);
+    return NextResponse.json({ error: 'Failed to fetch similar repos' }, { status: 500 });
   }
 }

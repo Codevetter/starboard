@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import useSWR from "swr";
+import useSWR from 'swr';
 
 const fetcher = async <T>(url: string): Promise<T> =>
   fetch(url).then((r) => {
@@ -53,11 +53,11 @@ export function useRepoDetail(slug: string) {
   const addComment = async (body: string) => {
     if (!repoId) return;
     const res = await fetch(`/api/repos/${repoId}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ body }),
     });
-    if (!res.ok) throw new Error("Failed to post comment");
+    if (!res.ok) throw new Error('Failed to post comment');
     mutateComments();
     mutate();
   };
@@ -65,11 +65,11 @@ export function useRepoDetail(slug: string) {
   const voteComment = async (commentId: number, value: 1 | -1) => {
     if (!repoId) return;
     const res = await fetch(`/api/repos/${repoId}/comments/${commentId}/vote`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ value }),
     });
-    if (!res.ok) throw new Error("Failed to vote");
+    if (!res.ok) throw new Error('Failed to vote');
     // Optimistic-ish: just revalidate
     mutateComments();
   };

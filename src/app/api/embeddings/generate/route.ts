@@ -1,14 +1,10 @@
-import type { InStatement } from "@libsql/client";
-import { NextResponse } from "next/server";
+import type { InStatement } from '@libsql/client';
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import {
-  buildRepoEmbeddingText,
-  generateEmbeddings,
-  textHash,
-} from "@/lib/embeddings";
-import { isRateLimited } from "@/lib/rate-limit";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
+import { isRateLimited } from '@/lib/rate-limit';
 
 // Prevent concurrent runs per user
 const activeJobs = new Set<string>();
@@ -16,17 +12,17 @@ const activeJobs = new Set<string>();
 export async function POST() {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = session.user.githubId;
 
   if (await isRateLimited(userId)) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   if (activeJobs.has(userId)) {
-    return NextResponse.json({ skipped: true, reason: "already running" });
+    return NextResponse.json({ skipped: true, reason: 'already running' });
   }
 
   activeJobs.add(userId);
@@ -76,11 +72,8 @@ export async function POST() {
       total: result.rows.length,
     });
   } catch (error) {
-    console.error("Embedding generation failed:", error);
-    return NextResponse.json(
-      { error: "Embedding generation failed" },
-      { status: 500 }
-    );
+    console.error('Embedding generation failed:', error);
+    return NextResponse.json({ error: 'Embedding generation failed' }, { status: 500 });
   } finally {
     activeJobs.delete(userId);
   }

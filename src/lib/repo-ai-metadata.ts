@@ -1,42 +1,39 @@
-import { textHash } from "./embeddings";
+import { textHash } from './embeddings';
 
-const REASONING_EFFORTS = ["auto", "low", "medium", "high"] as const;
-const MIN_REASONING_LEVELS = ["low", "medium", "high"] as const;
+const REASONING_EFFORTS = ['auto', 'low', 'medium', 'high'] as const;
+const MIN_REASONING_LEVELS = ['low', 'medium', 'high'] as const;
 
 export const REPO_AI_METADATA_REASONING_EFFORT = normalizeReasoningEffort(
   process.env.AI_GATEWAY_REASONING_EFFORT,
-  "medium"
+  'medium'
 );
 export const REPO_AI_METADATA_MIN_REASONING_LEVEL = normalizeMinReasoningLevel(
   process.env.AI_GATEWAY_MIN_REASONING_LEVEL,
-  "medium"
+  'medium'
 );
 export const REPO_AI_METADATA_ROUTE = `free-ai-router:reasoning=${REPO_AI_METADATA_REASONING_EFFORT}:min=${REPO_AI_METADATA_MIN_REASONING_LEVEL}`;
-export const HEURISTIC_REPO_AI_METADATA_MODEL = "heuristic-taxonomy-v1";
+export const HEURISTIC_REPO_AI_METADATA_MODEL = 'heuristic-taxonomy-v1';
 
 const MAX_TEXT_LENGTH = 1800;
-const REQUEST_TIMEOUT_MS = parseInt(
-  process.env.AI_GATEWAY_TIMEOUT_MS || "30000",
-  10
-);
-const MAX_ATTEMPTS = parseInt(process.env.AI_GATEWAY_MAX_ATTEMPTS || "2", 10);
+const REQUEST_TIMEOUT_MS = parseInt(process.env.AI_GATEWAY_TIMEOUT_MS || '30000', 10);
+const MAX_ATTEMPTS = parseInt(process.env.AI_GATEWAY_MAX_ATTEMPTS || '2', 10);
 const CATEGORIES = [
-  "ai-agents",
-  "ai-evals",
-  "ai-infra",
-  "ai-observability",
-  "ai-rag",
-  "app-framework",
-  "cli-tooling",
-  "data",
-  "database",
-  "devtool",
-  "frontend",
-  "infra",
-  "library",
-  "security",
-  "testing",
-  "unknown",
+  'ai-agents',
+  'ai-evals',
+  'ai-infra',
+  'ai-observability',
+  'ai-rag',
+  'app-framework',
+  'cli-tooling',
+  'data',
+  'database',
+  'devtool',
+  'frontend',
+  'infra',
+  'library',
+  'security',
+  'testing',
+  'unknown',
 ] as const;
 
 export interface RepoMetadataSource {
@@ -74,17 +71,15 @@ interface ChatCompletionResponse {
 }
 
 export function buildRepoAiSourceText(repo: RepoMetadataSource): string {
-  const topics = Array.isArray(repo.topics)
-    ? repo.topics
-    : parseJsonStringArray(repo.topics);
+  const topics = Array.isArray(repo.topics) ? repo.topics : parseJsonStringArray(repo.topics);
   return [
     `name: ${repo.full_name}`,
     repo.description ? `description: ${repo.description}` : null,
     repo.language ? `language: ${repo.language}` : null,
-    topics.length ? `topics: ${topics.join(", ")}` : null,
+    topics.length ? `topics: ${topics.join(', ')}` : null,
   ]
     .filter(Boolean)
-    .join("\n")
+    .join('\n')
     .slice(0, MAX_TEXT_LENGTH);
 }
 
@@ -97,7 +92,7 @@ export function buildRepoAiMetadataPrompt(repo: RepoMetadataSource): string {
 
 Return only compact JSON with exactly these keys:
 summary: one sentence, under 120 characters
-category: one of ${CATEGORIES.join(", ")}
+category: one of ${CATEGORIES.join(', ')}
 subcategories: 2-5 short lowercase tags
 use_cases: 2-5 short lowercase user intents
 keywords: 4-10 search aliases, frameworks, product names, or related terms
@@ -118,25 +113,24 @@ export async function generateRepoAiMetadata(
   const url = process.env.AI_GATEWAY_URL;
   const key = process.env.AI_GATEWAY_API_KEY;
   if (!url || !key) {
-    throw new Error("AI_GATEWAY_URL and AI_GATEWAY_API_KEY are required");
+    throw new Error('AI_GATEWAY_URL and AI_GATEWAY_API_KEY are required');
   }
 
-  const res = await fetchWithRetry(`${url.replace(/\/+$/, "")}/v1/chat/completions`, {
-    method: "POST",
+  const res = await fetchWithRetry(`${url.replace(/\/+$/, '')}/v1/chat/completions`, {
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${key}`,
-      "x-gateway-project-id": "starboard",
+      'x-gateway-project-id': 'starboard',
     },
     body: JSON.stringify({
       messages: [
         {
-          role: "system",
-          content:
-            "You produce strict JSON for software repository classification.",
+          role: 'system',
+          content: 'You produce strict JSON for software repository classification.',
         },
         {
-          role: "user",
+          role: 'user',
           content: buildRepoAiMetadataPrompt(repo),
         },
       ],
@@ -144,33 +138,28 @@ export async function generateRepoAiMetadata(
       max_tokens: 260,
       reasoning_effort: REPO_AI_METADATA_REASONING_EFFORT,
       min_reasoning_level: REPO_AI_METADATA_MIN_REASONING_LEVEL,
-      project_id: "starboard",
-      }),
+      project_id: 'starboard',
+    }),
   });
 
   if (!res.ok) {
     const body = await res.text();
-    const hint =
-      res.status === 401
-        ? " Check AI_GATEWAY_API_KEY for the free-AI gateway."
-        : "";
+    const hint = res.status === 401 ? ' Check AI_GATEWAY_API_KEY for the free-AI gateway.' : '';
     throw new Error(`AI metadata API error ${res.status}: ${body}${hint}`);
   }
 
   const json = (await res.json()) as ChatCompletionResponse;
   const content = chatCompletionText(json);
   return {
-    metadata: normalizeRepoAiMetadata(parseJsonObject(content || "{}")),
+    metadata: normalizeRepoAiMetadata(parseJsonObject(content || '{}')),
     model: chatCompletionModel(json),
   };
 }
 
 export function inferRepoAiMetadata(repo: RepoMetadataSource): RepoAiMetadata {
   const source = buildRepoAiSourceText(repo).toLowerCase();
-  const topics = Array.isArray(repo.topics)
-    ? repo.topics
-    : parseJsonStringArray(repo.topics);
-  const topicText = topics.join(" ").toLowerCase();
+  const topics = Array.isArray(repo.topics) ? repo.topics : parseJsonStringArray(repo.topics);
+  const topicText = topics.join(' ').toLowerCase();
   const text = `${source} ${topicText}`;
   const category = inferCategory(text);
   const keywords = new Set<string>(topics.map((topic) => topic.toLowerCase()));
@@ -197,46 +186,47 @@ export function inferRepoAiMetadata(repo: RepoMetadataSource): RepoAiMetadata {
 
 const TAXONOMY_RULES = [
   {
-    pattern: /\b(eval|evals|evaluation|benchmark|promptfoo|deepeval|ragas|lm-evaluation-harness|testing)\b/,
-    category: "ai-evals",
-    subcategories: ["llm evals", "testing"],
-    use_cases: ["evaluate prompts", "compare model outputs"],
-    keywords: ["evals", "evaluation", "benchmark", "llm testing"],
+    pattern:
+      /\b(eval|evals|evaluation|benchmark|promptfoo|deepeval|ragas|lm-evaluation-harness|testing)\b/,
+    category: 'ai-evals',
+    subcategories: ['llm evals', 'testing'],
+    use_cases: ['evaluate prompts', 'compare model outputs'],
+    keywords: ['evals', 'evaluation', 'benchmark', 'llm testing'],
   },
   {
     pattern: /\b(agent|agents|langchain|langgraph|llamaindex|crewai|autogen|workflow)\b/,
-    category: "ai-agents",
-    subcategories: ["agent framework", "workflow orchestration"],
-    use_cases: ["build ai agents", "orchestrate tools"],
-    keywords: ["agents", "agent framework", "tool calling"],
+    category: 'ai-agents',
+    subcategories: ['agent framework', 'workflow orchestration'],
+    use_cases: ['build ai agents', 'orchestrate tools'],
+    keywords: ['agents', 'agent framework', 'tool calling'],
   },
   {
     pattern: /\b(rag|retrieval|embedding|vector|semantic search)\b/,
-    category: "ai-rag",
-    subcategories: ["retrieval", "semantic search"],
-    use_cases: ["build rag apps", "search knowledge bases"],
-    keywords: ["rag", "retrieval", "embeddings", "semantic search"],
+    category: 'ai-rag',
+    subcategories: ['retrieval', 'semantic search'],
+    use_cases: ['build rag apps', 'search knowledge bases'],
+    keywords: ['rag', 'retrieval', 'embeddings', 'semantic search'],
   },
   {
     pattern: /\b(observability|tracing|monitoring|telemetry|langfuse|helicone|phoenix|opik)\b/,
-    category: "ai-observability",
-    subcategories: ["observability", "tracing"],
-    use_cases: ["monitor llm apps", "trace production issues"],
-    keywords: ["observability", "tracing", "monitoring", "telemetry"],
+    category: 'ai-observability',
+    subcategories: ['observability', 'tracing'],
+    use_cases: ['monitor llm apps', 'trace production issues'],
+    keywords: ['observability', 'tracing', 'monitoring', 'telemetry'],
   },
   {
     pattern: /\b(react|vue|svelte|next\.?js|frontend|ui|css|tailwind)\b/,
-    category: "frontend",
-    subcategories: ["frontend", "ui"],
-    use_cases: ["build user interfaces", "ship web apps"],
-    keywords: ["frontend", "ui", "web"],
+    category: 'frontend',
+    subcategories: ['frontend', 'ui'],
+    use_cases: ['build user interfaces', 'ship web apps'],
+    keywords: ['frontend', 'ui', 'web'],
   },
   {
     pattern: /\b(database|postgres|sqlite|mysql|redis|vector database|db)\b/,
-    category: "database",
-    subcategories: ["database", "storage"],
-    use_cases: ["store application data", "query data"],
-    keywords: ["database", "storage", "query"],
+    category: 'database',
+    subcategories: ['database', 'storage'],
+    use_cases: ['store application data', 'query data'],
+    keywords: ['database', 'storage', 'query'],
   },
 ] as const;
 
@@ -244,15 +234,15 @@ function inferCategory(text: string): string {
   for (const rule of TAXONOMY_RULES) {
     if (rule.pattern.test(text)) return rule.category;
   }
-  if (/\b(cli|terminal|command line)\b/.test(text)) return "cli-tooling";
-  if (/\b(security|auth|vulnerability|scan)\b/.test(text)) return "security";
-  if (/\b(test|testing|mock|assert)\b/.test(text)) return "testing";
-  if (/\b(framework|server|api)\b/.test(text)) return "app-framework";
-  return "library";
+  if (/\b(cli|terminal|command line)\b/.test(text)) return 'cli-tooling';
+  if (/\b(security|auth|vulnerability|scan)\b/.test(text)) return 'security';
+  if (/\b(test|testing|mock|assert)\b/.test(text)) return 'testing';
+  if (/\b(framework|server|api)\b/.test(text)) return 'app-framework';
+  return 'library';
 }
 
 function chatCompletionText(json: ChatCompletionResponse): string {
-  return json.choices?.[0]?.message?.content || "";
+  return json.choices?.[0]?.message?.content || '';
 }
 
 function chatCompletionModel(json: ChatCompletionResponse): string {
@@ -260,9 +250,7 @@ function chatCompletionModel(json: ChatCompletionResponse): string {
   const model = cleanText(json.x_gateway?.model || json.model, 160);
   const reasoning = cleanText(json.x_gateway?.reasoning_effort, 16);
   if (provider && model) {
-    return reasoning
-      ? `${provider}:${model}:reasoning=${reasoning}`
-      : `${provider}:${model}`;
+    return reasoning ? `${provider}:${model}:reasoning=${reasoning}` : `${provider}:${model}`;
   }
   return model || REPO_AI_METADATA_ROUTE;
 }
@@ -271,9 +259,7 @@ function normalizeReasoningEffort(
   value: string | undefined,
   fallback: (typeof REASONING_EFFORTS)[number]
 ): (typeof REASONING_EFFORTS)[number] {
-  return REASONING_EFFORTS.includes(
-    value as (typeof REASONING_EFFORTS)[number]
-  )
+  return REASONING_EFFORTS.includes(value as (typeof REASONING_EFFORTS)[number])
     ? (value as (typeof REASONING_EFFORTS)[number])
     : fallback;
 }
@@ -282,17 +268,12 @@ function normalizeMinReasoningLevel(
   value: string | undefined,
   fallback: (typeof MIN_REASONING_LEVELS)[number]
 ): (typeof MIN_REASONING_LEVELS)[number] {
-  return MIN_REASONING_LEVELS.includes(
-    value as (typeof MIN_REASONING_LEVELS)[number]
-  )
+  return MIN_REASONING_LEVELS.includes(value as (typeof MIN_REASONING_LEVELS)[number])
     ? (value as (typeof MIN_REASONING_LEVELS)[number])
     : fallback;
 }
 
-async function fetchWithRetry(
-  url: string,
-  init: RequestInit
-): Promise<Response> {
+async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
   let lastError: unknown;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const controller = new AbortController();
@@ -312,15 +293,13 @@ async function fetchWithRetry(
     }
   }
 
-  throw lastError instanceof Error
-    ? lastError
-    : new Error("AI metadata request failed");
+  throw lastError instanceof Error ? lastError : new Error('AI metadata request failed');
 }
 
 export function normalizeRepoAiMetadata(value: unknown): RepoAiMetadata {
-  const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const input = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   return {
-    summary: cleanText(input.summary, 180) || "Repository metadata summary unavailable.",
+    summary: cleanText(input.summary, 180) || 'Repository metadata summary unavailable.',
     category: normalizeCategory(input.category),
     subcategories: cleanList(input.subcategories, 5),
     use_cases: cleanList(input.use_cases, 5),
@@ -329,11 +308,9 @@ export function normalizeRepoAiMetadata(value: unknown): RepoAiMetadata {
 }
 
 function normalizeCategory(value: unknown): string {
-  if (typeof value !== "string") return "unknown";
+  if (typeof value !== 'string') return 'unknown';
   const normalized = value.trim().toLowerCase();
-  return CATEGORIES.includes(normalized as (typeof CATEGORIES)[number])
-    ? normalized
-    : "unknown";
+  return CATEGORIES.includes(normalized as (typeof CATEGORIES)[number]) ? normalized : 'unknown';
 }
 
 function cleanList(value: unknown, maxItems: number): string[] {
@@ -341,10 +318,10 @@ function cleanList(value: unknown, maxItems: number): string[] {
   const seen = new Set<string>();
   const out: string[] = [];
   for (const item of values) {
-    if (typeof item !== "string") continue;
+    if (typeof item !== 'string') continue;
     const cleaned = cleanText(item.toLowerCase(), 48)
-      .replace(/[^a-z0-9+#._ -]/g, "")
-      .replace(/\s+/g, " ")
+      .replace(/[^a-z0-9+#._ -]/g, '')
+      .replace(/\s+/g, ' ')
       .trim();
     if (!cleaned || seen.has(cleaned)) continue;
     seen.add(cleaned);
@@ -355,8 +332,8 @@ function cleanList(value: unknown, maxItems: number): string[] {
 }
 
 function cleanText(value: unknown, maxLength: number): string {
-  if (typeof value !== "string") return "";
-  return value.replace(/\s+/g, " ").trim().slice(0, maxLength);
+  if (typeof value !== 'string') return '';
+  return value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
 }
 
 function parseJsonObject(text: string): unknown {
@@ -364,8 +341,8 @@ function parseJsonObject(text: string): unknown {
   try {
     return JSON.parse(trimmed);
   } catch {
-    const start = trimmed.indexOf("{");
-    const end = trimmed.lastIndexOf("}");
+    const start = trimmed.indexOf('{');
+    const end = trimmed.lastIndexOf('}');
     if (start === -1 || end === -1 || end <= start) return {};
     try {
       return JSON.parse(trimmed.slice(start, end + 1));
@@ -379,7 +356,7 @@ function parseJsonStringArray(value: string): string[] {
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string")
+      ? parsed.filter((item): item is string => typeof item === 'string')
       : [];
   } catch {
     return [];

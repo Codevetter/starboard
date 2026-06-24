@@ -1,10 +1,10 @@
-import { ArrowUpRight, Flame, RotateCcw, Sparkles, TrendingUp, Zap } from "lucide-react";
+import { ArrowUpRight, Flame, RotateCcw, Sparkles, TrendingUp, Zap } from 'lucide-react';
 
-import { SignInButton } from "@/components/sign-in-button";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { SignInButton } from '@/components/sign-in-button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
-type InsightType = "release" | "momentum" | "reactivation";
+type InsightType = 'release' | 'momentum' | 'reactivation';
 
 type DigestInsight = {
   type: InsightType;
@@ -16,49 +16,46 @@ type DigestInsight = {
 
 const INSIGHTS: DigestInsight[] = [
   {
-    type: "release",
-    repo: "vercel/next.js",
-    headline: "v15.3 landed — 2 APIs you use changed",
+    type: 'release',
+    repo: 'vercel/next.js',
+    headline: 'v15.3 landed — 2 APIs you use changed',
     detail:
-      "turbopack is now default and the `headers()` API is now async. You last reviewed this repo 3 months ago.",
-    age: "2 days ago",
+      'turbopack is now default and the `headers()` API is now async. You last reviewed this repo 3 months ago.',
+    age: '2 days ago',
   },
   {
-    type: "momentum",
-    repo: "shadcn-ui/ui",
-    headline: "+4,200 stars this week — top 0.1% velocity",
+    type: 'momentum',
+    repo: 'shadcn-ui/ui',
+    headline: '+4,200 stars this week — top 0.1% velocity',
     detail:
-      "Momentum spiked after the chart component shipped. 3 repos in your Design Systems list depend on it.",
-    age: "ongoing",
+      'Momentum spiked after the chart component shipped. 3 repos in your Design Systems list depend on it.',
+    age: 'ongoing',
   },
   {
-    type: "reactivation",
-    repo: "facebook/lexical",
-    headline: "Dormant gem just resumed active development",
+    type: 'reactivation',
+    repo: 'facebook/lexical',
+    headline: 'Dormant gem just resumed active development',
     detail:
-      "You starred this 18 months ago. It had no releases for 9 months — then 4 shipped in the last 30 days.",
-    age: "30 days",
+      'You starred this 18 months ago. It had no releases for 9 months — then 4 shipped in the last 30 days.',
+    age: '30 days',
   },
 ];
 
-const insightMeta: Record<
-  InsightType,
-  { icon: React.ReactNode; label: string; color: string }
-> = {
+const insightMeta: Record<InsightType, { icon: React.ReactNode; label: string; color: string }> = {
   release: {
     icon: <Zap className="size-3.5" />,
-    label: "Release",
-    color: "text-blue-500 bg-blue-500/10",
+    label: 'Release',
+    color: 'text-blue-500 bg-blue-500/10',
   },
   momentum: {
     icon: <TrendingUp className="size-3.5" />,
-    label: "Momentum",
-    color: "text-emerald-500 bg-emerald-500/10",
+    label: 'Momentum',
+    color: 'text-emerald-500 bg-emerald-500/10',
   },
   reactivation: {
     icon: <RotateCcw className="size-3.5" />,
-    label: "Reactivated",
-    color: "text-amber-500 bg-amber-500/10",
+    label: 'Reactivated',
+    color: 'text-amber-500 bg-amber-500/10',
   },
 };
 
@@ -76,9 +73,7 @@ function InsightCard({ insight }: { insight: DigestInsight }) {
         <span className="text-xs text-muted-foreground">{insight.age}</span>
       </div>
       <p className="text-sm font-semibold text-foreground">
-        <span className="mr-1.5 font-mono text-xs text-muted-foreground">
-          {insight.repo}
-        </span>
+        <span className="mr-1.5 font-mono text-xs text-muted-foreground">{insight.repo}</span>
         {insight.headline}
       </p>
       <p className="mt-1.5 text-sm text-muted-foreground">{insight.detail}</p>
@@ -142,8 +137,8 @@ export function SampleWeeklyDigest() {
       {/* CTA */}
       <div className="flex flex-col items-center gap-3 border-t bg-muted/20 px-5 py-5 text-center">
         <p className="text-sm font-medium">
-          Get insights like these for your{" "}
-          <span className="text-primary">own</span> starred repos every week.
+          Get insights like these for your <span className="text-primary">own</span> starred repos
+          every week.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <SignInButton label="Connect GitHub — it's free" />

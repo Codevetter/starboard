@@ -1,4 +1,4 @@
-const GITHUB_AVATAR_HOST = "avatars.githubusercontent.com";
+const GITHUB_AVATAR_HOST = 'avatars.githubusercontent.com';
 
 function parseUrl(url: string): URL | null {
   try {
@@ -24,11 +24,14 @@ function getSizedAvatarUrl(url: string, size: number): string {
   const parsed = parseUrl(url);
   if (!parsed) return url;
 
-  parsed.searchParams.set("s", String(clampAvatarSize(size)));
+  parsed.searchParams.set('s', String(clampAvatarSize(size)));
   return parsed.toString();
 }
 
-export function getAvatarImageAttrs(url: string, size: number): {
+export function getAvatarImageAttrs(
+  url: string,
+  size: number
+): {
   src: string;
   srcSet?: string;
   sizes: string;

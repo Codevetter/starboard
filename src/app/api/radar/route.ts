@@ -1,14 +1,14 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { buildRadarReport, type RadarRepoInput } from "@/lib/release-radar";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { buildRadarReport, type RadarRepoInput } from '@/lib/release-radar';
 
 export async function GET() {
   const session = await auth();
 
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const result = await db.execute({
@@ -59,7 +59,7 @@ export async function GET() {
     language: row.language as string | null,
     stargazersCount: row.stargazers_count as number,
     archived: Boolean(row.archived),
-    topics: JSON.parse((row.topics as string) || "[]"),
+    topics: JSON.parse((row.topics as string) || '[]'),
     repoUpdatedAt: row.repo_updated_at as string | null,
     starredAt: row.starred_at as string | null,
     starsThirtyDaysAgo: row.stars_30d_ago as number | null,

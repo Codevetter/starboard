@@ -1,6 +1,6 @@
-import { Bookmark, GitCompare, Search, Sparkles, Star } from "lucide-react";
+import { Bookmark, GitCompare, Search, Sparkles, Star } from 'lucide-react';
 
-import { Badge } from "@/components/ui/badge";
+import { Badge } from '@/components/ui/badge';
 
 type PreviewRepo = {
   owner: string;
@@ -15,45 +15,43 @@ type PreviewRepo = {
   compared: boolean;
 };
 
-const PREVIEW_QUERY = "vector database for embeddings";
+const PREVIEW_QUERY = 'vector database for embeddings';
 
 const PREVIEW_REPOS: PreviewRepo[] = [
   {
-    owner: "qdrant",
-    name: "qdrant",
+    owner: 'qdrant',
+    name: 'qdrant',
     description:
-      "High-performance vector similarity search engine with extended filtering support.",
-    language: "Rust",
-    languageColor: "#dea584",
-    stars: "22.5k",
+      'High-performance vector similarity search engine with extended filtering support.',
+    language: 'Rust',
+    languageColor: '#dea584',
+    stars: '22.5k',
     similarity: 0.94,
-    topics: ["vector-search", "embeddings", "rust"],
+    topics: ['vector-search', 'embeddings', 'rust'],
     saved: true,
     compared: true,
   },
   {
-    owner: "chroma-core",
-    name: "chroma",
-    description:
-      "AI-native open-source embedding database for building LLM apps with memory.",
-    language: "Python",
-    languageColor: "#3572A5",
-    stars: "18.2k",
+    owner: 'chroma-core',
+    name: 'chroma',
+    description: 'AI-native open-source embedding database for building LLM apps with memory.',
+    language: 'Python',
+    languageColor: '#3572A5',
+    stars: '18.2k',
     similarity: 0.91,
-    topics: ["llm", "embeddings", "database"],
+    topics: ['llm', 'embeddings', 'database'],
     saved: false,
     compared: true,
   },
   {
-    owner: "pgvector",
-    name: "pgvector",
-    description:
-      "Open-source vector similarity search for Postgres — fast ANN with HNSW indexes.",
-    language: "C",
-    languageColor: "#555555",
-    stars: "12.4k",
+    owner: 'pgvector',
+    name: 'pgvector',
+    description: 'Open-source vector similarity search for Postgres — fast ANN with HNSW indexes.',
+    language: 'C',
+    languageColor: '#555555',
+    stars: '12.4k',
     similarity: 0.89,
-    topics: ["postgres", "ann", "embeddings"],
+    topics: ['postgres', 'ann', 'embeddings'],
     saved: true,
     compared: false,
   },
@@ -69,9 +67,7 @@ export function LandingHeroPreview() {
         <span className="size-2.5 rounded-full bg-rose-400/70" />
         <span className="size-2.5 rounded-full bg-amber-400/70" />
         <span className="size-2.5 rounded-full bg-emerald-400/70" />
-        <span className="ml-2 truncate font-mono">
-          starboard.app/discover
-        </span>
+        <span className="ml-2 truncate font-mono">starboard.app/discover</span>
       </div>
 
       <div className="flex items-center gap-2 rounded-lg border bg-background/80 px-3 py-2 text-sm">
@@ -92,20 +88,17 @@ export function LandingHeroPreview() {
 
       <ul className="mt-2 space-y-2">
         {PREVIEW_REPOS.map((repo) => (
-          <li
-            key={`${repo.owner}/${repo.name}`}
-            className="rounded-lg border bg-background/60 p-3"
-          >
+          <li key={`${repo.owner}/${repo.name}`} className="rounded-lg border bg-background/60 p-3">
             <div className="flex items-start gap-3">
               <div className="flex flex-col items-center gap-1 pt-0.5">
                 <span
                   className={`flex size-5 items-center justify-center rounded border text-[10px] ${
                     repo.compared
-                      ? "border-primary/40 bg-primary/10 text-primary"
-                      : "border-border text-muted-foreground/70"
+                      ? 'border-primary/40 bg-primary/10 text-primary'
+                      : 'border-border text-muted-foreground/70'
                   }`}
                 >
-                  {repo.compared ? "✓" : ""}
+                  {repo.compared ? '✓' : ''}
                 </span>
               </div>
               <div className="min-w-0 flex-1">
@@ -134,11 +127,7 @@ export function LandingHeroPreview() {
                     {repo.stars}
                   </span>
                   {repo.topics.slice(0, 2).map((topic) => (
-                    <Badge
-                      key={topic}
-                      variant="secondary"
-                      className="text-[10px] font-normal"
-                    >
+                    <Badge key={topic} variant="secondary" className="text-[10px] font-normal">
                       {topic}
                     </Badge>
                   ))}
@@ -146,9 +135,7 @@ export function LandingHeroPreview() {
               </div>
               <Bookmark
                 className={`size-4 shrink-0 ${
-                  repo.saved
-                    ? "fill-primary text-primary"
-                    : "text-muted-foreground/60"
+                  repo.saved ? 'fill-primary text-primary' : 'text-muted-foreground/60'
                 }`}
               />
             </div>
@@ -161,9 +148,7 @@ export function LandingHeroPreview() {
           <GitCompare className="size-3 text-primary" />
           Compare qdrant vs chroma →
         </span>
-        <span className="hidden sm:inline">
-          stars · activity · stack · license
-        </span>
+        <span className="hidden sm:inline">stars · activity · stack · license</span>
       </div>
     </div>
   );

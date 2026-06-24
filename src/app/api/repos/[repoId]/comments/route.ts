@@ -1,18 +1,18 @@
-import { type NextRequest,NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { isRateLimited } from "@/lib/rate-limit";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { isRateLimited } from '@/lib/rate-limit';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ repoId: string }> }
 ) {
   const { repoId: rawId } = await params;
   const repoId = parseInt(rawId, 10);
 
-  if (isNaN(repoId)) {
-    return NextResponse.json({ error: "Invalid repo ID" }, { status: 400 });
+  if (Number.isNaN(repoId)) {
+    return NextResponse.json({ error: 'Invalid repo ID' }, { status: 400 });
   }
 
   const session = await auth();
@@ -42,10 +42,7 @@ export async function GET(
     ]);
 
     // Build vote count map
-    const voteMap = new Map<
-      number,
-      { upvotes: number; downvotes: number }
-    >();
+    const voteMap = new Map<number, { upvotes: number; downvotes: number }>();
     for (const row of votesResult.rows) {
       voteMap.set(row.comment_id as number, {
         upvotes: (row.upvotes as number) ?? 0,
@@ -88,11 +85,8 @@ export async function GET(
 
     return NextResponse.json(comments);
   } catch (error) {
-    console.error("Failed to fetch comments:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch comments" },
-      { status: 500 }
-    );
+    console.error('Failed to fetch comments:', error);
+    return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
   }
 }
 
@@ -102,36 +96,30 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { repoId: rawId } = await params;
   const repoId = parseInt(rawId, 10);
 
-  if (isNaN(repoId)) {
-    return NextResponse.json({ error: "Invalid repo ID" }, { status: 400 });
+  if (Number.isNaN(repoId)) {
+    return NextResponse.json({ error: 'Invalid repo ID' }, { status: 400 });
   }
 
   const { body } = (await request.json()) as { body?: unknown };
 
-  if (typeof body !== "string" || body.trim().length === 0) {
-    return NextResponse.json(
-      { error: "Body is required" },
-      { status: 400 }
-    );
+  if (typeof body !== 'string' || body.trim().length === 0) {
+    return NextResponse.json({ error: 'Body is required' }, { status: 400 });
   }
 
   if (body.length > 2000) {
-    return NextResponse.json(
-      { error: "Body must be 2000 characters or less" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'Body must be 2000 characters or less' }, { status: 400 });
   }
 
   const userId = session.user.githubId;
 
   if (await isRateLimited(userId)) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   const trimmedBody = body.trim();
@@ -173,10 +161,7 @@ export async function POST(
       { status: 201 }
     );
   } catch (error) {
-    console.error("Failed to create comment:", error);
-    return NextResponse.json(
-      { error: "Failed to create comment" },
-      { status: 500 }
-    );
+    console.error('Failed to create comment:', error);
+    return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
   }
 }

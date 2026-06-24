@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Archive,
@@ -11,49 +11,49 @@ import {
   Star,
   ThumbsDown,
   ThumbsUp,
-} from "lucide-react";
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { useState } from "react";
+} from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { useState } from 'react';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useRepoDetail } from "@/hooks/use-repo-detail";
-import { useSimilarRepos } from "@/hooks/use-similar-repos";
-import { getAvatarImageAttrs } from "@/lib/avatar";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useRepoDetail } from '@/hooks/use-repo-detail';
+import { useSimilarRepos } from '@/hooks/use-similar-repos';
+import { getAvatarImageAttrs } from '@/lib/avatar';
 
 const languageColors: Record<string, string> = {
-  JavaScript: "#f1e05a",
-  TypeScript: "#3178c6",
-  Python: "#3572A5",
-  Rust: "#dea584",
-  Go: "#00ADD8",
-  Java: "#b07219",
-  "C++": "#f34b7d",
-  C: "#555555",
-  "C#": "#178600",
-  Ruby: "#701516",
-  PHP: "#4F5D95",
-  Swift: "#F05138",
-  Kotlin: "#A97BFF",
-  Dart: "#00B4AB",
-  Shell: "#89e051",
-  Elixir: "#6e4a7e",
-  Haskell: "#5e5086",
-  Zig: "#ec915c",
-  HTML: "#e34c26",
-  CSS: "#563d7c",
-  Vue: "#41b883",
-  Svelte: "#ff3e00",
+  JavaScript: '#f1e05a',
+  TypeScript: '#3178c6',
+  Python: '#3572A5',
+  Rust: '#dea584',
+  Go: '#00ADD8',
+  Java: '#b07219',
+  'C++': '#f34b7d',
+  C: '#555555',
+  'C#': '#178600',
+  Ruby: '#701516',
+  PHP: '#4F5D95',
+  Swift: '#F05138',
+  Kotlin: '#A97BFF',
+  Dart: '#00B4AB',
+  Shell: '#89e051',
+  Elixir: '#6e4a7e',
+  Haskell: '#5e5086',
+  Zig: '#ec915c',
+  HTML: '#e34c26',
+  CSS: '#563d7c',
+  Vue: '#41b883',
+  Svelte: '#ff3e00',
 };
 
 function timeAgo(dateStr: string): string {
   const now = Date.now();
   const date = new Date(dateStr).getTime();
   const seconds = Math.floor((now - date) / 1000);
-  if (seconds < 60) return "just now";
+  if (seconds < 60) return 'just now';
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);
@@ -73,10 +73,10 @@ function formatStarCount(count: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 }
 
@@ -127,16 +127,15 @@ function PageSkeleton() {
 export default function RepoDetailPage() {
   const params = useParams();
   const slugParts = params.slug as string[];
-  const repoSlug =
-    slugParts?.length === 2 ? `${slugParts[0]}/${slugParts[1]}` : "";
+  const repoSlug = slugParts?.length === 2 ? `${slugParts[0]}/${slugParts[1]}` : '';
   const { status } = useSession();
-  const isAuthenticated = status === "authenticated";
+  const isAuthenticated = status === 'authenticated';
 
   const { repo, commentCount, comments, isLoading, error, addComment, voteComment } =
     useRepoDetail(repoSlug);
   const { similar, isLoading: similarLoading } = useSimilarRepos(repo?.id);
 
-  const [commentBody, setCommentBody] = useState("");
+  const [commentBody, setCommentBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [votingId, setVotingId] = useState<number | null>(null);
 
@@ -146,7 +145,7 @@ export default function RepoDetailPage() {
     setSubmitting(true);
     try {
       await addComment(commentBody.trim());
-      setCommentBody("");
+      setCommentBody('');
     } finally {
       setSubmitting(false);
     }
@@ -165,9 +164,7 @@ export default function RepoDetailPage() {
   if (!repoSlug) {
     return (
       <div className="mx-auto max-w-3xl p-4 md:p-6">
-        <p className="text-muted-foreground">
-          Invalid repository path. Use /explore/owner/repo
-        </p>
+        <p className="text-muted-foreground">Invalid repository path. Use /explore/owner/repo</p>
       </div>
     );
   }
@@ -186,16 +183,14 @@ export default function RepoDetailPage() {
         </Link>
         <div className="rounded-xl border bg-card p-8 text-center">
           <p className="text-muted-foreground">
-            {error ? "Failed to load repository." : "Repository not found."}
+            {error ? 'Failed to load repository.' : 'Repository not found.'}
           </p>
         </div>
       </div>
     );
   }
 
-  const langColor = repo.language
-    ? (languageColors[repo.language] ?? "#8b8b8b")
-    : null;
+  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
   const ownerAvatar = getAvatarImageAttrs(repo.owner_avatar, 40);
 
   return (
@@ -228,20 +223,13 @@ export default function RepoDetailPage() {
               fetchPriority="high"
             />
             <div className="min-w-0">
-              <p className="truncate text-xs text-muted-foreground">
-                {repo.owner_login}
-              </p>
+              <p className="truncate text-xs text-muted-foreground">{repo.owner_login}</p>
               <p className="truncate text-base font-semibold">{repo.name}</p>
             </div>
           </div>
 
           {/* GitHub CTA */}
-          <a
-            href={repo.html_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="shrink-0"
-          >
+          <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
             <Button variant="outline" size="sm" className="gap-1.5">
               <ExternalLink className="size-3.5" />
               View on GitHub
@@ -251,9 +239,7 @@ export default function RepoDetailPage() {
 
         {/* Description */}
         {repo.description && (
-          <p className="mt-4 leading-relaxed text-muted-foreground">
-            {repo.description}
-          </p>
+          <p className="mt-4 leading-relaxed text-muted-foreground">{repo.description}</p>
         )}
 
         {/* Topics */}
@@ -287,7 +273,9 @@ export default function RepoDetailPage() {
           )}
           <div className="flex items-center gap-1.5">
             <MessageSquare className="size-3.5" />
-            <span>{commentCount} {commentCount === 1 ? "comment" : "comments"}</span>
+            <span>
+              {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
+            </span>
           </div>
           {repo.archived && (
             <div className="flex items-center gap-1.5">
@@ -326,9 +314,7 @@ export default function RepoDetailPage() {
           ) : (
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {similar.map((s) => {
-                const langColor = s.language
-                  ? (languageColors[s.language] ?? "#8b8b8b")
-                  : null;
+                const langColor = s.language ? (languageColors[s.language] ?? '#8b8b8b') : null;
                 const avatar = getAvatarImageAttrs(s.owner.avatar_url, 24);
                 return (
                   <Link
@@ -351,9 +337,7 @@ export default function RepoDetailPage() {
                       />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium">
-                          <span className="text-muted-foreground">
-                            {s.owner.login}/
-                          </span>
+                          <span className="text-muted-foreground">{s.owner.login}/</span>
                           {s.name}
                         </p>
                         {s.description && (
@@ -394,9 +378,7 @@ export default function RepoDetailPage() {
         <h2 className="mb-3 text-sm font-semibold text-foreground">
           Discussion
           {commentCount > 0 && (
-            <span className="ml-2 font-normal text-muted-foreground">
-              ({commentCount})
-            </span>
+            <span className="ml-2 font-normal text-muted-foreground">({commentCount})</span>
           )}
         </h2>
 
@@ -413,23 +395,20 @@ export default function RepoDetailPage() {
                 className="w-full resize-none rounded-xl border bg-card px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">
-                  {commentBody.length}/2000
-                </span>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!commentBody.trim() || submitting}
-                >
-                  {submitting ? "Posting..." : "Post comment"}
+                <span className="text-xs text-muted-foreground">{commentBody.length}/2000</span>
+                <Button type="submit" size="sm" disabled={!commentBody.trim() || submitting}>
+                  {submitting ? 'Posting...' : 'Post comment'}
                 </Button>
               </div>
             </form>
           ) : (
             <div className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">
-              <Link href="/" className="font-medium text-foreground underline-offset-2 hover:underline">
+              <Link
+                href="/"
+                className="font-medium text-foreground underline-offset-2 hover:underline"
+              >
                 Sign in
-              </Link>{" "}
+              </Link>{' '}
               to join the discussion.
             </div>
           )}
@@ -451,10 +430,7 @@ export default function RepoDetailPage() {
                 : null;
               const isVoting = votingId === comment.id;
               return (
-                <div
-                  key={comment.id}
-                  className="rounded-xl border bg-card p-4"
-                >
+                <div key={comment.id} className="rounded-xl border bg-card p-4">
                   <div className="flex items-center gap-2">
                     {comment.user.avatar_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -474,16 +450,12 @@ export default function RepoDetailPage() {
                         {comment.user.username[0]?.toUpperCase()}
                       </div>
                     )}
-                    <span className="text-sm font-medium">
-                      {comment.user.username}
-                    </span>
+                    <span className="text-sm font-medium">{comment.user.username}</span>
                     <span className="text-xs text-muted-foreground">
                       {timeAgo(comment.created_at)}
                     </span>
                   </div>
-                  <p className="mt-2.5 text-sm leading-relaxed">
-                    {comment.body}
-                  </p>
+                  <p className="mt-2.5 text-sm leading-relaxed">{comment.body}</p>
                   {/* Vote buttons */}
                   <div className="mt-3 flex items-center gap-1 border-t pt-3">
                     <button
@@ -491,8 +463,8 @@ export default function RepoDetailPage() {
                       disabled={!isAuthenticated || isVoting}
                       className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:cursor-default ${
                         comment.userVote === 1
-                          ? "bg-green-500/10 text-green-600 dark:text-green-400"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                          ? 'bg-green-500/10 text-green-600 dark:text-green-400'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50'
                       }`}
                     >
                       <ThumbsUp className="size-3.5" />
@@ -503,8 +475,8 @@ export default function RepoDetailPage() {
                       disabled={!isAuthenticated || isVoting}
                       className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:cursor-default ${
                         comment.userVote === -1
-                          ? "bg-red-500/10 text-red-600 dark:text-red-400"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                          ? 'bg-red-500/10 text-red-600 dark:text-red-400'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50'
                       }`}
                     >
                       <ThumbsDown className="size-3.5" />

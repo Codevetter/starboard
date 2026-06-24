@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   AlertTriangle,
@@ -18,32 +18,32 @@ import {
   Search,
   Server,
   TestTube2,
-} from "lucide-react";
-import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { parseAsString, parseAsStringLiteral, useQueryState } from "nuqs";
-import { Suspense, useEffect, useMemo, useState } from "react";
-import useSWR from "swr";
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import { parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
+import { Suspense, useEffect, useMemo, useState } from 'react';
+import useSWR from 'swr';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import type { StackBuilderReport, StackCandidate, StackGoal, StackRoleId } from "@/lib/stack-builder";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import type {
+  StackBuilderReport,
+  StackCandidate,
+  StackGoal,
+  StackRoleId,
+} from '@/lib/stack-builder';
 
-const goals = ["web-app", "ai-app", "api-service", "mobile-app"] as const;
+const goals = ['web-app', 'ai-app', 'api-service', 'mobile-app'] as const;
 const goalLabels: Record<StackGoal, string> = {
-  "web-app": "Web app",
-  "ai-app": "AI app",
-  "api-service": "API service",
-  "mobile-app": "Mobile app",
+  'web-app': 'Web app',
+  'ai-app': 'AI app',
+  'api-service': 'API service',
+  'mobile-app': 'Mobile app',
 };
 
 const fetcher = async <T,>(url: string): Promise<T> => {
@@ -53,17 +53,17 @@ const fetcher = async <T,>(url: string): Promise<T> => {
 };
 
 function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: "compact" }).format(value);
+  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
 }
 
 function roleIcon(role: StackRoleId) {
-  if (role === "framework") return <Server className="size-4" />;
-  if (role === "ui") return <Code2 className="size-4" />;
-  if (role === "database") return <Database className="size-4" />;
-  if (role === "auth") return <KeyRound className="size-4" />;
-  if (role === "deployment") return <Cloud className="size-4" />;
-  if (role === "testing") return <TestTube2 className="size-4" />;
-  if (role === "observability") return <Eye className="size-4" />;
+  if (role === 'framework') return <Server className="size-4" />;
+  if (role === 'ui') return <Code2 className="size-4" />;
+  if (role === 'database') return <Database className="size-4" />;
+  if (role === 'auth') return <KeyRound className="size-4" />;
+  if (role === 'deployment') return <Cloud className="size-4" />;
+  if (role === 'testing') return <TestTube2 className="size-4" />;
+  if (role === 'observability') return <Eye className="size-4" />;
   return <Brain className="size-4" />;
 }
 
@@ -75,7 +75,7 @@ function CandidateBlock({
   compact?: boolean;
 }) {
   return (
-    <div className={compact ? "rounded-md border p-2" : "rounded-md border bg-background/60 p-3"}>
+    <div className={compact ? 'rounded-md border p-2' : 'rounded-md border bg-background/60 p-3'}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <Link
@@ -90,7 +90,12 @@ function CandidateBlock({
             </p>
           )}
         </div>
-        <Button asChild variant="ghost" size="icon-sm" aria-label={`Open ${candidate.fullName} on GitHub`}>
+        <Button
+          asChild
+          variant="ghost"
+          size="icon-sm"
+          aria-label={`Open ${candidate.fullName} on GitHub`}
+        >
           <Link href={candidate.htmlUrl} target="_blank" rel="noreferrer">
             <ArrowUpRight className="size-4" />
           </Link>
@@ -132,7 +137,7 @@ function CandidateBlock({
   );
 }
 
-function RoleCard({ role }: { role: StackBuilderReport["roles"][number] }) {
+function RoleCard({ role }: { role: StackBuilderReport['roles'][number] }) {
   return (
     <Card className="rounded-lg py-4 shadow-none">
       <CardHeader className="gap-3 px-4">
@@ -143,12 +148,10 @@ function RoleCard({ role }: { role: StackBuilderReport["roles"][number] }) {
               {role.label}
             </Badge>
             <CardTitle className="mt-3 text-base">
-              {role.selected ? role.selected.name : "No strong match yet"}
+              {role.selected ? role.selected.name : 'No strong match yet'}
             </CardTitle>
           </div>
-          {role.selected && (
-            <CheckCircle2 className="size-5 text-emerald-500" />
-          )}
+          {role.selected && <CheckCircle2 className="size-5 text-emerald-500" />}
         </div>
       </CardHeader>
       <CardContent className="space-y-3 px-4">
@@ -162,7 +165,7 @@ function RoleCard({ role }: { role: StackBuilderReport["roles"][number] }) {
         )}
         {role.conflicts.length > 0 && (
           <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300">
-            {role.conflicts.join(" ")}
+            {role.conflicts.join(' ')}
           </div>
         )}
         {role.alternatives.length > 0 && (
@@ -182,19 +185,19 @@ function RoleCard({ role }: { role: StackBuilderReport["roles"][number] }) {
 
 function StackBuilderContent() {
   const searchParams = useSearchParams();
-  const [goal, setGoal] = useQueryState("goal", parseAsStringLiteral(goals).withDefault("web-app"));
-  const [searchQuery, setSearchQuery] = useQueryState("q", parseAsString.withDefault(""));
+  const [goal, setGoal] = useQueryState('goal', parseAsStringLiteral(goals).withDefault('web-app'));
+  const [searchQuery, setSearchQuery] = useQueryState('q', parseAsString.withDefault(''));
   const [saving, setSaving] = useState(false);
   const [savedListId, setSavedListId] = useState<number | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const language = searchParams.get("language")?.trim() ?? "";
-  const listId = searchParams.get("list_id")?.trim() ?? "";
+  const language = searchParams.get('language')?.trim() ?? '';
+  const listId = searchParams.get('list_id')?.trim() ?? '';
   const apiUrl = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("goal", goal);
-    if (searchQuery.trim()) params.set("q", searchQuery.trim());
-    if (language) params.set("language", language);
-    if (listId) params.set("list_id", listId);
+    params.set('goal', goal);
+    if (searchQuery.trim()) params.set('q', searchQuery.trim());
+    if (language) params.set('language', language);
+    if (listId) params.set('list_id', listId);
     return `/api/stack-builder?${params.toString()}`;
   }, [goal, language, listId, searchQuery]);
   const { data, error, isLoading } = useSWR<StackBuilderReport>(apiUrl, fetcher, {
@@ -213,7 +216,7 @@ function StackBuilderContent() {
     goal,
     goalLabel: goalLabels[goal],
     roles: [],
-    markdown: "",
+    markdown: '',
     selectedRepoIds: [],
     summary: { totalRepos: 0, coveredRoles: 0, warningCount: 0, topLanguages: [] },
   };
@@ -224,9 +227,9 @@ function StackBuilderContent() {
   ].filter(Boolean);
 
   const exportMarkdown = () => {
-    const blob = new Blob([report.markdown], { type: "text/markdown" });
+    const blob = new Blob([report.markdown], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
     link.download = `starboard-${report.goal}-stack.md`;
     link.click();
@@ -239,13 +242,13 @@ function StackBuilderContent() {
     setSavedListId(null);
     setSaveError(null);
     try {
-      const listResponse = await fetch("/api/lists", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const listResponse = await fetch('/api/lists', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: `Stack: ${report.goalLabel}`,
-          color: "#0ea5e9",
-          icon: "boxes",
+          color: '#0ea5e9',
+          icon: 'boxes',
         }),
       });
       if (!listResponse.ok) throw new Error(`${listResponse.status}`);
@@ -253,8 +256,8 @@ function StackBuilderContent() {
       const responses = await Promise.all(
         report.selectedRepoIds.map((repoId) =>
           fetch(`/api/repos/${repoId}/list`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ listId: list.id, assigned: true }),
           })
         )
@@ -266,9 +269,7 @@ function StackBuilderContent() {
       setSavedListId(list.id);
     } catch (error) {
       setSaveError(
-        error instanceof Error
-          ? error.message
-          : "Failed to save the selected stack repositories."
+        error instanceof Error ? error.message : 'Failed to save the selected stack repositories.'
       );
     } finally {
       setSaving(false);
@@ -285,7 +286,9 @@ function StackBuilderContent() {
             </div>
             <div>
               <h1 className="text-lg font-semibold">Stack Builder</h1>
-              <p className="text-sm text-muted-foreground">Compose a pragmatic app stack from your starred repositories.</p>
+              <p className="text-sm text-muted-foreground">
+                Compose a pragmatic app stack from your starred repositories.
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -433,12 +436,12 @@ export default function StackBuilderPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/");
+    if (status === 'unauthenticated') {
+      router.replace('/');
     }
   }, [router, status]);
 
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
@@ -446,7 +449,7 @@ export default function StackBuilderPage() {
     );
   }
 
-  if (status === "unauthenticated") {
+  if (status === 'unauthenticated') {
     return null;
   }
 

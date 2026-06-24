@@ -1,8 +1,8 @@
-import type { FleetProjectRecommendationReport } from "@/lib/fleet-projects";
-import type { MaintainerDigest } from "@/lib/maintainer-digest";
-import type { RadarReport } from "@/lib/release-radar";
+import type { FleetProjectRecommendationReport } from '@/lib/fleet-projects';
+import type { MaintainerDigest } from '@/lib/maintainer-digest';
+import type { RadarReport } from '@/lib/release-radar';
 
-export type InsightReportType = "radar" | "project-recommendations" | "cleanup";
+export type InsightReportType = 'radar' | 'project-recommendations' | 'cleanup';
 
 export interface InsightReportSnapshot {
   type: InsightReportType;
@@ -43,9 +43,9 @@ export function slugifyReportTitle(title: string): string {
   return (
     title
       .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "")
-      .slice(0, 70) || "report"
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 70) || 'report'
   );
 }
 
@@ -68,8 +68,8 @@ export function serializeRadarReport(
 ): InsightReportSnapshot {
   const redactPrivate = options.redactPrivate ?? true;
   return {
-    type: "radar",
-    title: "Release radar summary",
+    type: 'radar',
+    title: 'Release radar summary',
     snapshotAt: new Date().toISOString(),
     summary: {
       total: report.summary.total,
@@ -80,13 +80,13 @@ export function serializeRadarReport(
     },
     sections: [
       {
-        id: "high-signal",
-        title: "High-signal repositories",
-        description: "Top radar items ranked by signal strength.",
+        id: 'high-signal',
+        title: 'High-signal repositories',
+        description: 'Top radar items ranked by signal strength.',
         items: report.repos.slice(0, 12).map((repo) => ({
           id: `radar-${repo.id}`,
           title: repo.fullName,
-          detail: repo.description ?? "No description available.",
+          detail: repo.description ?? 'No description available.',
           reasons: repo.signals.slice(0, 3).map((signal) => signal.label),
           sourceUrl: repo.htmlUrl,
           metadata: {
@@ -106,7 +106,7 @@ export function serializeProjectRecommendations(
 ): InsightReportSnapshot {
   const redactPrivate = options.redactPrivate ?? true;
   return {
-    type: "project-recommendations",
+    type: 'project-recommendations',
     title: `${report.project.name} recommendations`,
     snapshotAt: new Date().toISOString(),
     summary: {
@@ -145,12 +145,12 @@ export function serializeCleanupDigest(
 ): InsightReportSnapshot {
   const redactPrivate = options.redactPrivate ?? true;
   const cleanupGroups = digest.groups.filter((group) =>
-    ["at_risk", "suggested_actions"].includes(group.id)
+    ['at_risk', 'suggested_actions'].includes(group.id)
   );
 
   return {
-    type: "cleanup",
-    title: "Stale repository cleanup",
+    type: 'cleanup',
+    title: 'Stale repository cleanup',
     snapshotAt: digest.generatedAt,
     summary: {
       totalItems: digest.summary.totalItems,

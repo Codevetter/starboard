@@ -1,18 +1,18 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 
-import { recommendationEvalFixtures } from "@/__tests__/fixtures/recommendation-eval-fixture";
+import { recommendationEvalFixtures } from '@/__tests__/fixtures/recommendation-eval-fixture';
 import {
   buildHybridRecommendationReport,
   compareRecommendationScorers,
   evaluateRecommendationFixture,
-} from "@/lib/recommendation-eval";
+} from '@/lib/recommendation-eval';
 
-const now = new Date("2026-06-06T00:00:00Z");
+const now = new Date('2026-06-06T00:00:00Z');
 
-describe("recommendation eval harness", () => {
+describe('recommendation eval harness', () => {
   for (const fixture of recommendationEvalFixtures) {
     it(`scores ${fixture.id} with the deterministic scorer`, () => {
-      const result = evaluateRecommendationFixture(fixture, "deterministic", now);
+      const result = evaluateRecommendationFixture(fixture, 'deterministic', now);
 
       expect(result.hitRate).toBe(1);
       for (const hit of result.hits) {
@@ -27,7 +27,7 @@ describe("recommendation eval harness", () => {
     });
 
     it(`scores ${fixture.id} with the hybrid RRF scorer`, () => {
-      const result = evaluateRecommendationFixture(fixture, "hybrid-rrf", now);
+      const result = evaluateRecommendationFixture(fixture, 'hybrid-rrf', now);
 
       expect(result.hitRate).toBe(1);
       for (const hit of result.hits) {
@@ -36,7 +36,7 @@ describe("recommendation eval harness", () => {
     });
   }
 
-  it("reports top-k hits and suppression reasons for each fixture", () => {
+  it('reports top-k hits and suppression reasons for each fixture', () => {
     for (const fixture of recommendationEvalFixtures) {
       const comparison = compareRecommendationScorers(fixture, now);
       expect(comparison.deterministic.fixtureId).toBe(fixture.id);
@@ -46,7 +46,7 @@ describe("recommendation eval harness", () => {
     }
   });
 
-  it("keeps hybrid ordering aligned with deterministic leaders on the CodeVetter fixture", () => {
+  it('keeps hybrid ordering aligned with deterministic leaders on the CodeVetter fixture', () => {
     const fixture = recommendationEvalFixtures[0]!;
     const hybrid = buildHybridRecommendationReport(fixture.project, fixture.candidates, {
       now,
@@ -54,8 +54,8 @@ describe("recommendation eval harness", () => {
       limit: 6,
     });
 
-    expect(hybrid.recommendations[0]?.fullName).toBe("Byron/gitoxide");
-    expect(hybrid.recommendations.some((item) => item.fullName === "promptfoo/promptfoo")).toBe(
+    expect(hybrid.recommendations[0]?.fullName).toBe('Byron/gitoxide');
+    expect(hybrid.recommendations.some((item) => item.fullName === 'promptfoo/promptfoo')).toBe(
       true
     );
   });

@@ -1,4 +1,4 @@
-export const dynamic = "force-static";
+export const dynamic = 'force-static';
 
 const BODY = `Contact: https://github.com/sarthakagrawal927/starboard/security/advisories/new
 Contact: mailto:sarthakagrawal927@gmail.com
@@ -11,8 +11,8 @@ export function GET() {
   return new Response(BODY, {
     status: 200,
     headers: {
-      "Content-Type": "text/plain; charset=utf-8",
-      "Cache-Control": "public, max-age=86400",
+      'Content-Type': 'text/plain; charset=utf-8',
+      'Cache-Control': 'public, max-age=86400',
     },
   });
 }

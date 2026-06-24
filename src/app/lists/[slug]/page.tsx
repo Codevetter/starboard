@@ -1,9 +1,9 @@
-import type { Metadata } from "next";
-import Link from "next/link";
-import { notFound } from "next/navigation";
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
 
-import { db } from "@/db";
-import { getAvatarImageAttrs } from "@/lib/avatar";
+import { db } from '@/db';
+import { getAvatarImageAttrs } from '@/lib/avatar';
 
 interface Repo {
   id: number;
@@ -71,7 +71,7 @@ async function getPublicList(slug: string) {
 
 function formatStars(count: number): string {
   if (count >= 1000) {
-    return `${(count / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+    return `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`;
   }
   return String(count);
 }
@@ -85,7 +85,7 @@ export async function generateMetadata({
   const data = await getPublicList(slug);
 
   if (!data) {
-    return { title: "List not found" };
+    return { title: 'List not found' };
   }
 
   return {
@@ -96,11 +96,7 @@ export async function generateMetadata({
   };
 }
 
-export default async function PublicListPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function PublicListPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const data = await getPublicList(slug);
 
@@ -122,13 +118,9 @@ export default async function PublicListPage({
               style={{ backgroundColor: list.color }}
               aria-hidden="true"
             />
-            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              {list.name}
-            </h1>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{list.name}</h1>
           </div>
-          {list.description && (
-            <p className="mt-2 text-muted-foreground">{list.description}</p>
-          )}
+          {list.description && <p className="mt-2 text-muted-foreground">{list.description}</p>}
 
           {/* Owner bar */}
           <div className="mt-4 flex items-center gap-2">
@@ -146,7 +138,7 @@ export default async function PublicListPage({
               fetchPriority="high"
             />
             <span className="text-sm text-muted-foreground">
-              Curated by{" "}
+              Curated by{' '}
               <a
                 href={`https://github.com/${owner.username}`}
                 target="_blank"
@@ -157,7 +149,7 @@ export default async function PublicListPage({
               </a>
             </span>
             <span className="text-sm text-muted-foreground">
-              &middot; {repos.length} {repos.length === 1 ? "repo" : "repos"}
+              &middot; {repos.length} {repos.length === 1 ? 'repo' : 'repos'}
             </span>
           </div>
         </div>
@@ -225,9 +217,7 @@ export default async function PublicListPage({
                   {repo.language && (
                     <div className="mt-auto flex items-center gap-1.5 pt-3">
                       <span className="inline-block size-2.5 rounded-full bg-current opacity-60" />
-                      <span className="text-xs text-muted-foreground">
-                        {repo.language}
-                      </span>
+                      <span className="text-xs text-muted-foreground">{repo.language}</span>
                     </div>
                   )}
                 </a>
@@ -241,11 +231,11 @@ export default async function PublicListPage({
       <footer
         className="z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80"
         style={{
-          position: "fixed",
+          position: 'fixed',
           left: 0,
           right: 0,
           bottom: 0,
-          paddingBottom: "env(safe-area-inset-bottom)",
+          paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
         <div className="mx-auto max-w-5xl px-4 py-4 text-center sm:px-6">

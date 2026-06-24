@@ -1,14 +1,14 @@
-export type StackGoal = "web-app" | "ai-app" | "api-service" | "mobile-app";
+export type StackGoal = 'web-app' | 'ai-app' | 'api-service' | 'mobile-app';
 
 export type StackRoleId =
-  | "framework"
-  | "ui"
-  | "database"
-  | "auth"
-  | "deployment"
-  | "testing"
-  | "observability"
-  | "ai";
+  | 'framework'
+  | 'ui'
+  | 'database'
+  | 'auth'
+  | 'deployment'
+  | 'testing'
+  | 'observability'
+  | 'ai';
 
 export interface StackRepoInput {
   id: number;
@@ -70,98 +70,220 @@ interface GoalDefinition {
 
 const roleDefinitions: RoleDefinition[] = [
   {
-    id: "framework",
-    label: "Framework",
-    summary: "Primary application framework or runtime.",
-    keywords: ["framework", "next", "react", "vue", "svelte", "astro", "hono", "express", "fastify", "nestjs", "django", "rails", "expo", "flutter"],
-    languages: ["TypeScript", "JavaScript", "Python", "Ruby", "Dart", "Swift", "Kotlin"],
+    id: 'framework',
+    label: 'Framework',
+    summary: 'Primary application framework or runtime.',
+    keywords: [
+      'framework',
+      'next',
+      'react',
+      'vue',
+      'svelte',
+      'astro',
+      'hono',
+      'express',
+      'fastify',
+      'nestjs',
+      'django',
+      'rails',
+      'expo',
+      'flutter',
+    ],
+    languages: ['TypeScript', 'JavaScript', 'Python', 'Ruby', 'Dart', 'Swift', 'Kotlin'],
   },
   {
-    id: "ui",
-    label: "UI",
-    summary: "Components, styling, icons, and design-system pieces.",
-    keywords: ["ui", "component", "components", "tailwind", "css", "design-system", "radix", "shadcn", "storybook", "icons"],
-    languages: ["TypeScript", "JavaScript", "Vue", "Svelte", "CSS", "HTML"],
+    id: 'ui',
+    label: 'UI',
+    summary: 'Components, styling, icons, and design-system pieces.',
+    keywords: [
+      'ui',
+      'component',
+      'components',
+      'tailwind',
+      'css',
+      'design-system',
+      'radix',
+      'shadcn',
+      'storybook',
+      'icons',
+    ],
+    languages: ['TypeScript', 'JavaScript', 'Vue', 'Svelte', 'CSS', 'HTML'],
   },
   {
-    id: "database",
-    label: "Database",
-    summary: "Database, ORM, migrations, search, cache, or vector storage.",
-    keywords: ["database", "db", "sql", "postgres", "sqlite", "mysql", "redis", "turso", "drizzle", "prisma", "orm", "migration", "search", "vector"],
-    languages: ["SQL", "PLpgSQL", "TypeScript", "Go", "Rust"],
+    id: 'database',
+    label: 'Database',
+    summary: 'Database, ORM, migrations, search, cache, or vector storage.',
+    keywords: [
+      'database',
+      'db',
+      'sql',
+      'postgres',
+      'sqlite',
+      'mysql',
+      'redis',
+      'turso',
+      'drizzle',
+      'prisma',
+      'orm',
+      'migration',
+      'search',
+      'vector',
+    ],
+    languages: ['SQL', 'PLpgSQL', 'TypeScript', 'Go', 'Rust'],
   },
   {
-    id: "auth",
-    label: "Auth",
-    summary: "Authentication, authorization, OAuth, sessions, and identity.",
-    keywords: ["auth", "authentication", "authorization", "oauth", "openid", "session", "jwt", "nextauth", "better-auth", "clerk", "supabase"],
-    languages: ["TypeScript", "JavaScript", "Go", "Python", "Rust"],
+    id: 'auth',
+    label: 'Auth',
+    summary: 'Authentication, authorization, OAuth, sessions, and identity.',
+    keywords: [
+      'auth',
+      'authentication',
+      'authorization',
+      'oauth',
+      'openid',
+      'session',
+      'jwt',
+      'nextauth',
+      'better-auth',
+      'clerk',
+      'supabase',
+    ],
+    languages: ['TypeScript', 'JavaScript', 'Go', 'Python', 'Rust'],
   },
   {
-    id: "deployment",
-    label: "Deployment",
-    summary: "Hosting, workers, containers, infrastructure, and release automation.",
-    keywords: ["deploy", "deployment", "cloud", "docker", "kubernetes", "terraform", "worker", "workers", "vercel", "cloudflare", "ci", "github-actions"],
-    languages: ["Go", "TypeScript", "Shell", "HCL", "Dockerfile", "Rust"],
+    id: 'deployment',
+    label: 'Deployment',
+    summary: 'Hosting, workers, containers, infrastructure, and release automation.',
+    keywords: [
+      'deploy',
+      'deployment',
+      'cloud',
+      'docker',
+      'kubernetes',
+      'terraform',
+      'worker',
+      'workers',
+      'vercel',
+      'cloudflare',
+      'ci',
+      'github-actions',
+    ],
+    languages: ['Go', 'TypeScript', 'Shell', 'HCL', 'Dockerfile', 'Rust'],
   },
   {
-    id: "testing",
-    label: "Testing",
-    summary: "Unit, integration, browser, and quality automation.",
-    keywords: ["test", "testing", "vitest", "jest", "playwright", "cypress", "mock", "e2e", "qa", "coverage"],
-    languages: ["TypeScript", "JavaScript", "Python"],
+    id: 'testing',
+    label: 'Testing',
+    summary: 'Unit, integration, browser, and quality automation.',
+    keywords: [
+      'test',
+      'testing',
+      'vitest',
+      'jest',
+      'playwright',
+      'cypress',
+      'mock',
+      'e2e',
+      'qa',
+      'coverage',
+    ],
+    languages: ['TypeScript', 'JavaScript', 'Python'],
   },
   {
-    id: "observability",
-    label: "Observability",
-    summary: "Logs, metrics, tracing, analytics, monitoring, and error reporting.",
-    keywords: ["observability", "monitoring", "analytics", "logs", "logging", "metrics", "tracing", "opentelemetry", "sentry", "prometheus"],
-    languages: ["TypeScript", "JavaScript", "Go", "Python", "Rust"],
+    id: 'observability',
+    label: 'Observability',
+    summary: 'Logs, metrics, tracing, analytics, monitoring, and error reporting.',
+    keywords: [
+      'observability',
+      'monitoring',
+      'analytics',
+      'logs',
+      'logging',
+      'metrics',
+      'tracing',
+      'opentelemetry',
+      'sentry',
+      'prometheus',
+    ],
+    languages: ['TypeScript', 'JavaScript', 'Go', 'Python', 'Rust'],
   },
   {
-    id: "ai",
-    label: "AI",
-    summary: "LLM tooling, embeddings, agents, evals, and model integration.",
-    keywords: ["ai", "llm", "openai", "anthropic", "agent", "agents", "embedding", "vector", "rag", "eval", "inference", "model"],
-    languages: ["Python", "TypeScript", "Jupyter Notebook", "Rust"],
+    id: 'ai',
+    label: 'AI',
+    summary: 'LLM tooling, embeddings, agents, evals, and model integration.',
+    keywords: [
+      'ai',
+      'llm',
+      'openai',
+      'anthropic',
+      'agent',
+      'agents',
+      'embedding',
+      'vector',
+      'rag',
+      'eval',
+      'inference',
+      'model',
+    ],
+    languages: ['Python', 'TypeScript', 'Jupyter Notebook', 'Rust'],
   },
 ];
 
 const goalDefinitions: Record<StackGoal, GoalDefinition> = {
-  "web-app": {
-    label: "Web app",
-    preferredRoles: ["framework", "ui", "database", "auth", "deployment", "testing", "observability"],
-    keywords: ["web", "frontend", "fullstack", "app", "react", "next"],
+  'web-app': {
+    label: 'Web app',
+    preferredRoles: [
+      'framework',
+      'ui',
+      'database',
+      'auth',
+      'deployment',
+      'testing',
+      'observability',
+    ],
+    keywords: ['web', 'frontend', 'fullstack', 'app', 'react', 'next'],
   },
-  "ai-app": {
-    label: "AI app",
-    preferredRoles: ["framework", "ai", "database", "auth", "deployment", "testing", "observability", "ui"],
-    keywords: ["ai", "llm", "agent", "rag", "embedding", "vector"],
+  'ai-app': {
+    label: 'AI app',
+    preferredRoles: [
+      'framework',
+      'ai',
+      'database',
+      'auth',
+      'deployment',
+      'testing',
+      'observability',
+      'ui',
+    ],
+    keywords: ['ai', 'llm', 'agent', 'rag', 'embedding', 'vector'],
   },
-  "api-service": {
-    label: "API service",
-    preferredRoles: ["framework", "database", "auth", "deployment", "testing", "observability"],
-    keywords: ["api", "backend", "server", "service", "worker"],
+  'api-service': {
+    label: 'API service',
+    preferredRoles: ['framework', 'database', 'auth', 'deployment', 'testing', 'observability'],
+    keywords: ['api', 'backend', 'server', 'service', 'worker'],
   },
-  "mobile-app": {
-    label: "Mobile app",
-    preferredRoles: ["framework", "ui", "auth", "database", "deployment", "testing", "observability"],
-    keywords: ["mobile", "ios", "android", "expo", "react-native", "flutter"],
+  'mobile-app': {
+    label: 'Mobile app',
+    preferredRoles: [
+      'framework',
+      'ui',
+      'auth',
+      'database',
+      'deployment',
+      'testing',
+      'observability',
+    ],
+    keywords: ['mobile', 'ios', 'android', 'expo', 'react-native', 'flutter'],
   },
 };
 
 function normalize(value: string | null | undefined): string {
-  return (value ?? "").toLowerCase();
+  return (value ?? '').toLowerCase();
 }
 
 function searchableText(repo: StackRepoInput): string {
-  return [
-    repo.name,
-    repo.fullName,
-    repo.description ?? "",
-    repo.language ?? "",
-    ...repo.topics,
-  ].join(" ").toLowerCase();
+  return [repo.name, repo.fullName, repo.description ?? '', repo.language ?? '', ...repo.topics]
+    .join(' ')
+    .toLowerCase();
 }
 
 function daysSince(value: string | null, now: Date): number | null {
@@ -188,9 +310,9 @@ function popularityScore(stargazersCount: number): number {
 function repoWarnings(repo: StackRepoInput, now: Date): string[] {
   const warnings: string[] = [];
   const ageDays = daysSince(repo.repoUpdatedAt, now);
-  if (repo.archived) warnings.push("Archived repository");
-  if (ageDays !== null && ageDays >= 365) warnings.push("No release activity in 12 months");
-  if (!repo.description && repo.topics.length === 0) warnings.push("Sparse metadata");
+  if (repo.archived) warnings.push('Archived repository');
+  if (ageDays !== null && ageDays >= 365) warnings.push('No release activity in 12 months');
+  if (!repo.description && repo.topics.length === 0) warnings.push('Sparse metadata');
   return warnings;
 }
 
@@ -210,7 +332,7 @@ function compatibilityNotes(
     notes.push(`${repo.language} ecosystem`);
   }
   if (goalMatches.length > 0) {
-    notes.push(`Goal signal: ${goalMatches.slice(0, 2).join(", ")}`);
+    notes.push(`Goal signal: ${goalMatches.slice(0, 2).join(', ')}`);
   }
 
   return notes.slice(0, 3);
@@ -241,7 +363,10 @@ function scoreRepoForRole(
   if (matchedKeywords.length > 0) {
     score += Math.min(45, matchedKeywords.length * 12);
     reasons.push(
-      matchedKeywords.slice(0, 3).map((keyword) => `#${keyword}`).join(", ")
+      matchedKeywords
+        .slice(0, 3)
+        .map((keyword) => `#${keyword}`)
+        .join(', ')
     );
   }
 
@@ -249,11 +374,11 @@ function scoreRepoForRole(
   if (goal.preferredRoles.includes(role.id)) score += 8;
   if (goalMatches.length > 0) {
     score += Math.min(16, goalMatches.length * 5);
-    reasons.push(`goal: ${goalMatches.slice(0, 2).join(", ")}`);
+    reasons.push(`goal: ${goalMatches.slice(0, 2).join(', ')}`);
   }
 
   if (repo.archived) score -= 30;
-  if (warnings.some((warning) => warning.includes("12 months"))) score -= 10;
+  if (warnings.some((warning) => warning.includes('12 months'))) score -= 10;
 
   if (score < 28 || reasons.length === 0) return null;
 
@@ -272,9 +397,7 @@ function topLanguages(repos: StackRepoInput[]): [string, number][] {
     if (!repo.language) continue;
     counts.set(repo.language, (counts.get(repo.language) ?? 0) + 1);
   }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 5);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
 }
 
 function roleConflicts(candidates: StackCandidate[]): string[] {
@@ -286,56 +409,56 @@ function roleConflicts(candidates: StackCandidate[]): string[] {
     .map((candidate) => candidate.fullName);
 
   if (closeAlternatives.length === 0) return [];
-  return [`Choose one primary: ${[top.fullName, ...closeAlternatives].join(" vs ")}`];
+  return [`Choose one primary: ${[top.fullName, ...closeAlternatives].join(' vs ')}`];
 }
 
-function buildMarkdown(report: Omit<StackBuilderReport, "markdown">): string {
+function buildMarkdown(report: Omit<StackBuilderReport, 'markdown'>): string {
   const lines = [
     `# ${report.goalLabel} stack`,
-    "",
+    '',
     `Generated from ${report.summary.totalRepos} starred repositories.`,
-    "",
+    '',
   ];
 
   for (const role of report.roles) {
     lines.push(`## ${role.label}`);
     if (!role.selected) {
-      lines.push("- No strong match found.");
-      lines.push("");
+      lines.push('- No strong match found.');
+      lines.push('');
       continue;
     }
 
     lines.push(`- Pick: [${role.selected.fullName}](${role.selected.htmlUrl})`);
-    lines.push(`- Why: ${role.selected.reasons.join("; ")}`);
+    lines.push(`- Why: ${role.selected.reasons.join('; ')}`);
     if (role.selected.compatibilityNotes.length > 0) {
-      lines.push(`- Compatibility: ${role.selected.compatibilityNotes.join("; ")}`);
+      lines.push(`- Compatibility: ${role.selected.compatibilityNotes.join('; ')}`);
     }
     if (role.selected.warnings.length > 0) {
-      lines.push(`- Warnings: ${role.selected.warnings.join("; ")}`);
+      lines.push(`- Warnings: ${role.selected.warnings.join('; ')}`);
     }
     if (role.alternatives.length > 0) {
-      lines.push(`- Alternatives: ${role.alternatives.map((repo) => repo.fullName).join(", ")}`);
+      lines.push(`- Alternatives: ${role.alternatives.map((repo) => repo.fullName).join(', ')}`);
     }
     if (role.conflicts.length > 0) {
-      lines.push(`- Conflicts: ${role.conflicts.join("; ")}`);
+      lines.push(`- Conflicts: ${role.conflicts.join('; ')}`);
     }
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n").trimEnd();
+  return lines.join('\n').trimEnd();
 }
 
 export function parseStackGoal(value: string | null | undefined): StackGoal {
-  return value === "ai-app" || value === "api-service" || value === "mobile-app"
+  return value === 'ai-app' || value === 'api-service' || value === 'mobile-app'
     ? value
-    : "web-app";
+    : 'web-app';
 }
 
 export function buildStackBuilderReport(
   repos: StackRepoInput[],
   options: { goal?: StackGoal; now?: Date } = {}
 ): StackBuilderReport {
-  const goal = options.goal ?? "web-app";
+  const goal = options.goal ?? 'web-app';
   const goalDefinition = goalDefinitions[goal];
   const now = options.now ?? new Date();
   const orderedRoles = [

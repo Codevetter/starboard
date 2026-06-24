@@ -1,31 +1,31 @@
-import type { InStatement, InValue } from "@libsql/client";
-import { type NextRequest, NextResponse } from "next/server";
+import type { InStatement, InValue } from '@libsql/client';
+import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { generateEmbedding } from "@/lib/embeddings";
-import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from "@/lib/search";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { generateEmbedding } from '@/lib/embeddings';
+import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
 
 const MIN_STARS_FLOOR = 5000;
 const ELIGIBLE_REPO_SQL =
-  "(r.stargazers_count >= ? OR EXISTS (SELECT 1 FROM user_repos community_ur WHERE community_ur.repo_id = r.id AND community_ur.is_starred = 1))";
+  '(r.stargazers_count >= ? OR EXISTS (SELECT 1 FROM user_repos community_ur WHERE community_ur.repo_id = r.id AND community_ur.is_starred = 1))';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
 
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = session.user.githubId;
   const params = request.nextUrl.searchParams;
 
-  const q = params.get("q")?.trim() || null;
-  const languages = params.get("language")?.split(",").filter(Boolean) || [];
-  const listId = params.get("list_id");
-  const sort = params.get("sort") || "stars";
-  const limit = Math.min(Math.max(parseInt(params.get("limit") || "50", 10) || 50, 1), 200);
-  const offset = Math.max(parseInt(params.get("offset") || "0", 10) || 0, 0);
+  const q = params.get('q')?.trim() || null;
+  const languages = params.get('language')?.split(',').filter(Boolean) || [];
+  const listId = params.get('list_id');
+  const sort = params.get('sort') || 'stars';
+  const limit = Math.min(Math.max(parseInt(params.get('limit') || '50', 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0);
 
   const whereClauses: string[] = [ELIGIBLE_REPO_SQL];
   const whereArgs: InValue[] = [MIN_STARS_FLOOR];
@@ -36,10 +36,11 @@ export async function GET(request: NextRequest) {
     const RRF_K = 60;
     const VEC_TOP_K = 500;
     const VEC_DIST_MAX = 0.55;
-    const useSemanticSearch = sort === "relevance";
+    const useSemanticSearch = sort === 'relevance';
     const lexIdsPromise = lexicalQuery
-      ? db.execute({
-          sql: `SELECT r.id,
+      ? db
+          .execute({
+            sql: `SELECT r.id,
                        MIN(rank) AS best_rank
                 FROM (
                   SELECT repos_fts.rowid AS id,
@@ -57,8 +58,9 @@ export async function GET(request: NextRequest) {
                 GROUP BY r.id
                 ORDER BY best_rank ASC, r.stargazers_count DESC
                 LIMIT 500`,
-          args: [lexicalQuery, lexicalQuery, MIN_STARS_FLOOR],
-        }).then((result) => result.rows.map((r) => r["id"] as number))
+            args: [lexicalQuery, lexicalQuery, MIN_STARS_FLOOR],
+          })
+          .then((result) => result.rows.map((r) => r.id as number))
       : Promise.resolve([]);
 
     const semIdsPromise = useSemanticSearch
@@ -82,11 +84,11 @@ export async function GET(request: NextRequest) {
           )
           .then((vectorResult) =>
             vectorResult.rows
-              .filter((r) => (r["dist"] as number) <= VEC_DIST_MAX)
-              .map((r) => r["repo_id"] as number)
+              .filter((r) => (r.dist as number) <= VEC_DIST_MAX)
+              .map((r) => r.repo_id as number)
           )
           .catch((error) => {
-            console.warn("Discover semantic search failed:", error);
+            console.warn('Discover semantic search failed:', error);
             return [];
           })
       : Promise.resolve([]);
@@ -95,16 +97,16 @@ export async function GET(request: NextRequest) {
     const fused = useSemanticSearch ? blendSearchIds(lexIds, semIds, RRF_K) : lexIds;
     if (fused.length > 0) {
       rankedRepoIds = fused;
-      const placeholders = fused.map(() => "?").join(", ");
+      const placeholders = fused.map(() => '?').join(', ');
       whereClauses.push(`r.id IN (${placeholders})`);
       whereArgs.push(...fused);
     } else {
-      whereClauses.push("0 = 1");
+      whereClauses.push('0 = 1');
     }
   }
 
   if (languages.length > 0) {
-    const placeholders = languages.map(() => "?").join(", ");
+    const placeholders = languages.map(() => '?').join(', ');
     whereClauses.push(`r.language IN (${placeholders})`);
     whereArgs.push(...languages);
   }
@@ -112,33 +114,30 @@ export async function GET(request: NextRequest) {
   if (listId !== null) {
     const parsedListId = parseInt(listId, 10);
     if (!Number.isInteger(parsedListId)) {
-      return NextResponse.json({ error: "Invalid list_id" }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid list_id' }, { status: 400 });
     }
     whereClauses.push(
-      "EXISTS (SELECT 1 FROM user_repo_lists url WHERE url.user_id = ? AND url.repo_id = r.id AND url.list_id = ?)"
+      'EXISTS (SELECT 1 FROM user_repo_lists url WHERE url.user_id = ? AND url.repo_id = r.id AND url.list_id = ?)'
     );
     whereArgs.push(userId);
     whereArgs.push(parsedListId);
   }
 
-  const whereSQL = whereClauses.join(" AND ");
-  const useRankedOrder =
-    rankedRepoIds &&
-    rankedRepoIds.length > 0 &&
-    sort === "relevance";
+  const whereSQL = whereClauses.join(' AND ');
+  const useRankedOrder = rankedRepoIds && rankedRepoIds.length > 0 && sort === 'relevance';
   const orderByMap: Record<string, string> = {
-    relevance: "r.stargazers_count DESC",
-    stars: "r.stargazers_count DESC",
-    updated: "r.repo_updated_at DESC, r.stargazers_count DESC",
-    name: "r.name ASC",
-    starred: "r.stargazers_count DESC",
+    relevance: 'r.stargazers_count DESC',
+    stars: 'r.stargazers_count DESC',
+    updated: 'r.repo_updated_at DESC, r.stargazers_count DESC',
+    name: 'r.name ASC',
+    starred: 'r.stargazers_count DESC',
   };
   let orderBy: string;
   if (useRankedOrder) {
-    const caseLines = rankedRepoIds!.map((id, i) => `WHEN ${id} THEN ${i}`).join(" ");
+    const caseLines = rankedRepoIds!.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
     orderBy = `CASE r.id ${caseLines} ELSE 999999 END`;
   } else {
-    orderBy = orderByMap[sort] || orderByMap["stars"];
+    orderBy = orderByMap[sort] || orderByMap.stars;
   }
 
   try {
@@ -198,49 +197,46 @@ export async function GET(request: NextRequest) {
     const [countResult, langResult, listResult] = batchResults;
 
     const repos = mainResult.rows.map((row) => ({
-      id: row["id"] as number,
-      name: row["name"] as string,
-      full_name: row["full_name"] as string,
+      id: row.id as number,
+      name: row.name as string,
+      full_name: row.full_name as string,
       owner: {
-        login: row["owner_login"] as string,
-        avatar_url: row["owner_avatar"] as string,
+        login: row.owner_login as string,
+        avatar_url: row.owner_avatar as string,
       },
-      html_url: row["html_url"] as string,
-      description: row["description"] as string | null,
-      language: row["language"] as string | null,
-      stargazers_count: row["stargazers_count"] as number,
-      archived: Boolean(row["archived"]),
-      topics: JSON.parse((row["topics"] as string) || "[]"),
-      created_at: row["repo_created_at"] as string,
-      updated_at: row["repo_updated_at"] as string,
-      list_id: row["list_id"] as number | null,
-      collection_ids: JSON.parse((row["collection_ids"] as string) || "[]"),
+      html_url: row.html_url as string,
+      description: row.description as string | null,
+      language: row.language as string | null,
+      stargazers_count: row.stargazers_count as number,
+      archived: Boolean(row.archived),
+      topics: JSON.parse((row.topics as string) || '[]'),
+      created_at: row.repo_created_at as string,
+      updated_at: row.repo_updated_at as string,
+      list_id: row.list_id as number | null,
+      collection_ids: JSON.parse((row.collection_ids as string) || '[]'),
       tags: [],
-      notes: row["notes"] as string | null,
-      starred_at: row["starred_at"] as string | null,
-      is_starred: Boolean(row["is_starred"]),
-      is_saved: Boolean(row["is_saved"]),
+      notes: row.notes as string | null,
+      starred_at: row.starred_at as string | null,
+      is_starred: Boolean(row.is_starred),
+      is_saved: Boolean(row.is_saved),
     }));
 
-    const languages = langResult.rows.map((r) => [
-      r["language"] as string,
-      r["count"] as number,
-    ]);
+    const languages = langResult.rows.map((r) => [r.language as string, r.count as number]);
     const lists = listResult.rows.map((r) => ({
-      id: r["id"] as number,
-      name: r["name"] as string,
-      color: r["color"] as string,
-      count: r["count"] as number,
+      id: r.id as number,
+      name: r.name as string,
+      color: r.color as string,
+      count: r.count as number,
     }));
 
     return NextResponse.json({
       repos,
-      total: countResult.rows[0]?.["total"] ?? 0,
+      total: countResult.rows[0]?.total ?? 0,
       facets: { languages, lists, tags: [] },
       minStars: MIN_STARS_FLOOR,
     });
   } catch (error) {
-    console.error("Failed to fetch discover repos:", error);
-    return NextResponse.json({ error: "Failed to fetch discover repos" }, { status: 500 });
+    console.error('Failed to fetch discover repos:', error);
+    return NextResponse.json({ error: 'Failed to fetch discover repos' }, { status: 500 });
   }
 }

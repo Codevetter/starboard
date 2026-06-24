@@ -29,10 +29,10 @@ function deRenderBlockCss(html) {
     /<link rel="stylesheet" href="([^"]+\.css)"[^>]*\/?>(?!<\/noscript>)/g,
     (match, href) => {
       const preloadPattern = new RegExp(
-        `<link rel="preload" href="${href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*onload=`,
+        `<link rel="preload" href="${href.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*onload=`
       );
       return preloadPattern.test(html) ? '' : match;
-    },
+    }
   );
 }
 
@@ -40,7 +40,7 @@ export async function runInlineCss(opts = {}) {
   const strict = opts.strict ?? false;
   const staticRoot = resolve('.next');
   const prerenderedRoots = DEFAULT_PRERENDERED_ROOTS.map((p) => resolve(p)).filter((p) =>
-    existsSync(p),
+    existsSync(p)
   );
 
   const htmls = [];
@@ -85,11 +85,11 @@ export async function runInlineCss(opts = {}) {
     saved += delta;
     const rel = file.replace(`${process.cwd()}/`, '');
     console.log(
-      `[inline-critical-css] ${rel}: ${(before.length / 1024).toFixed(1)}KB → ${(after.length / 1024).toFixed(1)}KB`,
+      `[inline-critical-css] ${rel}: ${(before.length / 1024).toFixed(1)}KB → ${(after.length / 1024).toFixed(1)}KB`
     );
   }
 
   console.log(
-    `[inline-critical-css] done — processed ${total} file(s), net size change ${(saved / 1024).toFixed(1)}KB`,
+    `[inline-critical-css] done — processed ${total} file(s), net size change ${(saved / 1024).toFixed(1)}KB`
   );
 }

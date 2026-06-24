@@ -10,23 +10,20 @@
  *   DIGEST_MAX_CHARS  — max issue body characters, default 62000
  */
 
-import { fileURLToPath } from "node:url";
+import { fileURLToPath } from 'node:url';
 
-import { createClient } from "@libsql/client";
+import { createClient } from '@libsql/client';
 
-const DIGEST_DAYS = parseInt(process.env.DIGEST_DAYS || "7", 10);
-const STAR_THRESHOLDS = (process.env.STAR_THRESHOLDS || "5000,10000,20000,50000,100000")
-  .split(",")
+const DIGEST_DAYS = parseInt(process.env.DIGEST_DAYS || '7', 10);
+const STAR_THRESHOLDS = (process.env.STAR_THRESHOLDS || '5000,10000,20000,50000,100000')
+  .split(',')
   .map((value) => parseInt(value.trim(), 10))
   .filter((value) => Number.isFinite(value))
   .sort((a, b) => a - b);
 const FASTEST_GROWERS_LIMIT = 20;
 const MAX_REPOS_PER_THRESHOLD = 25;
 const THRESHOLD_BAND_LIMIT = 10;
-const GITHUB_ISSUE_BODY_TARGET_CHARS = parseInt(
-  process.env.DIGEST_MAX_CHARS || "62000",
-  10
-);
+const GITHUB_ISSUE_BODY_TARGET_CHARS = parseInt(process.env.DIGEST_MAX_CHARS || '62000', 10);
 
 interface ThresholdEvent {
   threshold: number;
@@ -57,29 +54,27 @@ interface TopRepo {
 }
 
 function formatStars(count: number): string {
-  return count.toLocaleString("en-US");
+  return count.toLocaleString('en-US');
 }
 
-function describeRepo(
-  repo: Pick<ThresholdEvent, "description" | "language">
-): string {
+function describeRepo(repo: Pick<ThresholdEvent, 'description' | 'language'>): string {
   const parts = [];
   if (repo.language) parts.push(repo.language);
-  if (repo.description) parts.push(repo.description.replace(/\s+/g, " ").trim());
-  return parts.length > 0 ? parts.join(" - ") : "No description";
+  if (repo.description) parts.push(repo.description.replace(/\s+/g, ' ').trim());
+  return parts.length > 0 ? parts.join(' - ') : 'No description';
 }
 
 function formatRepoLine(
   repo: Pick<
     ThresholdEvent,
-    "current_stars" | "description" | "full_name" | "html_url" | "language"
+    'current_stars' | 'description' | 'full_name' | 'html_url' | 'language'
   > & { previous_stars?: number | null; stars_gained?: number }
 ): string {
   const movement =
     repo.stars_gained !== undefined
       ? `+${formatStars(repo.stars_gained)} this week`
       : repo.previous_stars === null || repo.previous_stars === undefined
-        ? "newly discovered above floor"
+        ? 'newly discovered above floor'
         : `${formatStars(repo.previous_stars)} -> ${formatStars(repo.current_stars)}`;
 
   return `- [${repo.full_name}](${repo.html_url}) - ${formatStars(repo.current_stars)} stars (${movement}) - ${describeRepo(repo)}`;
@@ -110,21 +105,19 @@ export function capDigestForGithubIssue(
 
   const omittedLines = body
     .slice(maxChars)
-    .split("\n")
+    .split('\n')
     .filter((line) => line.trim().length > 0).length;
   const note =
     `\n\n## Truncated\n\n` +
     `Digest exceeded the GitHub issue body limit, so ${omittedLines} non-empty ` +
-    `line${omittedLines === 1 ? "" : "s"} were omitted. Lower DIGEST_DAYS or ` +
+    `line${omittedLines === 1 ? '' : 's'} were omitted. Lower DIGEST_DAYS or ` +
     `STAR_THRESHOLDS for a narrower manual rerun.\n`;
   const budget = maxChars - note.length;
   if (budget <= 0) return note.slice(0, maxChars);
 
   const prefixCandidate = body.slice(0, budget);
-  const lineBreak = prefixCandidate.lastIndexOf("\n");
-  const prefix = prefixCandidate
-    .slice(0, lineBreak > 0 ? lineBreak : budget)
-    .trimEnd();
+  const lineBreak = prefixCandidate.lastIndexOf('\n');
+  const prefix = prefixCandidate.slice(0, lineBreak > 0 ? lineBreak : budget).trimEnd();
 
   return `${prefix}${note}`;
 }
@@ -137,8 +130,7 @@ async function loadThresholdBands(
   for (let i = 0; i < STAR_THRESHOLDS.length; i++) {
     const threshold = STAR_THRESHOLDS[i]!;
     const nextThreshold = STAR_THRESHOLDS[i + 1];
-    const upperClause =
-      nextThreshold === undefined ? "" : "AND stargazers_count < ?";
+    const upperClause = nextThreshold === undefined ? '' : 'AND stargazers_count < ?';
     const args =
       nextThreshold === undefined
         ? [threshold, THRESHOLD_BAND_LIMIT]
@@ -148,7 +140,7 @@ async function loadThresholdBands(
       sql: `SELECT COUNT(*) AS count
             FROM repos
             WHERE stargazers_count >= ?
-            ${nextThreshold === undefined ? "" : "AND stargazers_count < ?"}`,
+            ${nextThreshold === undefined ? '' : 'AND stargazers_count < ?'}`,
       args: nextThreshold === undefined ? [threshold] : [threshold, nextThreshold],
     });
     const reposResult = await db.execute({
@@ -177,7 +169,7 @@ async function loadThresholdBands(
 
 async function main() {
   if (!process.env.TURSO_DATABASE_URL) {
-    throw new Error("TURSO_DATABASE_URL required");
+    throw new Error('TURSO_DATABASE_URL required');
   }
 
   const db = createClient({
@@ -189,7 +181,7 @@ async function main() {
   const corpusCounts = await Promise.all(
     STAR_THRESHOLDS.map(async (threshold) => {
       const result = await db.execute({
-        sql: "SELECT COUNT(*) AS count FROM repos WHERE stargazers_count >= ?",
+        sql: 'SELECT COUNT(*) AS count FROM repos WHERE stargazers_count >= ?',
         args: [threshold],
       });
       return {
@@ -277,23 +269,22 @@ async function main() {
   const generatedAt = new Date().toISOString().slice(0, 10);
   const lines = [
     `Weekly repo discovery digest for the last ${DIGEST_DAYS} days.`,
-    "",
+    '',
     `Generated: ${generatedAt} UTC`,
     `Threshold crossings: ${totalCrossings}`,
-    "",
-    "## Corpus snapshot",
-    "",
+    '',
+    '## Corpus snapshot',
+    '',
     ...corpusCounts.map(
-      (item) =>
-        `- ${formatStars(item.threshold)}+ stars: ${formatStars(item.count)} repos`
+      (item) => `- ${formatStars(item.threshold)}+ stars: ${formatStars(item.count)} repos`
     ),
-    "",
-    "### Top repos in corpus",
-    "",
+    '',
+    '### Top repos in corpus',
+    '',
     ...topRepos.map((repo) => formatTopRepoLine(repo)),
-    "",
-    "## Current threshold bands",
-    "",
+    '',
+    '## Current threshold bands',
+    '',
   ];
 
   for (let i = 0; i < STAR_THRESHOLDS.length; i++) {
@@ -306,34 +297,31 @@ async function main() {
         : `${formatStars(threshold)}-${formatStars(nextThreshold - 1)} stars`;
 
     lines.push(`### ${title}`);
-    lines.push("");
+    lines.push('');
     lines.push(`${formatStars(band?.count ?? 0)} repos in this band.`);
-    lines.push("");
+    lines.push('');
 
     if (!band || band.repos.length === 0) {
-      lines.push("No repos in this band.");
-      lines.push("");
+      lines.push('No repos in this band.');
+      lines.push('');
       continue;
     }
 
     for (const repo of band.repos) {
       lines.push(formatTopRepoLine(repo));
     }
-    lines.push("");
+    lines.push('');
   }
 
-  lines.push(
-    "## Threshold crossings",
-    ""
-  );
+  lines.push('## Threshold crossings', '');
 
   for (const [threshold, events] of groupedEvents) {
     lines.push(`### ${formatStars(threshold)} stars`);
-    lines.push("");
+    lines.push('');
 
     if (events.length === 0) {
-      lines.push("No repos crossed this threshold.");
-      lines.push("");
+      lines.push('No repos crossed this threshold.');
+      lines.push('');
       continue;
     }
 
@@ -343,32 +331,36 @@ async function main() {
     if (events.length > MAX_REPOS_PER_THRESHOLD) {
       lines.push(`- ${events.length - MAX_REPOS_PER_THRESHOLD} more not shown`);
     }
-    lines.push("");
+    lines.push('');
   }
 
-  lines.push("## Fastest growers");
-  lines.push("");
+  lines.push('## Fastest growers');
+  lines.push('');
 
   if (fastestGrowers.length === 0) {
-    lines.push("No growth deltas yet. This section will populate after multiple seed snapshots exist in the lookback window.");
+    lines.push(
+      'No growth deltas yet. This section will populate after multiple seed snapshots exist in the lookback window.'
+    );
   } else {
     for (const repo of fastestGrowers) {
       lines.push(formatRepoLine(repo));
     }
   }
 
-  lines.push("");
-  lines.push("## Notes");
-  lines.push("");
-  lines.push("- The 5,000-star section includes repos newly discovered above the seed floor.");
-  lines.push("- Higher thresholds are recorded when a repo moves from below the threshold to above it between seed refreshes.");
+  lines.push('');
+  lines.push('## Notes');
+  lines.push('');
+  lines.push('- The 5,000-star section includes repos newly discovered above the seed floor.');
+  lines.push(
+    '- Higher thresholds are recorded when a repo moves from below the threshold to above it between seed refreshes.'
+  );
 
-  process.stdout.write(`${capDigestForGithubIssue(lines.join("\n"))}\n`);
+  process.stdout.write(`${capDigestForGithubIssue(lines.join('\n'))}\n`);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err) => {
-    console.error("Digest generation failed:", err);
+    console.error('Digest generation failed:', err);
     process.exit(1);
   });
 }

@@ -1,9 +1,9 @@
 export type DigestGroupId =
-  | "newly_starred"
-  | "recent_releases"
-  | "high_momentum"
-  | "at_risk"
-  | "suggested_actions";
+  | 'newly_starred'
+  | 'recent_releases'
+  | 'high_momentum'
+  | 'at_risk'
+  | 'suggested_actions';
 
 export interface MaintainerDigestRepoInput {
   id: number;
@@ -35,7 +35,7 @@ export interface DigestItem {
   sourceUrl: string;
   starboardUrl: string;
   actionLabel: string;
-  priority: "info" | "watch" | "urgent";
+  priority: 'info' | 'watch' | 'urgent';
 }
 
 export interface DigestGroup {
@@ -81,25 +81,28 @@ function isWithinDays(now: Date, value: string | null, days: number): boolean {
 }
 
 function compactNumber(value: number): string {
-  return new Intl.NumberFormat("en-US", { notation: "compact" }).format(value);
+  return new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value);
 }
 
 function formatAge(days: number | null): string {
-  if (days === null) return "unknown";
-  if (days === 0) return "today";
-  if (days === 1) return "1 day ago";
+  if (days === null) return 'unknown';
+  if (days === 0) return 'today';
+  if (days === 1) return '1 day ago';
   if (days < 30) return `${days} days ago`;
   if (days < 365) return `${Math.round(days / 30)} months ago`;
   return `${Math.round(days / 365)} years ago`;
 }
 
 function starDelta(repo: MaintainerDigestRepoInput): number | null {
-  if (typeof repo.starsSevenDaysAgo !== "number") return null;
+  if (typeof repo.starsSevenDaysAgo !== 'number') return null;
   return repo.stargazersCount - repo.starsSevenDaysAgo;
 }
 
 function repoDescription(repo: MaintainerDigestRepoInput): string {
-  return repo.description?.trim() || `${repo.language ?? "Repository"} with ${compactNumber(repo.stargazersCount)} stars.`;
+  return (
+    repo.description?.trim() ||
+    `${repo.language ?? 'Repository'} with ${compactNumber(repo.stargazersCount)} stars.`
+  );
 }
 
 function itemId(prefix: DigestGroupId, repo: MaintainerDigestRepoInput): string {
@@ -124,14 +127,11 @@ function sortByOldestUpdate(
   return bDays - aDays;
 }
 
-function buildNewlyStarredItem(
-  repo: MaintainerDigestRepoInput,
-  now: Date
-): DigestItem {
+function buildNewlyStarredItem(repo: MaintainerDigestRepoInput, now: Date): DigestItem {
   const starredAge = formatAge(daysBetween(now, repo.starredAt));
   return {
-    id: itemId("newly_starred", repo),
-    group: "newly_starred",
+    id: itemId('newly_starred', repo),
+    group: 'newly_starred',
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -139,25 +139,23 @@ function buildNewlyStarredItem(
     detail: `Added to your library ${starredAge}.`,
     sourceUrl: repo.htmlUrl,
     starboardUrl: toStarboardUrl(repo),
-    actionLabel: repo.collectionCount > 0 ? "Review notes" : "Add to a collection",
-    priority: "info",
+    actionLabel: repo.collectionCount > 0 ? 'Review notes' : 'Add to a collection',
+    priority: 'info',
   };
 }
 
-function buildHighMomentumItem(
-  repo: MaintainerDigestRepoInput
-): DigestItem {
+function buildHighMomentumItem(repo: MaintainerDigestRepoInput): DigestItem {
   const delta = starDelta(repo);
   const signal =
     repo.thresholdEventsSevenDays > 0
-      ? `${repo.thresholdEventsSevenDays} threshold crossing${repo.thresholdEventsSevenDays === 1 ? "" : "s"}`
+      ? `${repo.thresholdEventsSevenDays} threshold crossing${repo.thresholdEventsSevenDays === 1 ? '' : 's'}`
       : delta !== null && delta > 0
         ? `+${compactNumber(delta)} stars this week`
         : `${compactNumber(repo.stargazersCount)} total stars`;
 
   return {
-    id: itemId("high_momentum", repo),
-    group: "high_momentum",
+    id: itemId('high_momentum', repo),
+    group: 'high_momentum',
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -165,30 +163,27 @@ function buildHighMomentumItem(
     detail: signal,
     sourceUrl: repo.htmlUrl,
     starboardUrl: toStarboardUrl(repo),
-    actionLabel: "Investigate Trend",
-    priority: "watch",
+    actionLabel: 'Investigate Trend',
+    priority: 'watch',
   };
 }
 
-function buildAtRiskItem(
-  repo: MaintainerDigestRepoInput,
-  now: Date
-): DigestItem {
+function buildAtRiskItem(repo: MaintainerDigestRepoInput, now: Date): DigestItem {
   const updateAge = daysBetween(now, repo.repoUpdatedAt);
   const delta = starDelta(repo);
   let detail = `Saved repo last updated ${formatAge(updateAge)}.`;
-  let actionLabel = repo.archived ? "Archive or remove" : "Review saved status";
-  let priority: "watch" | "urgent" = repo.archived ? "urgent" : "watch";
+  let actionLabel = repo.archived ? 'Archive or remove' : 'Review saved status';
+  let priority: 'watch' | 'urgent' = repo.archived ? 'urgent' : 'watch';
 
   if (delta !== null && delta < -50) {
     detail = `Lost ${compactNumber(Math.abs(delta))} stars this week.`;
-    actionLabel = "Re-evaluate";
-    priority = "urgent";
+    actionLabel = 'Re-evaluate';
+    priority = 'urgent';
   }
 
   return {
-    id: itemId("at_risk", repo),
-    group: "at_risk",
+    id: itemId('at_risk', repo),
+    group: 'at_risk',
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -201,15 +196,12 @@ function buildAtRiskItem(
   };
 }
 
-function buildRecentReleasesItem(
-  repo: MaintainerDigestRepoInput,
-  now: Date
-): DigestItem {
+function buildRecentReleasesItem(repo: MaintainerDigestRepoInput, now: Date): DigestItem {
   const updateAge = daysBetween(now, repo.repoUpdatedAt);
-  const ageLabel = updateAge !== null ? formatAge(updateAge) : "recently";
+  const ageLabel = updateAge !== null ? formatAge(updateAge) : 'recently';
   return {
-    id: itemId("recent_releases", repo),
-    group: "recent_releases",
+    id: itemId('recent_releases', repo),
+    group: 'recent_releases',
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -217,8 +209,8 @@ function buildRecentReleasesItem(
     detail: `Updated ${ageLabel}.`,
     sourceUrl: repo.htmlUrl,
     starboardUrl: toStarboardUrl(repo),
-    actionLabel: "Review update",
-    priority: "info",
+    actionLabel: 'Review update',
+    priority: 'info',
   };
 }
 
@@ -228,8 +220,8 @@ function buildSuggestedActionItem(
   actionLabel: string
 ): DigestItem {
   return {
-    id: `suggested_actions:${repo.id}:${actionLabel.toLowerCase().replaceAll(" ", "-")}`,
-    group: "suggested_actions",
+    id: `suggested_actions:${repo.id}:${actionLabel.toLowerCase().replaceAll(' ', '-')}`,
+    group: 'suggested_actions',
     repoId: repo.id,
     fullName: repo.fullName,
     title: repo.fullName,
@@ -238,7 +230,7 @@ function buildSuggestedActionItem(
     sourceUrl: repo.htmlUrl,
     starboardUrl: toStarboardUrl(repo),
     actionLabel,
-    priority: "info",
+    priority: 'info',
   };
 }
 
@@ -258,15 +250,13 @@ export function buildMaintainerDigest(
   const highMomentumRepos = repos
     .filter((repo) => {
       const delta = starDelta(repo) ?? 0;
-      return (
-        repo.stargazersCount >= 5000 ||
-        delta >= 100 ||
-        repo.thresholdEventsSevenDays > 0
-      );
+      return repo.stargazersCount >= 5000 || delta >= 100 || repo.thresholdEventsSevenDays > 0;
     })
     .sort((a, b) => {
-      const aScore = (starDelta(a) ?? 0) + a.thresholdEventsSevenDays * 1000 + a.stargazersCount / 1000;
-      const bScore = (starDelta(b) ?? 0) + b.thresholdEventsSevenDays * 1000 + b.stargazersCount / 1000;
+      const aScore =
+        (starDelta(a) ?? 0) + a.thresholdEventsSevenDays * 1000 + a.stargazersCount / 1000;
+      const bScore =
+        (starDelta(b) ?? 0) + b.thresholdEventsSevenDays * 1000 + b.stargazersCount / 1000;
       return bScore - aScore;
     });
 
@@ -287,7 +277,9 @@ export function buildMaintainerDigest(
     .filter((repo) => {
       const updateAge = daysBetween(now, repo.repoUpdatedAt);
       const delta = starDelta(repo);
-      return (repo.isSaved && updateAge !== null && updateAge >= 365) || (delta !== null && delta < -50);
+      return (
+        (repo.isSaved && updateAge !== null && updateAge >= 365) || (delta !== null && delta < -50)
+      );
     })
     .sort((a, b) => sortByOldestUpdate(a, b, now));
 
@@ -296,8 +288,8 @@ export function buildMaintainerDigest(
     suggestedActions.push(
       buildSuggestedActionItem(
         repo,
-        "Newly added and not assigned to a collection yet.",
-        "Assign collection"
+        'Newly added and not assigned to a collection yet.',
+        'Assign collection'
       )
     );
   }
@@ -305,51 +297,50 @@ export function buildMaintainerDigest(
     suggestedActions.push(
       buildSuggestedActionItem(
         repo,
-        "Saved for later with no note explaining why it still matters.",
-        "Add decision note"
+        'Saved for later with no note explaining why it still matters.',
+        'Add decision note'
       )
     );
   }
-  for (const repo of highMomentumRepos.filter((item) => !item.notes).sort(sortByStarsDesc).slice(0, 3)) {
+  for (const repo of highMomentumRepos
+    .filter((item) => !item.notes)
+    .sort(sortByStarsDesc)
+    .slice(0, 3)) {
     if (suggestedActions.some((item) => item.repoId === repo.id)) continue;
     suggestedActions.push(
-      buildSuggestedActionItem(
-        repo,
-        "High-momentum repo has no maintainer note.",
-        "Capture why"
-      )
+      buildSuggestedActionItem(repo, 'High-momentum repo has no maintainer note.', 'Capture why')
     );
   }
 
   const groups: DigestGroup[] = [
     {
-      id: "newly_starred",
-      title: "Review New Additions",
-      description: "Repos added to your library in the last week.",
+      id: 'newly_starred',
+      title: 'Review New Additions',
+      description: 'Repos added to your library in the last week.',
       items: recentRepos.slice(0, 6).map((repo) => buildNewlyStarredItem(repo, now)),
     },
     {
-      id: "recent_releases",
-      title: "Recent Releases",
-      description: "Library repos with activity in the last 30 days.",
+      id: 'recent_releases',
+      title: 'Recent Releases',
+      description: 'Library repos with activity in the last 30 days.',
       items: recentReleasesRepos.slice(0, 6).map((repo) => buildRecentReleasesItem(repo, now)),
     },
     {
-      id: "high_momentum",
-      title: "Growth & Momentum",
-      description: "Repos in your library with strong star counts or recent growth.",
+      id: 'high_momentum',
+      title: 'Growth & Momentum',
+      description: 'Repos in your library with strong star counts or recent growth.',
       items: highMomentumRepos.slice(0, 6).map(buildHighMomentumItem),
     },
     {
-      id: "at_risk",
-      title: "At-Risk & Stale",
-      description: "Saved repos that may need pruning or a note.",
+      id: 'at_risk',
+      title: 'At-Risk & Stale',
+      description: 'Saved repos that may need pruning or a note.',
       items: atRiskRepos.slice(0, 6).map((repo) => buildAtRiskItem(repo, now)),
     },
     {
-      id: "suggested_actions",
-      title: "Suggested Actions",
-      description: "Small cleanup decisions to keep the library useful.",
+      id: 'suggested_actions',
+      title: 'Suggested Actions',
+      description: 'Small cleanup decisions to keep the library useful.',
       items: suggestedActions.slice(0, 8),
     },
   ];
@@ -360,11 +351,11 @@ export function buildMaintainerDigest(
     lookbackDays,
     summary: {
       totalItems: groups.reduce((sum, group) => sum + group.items.length, 0),
-      newlyStarred: groups.find((group) => group.id === "newly_starred")?.items.length ?? 0,
-      recentReleases: groups.find((group) => group.id === "recent_releases")?.items.length ?? 0,
-      highMomentum: groups.find((group) => group.id === "high_momentum")?.items.length ?? 0,
-      atRisk: groups.find((group) => group.id === "at_risk")?.items.length ?? 0,
-      suggestedActions: groups.find((group) => group.id === "suggested_actions")?.items.length ?? 0,
+      newlyStarred: groups.find((group) => group.id === 'newly_starred')?.items.length ?? 0,
+      recentReleases: groups.find((group) => group.id === 'recent_releases')?.items.length ?? 0,
+      highMomentum: groups.find((group) => group.id === 'high_momentum')?.items.length ?? 0,
+      atRisk: groups.find((group) => group.id === 'at_risk')?.items.length ?? 0,
+      suggestedActions: groups.find((group) => group.id === 'suggested_actions')?.items.length ?? 0,
     },
     groups,
   };

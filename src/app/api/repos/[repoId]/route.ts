@@ -1,10 +1,10 @@
-import type { InStatement } from "@libsql/client";
-import { type NextRequest,NextResponse } from "next/server";
+import type { InStatement } from '@libsql/client';
+import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
 
-import { resolveRepoId } from "../resolve";
+import { resolveRepoId } from '../resolve';
 
 interface GitHubRepoResponse {
   id: number;
@@ -32,43 +32,45 @@ export async function GET(
   // 2. Slug lookup: /api/repos/lookup?name=owner/repo
   let repoId: number;
 
-  if (rawId === "lookup") {
-    const name = request.nextUrl.searchParams.get("name");
-    if (!name || !name.includes("/")) {
-      return NextResponse.json({ error: "name param required (owner/repo)" }, { status: 400 });
+  if (rawId === 'lookup') {
+    const name = request.nextUrl.searchParams.get('name');
+    if (!name?.includes('/')) {
+      return NextResponse.json({ error: 'name param required (owner/repo)' }, { status: 400 });
     }
-    const [owner, repo] = name.split("/", 2);
+    const [owner, repo] = name.split('/', 2);
     const resolved = await resolveRepoId(owner, repo);
     if (!resolved) {
-      return NextResponse.json({ error: "Repository not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Repository not found' }, { status: 404 });
     }
     repoId = resolved;
   } else {
     repoId = parseInt(rawId, 10);
-    if (isNaN(repoId)) {
-      return NextResponse.json({ error: "Invalid repo ID" }, { status: 400 });
+    if (Number.isNaN(repoId)) {
+      return NextResponse.json({ error: 'Invalid repo ID' }, { status: 400 });
     }
   }
 
   try {
     // Look up repo in our DB
     let repoResult = await db.execute({
-      sql: "SELECT * FROM repos WHERE id = ?",
+      sql: 'SELECT * FROM repos WHERE id = ?',
       args: [repoId],
     });
 
     // If not cached locally, fetch from GitHub and upsert
     if (repoResult.rows.length === 0) {
-      const ghRes = await fetch(
-        `https://api.github.com/repositories/${repoId}`,
-        { next: { revalidate: 3600 } }
-      );
+      const ghRes = await fetch(`https://api.github.com/repositories/${repoId}`, {
+        next: { revalidate: 3600 },
+      });
 
       if (!ghRes.ok) {
         if (ghRes.status === 404) {
-          return NextResponse.json({ error: "Repository not found" }, { status: 404 });
+          return NextResponse.json({ error: 'Repository not found' }, { status: 404 });
         }
-        return NextResponse.json({ error: "Failed to fetch repository from GitHub" }, { status: 502 });
+        return NextResponse.json(
+          { error: 'Failed to fetch repository from GitHub' },
+          { status: 502 }
+        );
       }
 
       const gh = (await ghRes.json()) as GitHubRepoResponse;
@@ -85,15 +87,24 @@ export async function GET(
                 archived = excluded.archived, topics = excluded.topics, repo_created_at = excluded.repo_created_at,
                 repo_updated_at = excluded.repo_updated_at`,
         args: [
-          gh.id, gh.name, gh.full_name, gh.owner.login, gh.owner.avatar_url,
-          gh.html_url, gh.description ?? null, gh.language ?? null,
-          gh.stargazers_count, gh.archived ? 1 : 0, JSON.stringify(gh.topics ?? []),
-          gh.created_at, gh.updated_at,
+          gh.id,
+          gh.name,
+          gh.full_name,
+          gh.owner.login,
+          gh.owner.avatar_url,
+          gh.html_url,
+          gh.description ?? null,
+          gh.language ?? null,
+          gh.stargazers_count,
+          gh.archived ? 1 : 0,
+          JSON.stringify(gh.topics ?? []),
+          gh.created_at,
+          gh.updated_at,
         ],
       });
 
       repoResult = await db.execute({
-        sql: "SELECT * FROM repos WHERE id = ?",
+        sql: 'SELECT * FROM repos WHERE id = ?',
         args: [repoId],
       });
     }
@@ -104,13 +115,13 @@ export async function GET(
     const userId = session?.user?.githubId ?? null;
 
     const countQueries: InStatement[] = [
-      { sql: "SELECT COUNT(*) as count FROM likes WHERE repo_id = ?", args: [repoId] },
-      { sql: "SELECT COUNT(*) as count FROM comments WHERE repo_id = ?", args: [repoId] },
+      { sql: 'SELECT COUNT(*) as count FROM likes WHERE repo_id = ?', args: [repoId] },
+      { sql: 'SELECT COUNT(*) as count FROM comments WHERE repo_id = ?', args: [repoId] },
     ];
 
     if (userId) {
       countQueries.push({
-        sql: "SELECT 1 as liked FROM likes WHERE user_id = ? AND repo_id = ?",
+        sql: 'SELECT 1 as liked FROM likes WHERE user_id = ? AND repo_id = ?',
         args: [userId, repoId],
       });
     }
@@ -133,7 +144,7 @@ export async function GET(
         language: row.language as string | null,
         stargazers_count: row.stargazers_count as number,
         archived: Boolean(row.archived),
-        topics: JSON.parse((row.topics as string) || "[]"),
+        topics: JSON.parse((row.topics as string) || '[]'),
         repo_created_at: row.repo_created_at as string | null,
         repo_updated_at: row.repo_updated_at as string | null,
       },
@@ -142,7 +153,7 @@ export async function GET(
       userLiked,
     });
   } catch (error) {
-    console.error("Failed to fetch repo detail:", error);
-    return NextResponse.json({ error: "Failed to fetch repository" }, { status: 500 });
+    console.error('Failed to fetch repo detail:', error);
+    return NextResponse.json({ error: 'Failed to fetch repository' }, { status: 500 });
   }
 }

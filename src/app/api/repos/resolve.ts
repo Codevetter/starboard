@@ -1,4 +1,4 @@
-import { db } from "@/db";
+import { db } from '@/db';
 
 interface GitHubRepoResponse {
   id: number;
@@ -20,15 +20,12 @@ interface GitHubRepoResponse {
  * If the repo isn't in our DB yet, fetches from GitHub and inserts it.
  * Returns the numeric repo ID or null if not found on GitHub.
  */
-export async function resolveRepoId(
-  owner: string,
-  repo: string
-): Promise<number | null> {
+export async function resolveRepoId(owner: string, repo: string): Promise<number | null> {
   const fullName = `${owner}/${repo}`;
 
   // Check DB first
   const existing = await db.execute({
-    sql: "SELECT id FROM repos WHERE full_name = ? COLLATE NOCASE",
+    sql: 'SELECT id FROM repos WHERE full_name = ? COLLATE NOCASE',
     args: [fullName],
   });
 

@@ -1,13 +1,13 @@
-"use client";
+'use client';
 
-import { Bell, Loader2 } from "lucide-react";
-import { useState } from "react";
-import useSWR from "swr";
+import { Bell, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import useSWR from 'swr';
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { AlertLane, AlertRules } from "@/lib/alert-preferences";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import type { AlertLane, AlertRules } from '@/lib/alert-preferences';
 
 const fetcher = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
@@ -16,9 +16,9 @@ const fetcher = async <T,>(url: string): Promise<T> => {
 };
 
 const laneLabels: Record<AlertLane, string> = {
-  release: "Recent releases",
-  maintenance: "Maintenance & dormancy",
-  momentum: "Momentum changes",
+  release: 'Recent releases',
+  maintenance: 'Maintenance & dormancy',
+  momentum: 'Momentum changes',
 };
 
 interface PreferencesResponse {
@@ -31,7 +31,7 @@ function toggleLane(lanes: AlertLane[], lane: AlertLane): AlertLane[] {
 
 export function AlertSettingsPanel() {
   const { data, error, isLoading, mutate } = useSWR<PreferencesResponse>(
-    "/api/alerts/preferences",
+    '/api/alerts/preferences',
     fetcher
   );
   const [saving, setSaving] = useState(false);
@@ -42,12 +42,12 @@ export function AlertSettingsPanel() {
     if (!rules) return;
     setSaving(true);
     try {
-      const response = await fetch("/api/alerts/preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+      const response = await fetch('/api/alerts/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(patch),
       });
-      if (!response.ok) throw new Error("Failed to save alert preferences");
+      if (!response.ok) throw new Error('Failed to save alert preferences');
       await mutate();
     } finally {
       setSaving(false);
@@ -78,7 +78,8 @@ export function AlertSettingsPanel() {
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          Opt into release, momentum, and maintenance lanes. Weekly digest stays off until you enable it.
+          Opt into release, momentum, and maintenance lanes. Weekly digest stays off until you
+          enable it.
         </p>
       </CardHeader>
       <CardContent className="space-y-4 px-4">
@@ -88,7 +89,7 @@ export function AlertSettingsPanel() {
             return (
               <Button
                 key={lane}
-                variant={enabled ? "secondary" : "outline"}
+                variant={enabled ? 'secondary' : 'outline'}
                 size="sm"
                 disabled={saving}
                 onClick={() => saveRules({ lanes: toggleLane(rules.lanes, lane) })}
@@ -100,17 +101,15 @@ export function AlertSettingsPanel() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={rules.inAppNotifications ? "secondary" : "outline"}
+            variant={rules.inAppNotifications ? 'secondary' : 'outline'}
             size="sm"
             disabled={saving}
-            onClick={() =>
-              saveRules({ inAppNotifications: !rules.inAppNotifications })
-            }
+            onClick={() => saveRules({ inAppNotifications: !rules.inAppNotifications })}
           >
             In-app inbox
           </Button>
           <Button
-            variant={rules.weeklyDigest ? "secondary" : "outline"}
+            variant={rules.weeklyDigest ? 'secondary' : 'outline'}
             size="sm"
             disabled={saving}
             onClick={() => saveRules({ weeklyDigest: !rules.weeklyDigest })}

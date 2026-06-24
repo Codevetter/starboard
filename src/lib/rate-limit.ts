@@ -10,7 +10,7 @@ interface CloudflareContext {
 
 export async function isRateLimited(key: string): Promise<boolean> {
   try {
-    const mod = await import("@opennextjs/cloudflare");
+    const mod = await import('@opennextjs/cloudflare');
     const getCloudflareContext = mod.getCloudflareContext as () =>
       | CloudflareContext
       | Promise<CloudflareContext>;
@@ -19,7 +19,7 @@ export async function isRateLimited(key: string): Promise<boolean> {
     return result?.success === false;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.warn("Rate limiter unavailable; allowing request:", message);
+    console.warn('Rate limiter unavailable; allowing request:', message);
     return false;
   }
 }

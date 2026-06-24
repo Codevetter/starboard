@@ -1,8 +1,8 @@
-import { type NextRequest,NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { isRateLimited } from "@/lib/rate-limit";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { isRateLimited } from '@/lib/rate-limit';
 
 export async function POST(
   request: NextRequest,
@@ -10,35 +10,32 @@ export async function POST(
 ) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { repoId: rawRepoId, commentId: rawCommentId } = await params;
   const repoId = parseInt(rawRepoId, 10);
   const commentId = parseInt(rawCommentId, 10);
 
-  if (isNaN(repoId) || isNaN(commentId)) {
-    return NextResponse.json({ error: "Invalid ID" }, { status: 400 });
+  if (Number.isNaN(repoId) || Number.isNaN(commentId)) {
+    return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
   }
 
   let body: { value?: unknown };
   try {
     body = (await request.json()) as { value?: unknown };
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
   const value = body?.value;
   if (value !== 1 && value !== -1) {
-    return NextResponse.json(
-      { error: "value must be 1 or -1" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'value must be 1 or -1' }, { status: 400 });
   }
 
   const userId = session.user.githubId;
 
   if (await isRateLimited(userId)) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   try {
@@ -48,7 +45,7 @@ export async function POST(
       args: [commentId, repoId],
     });
     if (commentCheck.rows.length === 0) {
-      return NextResponse.json({ error: "Comment not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
     }
 
     // Fetch existing vote
@@ -58,9 +55,7 @@ export async function POST(
     });
 
     const existingVote =
-      existingResult.rows.length > 0
-        ? (existingResult.rows[0].value as 1 | -1)
-        : null;
+      existingResult.rows.length > 0 ? (existingResult.rows[0].value as 1 | -1) : null;
 
     if (existingVote === value) {
       // Toggle off — remove the vote
@@ -100,10 +95,7 @@ export async function POST(
 
     return NextResponse.json({ upvotes, downvotes, userVote });
   } catch (error) {
-    console.error("Failed to record vote:", error);
-    return NextResponse.json(
-      { error: "Failed to record vote" },
-      { status: 500 }
-    );
+    console.error('Failed to record vote:', error);
+    return NextResponse.json({ error: 'Failed to record vote' }, { status: 500 });
   }
 }

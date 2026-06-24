@@ -1,8 +1,8 @@
-import { type Client, createClient } from "@libsql/client";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { type Client, createClient } from '@libsql/client';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
-import { EMBEDDING_DIM } from "../lib/embeddings";
+import { EMBEDDING_DIM } from '../lib/embeddings';
 
 /**
  * Drop repo_embeddings + its vector index if the existing column type doesn't match
@@ -12,21 +12,21 @@ import { EMBEDDING_DIM } from "../lib/embeddings";
  * run. No-op when the dimension is already correct.
  */
 async function ensureEmbeddingDimension(db: Client): Promise<void> {
-  const info = await db.execute("PRAGMA table_info(repo_embeddings)");
+  const info = await db.execute('PRAGMA table_info(repo_embeddings)');
   if (info.rows.length === 0) return; // fresh DB — schema.sql creates it below
 
-  const embeddingCol = info.rows.find((row) => row.name === "embedding");
-  const type = (embeddingCol?.type as string | undefined) ?? "";
+  const embeddingCol = info.rows.find((row) => row.name === 'embedding');
+  const type = (embeddingCol?.type as string | undefined) ?? '';
   const match = type.match(/F32_BLOB\((\d+)\)/i);
   const currentDim = match ? parseInt(match[1], 10) : null;
 
   if (currentDim === EMBEDDING_DIM) return;
 
   console.warn(
-    `[migrate] repo_embeddings dimension is ${currentDim ?? "unknown"} (type="${type}"), expected ${EMBEDDING_DIM}. Dropping table + vector index for recreate.`
+    `[migrate] repo_embeddings dimension is ${currentDim ?? 'unknown'} (type="${type}"), expected ${EMBEDDING_DIM}. Dropping table + vector index for recreate.`
   );
-  await db.execute("DROP INDEX IF EXISTS idx_repo_embeddings_vec");
-  await db.execute("DROP TABLE IF EXISTS repo_embeddings");
+  await db.execute('DROP INDEX IF EXISTS idx_repo_embeddings_vec');
+  await db.execute('DROP TABLE IF EXISTS repo_embeddings');
 }
 
 async function migrate() {
@@ -36,31 +36,35 @@ async function migrate() {
   });
 
   // Drop old tables
-  await db.execute("DROP TABLE IF EXISTS repo_tags");
-  await db.execute("DROP TABLE IF EXISTS tags");
-  await db.execute("DROP TABLE IF EXISTS stars_cache");
-  await db.execute("DROP TABLE IF EXISTS collection_repos");
-  await db.execute("DROP TABLE IF EXISTS collections");
+  await db.execute('DROP TABLE IF EXISTS repo_tags');
+  await db.execute('DROP TABLE IF EXISTS tags');
+  await db.execute('DROP TABLE IF EXISTS stars_cache');
+  await db.execute('DROP TABLE IF EXISTS collection_repos');
+  await db.execute('DROP TABLE IF EXISTS collections');
 
   await ensureEmbeddingDimension(db);
 
   // Add new columns to user_lists (idempotent)
   const alters = [
-    "ALTER TABLE user_lists ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0",
-    "ALTER TABLE user_lists ADD COLUMN slug TEXT",
-    "ALTER TABLE user_lists ADD COLUMN description TEXT",
-    "ALTER TABLE user_repos ADD COLUMN is_starred INTEGER NOT NULL DEFAULT 1",
-    "ALTER TABLE user_repos ADD COLUMN is_saved INTEGER NOT NULL DEFAULT 0",
-    "ALTER TABLE repos ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+    'ALTER TABLE user_lists ADD COLUMN is_public INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE user_lists ADD COLUMN slug TEXT',
+    'ALTER TABLE user_lists ADD COLUMN description TEXT',
+    'ALTER TABLE user_repos ADD COLUMN is_starred INTEGER NOT NULL DEFAULT 1',
+    'ALTER TABLE user_repos ADD COLUMN is_saved INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE repos ADD COLUMN archived INTEGER NOT NULL DEFAULT 0',
   ];
   for (const sql of alters) {
-    try { await db.execute(sql); } catch { /* column already exists */ }
+    try {
+      await db.execute(sql);
+    } catch {
+      /* column already exists */
+    }
   }
 
   // Create new schema
-  const schema = readFileSync(join(__dirname, "schema.sql"), "utf-8");
+  const schema = readFileSync(join(__dirname, 'schema.sql'), 'utf-8');
   const statements = schema
-    .split(";")
+    .split(';')
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 
@@ -151,8 +155,12 @@ async function migrate() {
       PRIMARY KEY (user_id, repo_id, list_id)
     )
   `);
-  await db.execute("CREATE INDEX IF NOT EXISTS idx_user_repo_lists_user_list ON user_repo_lists(user_id, list_id)");
-  await db.execute("CREATE INDEX IF NOT EXISTS idx_user_repo_lists_repo ON user_repo_lists(repo_id)");
+  await db.execute(
+    'CREATE INDEX IF NOT EXISTS idx_user_repo_lists_user_list ON user_repo_lists(user_id, list_id)'
+  );
+  await db.execute(
+    'CREATE INDEX IF NOT EXISTS idx_user_repo_lists_repo ON user_repo_lists(repo_id)'
+  );
 
   await db.execute(`
     INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id)
@@ -201,11 +209,11 @@ async function migrate() {
     "UPDATE user_repos SET is_saved = 1 WHERE list_id IS NOT NULL OR tags != '[]' OR notes IS NOT NULL"
   );
 
-  console.info("Migration complete");
+  console.info('Migration complete');
   process.exit(0);
 }
 
 migrate().catch((err) => {
-  console.error("Migration failed:", err);
+  console.error('Migration failed:', err);
   process.exit(1);
 });

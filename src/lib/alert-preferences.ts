@@ -1,4 +1,4 @@
-import type { RadarLane } from "@/lib/release-radar";
+import type { RadarLane } from '@/lib/release-radar';
 
 export type AlertLane = RadarLane;
 
@@ -18,7 +18,7 @@ export const DEFAULT_ALERT_RULES: AlertRules = {
   dormantDays: 365,
 };
 
-const VALID_LANES = new Set<AlertLane>(["release", "maintenance", "momentum"]);
+const VALID_LANES = new Set<AlertLane>(['release', 'maintenance', 'momentum']);
 
 export function parseAlertRules(raw: string | null | undefined): AlertRules {
   if (!raw) return { ...DEFAULT_ALERT_RULES };
@@ -32,11 +32,11 @@ export function parseAlertRules(raw: string | null | undefined): AlertRules {
       weeklyDigest: Boolean(parsed.weeklyDigest),
       inAppNotifications: Boolean(parsed.inAppNotifications),
       momentumMinDelta:
-        typeof parsed.momentumMinDelta === "number" && parsed.momentumMinDelta > 0
+        typeof parsed.momentumMinDelta === 'number' && parsed.momentumMinDelta > 0
           ? Math.round(parsed.momentumMinDelta)
           : DEFAULT_ALERT_RULES.momentumMinDelta,
       dormantDays:
-        typeof parsed.dormantDays === "number" && parsed.dormantDays >= 90
+        typeof parsed.dormantDays === 'number' && parsed.dormantDays >= 90
           ? Math.round(parsed.dormantDays)
           : DEFAULT_ALERT_RULES.dormantDays,
     };
@@ -55,10 +55,7 @@ export function serializeAlertRules(rules: AlertRules): string {
   });
 }
 
-export function mergeAlertRules(
-  current: AlertRules,
-  patch: Partial<AlertRules>
-): AlertRules {
+export function mergeAlertRules(current: AlertRules, patch: Partial<AlertRules>): AlertRules {
   return {
     lanes: patch.lanes ?? current.lanes,
     weeklyDigest: patch.weeklyDigest ?? current.weeklyDigest,

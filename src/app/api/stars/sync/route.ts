@@ -1,29 +1,26 @@
-import type { InStatement } from "@libsql/client";
-import { NextResponse } from "next/server";
+import type { InStatement } from '@libsql/client';
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { trackActivated, trackCoreAction } from "@/lib/analytics";
-import { auth } from "@/lib/auth";
-import { buildRepoEmbeddingText, generateEmbeddings, textHash } from "@/lib/embeddings";
-import { fetchAllStarredRepos } from "@/lib/github";
+import { db } from '@/db';
+import { trackActivated, trackCoreAction } from '@/lib/analytics';
+import { auth } from '@/lib/auth';
+import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
+import { fetchAllStarredRepos } from '@/lib/github';
 import {
   fetchPublicStarListRepoNames,
   fetchPublicStarLists,
   type GitHubStarList,
-} from "@/lib/github-lists";
-import { ingestStarboardRagDocuments } from "@/lib/knowledgebase";
-import { isRateLimited } from "@/lib/rate-limit";
-import {
-  buildStarboardRagDocument,
-  fetchRepoReadmes,
-} from "@/lib/starboard-rag-documents";
+} from '@/lib/github-lists';
+import { ingestStarboardRagDocuments } from '@/lib/knowledgebase';
+import { isRateLimited } from '@/lib/rate-limit';
+import { buildStarboardRagDocument, fetchRepoReadmes } from '@/lib/starboard-rag-documents';
 
 const BOGUS_IMPORTED_SORT_LISTS = new Set([
-  "name ascending (a-z)",
-  "name descending (z-a)",
-  "newest",
-  "oldest",
-  "last updated",
+  'name ascending (a-z)',
+  'name descending (z-a)',
+  'newest',
+  'oldest',
+  'last updated',
 ]);
 
 interface GitHubListSyncResult {
@@ -36,13 +33,13 @@ export async function POST() {
   const session = await auth();
 
   if (!session?.accessToken || !session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = session.user.githubId;
 
   if (await isRateLimited(userId)) {
-    return NextResponse.json({ error: "Rate limit exceeded" }, { status: 429 });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   try {
@@ -69,7 +66,7 @@ export async function POST() {
     const freshIds = new Set(freshRepos.map((r) => r.id));
 
     const existing = await db.execute({
-      sql: "SELECT repo_id FROM user_repos WHERE user_id = ? AND is_starred = 1",
+      sql: 'SELECT repo_id FROM user_repos WHERE user_id = ? AND is_starred = 1',
       args: [userId],
     });
     const existingIds = new Set(existing.rows.map((r) => r.repo_id as number));
@@ -96,10 +93,19 @@ export async function POST() {
                 topics = excluded.topics,
                 repo_updated_at = excluded.repo_updated_at`,
         args: [
-          repo.id, repo.name, repo.full_name, repo.owner.login, repo.owner.avatar_url,
-          repo.html_url, repo.description, repo.language, repo.stargazers_count,
+          repo.id,
+          repo.name,
+          repo.full_name,
+          repo.owner.login,
+          repo.owner.avatar_url,
+          repo.html_url,
+          repo.description,
+          repo.language,
+          repo.stargazers_count,
           repo.archived ? 1 : 0,
-          JSON.stringify(repo.topics), repo.created_at, repo.updated_at,
+          JSON.stringify(repo.topics),
+          repo.created_at,
+          repo.updated_at,
         ],
       });
       statements.push({
@@ -136,7 +142,7 @@ export async function POST() {
     // Owner-facing analytics — a completed sync is the core action.
     // If the user had no starred repos before this sync, this is their
     // first real value: fire `activated` once.
-    trackCoreAction("repos_synced", userId);
+    trackCoreAction('repos_synced', userId);
     if (existingIds.size === 0 && freshRepos.length > 0) {
       trackActivated(userId);
     }
@@ -147,7 +153,7 @@ export async function POST() {
 
     let removedRepos: { id: number; full_name: string; description: string | null }[] = [];
     if (removedIds.length > 0) {
-      const placeholders = removedIds.map(() => "?").join(",");
+      const placeholders = removedIds.map(() => '?').join(',');
       const removedResult = await db.execute({
         sql: `SELECT id, full_name, description FROM repos WHERE id IN (${placeholders})`,
         args: removedIds,
@@ -179,27 +185,23 @@ export async function POST() {
       try {
         const embeddings = await generateEmbeddings(texts);
         const embStmts: InStatement[] = added.map((r, i) => ({
-          sql: "INSERT OR REPLACE INTO repo_embeddings (repo_id, embedding, text_hash) VALUES (?, vector(?), ?)",
+          sql: 'INSERT OR REPLACE INTO repo_embeddings (repo_id, embedding, text_hash) VALUES (?, vector(?), ?)',
           args: [r.id, JSON.stringify(embeddings[i]), textHash(texts[i])],
         }));
         await db.batch(embStmts);
         embedded = added.length;
       } catch (error) {
-        console.warn("Embedding generation failed:", error);
+        console.warn('Embedding generation failed:', error);
       }
 
       try {
         const readmes = await readmesPromise;
         ragReadmesFetched = readmes.size;
         ragIngested = await ingestStarboardRagDocuments(
-          added.map((repo) => buildStarboardRagDocument(
-            userId,
-            repo,
-            readmes.get(repo.full_name)
-          ))
+          added.map((repo) => buildStarboardRagDocument(userId, repo, readmes.get(repo.full_name)))
         );
       } catch (error) {
-        console.warn("knowledgebase ingest failed:", error);
+        console.warn('knowledgebase ingest failed:', error);
       }
     }
 
@@ -215,19 +217,19 @@ export async function POST() {
       unchanged: added.length === 0 && removedIds.length === 0 && !githubSync.changed,
     });
   } catch (error) {
-    console.error("Sync failed:", error);
-    return NextResponse.json({ error: "Sync failed" }, { status: 500 });
+    console.error('Sync failed:', error);
+    return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
   }
 }
 
 async function getGitHubUsername(userId: string): Promise<string | null> {
   const result = await db.execute({
-    sql: "SELECT username FROM users WHERE id = ?",
+    sql: 'SELECT username FROM users WHERE id = ?',
     args: [userId],
   });
 
   const username = result.rows[0]?.username;
-  return typeof username === "string" && username.trim().length > 0 ? username : null;
+  return typeof username === 'string' && username.trim().length > 0 ? username : null;
 }
 
 async function syncGitHubLists(
@@ -263,7 +265,7 @@ async function syncGitHubLists(
       .map((list) => list.id);
 
     if (bogusSortListIds.length > 0) {
-      const placeholders = bogusSortListIds.map(() => "?").join(",");
+      const placeholders = bogusSortListIds.map(() => '?').join(',');
       await db.execute({
         sql: `DELETE FROM user_lists WHERE user_id = ? AND id IN (${placeholders})`,
         args: [userId, ...bogusSortListIds],
@@ -295,10 +297,11 @@ async function syncGitHubLists(
 
         if (
           existingMatch.name !== list.name ||
-          normalizeNullableText(existingMatch.description) !== normalizeNullableText(list.description)
+          normalizeNullableText(existingMatch.description) !==
+            normalizeNullableText(list.description)
         ) {
           await db.execute({
-            sql: "UPDATE user_lists SET name = ?, description = ? WHERE id = ? AND user_id = ?",
+            sql: 'UPDATE user_lists SET name = ?, description = ? WHERE id = ? AND user_id = ?',
             args: [list.name, list.description, existingMatch.id, userId],
           });
           importedLists.push(list.name);
@@ -309,11 +312,11 @@ async function syncGitHubLists(
       }
 
       const insertResult = await db.execute({
-        sql: "INSERT INTO user_lists (user_id, name, color, icon, position, description) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
-        args: [userId, list.name, "#6366f1", null, nextPosition, list.description],
+        sql: 'INSERT INTO user_lists (user_id, name, color, icon, position, description) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
+        args: [userId, list.name, '#6366f1', null, nextPosition, list.description],
       });
       const listId = insertResult.rows[0]?.id as number | undefined;
-      if (typeof listId === "number") {
+      if (typeof listId === 'number') {
         githubListIds.set(list.slug, listId);
       }
       importedLists.push(list.name);
@@ -347,7 +350,7 @@ async function syncGitHubLists(
       }
     }
 
-    const placeholders = importedListIds.map(() => "?").join(",");
+    const placeholders = importedListIds.map(() => '?').join(',');
     const currentAssignmentsResult = await db.execute({
       sql: `SELECT url.repo_id, url.list_id
             FROM user_repo_lists url
@@ -370,9 +373,9 @@ async function syncGitHubLists(
 
       const assignmentStatements: InStatement[] = [];
       for (const value of missingAssignments) {
-        const [repoId, listId] = value.split(":").map(Number);
+        const [repoId, listId] = value.split(':').map(Number);
         assignmentStatements.push({
-          sql: "INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id) VALUES (?, ?, ?)",
+          sql: 'INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id) VALUES (?, ?, ?)',
           args: [userId, repoId, listId],
         });
       }
@@ -385,7 +388,7 @@ async function syncGitHubLists(
       changed,
     };
   } catch (error) {
-    console.warn("GitHub list import skipped:", error);
+    console.warn('GitHub list import skipped:', error);
     return emptyGitHubListSync();
   }
 }
@@ -427,7 +430,7 @@ function normalizeListName(name: string): string {
 }
 
 function normalizeNullableText(value: string | null): string {
-  return value?.trim() ?? "";
+  return value?.trim() ?? '';
 }
 
 function normalizeRepoFullName(value: string): string {

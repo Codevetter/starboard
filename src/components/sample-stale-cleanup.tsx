@@ -1,6 +1,6 @@
-import { Archive, CheckCircle2, Trash2 } from "lucide-react";
+import { Archive, CheckCircle2, Trash2 } from 'lucide-react';
 
-type Verdict = "keep" | "remove";
+type Verdict = 'keep' | 'remove';
 
 type StaleRepo = {
   owner: string;
@@ -13,63 +13,63 @@ type StaleRepo = {
 
 const STALE_REPOS: StaleRepo[] = [
   {
-    owner: "atom",
-    name: "atom",
-    starredAgo: "2 yr ago",
-    lastActivity: "Archived Dec 2022",
-    verdict: "remove",
-    reason: "Officially archived by GitHub. No future releases. Successor is Pulsar.",
+    owner: 'atom',
+    name: 'atom',
+    starredAgo: '2 yr ago',
+    lastActivity: 'Archived Dec 2022',
+    verdict: 'remove',
+    reason: 'Officially archived by GitHub. No future releases. Successor is Pulsar.',
   },
   {
-    owner: "adobe",
-    name: "brackets",
-    starredAgo: "3 yr ago",
-    lastActivity: "Last commit 4 yr ago",
-    verdict: "remove",
-    reason: "Project sunset in 2021. Archived repo with no ongoing maintenance.",
+    owner: 'adobe',
+    name: 'brackets',
+    starredAgo: '3 yr ago',
+    lastActivity: 'Last commit 4 yr ago',
+    verdict: 'remove',
+    reason: 'Project sunset in 2021. Archived repo with no ongoing maintenance.',
   },
   {
-    owner: "nicolodavis",
-    name: "boardgame.io",
-    starredAgo: "18 mo ago",
-    lastActivity: "Last commit 22 mo ago",
-    verdict: "remove",
-    reason: "Repo has stalled — no releases or activity in almost 2 years.",
+    owner: 'nicolodavis',
+    name: 'boardgame.io',
+    starredAgo: '18 mo ago',
+    lastActivity: 'Last commit 22 mo ago',
+    verdict: 'remove',
+    reason: 'Repo has stalled — no releases or activity in almost 2 years.',
   },
   {
-    owner: "tiangolo",
-    name: "fastapi",
-    starredAgo: "1 yr ago",
-    lastActivity: "Committed 2d ago",
-    verdict: "keep",
-    reason: "High-velocity project — 40+ commits/month. Release notes worth tracking.",
+    owner: 'tiangolo',
+    name: 'fastapi',
+    starredAgo: '1 yr ago',
+    lastActivity: 'Committed 2d ago',
+    verdict: 'keep',
+    reason: 'High-velocity project — 40+ commits/month. Release notes worth tracking.',
   },
   {
-    owner: "tokio-rs",
-    name: "axum",
-    starredAgo: "8 mo ago",
-    lastActivity: "Released 5d ago",
-    verdict: "keep",
-    reason: "Active Rust web framework. New patch release this week, used in prod.",
+    owner: 'tokio-rs',
+    name: 'axum',
+    starredAgo: '8 mo ago',
+    lastActivity: 'Released 5d ago',
+    verdict: 'keep',
+    reason: 'Active Rust web framework. New patch release this week, used in prod.',
   },
 ];
 
 const verdictStyle: Record<Verdict, { row: string; badge: string; icon: React.ReactNode }> = {
   remove: {
-    row: "border-l-2 border-l-rose-500/60",
-    badge: "bg-rose-500/10 text-rose-500 border-rose-500/20",
+    row: 'border-l-2 border-l-rose-500/60',
+    badge: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
     icon: <Trash2 className="size-3 shrink-0" />,
   },
   keep: {
-    row: "border-l-2 border-l-emerald-500/60",
-    badge: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+    row: 'border-l-2 border-l-emerald-500/60',
+    badge: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20',
     icon: <CheckCircle2 className="size-3 shrink-0" />,
   },
 };
 
 export function SampleStaleCleanup() {
-  const removeCount = STALE_REPOS.filter((r) => r.verdict === "remove").length;
-  const keepCount = STALE_REPOS.filter((r) => r.verdict === "keep").length;
+  const removeCount = STALE_REPOS.filter((r) => r.verdict === 'remove').length;
+  const keepCount = STALE_REPOS.filter((r) => r.verdict === 'keep').length;
 
   return (
     <div
@@ -119,9 +119,7 @@ export function SampleStaleCleanup() {
                     {repo.verdict}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[10px] italic text-muted-foreground/70">
-                  {repo.reason}
-                </p>
+                <p className="mt-0.5 text-[10px] italic text-muted-foreground/70">{repo.reason}</p>
                 <div className="mt-1 flex items-center gap-3 text-[10px] text-muted-foreground">
                   <span>Starred {repo.starredAgo}</span>
                   <span className="text-muted-foreground/50">·</span>

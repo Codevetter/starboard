@@ -1,4 +1,4 @@
-import { onLCP, onCLS, onINP, onTTFB, onFCP } from "web-vitals";
+import { onLCP, onCLS, onINP, onTTFB, onFCP } from 'web-vitals';
 
 interface VitalMetric {
   name: string;
@@ -10,8 +10,8 @@ interface VitalMetric {
 
 function sendToAnalytics(metric: VitalMetric) {
   const posthog = (window as any).posthog;
-  if (posthog && typeof posthog.capture === "function") {
-    posthog.capture("web_vital", {
+  if (posthog && typeof posthog.capture === 'function') {
+    posthog.capture('web_vital', {
       name: metric.name,
       value: Math.round(metric.value),
       rating: metric.rating,
@@ -20,10 +20,10 @@ function sendToAnalytics(metric: VitalMetric) {
     });
   } else {
     const body = JSON.stringify({
-      project: process.env.NEXT_PUBLIC_PROJECT_SLUG ?? "starboard",
+      project: process.env.NEXT_PUBLIC_PROJECT_SLUG ?? 'starboard',
       ...metric,
     });
-    navigator.sendBeacon("https://vitals.fleet.workers.dev/collect", body);
+    navigator.sendBeacon('https://vitals.fleet.workers.dev/collect', body);
   }
 }
 

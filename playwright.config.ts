@@ -10,28 +10,28 @@
  * NOTE: `@playwright/test` is not yet a dependency. Install it before running:
  *   pnpm add -D @playwright/test && pnpm exec playwright install --with-deps
  */
-import { defineConfig, devices } from "@playwright/test";
+import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
-  testDir: "./e2e",
+  testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  reporter: "list",
+  reporter: 'list',
   use: {
-    baseURL: "http://localhost:3000",
-    trace: "on-first-retry",
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
   },
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3000",
+    command: 'pnpm dev',
+    url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },
   projects: [
     // Desktop baseline.
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
     // Mobile-viewport project — iPhone 13 is 390px wide, the mobile target.
-    { name: "mobile", use: { ...devices["iPhone 13"] } },
+    { name: 'mobile', use: { ...devices['iPhone 13'] } },
   ],
 });

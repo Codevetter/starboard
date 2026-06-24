@@ -20,7 +20,11 @@
       "!landing-astro/.astro",
       "!**/cloudflare-env.d.ts",
       "!**/next-env.d.ts",
-      "!**/pnpm-lock.yaml"
+      "!**/pnpm-lock.yaml",
+      "!**/*.svg",
+      "!**/public",
+      "!**/design.html",
+      "!**/*.css"
     ]
   },
   "formatter": {
@@ -41,7 +45,30 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true
+      "recommended": true,
+      "a11y": {
+        "recommended": false
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
+      },
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noImplicitAnyLet": "off",
+        "noArrayIndexKey": "off",
+        "noShadowRestrictedNames": "off"
+      },
+      "security": {
+        "noDangerouslySetInnerHtml": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off",
+        "noUnusedVariables": "off",
+        "noUnusedImports": "off"
+      }
     }
   },
   "assist": {

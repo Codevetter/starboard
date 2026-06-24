@@ -1,31 +1,31 @@
-import type { InStatement, InValue } from "@libsql/client";
-import { type NextRequest, NextResponse } from "next/server";
+import type { InStatement, InValue } from '@libsql/client';
+import { type NextRequest, NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { searchStarboardRag } from "@/lib/knowledgebase";
-import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from "@/lib/search";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { searchStarboardRag } from '@/lib/knowledgebase';
+import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
 
 export async function GET(request: NextRequest) {
   const session = await auth();
 
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const userId = session.user.githubId;
   const params = request.nextUrl.searchParams;
 
   // Parse query params
-  const q = params.get("q")?.trim() || null;
-  const languages = params.get("language")?.split(",").filter(Boolean) || [];
-  const listId = params.get("list_id");
-  const sort = params.get("sort") || "starred";
-  const limit = Math.min(Math.max(parseInt(params.get("limit") || "50", 10) || 50, 1), 200);
-  const offset = Math.max(parseInt(params.get("offset") || "0", 10) || 0, 0);
+  const q = params.get('q')?.trim() || null;
+  const languages = params.get('language')?.split(',').filter(Boolean) || [];
+  const listId = params.get('list_id');
+  const sort = params.get('sort') || 'starred';
+  const limit = Math.min(Math.max(parseInt(params.get('limit') || '50', 10) || 50, 1), 200);
+  const offset = Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0);
 
   // Build dynamic WHERE clauses
-  const whereClauses: string[] = ["ur.user_id = ?", "(ur.is_starred = 1 OR ur.is_saved = 1)"];
+  const whereClauses: string[] = ['ur.user_id = ?', '(ur.is_starred = 1 OR ur.is_saved = 1)'];
   const whereArgs: InValue[] = [userId];
 
   // Hybrid search: rank-fuse lexical (LIKE w/ column priority) + vector (cosine).
@@ -35,12 +35,13 @@ export async function GET(request: NextRequest) {
     const lexicalQuery = ftsSearchQuery(q);
     const RRF_K = 60;
     const VEC_TOP_K = 500;
-    const useSemanticSearch = sort === "relevance";
+    const useSemanticSearch = sort === 'relevance';
 
     // 1. Lexical matches through FTS5 over repo name/full_name/description/language/topics.
     const lexIdsPromise = lexicalQuery
-      ? db.execute({
-          sql: `SELECT r.id,
+      ? db
+          .execute({
+            sql: `SELECT r.id,
                        MIN(rank) AS best_rank
                 FROM (
                   SELECT r.id AS id,
@@ -63,8 +64,9 @@ export async function GET(request: NextRequest) {
                 GROUP BY r.id
                 ORDER BY best_rank ASC, r.stargazers_count DESC
                 LIMIT 500`,
-          args: [userId, lexicalQuery, userId, lexicalQuery],
-        }).then((result) => result.rows.map((r) => r.id as number))
+            args: [userId, lexicalQuery, userId, lexicalQuery],
+          })
+          .then((result) => result.rows.map((r) => r.id as number))
       : Promise.resolve([]);
 
     // 2. Semantic matches come only from the shared knowledgebase Worker.
@@ -74,7 +76,7 @@ export async function GET(request: NextRequest) {
       ? searchStarboardRag(userId, expandedSearchQuery(q), VEC_TOP_K)
           .then((ragIds) => ragIds ?? [])
           .catch((e) => {
-            console.warn("knowledgebase RAG search failed:", e);
+            console.warn('knowledgebase RAG search failed:', e);
             return [];
           })
       : Promise.resolve([]);
@@ -85,46 +87,43 @@ export async function GET(request: NextRequest) {
 
     if (fused.length > 0) {
       rankedRepoIds = fused;
-      const placeholders = fused.map(() => "?").join(", ");
+      const placeholders = fused.map(() => '?').join(', ');
       whereClauses.push(`r.id IN (${placeholders})`);
       whereArgs.push(...fused);
     } else {
       // No matches — keep the filtered result empty instead of returning the whole library.
-      whereClauses.push("0 = 1");
+      whereClauses.push('0 = 1');
     }
   }
 
   if (languages.length > 0) {
-    const placeholders = languages.map(() => "?").join(", ");
+    const placeholders = languages.map(() => '?').join(', ');
     whereClauses.push(`r.language IN (${placeholders})`);
     whereArgs.push(...languages);
   }
 
   if (listId !== null) {
     whereClauses.push(
-      "EXISTS (SELECT 1 FROM user_repo_lists url WHERE url.user_id = ur.user_id AND url.repo_id = ur.repo_id AND url.list_id = ?)"
+      'EXISTS (SELECT 1 FROM user_repo_lists url WHERE url.user_id = ur.user_id AND url.repo_id = ur.repo_id AND url.list_id = ?)'
     );
     whereArgs.push(parseInt(listId, 10));
   }
 
-  const whereSQL = whereClauses.join(" AND ");
+  const whereSQL = whereClauses.join(' AND ');
 
   // Sort mapping — use ranked order (exact first, then semantic) with default sort
-  const useRankedOrder =
-    rankedRepoIds &&
-    rankedRepoIds.length > 0 &&
-    sort === "relevance";
+  const useRankedOrder = rankedRepoIds && rankedRepoIds.length > 0 && sort === 'relevance';
   const orderByMap: Record<string, string> = {
-    relevance: "ur.starred_at DESC",
-    starred: "ur.starred_at DESC",
-    stars: "r.stargazers_count DESC",
-    updated: "r.repo_updated_at DESC, r.stargazers_count DESC",
-    name: "r.name ASC",
+    relevance: 'ur.starred_at DESC',
+    starred: 'ur.starred_at DESC',
+    stars: 'r.stargazers_count DESC',
+    updated: 'r.repo_updated_at DESC, r.stargazers_count DESC',
+    name: 'r.name ASC',
   };
   let orderBy: string;
   if (useRankedOrder) {
     // Exact matches first (lower index), then semantic matches in similarity order
-    const caseLines = rankedRepoIds!.map((id, i) => `WHEN ${id} THEN ${i}`).join(" ");
+    const caseLines = rankedRepoIds!.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
     orderBy = `CASE r.id ${caseLines} ELSE 999999 END`;
   } else {
     orderBy = orderByMap[sort] || orderByMap.starred;
@@ -200,11 +199,11 @@ export async function GET(request: NextRequest) {
       language: row.language as string | null,
       stargazers_count: row.stargazers_count as number,
       archived: Boolean(row.archived),
-      topics: JSON.parse((row.topics as string) || "[]"),
+      topics: JSON.parse((row.topics as string) || '[]'),
       created_at: row.repo_created_at as string,
       updated_at: row.repo_updated_at as string,
       list_id: row.list_id as number | null,
-      collection_ids: JSON.parse((row.collection_ids as string) || "[]"),
+      collection_ids: JSON.parse((row.collection_ids as string) || '[]'),
       tags: [],
       notes: row.notes as string | null,
       starred_at: row.starred_at as string,
@@ -238,7 +237,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Failed to fetch stars:", error);
-    return NextResponse.json({ error: "Failed to fetch stars" }, { status: 500 });
+    console.error('Failed to fetch stars:', error);
+    return NextResponse.json({ error: 'Failed to fetch stars' }, { status: 500 });
   }
 }

@@ -1,12 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
 
-import { db } from "@/db";
-import { auth } from "@/lib/auth";
-import { getFleetProject } from "@/lib/fleet-project-data";
-import {
-  buildProjectRecommendationReport,
-  type FleetRepoCandidate,
-} from "@/lib/fleet-projects";
+import { db } from '@/db';
+import { auth } from '@/lib/auth';
+import { getFleetProject } from '@/lib/fleet-project-data';
+import { buildProjectRecommendationReport, type FleetRepoCandidate } from '@/lib/fleet-projects';
 import {
   generateUniqueReportSlug,
   type InsightReportType,
@@ -14,9 +11,9 @@ import {
   serializeInsightReportPayload,
   serializeProjectRecommendations,
   serializeRadarReport,
-} from "@/lib/insight-reports";
-import { buildMaintainerDigest, type MaintainerDigestRepoInput } from "@/lib/maintainer-digest";
-import { buildRadarReport, type RadarRepoInput } from "@/lib/release-radar";
+} from '@/lib/insight-reports';
+import { buildMaintainerDigest, type MaintainerDigestRepoInput } from '@/lib/maintainer-digest';
+import { buildRadarReport, type RadarRepoInput } from '@/lib/release-radar';
 
 interface CreateReportBody {
   type: InsightReportType;
@@ -27,7 +24,7 @@ interface CreateReportBody {
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user?.githubId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const body = (await request.json()) as CreateReportBody;
@@ -37,30 +34,30 @@ export async function POST(request: Request) {
   let title: string;
   const reportType = body.type;
 
-  if (reportType === "radar") {
+  if (reportType === 'radar') {
     const repos = await loadRadarRepos(session.user.githubId);
     payload = serializeRadarReport(buildRadarReport(repos), { redactPrivate });
     title = payload.title;
-  } else if (reportType === "cleanup") {
+  } else if (reportType === 'cleanup') {
     const repos = await loadMaintainerRepos(session.user.githubId);
     payload = serializeCleanupDigest(buildMaintainerDigest(repos), { redactPrivate });
     title = payload.title;
-  } else if (reportType === "project-recommendations") {
+  } else if (reportType === 'project-recommendations') {
     const project = body.projectSlug ? getFleetProject(body.projectSlug) : null;
     if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
     const candidates = await loadCandidateRepos(session.user.githubId);
     const report = buildProjectRecommendationReport(project, candidates, { limit: 20 });
     payload = serializeProjectRecommendations(report, { redactPrivate });
     title = payload.title;
   } else {
-    return NextResponse.json({ error: "Invalid report type" }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid report type' }, { status: 400 });
   }
 
   const slug = await generateUniqueReportSlug(title, async (candidate) => {
     const existing = await db.execute({
-      sql: "SELECT 1 FROM insight_reports WHERE slug = ? LIMIT 1",
+      sql: 'SELECT 1 FROM insight_reports WHERE slug = ? LIMIT 1',
       args: [candidate],
     });
     return existing.rows.length > 0;
@@ -140,7 +137,7 @@ async function loadRadarRepos(userId: string): Promise<RadarRepoInput[]> {
     language: row.language as string | null,
     stargazersCount: row.stargazers_count as number,
     archived: Boolean(row.archived),
-    topics: JSON.parse((row.topics as string) || "[]"),
+    topics: JSON.parse((row.topics as string) || '[]'),
     repoUpdatedAt: row.repo_updated_at as string | null,
     starredAt: row.starred_at as string | null,
     starsThirtyDaysAgo: row.stars_30d_ago as number | null,
@@ -271,7 +268,7 @@ function parseStringArray(value: string | null | undefined): string[] {
   try {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === "string")
+      ? parsed.filter((item): item is string => typeof item === 'string')
       : [];
   } catch {
     return [];

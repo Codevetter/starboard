@@ -1,14 +1,10 @@
-"use client";
+'use client';
 
-import { Bookmark, BookmarkX, ListPlus, Loader2, Rows3, X } from "lucide-react";
+import { Bookmark, BookmarkX, ListPlus, Loader2, Rows3, X } from 'lucide-react';
 
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import type { UserList } from "@/hooks/use-lists";
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import type { UserList } from '@/hooks/use-lists';
 
 interface BulkActionBarProps {
   selectedCount: number;
@@ -59,7 +55,7 @@ export function BulkActionBar({
             className="gap-1.5"
             onClick={onCompare}
             disabled={busy || selectedCount < 2}
-            title={selectedCount < 2 ? "Select 2 or more to compare" : "Compare side-by-side"}
+            title={selectedCount < 2 ? 'Select 2 or more to compare' : 'Compare side-by-side'}
           >
             <Rows3 className="size-3.5" />
             <span className="hidden sm:inline">Compare</span>
@@ -72,7 +68,7 @@ export function BulkActionBar({
                 size="sm"
                 className="gap-1.5"
                 disabled={busy || lists.length === 0}
-                title={lists.length === 0 ? "Create a collection first" : "Add to collection"}
+                title={lists.length === 0 ? 'Create a collection first' : 'Add to collection'}
               >
                 <ListPlus className="size-3.5" />
                 <span className="hidden sm:inline">Add to</span>
@@ -97,9 +93,7 @@ export function BulkActionBar({
                 </button>
               ))}
               {lists.length === 0 && (
-                <p className="px-2 py-2 text-xs text-muted-foreground">
-                  No collections yet.
-                </p>
+                <p className="px-2 py-2 text-xs text-muted-foreground">No collections yet.</p>
               )}
             </PopoverContent>
           </Popover>

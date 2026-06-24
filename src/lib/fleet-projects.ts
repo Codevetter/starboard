@@ -1,12 +1,12 @@
-export type FleetRecommendationAction = "use-now" | "prototype" | "research" | "skip";
-export type FleetProjectMaturity = "public" | "public-ready" | "internal-first";
+export type FleetRecommendationAction = 'use-now' | 'prototype' | 'research' | 'skip';
+export type FleetProjectMaturity = 'public' | 'public-ready' | 'internal-first';
 
 export interface FleetFeatureArea {
   id: string;
   label: string;
   description: string;
   keywords: string[];
-  source: "inferred" | "status" | "readme" | "registry";
+  source: 'inferred' | 'status' | 'readme' | 'registry';
 }
 
 export interface FleetProjectSnapshot {
@@ -96,180 +96,306 @@ export type SemanticDistanceMap = Map<string, number>;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 const GENERIC_TOKENS = new Set([
-  "app",
-  "apps",
-  "and",
-  "any",
-  "are",
-  "auth",
-  "based",
-  "build",
-  "built",
-  "code",
-  "com",
-  "current",
-  "data",
-  "dev",
-  "docs",
-  "done",
-  "for",
-  "from",
-  "generated",
-  "github",
-  "helper",
-  "http",
-  "https",
-  "into",
-  "local",
-  "main",
-  "many",
-  "more",
-  "next",
-  "one",
-  "open",
-  "platform",
-  "platform.",
-  "project",
-  "projects",
-  "public",
-  "repo",
-  "repos",
-  "service",
-  "source",
-  "stack",
-  "system",
-  "that",
-  "the",
-  "them",
-  "tool",
-  "tools",
-  "type",
-  "typed",
-  "typescript",
-  "use",
-  "uses",
-  "using",
-  "user",
-  "users",
-  "via",
-  "web",
-  "with",
-  "your",
+  'app',
+  'apps',
+  'and',
+  'any',
+  'are',
+  'auth',
+  'based',
+  'build',
+  'built',
+  'code',
+  'com',
+  'current',
+  'data',
+  'dev',
+  'docs',
+  'done',
+  'for',
+  'from',
+  'generated',
+  'github',
+  'helper',
+  'http',
+  'https',
+  'into',
+  'local',
+  'main',
+  'many',
+  'more',
+  'next',
+  'one',
+  'open',
+  'platform',
+  'platform.',
+  'project',
+  'projects',
+  'public',
+  'repo',
+  'repos',
+  'service',
+  'source',
+  'stack',
+  'system',
+  'that',
+  'the',
+  'them',
+  'tool',
+  'tools',
+  'type',
+  'typed',
+  'typescript',
+  'use',
+  'uses',
+  'using',
+  'user',
+  'users',
+  'via',
+  'web',
+  'with',
+  'your',
 ]);
 
 const LOW_VALUE_MATCH_TERMS = new Set([
-  "code",
-  "edge",
-  "interactive",
-  "model",
-  "models",
-  "next",
-  "react",
-  "runtime",
-  "system",
-  "systems",
-  "tool",
-  "tools",
-  "user",
-  "users",
-  "workflow",
-  "workflows",
+  'code',
+  'edge',
+  'interactive',
+  'model',
+  'models',
+  'next',
+  'react',
+  'runtime',
+  'system',
+  'systems',
+  'tool',
+  'tools',
+  'user',
+  'users',
+  'workflow',
+  'workflows',
 ]);
 
 const LOW_VALUE_PROJECT_OVERLAP = new Set([
   ...GENERIC_TOKENS,
-  "actions",
-  "api",
-  "core",
-  "deploy",
-  "google",
-  "node",
-  "openai",
-  "product",
-  "software",
-  "storage",
-  "worker",
-  "workers",
+  'actions',
+  'api',
+  'core',
+  'deploy',
+  'google',
+  'node',
+  'openai',
+  'product',
+  'software',
+  'storage',
+  'worker',
+  'workers',
 ]);
 
-const FEATURE_RULES: Omit<FleetFeatureArea, "source">[] = [
+const FEATURE_RULES: Omit<FleetFeatureArea, 'source'>[] = [
   {
-    id: "repo-intelligence",
-    label: "Repo intelligence",
-    description: "Repository understanding, metadata enrichment, code review, and evidence reports.",
-    keywords: ["review", "static", "analysis", "diff", "history", "evidence", "verification"],
+    id: 'repo-intelligence',
+    label: 'Repo intelligence',
+    description:
+      'Repository understanding, metadata enrichment, code review, and evidence reports.',
+    keywords: ['review', 'static', 'analysis', 'diff', 'history', 'evidence', 'verification'],
   },
   {
-    id: "ai-agents",
-    label: "AI agents",
-    description: "Agents, tool use, workflows, orchestration, RAG, evals, and model integration.",
-    keywords: ["ai", "agent", "agents", "llm", "rag", "embedding", "eval", "model", "prompt", "workflow", "inference"],
+    id: 'ai-agents',
+    label: 'AI agents',
+    description: 'Agents, tool use, workflows, orchestration, RAG, evals, and model integration.',
+    keywords: [
+      'ai',
+      'agent',
+      'agents',
+      'llm',
+      'rag',
+      'embedding',
+      'eval',
+      'model',
+      'prompt',
+      'workflow',
+      'inference',
+    ],
   },
   {
-    id: "search-discovery",
-    label: "Search and discovery",
-    description: "Search, ranking, recommendations, feeds, semantic retrieval, and discovery UX.",
-    keywords: ["search", "discovery", "recommend", "ranking", "semantic", "feed", "index", "retrieval", "similar"],
+    id: 'search-discovery',
+    label: 'Search and discovery',
+    description: 'Search, ranking, recommendations, feeds, semantic retrieval, and discovery UX.',
+    keywords: [
+      'search',
+      'discovery',
+      'recommend',
+      'ranking',
+      'semantic',
+      'feed',
+      'index',
+      'retrieval',
+      'similar',
+    ],
   },
   {
-    id: "ingestion-sync",
-    label: "Ingestion and sync",
-    description: "External API ingestion, sync jobs, scraping, enrichment, and scheduled updates.",
-    keywords: ["sync", "ingest", "ingestion", "scrape", "scraping", "enrich", "crawler", "etl", "scheduled"],
+    id: 'ingestion-sync',
+    label: 'Ingestion and sync',
+    description: 'External API ingestion, sync jobs, scraping, enrichment, and scheduled updates.',
+    keywords: [
+      'sync',
+      'ingest',
+      'ingestion',
+      'scrape',
+      'scraping',
+      'enrich',
+      'crawler',
+      'etl',
+      'scheduled',
+    ],
   },
   {
-    id: "cloudflare-deploy",
-    label: "Cloudflare and deploy",
-    description: "Workers, Pages, edge runtime, queues, storage, and deploy automation.",
-    keywords: ["cloudflare", "worker", "workers", "pages", "edge", "deploy", "wrangler", "queue", "r2", "d1", "kv"],
+    id: 'cloudflare-deploy',
+    label: 'Cloudflare and deploy',
+    description: 'Workers, Pages, edge runtime, queues, storage, and deploy automation.',
+    keywords: [
+      'cloudflare',
+      'worker',
+      'workers',
+      'pages',
+      'edge',
+      'deploy',
+      'wrangler',
+      'queue',
+      'r2',
+      'd1',
+      'kv',
+    ],
   },
   {
-    id: "database-storage",
-    label: "Database and storage",
-    description: "SQL, document storage, migrations, cache, queues, vectors, and persistence.",
-    keywords: ["database", "db", "sql", "sqlite", "postgres", "turso", "libsql", "drizzle", "prisma", "migration", "storage", "vector", "cache"],
+    id: 'database-storage',
+    label: 'Database and storage',
+    description: 'SQL, document storage, migrations, cache, queues, vectors, and persistence.',
+    keywords: [
+      'database',
+      'db',
+      'sql',
+      'sqlite',
+      'postgres',
+      'turso',
+      'libsql',
+      'drizzle',
+      'prisma',
+      'migration',
+      'storage',
+      'vector',
+      'cache',
+    ],
   },
   {
-    id: "ui-workflows",
-    label: "UI workflows",
-    description: "Dashboards, tables, forms, component systems, charts, and user workflows.",
-    keywords: ["ui", "ux", "dashboard", "table", "component", "react", "next", "tailwind", "radix", "chart", "workflow", "form"],
+    id: 'ui-workflows',
+    label: 'UI workflows',
+    description: 'Dashboards, tables, forms, component systems, charts, and user workflows.',
+    keywords: [
+      'ui',
+      'ux',
+      'dashboard',
+      'table',
+      'component',
+      'react',
+      'next',
+      'tailwind',
+      'radix',
+      'chart',
+      'workflow',
+      'form',
+    ],
   },
   {
-    id: "auth-identity",
-    label: "Auth and identity",
-    description: "Auth, OAuth, sessions, users, permissions, and account flows.",
-    keywords: ["auth", "oauth", "identity", "session", "user", "permission", "login", "nextauth", "jwt"],
+    id: 'auth-identity',
+    label: 'Auth and identity',
+    description: 'Auth, OAuth, sessions, users, permissions, and account flows.',
+    keywords: [
+      'auth',
+      'oauth',
+      'identity',
+      'session',
+      'user',
+      'permission',
+      'login',
+      'nextauth',
+      'jwt',
+    ],
   },
   {
-    id: "testing-quality",
-    label: "Testing and quality",
-    description: "Unit tests, browser tests, evals, CI quality gates, and regression checks.",
-    keywords: ["test", "testing", "quality", "vitest", "playwright", "ci", "eval", "benchmark", "coverage", "regression"],
+    id: 'testing-quality',
+    label: 'Testing and quality',
+    description: 'Unit tests, browser tests, evals, CI quality gates, and regression checks.',
+    keywords: [
+      'test',
+      'testing',
+      'quality',
+      'vitest',
+      'playwright',
+      'ci',
+      'eval',
+      'benchmark',
+      'coverage',
+      'regression',
+    ],
   },
   {
-    id: "content-media",
-    label: "Content and media",
-    description: "Content production, video, reels, documents, markdown, and publishing workflows.",
-    keywords: ["content", "media", "video", "reel", "markdown", "document", "publish", "editor", "render"],
+    id: 'content-media',
+    label: 'Content and media',
+    description: 'Content production, video, reels, documents, markdown, and publishing workflows.',
+    keywords: [
+      'content',
+      'media',
+      'video',
+      'reel',
+      'markdown',
+      'document',
+      'publish',
+      'editor',
+      'render',
+    ],
   },
   {
-    id: "game-simulation",
-    label: "Game and simulation",
-    description: "Game loops, simulations, world state, NPC behavior, physics, and interactive gameplay.",
-    keywords: ["game", "simulation", "simulator", "world", "npc", "character", "gameplay", "physics", "rpg", "multiplayer"],
+    id: 'game-simulation',
+    label: 'Game and simulation',
+    description:
+      'Game loops, simulations, world state, NPC behavior, physics, and interactive gameplay.',
+    keywords: [
+      'game',
+      'simulation',
+      'simulator',
+      'world',
+      'npc',
+      'character',
+      'gameplay',
+      'physics',
+      'rpg',
+      'multiplayer',
+    ],
   },
   {
-    id: "analytics-intelligence",
-    label: "Analytics and intelligence",
-    description: "Signal analysis, forecasting, monitoring, trends, metrics, and decision support.",
-    keywords: ["analytics", "intelligence", "signal", "forecast", "monitoring", "metric", "trend", "insight", "report"],
+    id: 'analytics-intelligence',
+    label: 'Analytics and intelligence',
+    description: 'Signal analysis, forecasting, monitoring, trends, metrics, and decision support.',
+    keywords: [
+      'analytics',
+      'intelligence',
+      'signal',
+      'forecast',
+      'monitoring',
+      'metric',
+      'trend',
+      'insight',
+      'report',
+    ],
   },
   {
-    id: "browser-extension",
-    label: "Browser and extensions",
-    description: "Browser extensions, page capture, annotation, automation, and client-side integrations.",
-    keywords: ["browser", "extension", "chrome", "annotation", "capture", "webpage", "reader"],
+    id: 'browser-extension',
+    label: 'Browser and extensions',
+    description:
+      'Browser extensions, page capture, annotation, automation, and client-side integrations.',
+    keywords: ['browser', 'extension', 'chrome', 'annotation', 'capture', 'webpage', 'reader'],
   },
 ];
 
@@ -280,27 +406,27 @@ export function inferFeatureAreas(input: {
   readmeSummary?: string;
   dependencies?: string[];
 }): FleetFeatureArea[] {
-  const primaryText = [
-    input.description,
-    input.statusSummary ?? "",
-    ...(input.plannedNext ?? []),
-  ]
-    .join(" ")
+  const primaryText = [input.description, input.statusSummary ?? '', ...(input.plannedNext ?? [])]
+    .join(' ')
     .toLowerCase();
-  const readmeText = (input.readmeSummary ?? "").toLowerCase();
-  const stackText = [
-    ...(input.dependencies ?? []),
-  ]
-    .join(" ")
-    .toLowerCase();
+  const readmeText = (input.readmeSummary ?? '').toLowerCase();
+  const stackText = [...(input.dependencies ?? [])].join(' ').toLowerCase();
 
-  const matched = FEATURE_RULES
-    .map((rule) => ({
-      ...rule,
-      primaryScore: rule.keywords.reduce((sum, keyword) => sum + (primaryText.includes(keyword) ? 1 : 0), 0),
-      readmeScore: rule.keywords.reduce((sum, keyword) => sum + (readmeText.includes(keyword) ? 1 : 0), 0),
-      stackScore: rule.keywords.reduce((sum, keyword) => sum + (stackText.includes(keyword) ? 1 : 0), 0),
-    }))
+  const matched = FEATURE_RULES.map((rule) => ({
+    ...rule,
+    primaryScore: rule.keywords.reduce(
+      (sum, keyword) => sum + (primaryText.includes(keyword) ? 1 : 0),
+      0
+    ),
+    readmeScore: rule.keywords.reduce(
+      (sum, keyword) => sum + (readmeText.includes(keyword) ? 1 : 0),
+      0
+    ),
+    stackScore: rule.keywords.reduce(
+      (sum, keyword) => sum + (stackText.includes(keyword) ? 1 : 0),
+      0
+    ),
+  }))
     .filter(
       (rule) =>
         rule.primaryScore > 0 ||
@@ -316,34 +442,48 @@ export function inferFeatureAreas(input: {
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 7)
-    .map(({ score: _score, primaryScore: _primaryScore, readmeScore: _readmeScore, stackScore: _stackScore, ...rule }) => ({ ...rule, source: "inferred" as const }));
+    .map(
+      ({
+        score: _score,
+        primaryScore: _primaryScore,
+        readmeScore: _readmeScore,
+        stackScore: _stackScore,
+        ...rule
+      }) => ({ ...rule, source: 'inferred' as const })
+    );
 
   if (matched.length > 0) return matched;
 
   return [
     {
-      id: "project-fit",
-      label: "Project fit",
-      description: "General libraries and tools that match this project's current product direction.",
+      id: 'project-fit',
+      label: 'Project fit',
+      description:
+        "General libraries and tools that match this project's current product direction.",
       keywords: topTokens(input.description, 8),
-      source: "registry",
+      source: 'registry',
     },
   ];
 }
 
 function stackDerivedFeature(featureId: string): boolean {
-  return featureId === "cloudflare-deploy" || featureId === "database-storage" || featureId === "testing-quality" || featureId === "ui-workflows";
+  return (
+    featureId === 'cloudflare-deploy' ||
+    featureId === 'database-storage' ||
+    featureId === 'testing-quality' ||
+    featureId === 'ui-workflows'
+  );
 }
 
 function readmeDerivedFeature(featureId: string): boolean {
   return [
-    "ai-agents",
-    "analytics-intelligence",
-    "browser-extension",
-    "content-media",
-    "game-simulation",
-    "ingestion-sync",
-    "search-discovery",
+    'ai-agents',
+    'analytics-intelligence',
+    'browser-extension',
+    'content-media',
+    'game-simulation',
+    'ingestion-sync',
+    'search-discovery',
   ].includes(featureId);
 }
 
@@ -371,7 +511,12 @@ export function buildProjectRecommendationReport(
       continue;
     }
 
-    const recommendationsForRepo = recommendationsForCandidate(project, candidate, now, semanticDistances);
+    const recommendationsForRepo = recommendationsForCandidate(
+      project,
+      candidate,
+      now,
+      semanticDistances
+    );
     if (recommendationsForRepo.length === 0) {
       if (candidate.archived) suppressed.archived += 1;
       else suppressed.lowSignal += 1;
@@ -416,9 +561,9 @@ export function buildProjectRecommendationReport(
     summary: {
       candidateRepos: candidates.length,
       returned: recommendations.length,
-      useNow: recommendations.filter((repo) => repo.action === "use-now").length,
-      prototype: recommendations.filter((repo) => repo.action === "prototype").length,
-      research: recommendations.filter((repo) => repo.action === "research").length,
+      useNow: recommendations.filter((repo) => repo.action === 'use-now').length,
+      prototype: recommendations.filter((repo) => repo.action === 'prototype').length,
+      research: recommendations.filter((repo) => repo.action === 'research').length,
       topLanguages: topLanguages(recommendations),
     },
   };
@@ -436,7 +581,9 @@ function recommendationsForCandidate(
   semanticDistances: SemanticDistanceMap
 ): FleetRecommendation[] {
   return project.featureAreas
-    .map((featureArea) => scoreCandidateForFeature(project, featureArea, candidate, now, semanticDistances))
+    .map((featureArea) =>
+      scoreCandidateForFeature(project, featureArea, candidate, now, semanticDistances)
+    )
     .filter((recommendation): recommendation is FleetRecommendation => recommendation !== null)
     .sort((a, b) => b.score - a.score);
 }
@@ -457,7 +604,9 @@ function selectBalancedRecommendations(
     for (const featureId of featureIds) {
       const candidates = byFeatureCandidates.get(featureId) ?? [];
       let index = perFeatureIndexes.get(featureId) ?? 0;
-      let featureSelectedCount = selected.filter((item) => item.featureArea.id === featureId).length;
+      let featureSelectedCount = selected.filter(
+        (item) => item.featureArea.id === featureId
+      ).length;
 
       while (index < candidates.length && featureSelectedCount < maxPerFeature) {
         const candidate = candidates[index++];
@@ -480,12 +629,12 @@ function selectBalancedRecommendations(
 
 function broadFeatureNeedsProjectOverlap(featureId: string): boolean {
   return [
-    "auth-identity",
-    "cloudflare-deploy",
-    "content-media",
-    "database-storage",
-    "game-simulation",
-    "ui-workflows",
+    'auth-identity',
+    'cloudflare-deploy',
+    'content-media',
+    'database-storage',
+    'game-simulation',
+    'ui-workflows',
   ].includes(featureId);
 }
 
@@ -516,21 +665,24 @@ function scoreCandidateForFeature(
   let score = 0;
 
   if (matchedFeatureTerms.length > 0) {
-    score += Math.min(44, strongFeatureTerms.length * 11 + (matchedFeatureTerms.length - strongFeatureTerms.length) * 3);
+    score += Math.min(
+      44,
+      strongFeatureTerms.length * 11 + (matchedFeatureTerms.length - strongFeatureTerms.length) * 3
+    );
     if (strongFeatureTerms.length > 0) {
-      reasons.push(`matches ${strongFeatureTerms.slice(0, 3).join(", ")}`);
+      reasons.push(`matches ${strongFeatureTerms.slice(0, 3).join(', ')}`);
     }
   }
 
   if (projectOverlap.length > 0) {
     score += Math.min(24, projectOverlap.length * 4);
-    reasons.push(`project overlap: ${projectOverlap.slice(0, 3).join(", ")}`);
+    reasons.push(`project overlap: ${projectOverlap.slice(0, 3).join(', ')}`);
   }
 
   if (semanticDistance !== null) {
     const semanticScore = Math.max(0, Math.round((0.72 - semanticDistance) * 70));
     score += Math.min(32, semanticScore);
-    if (semanticScore > 8) reasons.push("embedding match");
+    if (semanticScore > 8) reasons.push('embedding match');
   }
 
   if (strongFeatureTerms.length === 0 && semanticDistance === null && projectOverlap.length < 3) {
@@ -548,16 +700,21 @@ function scoreCandidateForFeature(
   if (candidate.language && project.stack.languages.includes(candidate.language)) {
     score += 12;
     reasons.push(`${candidate.language} stack fit`);
-  } else if (candidate.language && project.contextText.toLowerCase().includes(candidate.language.toLowerCase())) {
+  } else if (
+    candidate.language &&
+    project.contextText.toLowerCase().includes(candidate.language.toLowerCase())
+  ) {
     score += 7;
     reasons.push(`${candidate.language} context fit`);
   }
 
   const aiKeywords = candidate.ai?.keywords ?? [];
-  const aiMatches = aiKeywords.filter((keyword) => featureTerms.some((term) => relatedToken(keyword, term)));
+  const aiMatches = aiKeywords.filter((keyword) =>
+    featureTerms.some((term) => relatedToken(keyword, term))
+  );
   if (aiMatches.length > 0) {
     score += Math.min(18, aiMatches.length * 6);
-    reasons.push(`AI metadata: ${aiMatches.slice(0, 2).join(", ")}`);
+    reasons.push(`AI metadata: ${aiMatches.slice(0, 2).join(', ')}`);
   }
 
   score += popularityScore(candidate.stargazersCount);
@@ -566,7 +723,7 @@ function scoreCandidateForFeature(
 
   if (isCuratedListRepo(candidate)) score -= 18;
   if (candidate.archived) score -= 60;
-  if (cautions.some((caution) => caution.includes("quiet"))) score -= 14;
+  if (cautions.some((caution) => caution.includes('quiet'))) score -= 14;
   if (!candidate.description && candidate.topics.length === 0) score -= 12;
 
   if (score < 35 || reasons.length === 0) return null;
@@ -590,19 +747,17 @@ export function semanticKey(repoId: number, featureAreaId: string): string {
 
 export function matchesExistingDependency(
   project: FleetProjectSnapshot,
-  candidate: Pick<FleetRepoCandidate, "name" | "fullName" | "topics">
+  candidate: Pick<FleetRepoCandidate, 'name' | 'fullName' | 'topics'>
 ): boolean {
   const dependencyNames = new Set(
-    [
-      ...project.stack.dependencies,
-      ...project.stack.devDependencies,
-      ...project.stack.packageNames,
-    ].map(normalizePackageLike).filter((name) => name.length > 2)
+    [...project.stack.dependencies, ...project.stack.devDependencies, ...project.stack.packageNames]
+      .map(normalizePackageLike)
+      .filter((name) => name.length > 2)
   );
   const candidateNames = unique([
     candidate.name,
     candidate.fullName,
-    candidate.fullName.split("/").pop() ?? "",
+    candidate.fullName.split('/').pop() ?? '',
     ...candidate.topics,
   ])
     .map(normalizePackageLike)
@@ -628,23 +783,23 @@ function searchableRepoText(candidate: FleetRepoCandidate): string {
   return [
     candidate.name,
     candidate.fullName,
-    candidate.description ?? "",
-    candidate.language ?? "",
+    candidate.description ?? '',
+    candidate.language ?? '',
     ...candidate.topics,
-    candidate.ai?.summary ?? "",
-    candidate.ai?.category ?? "",
+    candidate.ai?.summary ?? '',
+    candidate.ai?.category ?? '',
     ...(candidate.ai?.subcategories ?? []),
     ...(candidate.ai?.useCases ?? []),
     ...(candidate.ai?.keywords ?? []),
   ]
-    .join(" ")
+    .join(' ')
     .toLowerCase();
 }
 
 function tokenOrPhraseMatch(text: string, term: string): boolean {
   const normalized = term.toLowerCase().trim();
   if (normalized.length <= 2) return false;
-  if (normalized.includes(" ")) return text.includes(normalized);
+  if (normalized.includes(' ')) return text.includes(normalized);
   return new RegExp(`(^|[^a-z0-9])${escapeRegExp(normalized)}([^a-z0-9]|$)`).test(text);
 }
 
@@ -672,10 +827,10 @@ function freshnessScore(repoUpdatedAt: string | null, now: Date): number {
 function repoCautions(candidate: FleetRepoCandidate, now: Date): string[] {
   const cautions: string[] = [];
   const ageDays = daysSince(candidate.repoUpdatedAt, now);
-  if (isCuratedListRepo(candidate)) cautions.push("curated list, not an implementation");
-  if (candidate.archived) cautions.push("archived");
-  if (ageDays !== null && ageDays > 365) cautions.push("quiet for 12 months");
-  if (!candidate.description && candidate.topics.length === 0) cautions.push("sparse metadata");
+  if (isCuratedListRepo(candidate)) cautions.push('curated list, not an implementation');
+  if (candidate.archived) cautions.push('archived');
+  if (ageDays !== null && ageDays > 365) cautions.push('quiet for 12 months');
+  if (!candidate.description && candidate.topics.length === 0) cautions.push('sparse metadata');
   return cautions;
 }
 
@@ -683,25 +838,25 @@ function isCuratedListRepo(candidate: FleetRepoCandidate): boolean {
   const text = [
     candidate.name,
     candidate.fullName,
-    candidate.description ?? "",
+    candidate.description ?? '',
     ...candidate.topics,
   ]
-    .join(" ")
+    .join(' ')
     .toLowerCase();
-  return /\bawesome[-\s]/.test(text) || text.includes("awesome-list");
+  return /\bawesome[-\s]/.test(text) || text.includes('awesome-list');
 }
 
 function actionForScore(score: number, cautions: string[]): FleetRecommendationAction {
-  if (cautions.includes("archived")) return "skip";
-  if (score >= 82 && cautions.length === 0) return "use-now";
-  if (score >= 62) return "prototype";
-  if (score >= 42) return "research";
-  return "skip";
+  if (cautions.includes('archived')) return 'skip';
+  if (score >= 82 && cautions.length === 0) return 'use-now';
+  if (score >= 62) return 'prototype';
+  if (score >= 42) return 'research';
+  return 'skip';
 }
 
 function suggestedUse(featureArea: FleetFeatureArea, candidate: FleetRepoCandidate): string {
   const subject = candidate.description
-    ? candidate.description.replace(/\.$/, "")
+    ? candidate.description.replace(/\.$/, '')
     : `${candidate.fullName} capabilities`;
   return `Use for ${featureArea.label.toLowerCase()}: ${subject}.`;
 }
@@ -719,9 +874,7 @@ function topLanguages(recommendations: FleetRecommendation[]): [string, number][
     if (!recommendation.language) continue;
     counts.set(recommendation.language, (counts.get(recommendation.language) ?? 0) + 1);
   }
-  return [...counts.entries()]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .slice(0, 5);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5);
 }
 
 export function topTokens(text: string, limit: number): string[] {
@@ -740,12 +893,12 @@ export function topTokens(text: string, limit: number): string[] {
 function normalizePackageLike(value: string): string {
   return value
     .toLowerCase()
-    .replace(/^@/, "")
-    .replace(/\/.*$/, (match) => match.replace("/", "-"))
-    .replace(/[^a-z0-9+#.-]+/g, "-")
-    .replace(/\.js$/, "")
-    .replace(/-js$/, "")
-    .replace(/^-+|-+$/g, "");
+    .replace(/^@/, '')
+    .replace(/\/.*$/, (match) => match.replace('/', '-'))
+    .replace(/[^a-z0-9+#.-]+/g, '-')
+    .replace(/\.js$/, '')
+    .replace(/-js$/, '')
+    .replace(/^-+|-+$/g, '');
 }
 
 function unique<T>(values: T[]): T[] {
@@ -753,15 +906,15 @@ function unique<T>(values: T[]): T[] {
 }
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function buildMarkdown(report: Omit<FleetProjectRecommendationReport, "markdown">): string {
+function buildMarkdown(report: Omit<FleetProjectRecommendationReport, 'markdown'>): string {
   const lines = [
     `# ${report.project.name} recommendations`,
-    "",
+    '',
     `Generated from ${report.summary.candidateRepos} Starboard repositories.`,
-    "",
+    '',
   ];
 
   for (const recommendation of report.recommendations) {
@@ -769,14 +922,14 @@ function buildMarkdown(report: Omit<FleetProjectRecommendationReport, "markdown"
     lines.push(`- Action: ${recommendation.action}`);
     lines.push(`- Feature area: ${recommendation.featureArea.label}`);
     lines.push(`- Score: ${recommendation.score}`);
-    lines.push(`- Why: ${recommendation.reasons.join("; ")}`);
+    lines.push(`- Why: ${recommendation.reasons.join('; ')}`);
     lines.push(`- Use: ${recommendation.suggestedUse}`);
     if (recommendation.cautions.length > 0) {
-      lines.push(`- Cautions: ${recommendation.cautions.join("; ")}`);
+      lines.push(`- Cautions: ${recommendation.cautions.join('; ')}`);
     }
     lines.push(`- URL: ${recommendation.htmlUrl}`);
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n").trimEnd();
+  return lines.join('\n').trimEnd();
 }
