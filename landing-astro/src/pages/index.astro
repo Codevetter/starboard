@@ -1,4 +1,6 @@
 ---
+import Layout from '@/layouts/Layout.astro';
+
 // Starboard landing — Astro static port of `src/app/page.tsx`.
 //
 // Scoped to the LCP-critical surface only: hero (h1 + sub + 4 value
@@ -12,8 +14,8 @@
 // (`/api/auth/signin?callbackUrl=/stars`). NextAuth handles CSRF on the
 // follow-up POST, so no JS is needed on the landing.
 
-const _TITLE = 'Starboard — Your GitHub stars, organized';
-const _DESCRIPTION =
+const TITLE = 'Starboard — Your GitHub stars, organized';
+const DESCRIPTION =
   'Sync, search, and organize your GitHub stars. Filter by language, find similar repos with semantic search, and group everything into collections.';
 ---
 

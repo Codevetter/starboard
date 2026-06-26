@@ -124,9 +124,8 @@ describe('stars relevance RAG contract', () => {
 
     expect(client).toContain('getCloudflareContext');
     expect(client).toContain('RAG_SERVICE_KEY?.trim() || cloudflareEnv().RAG_SERVICE_KEY');
-    expect(client).toContain(
-      'STARBOARD_RAG_INDEX_ID?.trim() || cloudflareEnv().STARBOARD_RAG_INDEX_ID'
-    );
+    expect(client).toContain('process.env.STARBOARD_RAG_INDEX_ID?.trim()');
+    expect(client).toContain('cloudflareEnv().STARBOARD_RAG_INDEX_ID?.trim()');
     expect(client).toContain('RAG_SERVICE');
   });
 });

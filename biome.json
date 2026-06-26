@@ -24,7 +24,8 @@
       "!**/*.svg",
       "!**/public",
       "!**/design.html",
-      "!**/*.css"
+      "!**/*.css",
+      "!**/*.astro"
     ]
   },
   "formatter": {
