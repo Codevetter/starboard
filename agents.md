@@ -57,8 +57,8 @@ docs/plans/               # Archived plans
 pnpm dev                   # next dev (localhost:3000)
 pnpm build                 # next build
 pnpm test                  # vitest run
-pnpm db:migrate            # npx tsx src/db/migrate.ts
-pnpm db:seed-embeddings    # npx tsx src/db/seed-embeddings.ts
+pnpm db:migrate            # tsx src/db/migrate.ts
+pnpm db:seed-embeddings    # tsx src/db/seed-embeddings.ts
 ```
 
 ## Embedding dimension contract
