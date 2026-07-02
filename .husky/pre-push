@@ -13,7 +13,7 @@ if [ -f package.json ] && grep -q '"lint"' package.json; then
   if [ -n "$BASE" ]; then
     CHANGED=$(git diff --name-only --diff-filter=ACMR "$BASE"...HEAD -- '*.ts' '*.tsx' '*.js' '*.mjs' '*.jsx' 2>/dev/null || true)
     if [ -n "$CHANGED" ]; then
-      echo "$CHANGED" | xargs pnpm exec eslint --no-warn-ignored \
+      echo "$CHANGED" | xargs pnpm exec biome check \
         || { echo "lint failed — fix before pushing" >&2; exit 1; }
     fi
   fi
