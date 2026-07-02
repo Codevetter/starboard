@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-06-28
+Last updated: 2026-07-02
 
 ## Why/What
 
@@ -54,6 +54,8 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
+
+- **2026-07-02** — Added global try/catch error handler to OpenNext worker (`worker.mjs`).
 
 | Phase | Milestone |
 |-------|-----------|
