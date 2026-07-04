@@ -1,76 +1,9 @@
 import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
-import { DEFAULT_ALERT_RULES, parseAlertRules } from '@/lib/alert-preferences';
 import { auth } from '@/lib/auth';
-import type { RadarRepoInput } from '@/lib/release-radar';
+import { loadAlertRules, loadRadarRepos } from '@/lib/weekly-alert-data';
 import { filterRadarAlerts } from '@/lib/weekly-alerts';
-
-async function loadAlertRules(userId: string) {
-  const result = await db.execute({
-    sql: 'SELECT rules FROM user_alert_preferences WHERE user_id = ?',
-    args: [userId],
-  });
-  if (result.rows.length === 0) return { ...DEFAULT_ALERT_RULES };
-  return parseAlertRules(result.rows[0]!.rules as string);
-}
-
-async function loadRadarRepos(userId: string): Promise<RadarRepoInput[]> {
-  const result = await db.execute({
-    sql: `SELECT r.id,
-                 r.name,
-                 r.full_name,
-                 r.owner_login,
-                 r.owner_avatar,
-                 r.html_url,
-                 r.description,
-                 r.language,
-                 r.stargazers_count,
-                 r.archived,
-                 r.topics,
-                 r.repo_updated_at,
-                 ur.starred_at,
-                 (
-                   SELECT rss.stargazers_count
-                   FROM repo_star_snapshots rss
-                   WHERE rss.repo_id = r.id
-                     AND datetime(rss.captured_at) <= datetime('now', '-30 days')
-                   ORDER BY datetime(rss.captured_at) DESC
-                   LIMIT 1
-                 ) AS stars_30d_ago,
-                 (
-                   SELECT COUNT(*)
-                   FROM repo_threshold_events rte
-                   WHERE rte.repo_id = r.id
-                     AND datetime(rte.crossed_at) >= datetime('now', '-30 days')
-                 ) AS threshold_events_30d
-          FROM user_repos ur
-          JOIN repos r ON r.id = ur.repo_id
-          WHERE ur.user_id = ?
-            AND (ur.is_starred = 1 OR ur.is_saved = 1)
-          ORDER BY r.repo_updated_at DESC, r.stargazers_count DESC
-          LIMIT 500`,
-    args: [userId],
-  });
-
-  return result.rows.map((row) => ({
-    id: row.id as number,
-    name: row.name as string,
-    fullName: row.full_name as string,
-    ownerLogin: row.owner_login as string,
-    ownerAvatar: row.owner_avatar as string,
-    htmlUrl: row.html_url as string,
-    description: row.description as string | null,
-    language: row.language as string | null,
-    stargazersCount: row.stargazers_count as number,
-    archived: Boolean(row.archived),
-    topics: JSON.parse((row.topics as string) || '[]'),
-    repoUpdatedAt: row.repo_updated_at as string | null,
-    starredAt: row.starred_at as string | null,
-    starsThirtyDaysAgo: row.stars_30d_ago as number | null,
-    thresholdEventsThirtyDays: row.threshold_events_30d as number,
-  }));
-}
 
 export async function GET() {
   const session = await auth();
@@ -79,8 +12,8 @@ export async function GET() {
   }
 
   const [rules, radarRepos] = await Promise.all([
-    loadAlertRules(session.user.githubId),
-    loadRadarRepos(session.user.githubId),
+    loadAlertRules(db, session.user.githubId),
+    loadRadarRepos(db, session.user.githubId),
   ]);
 
   if (!rules.inAppNotifications || rules.lanes.length === 0) {

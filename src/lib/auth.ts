@@ -18,15 +18,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account, profile }) {
       if (account?.provider === 'github') {
         try {
+          // Email comes from the public GitHub profile (read:user scope) and is
+          // NULL when private — the weekly digest email skips those users.
           await db.execute({
-            sql: `INSERT INTO users (id, username, avatar_url) VALUES (?, ?, ?)
-                  ON CONFLICT(id) DO UPDATE SET username = ?, avatar_url = ?`,
+            sql: `INSERT INTO users (id, username, avatar_url, email) VALUES (?, ?, ?, ?)
+                  ON CONFLICT(id) DO UPDATE SET
+                    username = excluded.username,
+                    avatar_url = excluded.avatar_url,
+                    email = COALESCE(excluded.email, email)`,
             args: [
               account.providerAccountId,
               (profile as { login?: string })?.login ?? '',
               user.image ?? null,
-              (profile as { login?: string })?.login ?? '',
-              user.image ?? null,
+              user.email ?? null,
             ],
           });
         } catch (error) {

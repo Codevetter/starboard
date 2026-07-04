@@ -71,3 +71,14 @@ jobs:
             --body-file digest.md
         env:
           GH_TOKEN: ${{ github.token }}
+
+      # Fail-closed: the script logs and skips when RESEND_API_KEY is unset.
+      # Setup: `gh secret set RESEND_API_KEY`; optionally set the DIGEST_EMAIL_FROM
+      # repo variable to a verified Resend sender.
+      - name: Send weekly digest emails
+        run: pnpm digest:send-emails
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_EMAIL_FROM: ${{ vars.DIGEST_EMAIL_FROM }}

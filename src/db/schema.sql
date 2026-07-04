@@ -2,6 +2,9 @@ CREATE TABLE IF NOT EXISTS users (
   id          TEXT PRIMARY KEY,
   username    TEXT NOT NULL,
   avatar_url  TEXT,
+  -- Public GitHub email captured at sign-in (read:user scope) — used for the
+  -- weekly digest email. NULL when the user's GitHub email is private.
+  email       TEXT,
   created_at  TEXT DEFAULT (datetime('now'))
 );
 
