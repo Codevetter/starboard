@@ -52,6 +52,7 @@ async function migrate() {
     'ALTER TABLE user_repos ADD COLUMN is_starred INTEGER NOT NULL DEFAULT 1',
     'ALTER TABLE user_repos ADD COLUMN is_saved INTEGER NOT NULL DEFAULT 0',
     'ALTER TABLE repos ADD COLUMN archived INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE users ADD COLUMN email TEXT',
   ];
   for (const sql of alters) {
     try {

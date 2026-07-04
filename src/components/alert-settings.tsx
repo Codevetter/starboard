@@ -116,6 +116,19 @@ export function AlertSettingsPanel() {
           >
             Weekly digest
           </Button>
+          <Button
+            variant={rules.weeklyDigest && !rules.emailOptOut ? 'secondary' : 'outline'}
+            size="sm"
+            disabled={saving || !rules.weeklyDigest}
+            title={
+              rules.weeklyDigest
+                ? 'Weekly digest email (uses your public GitHub email)'
+                : 'Enable the weekly digest first'
+            }
+            onClick={() => saveRules({ emailOptOut: !rules.emailOptOut })}
+          >
+            Email delivery
+          </Button>
         </div>
       </CardContent>
     </Card>
