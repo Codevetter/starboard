@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
-import { TOOL_ACCURACY_DISCLAIMER } from '@/lib/repo-tools';
+import { getToolDefinition, getToolUrl, TOOL_ACCURACY_DISCLAIMER } from '@/lib/repo-tools';
 
 type ToolScope = 'user' | 'discover' | 'all';
 
@@ -48,6 +48,69 @@ function scopeClause(scope: ToolScope, userId: string | null, minStars: number) 
   };
 }
 
+function parseLanguages(value: string | null): string[] {
+  if (!value) return [];
+  return Array.from(
+    new Set(
+      value
+        .split(',')
+        .map((language) => language.trim())
+        .filter(Boolean)
+    )
+  ).slice(0, 20);
+}
+
+function languageClause(languages: string[]) {
+  if (languages.length === 0) {
+    return {
+      where: '',
+      args: [] as InValue[],
+    };
+  }
+
+  return {
+    where: `r.language IN (${languages.map(() => '?').join(', ')})`,
+    args: languages as InValue[],
+  };
+}
+
+async function loadLanguageFacets({
+  scopeSql,
+  minConfidence,
+  tool,
+}: {
+  scopeSql: NonNullable<ReturnType<typeof scopeClause>>;
+  minConfidence: number;
+  tool?: string | null;
+}) {
+  const result = await db.execute({
+    sql: `SELECT r.language,
+                 COUNT(DISTINCT rt.repo_id) AS repo_count
+          FROM repo_tools rt
+          JOIN repos r ON r.id = rt.repo_id
+          ${scopeSql.join}
+          WHERE rt.confidence >= ?
+            ${tool ? 'AND rt.tool_key = ?' : ''}
+            AND ${scopeSql.where}
+            AND r.language IS NOT NULL
+            AND r.language != ''
+          GROUP BY r.language
+          ORDER BY repo_count DESC, r.language ASC
+          LIMIT 40`,
+    args: [
+      ...scopeSql.joinArgs,
+      minConfidence,
+      ...(tool ? ([tool] as InValue[]) : []),
+      ...scopeSql.whereArgs,
+    ],
+  });
+
+  return result.rows.map((row) => ({
+    language: row.language as string,
+    repoCount: row.repo_count as number,
+  }));
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth();
   const params = request.nextUrl.searchParams;
@@ -57,15 +120,39 @@ export async function GET(request: NextRequest) {
     100
   );
   const minStars = Math.max(parseInt(params.get('min_stars') || '10000', 10) || 10000, 0);
-  const limit = Math.min(Math.max(parseInt(params.get('limit') || '80', 10) || 80, 1), 200);
+  const limit = Math.min(Math.max(parseInt(params.get('limit') || '80', 10) || 80, 1), 500);
   const tool = params.get('tool')?.trim() || null;
+  const languages = parseLanguages(params.get('languages') ?? params.get('language'));
   const scopeSql = scopeClause(scope, session?.user?.githubId ?? null, minStars);
 
   if (!scopeSql) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const languageSql = languageClause(languages);
+  const languageFilter = languageSql.where ? `AND ${languageSql.where}` : '';
+  const languageFacets = await loadLanguageFacets({ scopeSql, minConfidence, tool });
+
   if (tool) {
+    const summary = await db.execute({
+      sql: `SELECT rt.tool_key,
+                   rt.tool_name,
+                   rt.category,
+                   COUNT(DISTINCT rt.repo_id) AS repo_count,
+                   AVG(rt.confidence) AS avg_confidence,
+                   MAX(rt.confidence) AS max_confidence
+            FROM repo_tools rt
+            JOIN repos r ON r.id = rt.repo_id
+            ${scopeSql.join}
+            WHERE rt.tool_key = ?
+              AND rt.confidence >= ?
+              AND ${scopeSql.where}
+              ${languageFilter}
+            GROUP BY rt.tool_key, rt.tool_name, rt.category`,
+      args: [...scopeSql.joinArgs, tool, minConfidence, ...scopeSql.whereArgs, ...languageSql.args],
+    });
+    const summaryRow = summary.rows[0];
+    const definition = getToolDefinition(tool);
     const result = await db.execute({
       sql: `SELECT r.id,
                    r.name,
@@ -91,16 +178,35 @@ export async function GET(request: NextRequest) {
             WHERE rt.tool_key = ?
               AND rt.confidence >= ?
               AND ${scopeSql.where}
+              ${languageFilter}
             ORDER BY rt.confidence DESC, r.stargazers_count DESC
             LIMIT ?`,
-      args: [...scopeSql.joinArgs, tool, minConfidence, ...scopeSql.whereArgs, limit],
+      args: [
+        ...scopeSql.joinArgs,
+        tool,
+        minConfidence,
+        ...scopeSql.whereArgs,
+        ...languageSql.args,
+        limit,
+      ],
     });
 
     return NextResponse.json({
       scope,
       minStars,
       minConfidence,
+      languages,
+      languageFacets,
       disclaimer: TOOL_ACCURACY_DISCLAIMER,
+      tool: {
+        toolKey: (summaryRow?.tool_key as string | undefined) ?? definition?.key ?? tool,
+        toolName: (summaryRow?.tool_name as string | undefined) ?? definition?.name ?? tool,
+        category: (summaryRow?.category as string | undefined) ?? definition?.category ?? 'library',
+        url: getToolUrl((summaryRow?.tool_key as string | undefined) ?? definition?.key ?? tool),
+        repoCount: (summaryRow?.repo_count as number | undefined) ?? 0,
+        avgConfidence: summaryRow ? Math.round(summaryRow.avg_confidence as number) : 0,
+        maxConfidence: (summaryRow?.max_confidence as number | undefined) ?? 0,
+      },
       repos: result.rows.map((row) => ({
         id: row.id as number,
         name: row.name as string,
@@ -126,6 +232,7 @@ export async function GET(request: NextRequest) {
           toolKey: row.tool_key as string,
           toolName: row.tool_name as string,
           category: row.category as string,
+          url: getToolUrl(row.tool_key as string),
           confidence: row.confidence as number,
           sources: JSON.parse((row.sources as string) || '[]') as string[],
         },
@@ -145,21 +252,25 @@ export async function GET(request: NextRequest) {
           ${scopeSql.join}
           WHERE rt.confidence >= ?
             AND ${scopeSql.where}
+            ${languageFilter}
           GROUP BY rt.tool_key, rt.tool_name, rt.category
           ORDER BY repo_count DESC, avg_confidence DESC, rt.tool_name ASC
           LIMIT ?`,
-    args: [...scopeSql.joinArgs, minConfidence, ...scopeSql.whereArgs, limit],
+    args: [...scopeSql.joinArgs, minConfidence, ...scopeSql.whereArgs, ...languageSql.args, limit],
   });
 
   return NextResponse.json({
     scope,
     minStars,
     minConfidence,
+    languages,
+    languageFacets,
     disclaimer: TOOL_ACCURACY_DISCLAIMER,
     tools: result.rows.map((row) => ({
       toolKey: row.tool_key as string,
       toolName: row.tool_name as string,
       category: row.category as string,
+      url: getToolUrl(row.tool_key as string),
       repoCount: row.repo_count as number,
       avgConfidence: Math.round(row.avg_confidence as number),
       maxConfidence: row.max_confidence as number,

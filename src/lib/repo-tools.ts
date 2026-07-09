@@ -119,6 +119,82 @@ const toolDefinitions: ToolDefinition[] = [
   def('cargo', 'Cargo', 'package-manager', ['cargo', 'cargo.toml']),
 ];
 
+const toolUrls: Record<string, string> = {
+  angular: 'https://angular.dev',
+  anthropic: 'https://www.anthropic.com',
+  astro: 'https://astro.build',
+  bazel: 'https://bazel.build',
+  biome: 'https://biomejs.dev',
+  cargo: 'https://doc.rust-lang.org/cargo/',
+  'cloudflare-workers': 'https://developers.cloudflare.com/workers/',
+  cmake: 'https://cmake.org',
+  conan: 'https://conan.io',
+  cypress: 'https://www.cypress.io',
+  django: 'https://www.djangoproject.com',
+  docker: 'https://www.docker.com',
+  drizzle: 'https://orm.drizzle.team',
+  electron: 'https://www.electronjs.org',
+  eslint: 'https://eslint.org',
+  express: 'https://expressjs.com',
+  fastapi: 'https://fastapi.tiangolo.com',
+  fastify: 'https://fastify.dev',
+  firebase: 'https://firebase.google.com',
+  flask: 'https://flask.palletsprojects.com',
+  'github-actions': 'https://github.com/features/actions',
+  go: 'https://go.dev',
+  gradle: 'https://gradle.org',
+  hono: 'https://hono.dev',
+  java: 'https://www.java.com',
+  javascript: 'https://developer.mozilla.org/docs/Web/JavaScript',
+  jest: 'https://jestjs.io',
+  kotlin: 'https://kotlinlang.org',
+  langchain: 'https://www.langchain.com',
+  laravel: 'https://laravel.com',
+  llamaindex: 'https://www.llamaindex.ai',
+  lucide: 'https://lucide.dev',
+  maven: 'https://maven.apache.org',
+  meson: 'https://mesonbuild.com',
+  mongodb: 'https://www.mongodb.com',
+  mysql: 'https://www.mysql.com',
+  netlify: 'https://www.netlify.com',
+  next: 'https://nextjs.org',
+  npm: 'https://www.npmjs.com',
+  openai: 'https://openai.com',
+  playwright: 'https://playwright.dev',
+  pnpm: 'https://pnpm.io',
+  poetry: 'https://python-poetry.org',
+  postgres: 'https://www.postgresql.org',
+  prettier: 'https://prettier.io',
+  prisma: 'https://www.prisma.io',
+  pytest: 'https://docs.pytest.org',
+  python: 'https://www.python.org',
+  radix: 'https://www.radix-ui.com',
+  rails: 'https://rubyonrails.org',
+  react: 'https://react.dev',
+  'react-native': 'https://reactnative.dev',
+  redis: 'https://redis.io',
+  ruff: 'https://docs.astral.sh/ruff/',
+  rust: 'https://www.rust-lang.org',
+  shadcn: 'https://ui.shadcn.com',
+  spring: 'https://spring.io',
+  sqlite: 'https://www.sqlite.org',
+  supabase: 'https://supabase.com',
+  svelte: 'https://svelte.dev',
+  swift: 'https://www.swift.org',
+  tailwind: 'https://tailwindcss.com',
+  tauri: 'https://tauri.app',
+  terraform: 'https://www.terraform.io',
+  transformers: 'https://huggingface.co/docs/transformers',
+  typescript: 'https://www.typescriptlang.org',
+  uv: 'https://docs.astral.sh/uv/',
+  vcpkg: 'https://vcpkg.io',
+  vercel: 'https://vercel.com',
+  vite: 'https://vite.dev',
+  vitest: 'https://vitest.dev',
+  vue: 'https://vuejs.org',
+  yarn: 'https://yarnpkg.com',
+};
+
 const definitionsByAlias = new Map<string, ToolDefinition>();
 for (const definition of toolDefinitions) {
   definitionsByAlias.set(normalizeToken(definition.key), definition);
@@ -151,6 +227,15 @@ function knownTool(value: string): ToolDefinition | null {
   if (definitionsByAlias.has(normalized)) return definitionsByAlias.get(normalized)!;
   const scopedBase = normalized.split('/').pop();
   return scopedBase ? (definitionsByAlias.get(scopedBase) ?? null) : null;
+}
+
+export function getToolDefinition(toolKey: string): ToolDefinition | null {
+  return definitionsByAlias.get(normalizeToken(toolKey)) ?? null;
+}
+
+export function getToolUrl(toolKey: string): string {
+  const normalized = normalizeToken(toolKey);
+  return toolUrls[normalized] ?? `https://github.com/topics/${encodeURIComponent(normalized)}`;
 }
 
 function detection(tool: ToolDefinition, confidence: number, source: string): ToolDetection {

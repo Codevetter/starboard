@@ -4,6 +4,7 @@ import {
   detectToolsFromManifest,
   detectToolsFromRepoSignals,
   detectToolsFromSbomPackageNames,
+  getToolUrl,
   isPotentialToolManifest,
 } from '@/lib/repo-tools';
 
@@ -71,5 +72,10 @@ describe('repo tool detection', () => {
     expect(isPotentialToolManifest('packages/app/package.json')).toBe(true);
     expect(isPotentialToolManifest('src/native/CMakeLists.txt')).toBe(true);
     expect(isPotentialToolManifest('node_modules/pkg/package.json')).toBe(false);
+  });
+
+  it('provides stable reference links for tool detail pages', () => {
+    expect(getToolUrl('react')).toBe('https://react.dev');
+    expect(getToolUrl('unknown-tool')).toBe('https://github.com/topics/unknown-tool');
   });
 });

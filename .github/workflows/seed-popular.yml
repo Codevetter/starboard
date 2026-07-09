@@ -12,7 +12,7 @@ on:
       tool_enrich_limit:
         description: 'Repos to inspect for tool intelligence'
         required: false
-        default: '100'
+        default: '250'
 
 concurrency:
   group: seed-popular
@@ -21,7 +21,7 @@ concurrency:
 jobs:
   seed:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     permissions:
       contents: read
     steps:
@@ -64,6 +64,6 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
-          TOOL_ENRICH_LIMIT: ${{ github.event.inputs.tool_enrich_limit || '100' }}
-          TOOL_ENRICH_HARD_LIMIT: '250'
+          TOOL_ENRICH_LIMIT: ${{ github.event.inputs.tool_enrich_limit || '250' }}
+          TOOL_ENRICH_HARD_LIMIT: '750'
           TOOL_MIN_STARS: '10000'

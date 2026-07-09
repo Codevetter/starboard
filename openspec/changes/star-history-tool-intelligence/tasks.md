@@ -22,7 +22,9 @@
 - [x] 3.2 Add a read-only API for fastest-growing repositories with window, scope, and ranking mode parameters.
 - [x] 3.3 Add a read-only API for aggregate tool usage and tool drill-down.
 - [x] 3.4 Add confidence/source filters to tool usage APIs.
-- [ ] 3.5 Extend Discover API support for `growth` sorting and tool facets when data exists.
+- [x] 3.5 Return stable tool reference links and larger bounded repository drill-downs from tool APIs.
+- [x] 3.6 Add repository language facets and multi-language filters to tool usage APIs.
+- [ ] 3.7 Extend Discover API support for `growth` sorting and tool facets when data exists.
 
 ## 4. UI Surfaces
 
@@ -31,6 +33,9 @@
 - [x] 4.3 Add aggregate tool usage UI, initially as a focused section or `/tools` route.
 - [x] 4.4 Show detection source/confidence labels so mixed-stack accuracy is visible.
 - [x] 4.5 Add empty states for collecting history and no detected tools.
+- [x] 4.6 Add dedicated clickable `/tools/[toolKey]` pages with reference links and repository lists.
+- [x] 4.7 Make repository-detail tool badges link to the matching tool page.
+- [x] 4.8 Add language multi-select filtering to aggregate and per-tool pages.
 
 ## 5. Verification And Rollout
 

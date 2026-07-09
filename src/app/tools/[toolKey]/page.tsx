@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  ArrowLeft,
   ArrowUpRight,
   ExternalLink,
   Info,
@@ -8,17 +9,17 @@ import {
   Loader2,
   Search,
   ShieldCheck,
-  Wrench,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -39,19 +40,34 @@ interface ToolSummary {
   maxConfidence: number;
 }
 
+interface ToolRepo {
+  id: number;
+  full_name: string;
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  tool: {
+    toolName: string;
+    category: string;
+    url: string;
+    confidence: number;
+    sources: string[];
+  };
+}
+
 interface LanguageFacet {
   language: string;
   repoCount: number;
 }
 
-interface ToolsResponse {
+interface ToolReposResponse {
   scope: ToolScope;
-  minStars: number;
-  minConfidence: number;
+  disclaimer: string;
   languages: string[];
   languageFacets: LanguageFacet[];
-  disclaimer: string;
-  tools: ToolSummary[];
+  tool: ToolSummary;
+  repos: ToolRepo[];
 }
 
 const fetcher = async <T,>(url: string): Promise<T> => {
@@ -65,8 +81,8 @@ function formatNumber(value: number): string {
 }
 
 function confidenceLabel(value: number): string {
-  if (value >= 90) return 'High';
-  if (value >= 65) return 'Medium';
+  if (value >= 90) return 'High confidence';
+  if (value >= 65) return 'Medium confidence';
   return 'Inferred';
 }
 
@@ -77,31 +93,21 @@ function confidenceClass(value: number): string {
   return 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300';
 }
 
-export default function ToolsPage() {
+export default function ToolDetailPage() {
+  const params = useParams<{ toolKey: string }>();
   const { status } = useSession();
-
-  if (status === 'loading') {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  return <ToolsContent isAuthenticated={status === 'authenticated'} />;
-}
-
-function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [scope, setScope] = useState<ToolScope>('discover');
   const [minConfidence, setMinConfidence] = useState(0);
   const [query, setQuery] = useState('');
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const toolKey = Array.isArray(params.toolKey) ? params.toolKey[0] : params.toolKey;
+  const decodedToolKey = decodeURIComponent(toolKey ?? '');
   const languageQuery =
     selectedLanguages.length > 0
       ? `&languages=${selectedLanguages.map(encodeURIComponent).join(',')}`
       : '';
-  const apiUrl = `/api/tools?scope=${scope}&min_confidence=${minConfidence}&min_stars=10000&limit=300${languageQuery}`;
-  const { data, error, isLoading } = useSWR<ToolsResponse>(apiUrl, fetcher, {
+  const apiUrl = `/api/tools?scope=${scope}&min_confidence=${minConfidence}&min_stars=10000&tool=${encodeURIComponent(decodedToolKey)}&limit=500${languageQuery}`;
+  const { data, error, isLoading } = useSWR<ToolReposResponse>(apiUrl, fetcher, {
     revalidateOnFocus: false,
   });
 
@@ -113,72 +119,78 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
     );
   };
 
-  const tools = useMemo(() => {
+  const repos = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return data?.tools ?? [];
-    return (data?.tools ?? []).filter(
-      (tool) =>
-        tool.toolName.toLowerCase().includes(q) ||
-        tool.toolKey.toLowerCase().includes(q) ||
-        tool.category.toLowerCase().includes(q)
+    if (!q) return data?.repos ?? [];
+    return (data?.repos ?? []).filter(
+      (repo) =>
+        repo.full_name.toLowerCase().includes(q) ||
+        repo.description?.toLowerCase().includes(q) ||
+        repo.language?.toLowerCase().includes(q)
     );
-  }, [data?.tools, query]);
+  }, [data?.repos, query]);
 
-  const totalRepoMentions = tools.reduce((sum, tool) => sum + tool.repoCount, 0);
-  const highConfidenceTools = tools.filter((tool) => tool.avgConfidence >= 90).length;
-  const categoryCount = new Set(tools.map((tool) => tool.category)).size;
+  const isAuthenticated = status === 'authenticated';
+  const tool = data?.tool;
 
   return (
     <main className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/80 px-4 py-3 backdrop-blur-sm md:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-md border">
-              <Wrench className="size-4" />
-            </div>
+      <header className="border-b bg-background px-4 py-4 md:px-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="min-w-0 space-y-3">
+            <Button asChild variant="ghost" size="sm" className="-ml-2">
+              <Link href="/tools">
+                <ArrowLeft className="size-4" />
+                Tools
+              </Link>
+            </Button>
             <div>
-              <h1 className="text-lg font-semibold">Tool Intelligence</h1>
-              <p className="text-sm text-muted-foreground">
-                Tools, frameworks, build systems, and platforms detected across repositories.
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="text-2xl font-semibold tracking-tight">
+                  {tool?.toolName ?? decodedToolKey}
+                </h1>
+                {tool && (
+                  <Badge variant="outline" className={confidenceClass(tool.avgConfidence)}>
+                    {confidenceLabel(tool.avgConfidence)}
+                  </Badge>
+                )}
+              </div>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Repositories where Starboard detected this tool, framework, language, or platform.
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          {tool?.url && (
             <Button asChild variant="outline" size="sm">
-              <Link href="/radar">Radar</Link>
+              <Link href={tool.url} target="_blank" rel="noreferrer">
+                Tool link
+                <ExternalLink className="size-4" />
+              </Link>
             </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/discover">Discover</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/stars">Library</Link>
-            </Button>
-          </div>
+          )}
         </div>
       </header>
 
       <section className="space-y-4 p-4 md:p-6">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-2xl font-semibold">{formatNumber(tool?.repoCount ?? 0)}</div>
+            <div className="text-sm text-muted-foreground">matching repositories</div>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-2xl font-semibold">{tool?.avgConfidence ?? 0}%</div>
+            <div className="text-sm text-muted-foreground">average confidence</div>
+          </div>
+          <div className="rounded-lg border bg-card p-4">
+            <div className="text-2xl font-semibold">{tool?.category ?? 'tool'}</div>
+            <div className="text-sm text-muted-foreground">category</div>
+          </div>
+        </div>
+
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
           <div className="flex items-start gap-2">
             <Info className="mt-0.5 size-4 shrink-0" />
             <p>{data?.disclaimer}</p>
-          </div>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">{formatNumber(tools.length)}</div>
-            <div className="text-sm text-muted-foreground">detected tools</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">{formatNumber(totalRepoMentions)}</div>
-            <div className="text-sm text-muted-foreground">repo-tool matches</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">
-              {formatNumber(highConfidenceTools)} / {formatNumber(categoryCount)}
-            </div>
-            <div className="text-sm text-muted-foreground">high-confidence tools / categories</div>
           </div>
         </div>
 
@@ -202,7 +214,7 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Filter tools..."
+                placeholder="Filter repositories..."
                 className="pl-9"
               />
             </div>
@@ -281,49 +293,65 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
 
         {error && (
           <div className="rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300">
-            Tool usage could not load.
+            Tool repositories could not load.
           </div>
         )}
 
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {isLoading
-            ? Array.from({ length: 12 }).map((_, index) => (
-                <Card key={index} className="h-40 rounded-lg py-4 shadow-none" />
-              ))
-            : tools.map((tool) => (
-                <Link
-                  key={tool.toolKey}
-                  href={`/tools/${encodeURIComponent(tool.toolKey)}`}
-                  className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
-                >
+        {isLoading ? (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 9 }).map((_, index) => (
+              <Card key={index} className="h-40 rounded-lg py-4 shadow-none" />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {repos.map((repo) => (
+              <Card key={repo.id} className="rounded-lg py-4 shadow-none">
+                <CardContent className="space-y-3 px-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate font-medium group-hover:underline">
-                        {tool.toolName}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{tool.category}</div>
+                      <Link
+                        href={`/explore/${repo.full_name}`}
+                        className="block truncate font-medium hover:underline"
+                      >
+                        {repo.full_name}
+                      </Link>
+                      {repo.description && (
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                          {repo.description}
+                        </p>
+                      )}
                     </div>
-                    <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Open ${repo.full_name} on GitHub`}
+                    >
+                      <Link href={repo.html_url} target="_blank" rel="noreferrer">
+                        <ArrowUpRight className="size-4" />
+                      </Link>
+                    </Button>
                   </div>
-                  <div className="mt-4 flex items-end justify-between gap-3">
-                    <div>
-                      <div className="text-2xl font-semibold">{formatNumber(tool.repoCount)}</div>
-                      <div className="text-xs text-muted-foreground">repositories</div>
-                    </div>
-                    <Badge variant="outline" className={confidenceClass(tool.avgConfidence)}>
-                      {confidenceLabel(tool.avgConfidence)}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant="outline" className={confidenceClass(repo.tool.confidence)}>
+                      {repo.tool.confidence}% confidence
                     </Badge>
+                    {repo.language && <Badge variant="secondary">{repo.language}</Badge>}
+                    <Badge variant="secondary">{formatNumber(repo.stargazers_count)} stars</Badge>
                   </div>
-                  <div className="mt-3 flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
-                    <span>{tool.avgConfidence}% avg confidence</span>
-                    <span className="inline-flex items-center gap-1">
-                      Link
-                      <ExternalLink className="size-3" />
-                    </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {repo.tool.sources.slice(0, 4).map((source) => (
+                      <Badge key={source} variant="outline" className="text-xs">
+                        {source}
+                      </Badge>
+                    ))}
                   </div>
-                </Link>
-              ))}
-        </section>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );

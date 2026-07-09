@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
-import { TOOL_ACCURACY_DISCLAIMER } from '@/lib/repo-tools';
+import { getToolUrl, TOOL_ACCURACY_DISCLAIMER } from '@/lib/repo-tools';
 
 export async function GET(_request: Request, { params }: { params: Promise<{ repoId: string }> }) {
   const { repoId: rawId } = await params;
@@ -25,6 +25,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
       toolKey: row.tool_key as string,
       toolName: row.tool_name as string,
       category: row.category as string,
+      url: getToolUrl(row.tool_key as string),
       confidence: row.confidence as number,
       sources: JSON.parse((row.sources as string) || '[]') as string[],
       detectedAt: row.detected_at as string,

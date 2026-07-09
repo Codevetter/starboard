@@ -94,6 +94,7 @@ interface RepoTool {
   toolKey: string;
   toolName: string;
   category: string;
+  url: string;
   confidence: number;
   sources: string[];
 }
@@ -408,12 +409,15 @@ export default function RepoDetailPage() {
                 <div className="flex flex-wrap gap-1.5">
                   {repoTools.tools.slice(0, 12).map((tool) => (
                     <Badge
+                      asChild
                       key={tool.toolKey}
                       variant="outline"
                       className={confidenceClass(tool.confidence)}
                       title={`${tool.confidence}% confidence from ${tool.sources.join(', ')}`}
                     >
-                      {tool.toolName}
+                      <Link href={`/tools/${encodeURIComponent(tool.toolKey)}`}>
+                        {tool.toolName}
+                      </Link>
                     </Badge>
                   ))}
                 </div>

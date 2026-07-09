@@ -6,8 +6,8 @@
  *   TURSO_AUTH_TOKEN
  * Optional env:
  *   GITHUB_TOKEN              — recommended for rate limits
- *   TOOL_ENRICH_LIMIT         — repos to process, default 50
- *   TOOL_ENRICH_HARD_LIMIT    — max repos per run, default 250
+ *   TOOL_ENRICH_LIMIT         — repos to process, default 250
+ *   TOOL_ENRICH_HARD_LIMIT    — max repos per run, default 750
  *   TOOL_MIN_STARS            — seeded corpus floor, default 10000
  *   TOOL_MAX_FILES_PER_REPO   — manifest/build files to fetch per repo, default 16
  */
@@ -25,8 +25,8 @@ import {
   type ToolDetection,
 } from '../src/lib/repo-tools';
 
-const REQUESTED_LIMIT = parseInt(process.env.TOOL_ENRICH_LIMIT || '50', 10);
-const HARD_LIMIT = parseInt(process.env.TOOL_ENRICH_HARD_LIMIT || '250', 10);
+const REQUESTED_LIMIT = parseInt(process.env.TOOL_ENRICH_LIMIT || '250', 10);
+const HARD_LIMIT = parseInt(process.env.TOOL_ENRICH_HARD_LIMIT || '750', 10);
 const LIMIT = Math.min(Math.max(REQUESTED_LIMIT || 0, 0), HARD_LIMIT);
 const MIN_STARS = parseInt(process.env.TOOL_MIN_STARS || '10000', 10);
 const MAX_FILES_PER_REPO = parseInt(process.env.TOOL_MAX_FILES_PER_REPO || '16', 10);
