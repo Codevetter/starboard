@@ -79,7 +79,7 @@ export function useDiscoverRepos(opts: UseDiscoverReposOptions = {}) {
       revalidateOnFocus: false,
       dedupingInterval: 60000 * 5,
       keepPreviousData: true,
-      errorRetryCount: 1,
+      shouldRetryOnError: false,
       onError: (err) => {
         if (err?.name === 'AbortError') return;
       },

@@ -22,7 +22,10 @@ export interface UserList {
 }
 
 export function useLists() {
-  const { data, error, isLoading, mutate } = useSWR<UserList[]>('/api/lists', fetcher<UserList[]>);
+  const { data, error, isLoading, mutate } = useSWR<UserList[]>('/api/lists', fetcher<UserList[]>, {
+    revalidateOnFocus: false,
+    shouldRetryOnError: false,
+  });
 
   const createList = async (name: string, color?: string) => {
     const res = await fetch('/api/lists', {

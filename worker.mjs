@@ -22,7 +22,7 @@ export {
   BucketCachePurge,
 } from './.open-next/worker.js';
 
-const CACHE_PATH = '/';
+const CACHEABLE_DOCUMENT_PATHS = new Set(['/', '/discover']);
 const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
 
 // Skip cache when ANY of these cookies are present — covers the better-auth
@@ -43,12 +43,12 @@ const worker = {
         return openNext.fetch(request, env, ctx);
       }
       const url = new URL(request.url);
-      if (url.pathname !== CACHE_PATH) {
+      if (!CACHEABLE_DOCUMENT_PATHS.has(url.pathname)) {
         return openNext.fetch(request, env, ctx);
       }
       // Auth-bearing requests pass straight through; the user is likely
       // going to be redirected by middleware to /library or /dashboard.
-      if (hasAuthCookie(request)) {
+      if (url.pathname === '/' && hasAuthCookie(request)) {
         return openNext.fetch(request, env, ctx);
       }
 
