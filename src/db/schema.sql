@@ -153,6 +153,33 @@ CREATE INDEX IF NOT EXISTS idx_repo_star_snapshots_repo ON repo_star_snapshots(r
 CREATE INDEX IF NOT EXISTS idx_repo_threshold_events_crossed ON repo_threshold_events(crossed_at);
 CREATE INDEX IF NOT EXISTS idx_repo_threshold_events_threshold ON repo_threshold_events(threshold, crossed_at);
 
+CREATE TABLE IF NOT EXISTS repo_tools (
+  repo_id      INTEGER NOT NULL REFERENCES repos(id) ON DELETE CASCADE,
+  tool_key     TEXT NOT NULL,
+  tool_name    TEXT NOT NULL,
+  category     TEXT NOT NULL,
+  confidence   INTEGER NOT NULL CHECK(confidence >= 0 AND confidence <= 100),
+  sources      TEXT NOT NULL DEFAULT '[]',
+  detected_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY (repo_id, tool_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_repo_tools_tool ON repo_tools(tool_key);
+CREATE INDEX IF NOT EXISTS idx_repo_tools_category_tool ON repo_tools(category, tool_key);
+CREATE INDEX IF NOT EXISTS idx_repo_tools_repo ON repo_tools(repo_id);
+CREATE INDEX IF NOT EXISTS idx_repo_tools_confidence ON repo_tools(confidence);
+
+CREATE TABLE IF NOT EXISTS repo_tool_enrichment_state (
+  repo_id       INTEGER PRIMARY KEY REFERENCES repos(id) ON DELETE CASCADE,
+  source_hash   TEXT NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'pending',
+  error         TEXT,
+  processed_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_repo_tool_enrichment_state_status
+  ON repo_tool_enrichment_state(status, processed_at);
+
 CREATE TABLE IF NOT EXISTS user_alert_preferences (
   user_id    TEXT PRIMARY KEY REFERENCES users(id),
   rules      TEXT NOT NULL DEFAULT '{"lanes":[],"weeklyDigest":false,"inAppNotifications":false,"momentumMinDelta":100,"dormantDays":365}',

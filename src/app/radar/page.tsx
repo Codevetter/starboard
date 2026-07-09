@@ -24,6 +24,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { RadarRepo, RadarReport } from '@/lib/release-radar';
 
+interface GrowthRepo {
+  id: number;
+  full_name: string;
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  starsGained: number;
+  percentGrowth: number | null;
+}
+
+interface GrowthResponse {
+  repos: GrowthRepo[];
+}
+
 const fetcher = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`${response.status}`);
@@ -175,6 +190,13 @@ function RadarContent() {
   const { data, error, isLoading } = useSWR<RadarReport>('/api/radar', fetcher, {
     revalidateOnFocus: false,
   });
+  const { data: growth } = useSWR<GrowthResponse>(
+    '/api/growth?scope=user&days=30&limit=8',
+    fetcher,
+    {
+      revalidateOnFocus: false,
+    }
+  );
 
   if (isLoading) {
     return (
@@ -206,6 +228,9 @@ function RadarContent() {
           </div>
           <div className="flex items-center gap-2">
             <ShareReportButton type="radar" label="Share radar report" />
+            <Button asChild variant="outline" size="sm">
+              <Link href="/tools">Tools</Link>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link href="/discover">Discover</Link>
             </Button>
@@ -247,6 +272,54 @@ function RadarContent() {
           </CardContent>
         </Card>
       </section>
+
+      {growth?.repos.length ? (
+        <section className="px-4 pb-4 md:px-6">
+          <Card className="rounded-lg py-4 shadow-none">
+            <CardHeader className="px-4">
+              <CardTitle className="text-base">Fastest growers</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-2 px-4 md:grid-cols-2 xl:grid-cols-4">
+              {growth.repos.map((repo) => (
+                <div key={repo.id} className="rounded-md border p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/explore/${repo.full_name}`}
+                        className="block truncate text-sm font-medium hover:underline"
+                      >
+                        {repo.full_name}
+                      </Link>
+                      {repo.description && (
+                        <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">
+                          {repo.description}
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      asChild
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label={`Open ${repo.full_name} on GitHub`}
+                    >
+                      <Link href={repo.html_url} target="_blank" rel="noreferrer">
+                        <ArrowUpRight className="size-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    <Badge variant="outline">+{formatNumber(repo.starsGained)} in 30d</Badge>
+                    {repo.percentGrowth !== null && (
+                      <Badge variant="outline">{repo.percentGrowth.toFixed(1)}%</Badge>
+                    )}
+                    <Badge variant="secondary">{formatNumber(repo.stargazers_count)} stars</Badge>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+      ) : null}
 
       {error && (
         <div className="mx-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300 md:mx-6">

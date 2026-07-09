@@ -1,0 +1,4 @@
+schema: spec-driven
+created: 2026-07-09
+goal: Show historical star momentum and tools used across repositories, while
+  keeping the seeded discovery corpus practical at 5k+ repos.

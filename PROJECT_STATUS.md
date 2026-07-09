@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-07-02
+Last updated: 2026-07-09
 
 ## Why/What
 
@@ -71,9 +71,9 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 **Live:** [starboard.sarthakagrawal927.workers.dev](https://starboard.sarthakagrawal927.workers.dev)
 
-**Primary routes:** `/stars` (dashboard) · `/explore/[...slug]` (repo detail) · `/discover` · `/projects` · `/projects/[slug]` · `/lists/[slug]` · `/radar` · `/reports/[slug]` · `/stack-builder`
+**Primary routes:** `/stars` (dashboard) · `/explore/[...slug]` (repo detail) · `/discover` · `/projects` · `/projects/[slug]` · `/lists/[slug]` · `/radar` · `/reports/[slug]` · `/stack-builder` · `/tools`
 
-**Primary API:** `/api/stars` · `/api/stars/sync` · `/api/repos/[repoId]/*` · `/api/lists/*` · `/api/projects/*` · `/api/radar` · `/api/alerts/*` · `/api/reports/*` · `/api/digest/weekly` · `/api/embeddings/generate`
+**Primary API:** `/api/stars` · `/api/stars/sync` · `/api/repos/[repoId]/*` · `/api/lists/*` · `/api/projects/*` · `/api/radar` · `/api/growth` · `/api/tools` · `/api/alerts/*` · `/api/reports/*` · `/api/digest/weekly` · `/api/embeddings/generate`
 
 | Surface | Role |
 |---------|------|
@@ -84,6 +84,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 | Alerts | Weekly inbox + digest payloads |
 | Reports | Shareable read-only insight snapshots |
 | Stack builder | Stack composition helper |
+| Tool Intelligence | Tool/framework/platform usage across 10k+ repos and the user's library |
 
 ## Features (shipped)
 
@@ -115,6 +116,8 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 - Discover page and `/api/discover` for seeded popular repositories.
 - Scheduled GitHub Actions seed/enrich/embed popular repos in Turso (`scripts/seed-popular.ts`, `pnpm db:seed-popular`).
 - Radar page and `/api/radar` for maintainer/release-oriented signals.
+- Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`, `/api/growth`, Radar fastest-growers, and repo-detail mini history from stored `repo_star_snapshots`.
+- Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.
 - Stack builder surface (`/stack-builder`, `/api/stack-builder`).
 - SaaS Maker feedback, testimonials, and changelog widgets integrated.
 - First-run UX, sample prioritized stars board, why-repo-is-hot explanations, GitHub permission trust note, stale-star cleanup proof, weekly digest preview surfaces (product/design loop shipped).

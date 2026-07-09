@@ -18,6 +18,7 @@
     "db:embed-pending": "tsx src/db/seed-embeddings.ts",
     "db:enrich-repos": "tsx scripts/enrich-repos.ts",
     "db:seed-popular": "tsx scripts/seed-popular.ts",
+    "db:enrich-tools": "tsx scripts/enrich-tools.ts",
     "fleet:audit-recommendation-context": "tsx scripts/audit-fleet-recommendation-context.ts",
     "fleet:extract-projects": "tsx scripts/extract-fleet-projects.ts",
     "weekly:threshold-digest": "tsx scripts/weekly-threshold-digest.ts",

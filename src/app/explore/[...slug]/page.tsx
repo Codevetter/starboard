@@ -6,16 +6,20 @@ import {
   Calendar,
   ExternalLink,
   GitFork,
+  Info,
   MessageSquare,
   Sparkles,
   Star,
   ThumbsDown,
   ThumbsUp,
+  TrendingUp,
+  Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useState } from 'react';
+import useSWR from 'swr';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -23,6 +27,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRepoDetail } from '@/hooks/use-repo-detail';
 import { useSimilarRepos } from '@/hooks/use-similar-repos';
 import { getAvatarImageAttrs } from '@/lib/avatar';
+
+const fetcher = async <T,>(url: string): Promise<T> => {
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`${response.status}`);
+  return response.json();
+};
 
 const languageColors: Record<string, string> = {
   JavaScript: '#f1e05a',
@@ -80,6 +90,72 @@ function formatDate(dateStr: string): string {
   });
 }
 
+interface RepoTool {
+  toolKey: string;
+  toolName: string;
+  category: string;
+  confidence: number;
+  sources: string[];
+}
+
+interface RepoToolsResponse {
+  disclaimer: string;
+  tools: RepoTool[];
+}
+
+interface StarHistoryResponse {
+  points: Array<{ stargazersCount: number; capturedAt: string }>;
+  growth: {
+    starsGained: number | null;
+    percentGrowth: number | null;
+    enoughHistory: boolean;
+  };
+}
+
+function confidenceClass(value: number): string {
+  if (value >= 90)
+    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+  if (value >= 65) return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
+  return 'border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-300';
+}
+
+function MiniStarHistory({ history }: { history: StarHistoryResponse }) {
+  const points = history.points.slice(-24);
+  const values = points.map((point) => point.stargazersCount);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = Math.max(1, max - min);
+
+  if (!history.growth.enoughHistory || points.length < 2) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        Collecting star history. Rankings appear after at least two snapshots.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex h-16 items-end gap-1">
+        {points.map((point) => (
+          <div
+            key={`${point.capturedAt}-${point.stargazersCount}`}
+            className="min-w-1 flex-1 rounded-t bg-primary/70"
+            style={{ height: `${18 + ((point.stargazersCount - min) / range) * 46}px` }}
+            title={`${point.stargazersCount.toLocaleString()} stars on ${formatDate(point.capturedAt)}`}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2 text-sm">
+        <Badge variant="outline">+{(history.growth.starsGained ?? 0).toLocaleString()} stars</Badge>
+        {history.growth.percentGrowth !== null && (
+          <Badge variant="outline">{history.growth.percentGrowth.toFixed(1)}% growth</Badge>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function PageSkeleton() {
   return (
     <div className="mx-auto max-w-3xl p-4 md:p-6">
@@ -134,6 +210,16 @@ export default function RepoDetailPage() {
   const { repo, commentCount, comments, isLoading, error, addComment, voteComment } =
     useRepoDetail(repoSlug);
   const { similar, isLoading: similarLoading } = useSimilarRepos(repo?.id);
+  const { data: starHistory } = useSWR<StarHistoryResponse>(
+    repo?.id ? `/api/repos/${repo.id}/star-history?days=180` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const { data: repoTools } = useSWR<RepoToolsResponse>(
+    repo?.id ? `/api/repos/${repo.id}/tools` : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
 
   const [commentBody, setCommentBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -297,6 +383,51 @@ export default function RepoDetailPage() {
           )}
         </div>
       </div>
+
+      {(starHistory || (repoTools?.tools.length ?? 0) > 0) && (
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          <div className="rounded-xl border bg-card p-4">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <TrendingUp className="size-3.5 text-primary" />
+              Star history
+            </h2>
+            {starHistory ? (
+              <MiniStarHistory history={starHistory} />
+            ) : (
+              <p className="text-sm text-muted-foreground">No snapshots available yet.</p>
+            )}
+          </div>
+
+          <div className="rounded-xl border bg-card p-4">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Wrench className="size-3.5 text-primary" />
+              Detected tools
+            </h2>
+            {repoTools?.tools.length ? (
+              <>
+                <div className="flex flex-wrap gap-1.5">
+                  {repoTools.tools.slice(0, 12).map((tool) => (
+                    <Badge
+                      key={tool.toolKey}
+                      variant="outline"
+                      className={confidenceClass(tool.confidence)}
+                      title={`${tool.confidence}% confidence from ${tool.sources.join(', ')}`}
+                    >
+                      {tool.toolName}
+                    </Badge>
+                  ))}
+                </div>
+                <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+                  <Info className="mt-0.5 size-3.5 shrink-0" />
+                  <span>{repoTools.disclaimer}</span>
+                </div>
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">No detected tools yet.</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Similar repos */}
       {(similarLoading || similar.length > 0) && (
