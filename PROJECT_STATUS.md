@@ -4,7 +4,7 @@ Last updated: 2026-07-09
 
 ## Why/What
 
-Starboard turns a large GitHub star list into a searchable personal knowledge base. Active product surfaces: starred-repo dashboard with tags, collections, filters, and semantic search; fleet-aware **My Projects** recommendations; discovery and repo detail pages; radar maintainer signals; weekly alert inbox and digest payloads; and shareable read-only insight reports. Live: [starboard.sarthakagrawal927.workers.dev](https://starboard.sarthakagrawal927.workers.dev).
+Starboard turns a large GitHub star list into a searchable personal knowledge base. Active product surfaces: starred-repo dashboard with tags, collections, filters, and semantic search; fleet-aware **My Projects** recommendations; discovery and repo detail pages; radar maintainer signals; weekly alert inbox and digest payloads; and shareable read-only insight reports. Live: [starboard.codevetter.com](https://starboard.codevetter.com).
 
 Out of scope: organization/team dashboards, non-GitHub providers, ATS features, and real-time push notifications.
 
@@ -69,7 +69,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ## Products
 
-**Live:** [starboard.sarthakagrawal927.workers.dev](https://starboard.sarthakagrawal927.workers.dev)
+**Live:** [starboard.codevetter.com](https://starboard.codevetter.com)
 
 **Primary routes:** `/stars` (dashboard) · `/explore/[...slug]` (repo detail) · `/discover` · `/projects` · `/projects/[slug]` · `/lists/[slug]` · `/radar` · `/reports/[slug]` · `/stack-builder` · `/tools`
 
