@@ -7,11 +7,11 @@ import { SampleStaleCleanup } from '@/components/sample-stale-cleanup';
 import { SampleStarsBoard } from '@/components/sample-stars-board';
 import { SampleWeeklyDigest } from '@/components/sample-weekly-digest';
 import { SignInButton } from '@/components/sign-in-button';
-import { WeeklyActionPreview } from '@/components/weekly-action-preview';
 
 export const dynamic = 'force-static';
 
 export default function Home() {
+  const hasSaaSMaker = Boolean(process.env.NEXT_PUBLIC_SAASMAKER_API_KEY);
   return (
     <div className="flex min-h-svh w-full flex-col items-center overflow-x-hidden bg-background dark:bg-[oklch(0.1_0_0)]">
       <LandingSessionRedirect />
@@ -28,8 +28,8 @@ export default function Home() {
             </h1>
             <p className="max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
               GitHub shows you a flat list. Starboard ranks your stars by recent releases, active
-              development, and what you haven&apos;t revisited — so you act on what matters, not
-              scroll through noise.
+              development, and what you haven&apos;t revisited — so you can act on what matters
+              instead of scrolling through noise.
             </p>
 
             <ul className="grid w-full gap-2 text-sm text-muted-foreground sm:grid-cols-2">
@@ -48,7 +48,7 @@ export default function Home() {
             </ul>
 
             <div className="flex w-full flex-col items-start gap-4 pt-2">
-              <SignInButton />
+              <SignInButton label="Connect GitHub — it's free" />
               <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
                 <Link
                   href="/discover"
@@ -71,7 +71,7 @@ export default function Home() {
               <p className="text-sm text-muted-foreground">
                 Connect GitHub to see your stars ranked like this
               </p>
-              <SignInButton />
+              <SignInButton label="Connect GitHub — it's free" />
               <p className="text-xs text-muted-foreground">
                 Read-only · no write scopes · revoke anytime in GitHub settings
               </p>
@@ -124,27 +124,21 @@ export default function Home() {
           <SampleWeeklyDigest />
         </div>
 
-        {/* Weekly action preview */}
-        <div className="w-full max-w-4xl">
-          <h2 className="mb-2 text-center text-2xl font-bold">Get actionable insights</h2>
-          <p className="mb-6 text-center text-sm text-muted-foreground">
-            Upgrade to our Pro plan and receive a weekly action digest with key updates and trends
-            from repositories you care about.
-          </p>
-          <WeeklyActionPreview />
-        </div>
-
         {/* Testimonials */}
-        <div className="w-full max-w-3xl">
-          <h2 className="mb-6 text-center text-2xl font-bold">What people are saying</h2>
-          <SaaSMakerTestimonials />
-        </div>
+        {hasSaaSMaker ? (
+          <div className="w-full max-w-3xl">
+            <h2 className="mb-6 text-center text-2xl font-bold">What people are saying</h2>
+            <SaaSMakerTestimonials />
+          </div>
+        ) : null}
 
         {/* Changelog */}
-        <div className="w-full max-w-2xl">
-          <h2 className="mb-6 text-center text-2xl font-bold">Changelog</h2>
-          <SaaSMakerChangelog />
-        </div>
+        {hasSaaSMaker ? (
+          <div className="w-full max-w-2xl">
+            <h2 className="mb-6 text-center text-2xl font-bold">Changelog</h2>
+            <SaaSMakerChangelog />
+          </div>
+        ) : null}
       </main>
     </div>
   );

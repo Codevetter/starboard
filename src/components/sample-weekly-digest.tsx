@@ -104,7 +104,7 @@ export function SampleWeeklyDigest() {
             <Sparkles className="size-4 text-primary" />
             <h3 className="text-base font-semibold">Weekly Intelligence Digest</h3>
             <Badge className="bg-primary/10 text-primary hover:bg-primary/10 border-primary/20 text-[10px] font-semibold">
-              PRO
+              FREE
             </Badge>
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
