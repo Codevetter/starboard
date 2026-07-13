@@ -1,13 +1,13 @@
 # Starboard
 
 [![100% AI](https://img.shields.io/badge/Built%20with-100%25%20AI-blueviolet?style=for-the-badge)](https://claude.ai)
-[![Live](https://img.shields.io/badge/Live-starboard.workers.dev-black?style=for-the-badge)](https://starboard.sarthakagrawal927.workers.dev)
+[![Live](https://img.shields.io/badge/Live-starboard.codevetter.com-black?style=for-the-badge)](https://starboard.codevetter.com)
 
 Organize, search, and rediscover GitHub starred repositories. Starboard turns a
 large star list into a searchable personal knowledge base with tags, lists,
 semantic search, fleet project recommendations, and public share pages.
 
-Live app: <https://starboard.sarthakagrawal927.workers.dev>
+Live app: <https://starboard.codevetter.com>
 
 ## Product Shape
 
