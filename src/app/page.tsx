@@ -1,20 +1,21 @@
 import { Bookmark, GitCompare, Search } from 'lucide-react';
 import Link from 'next/link';
-
-import { LandingSessionRedirect } from '@/components/landing-session-redirect';
+import { redirect } from 'next/navigation';
 import { SaaSMakerChangelog, SaaSMakerTestimonials } from '@/components/saasmaker-feedback';
 import { SampleStaleCleanup } from '@/components/sample-stale-cleanup';
 import { SampleStarsBoard } from '@/components/sample-stars-board';
 import { SampleWeeklyDigest } from '@/components/sample-weekly-digest';
 import { SignInButton } from '@/components/sign-in-button';
+import { auth } from '@/lib/auth';
 
-export const dynamic = 'force-static';
-
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+  if (session?.user?.githubId) {
+    redirect('/discover');
+  }
   const hasSaaSMaker = Boolean(process.env.NEXT_PUBLIC_SAASMAKER_API_KEY);
   return (
     <div className="flex min-h-svh w-full flex-col items-center overflow-x-hidden bg-background dark:bg-[oklch(0.1_0_0)]">
-      <LandingSessionRedirect />
       <main className="flex w-full max-w-6xl flex-col items-center gap-16 overflow-x-hidden px-5 py-12 sm:px-6 sm:py-20">
         {/* Hero */}
         <section className="grid w-full items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-14">
