@@ -13,7 +13,7 @@ const project: FleetProjectSnapshot = {
   slug: 'CodeVetter',
   name: 'CodeVetter',
   description: 'AI code review platform — desktop-first, works offline.',
-  url: 'https://github.com/sarthak-fleet/CodeVetter.git',
+  url: 'https://github.com/Codevetter/codevetter.git',
   tier: 'core',
   category: 'product',
   priority: 'P1',
