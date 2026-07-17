@@ -10,44 +10,47 @@
 
 /** @type {{ name: string, url: string, llmsTxt: string, llmsFullTxt?: string, indexMd: string, catalog: object }} */
 export const AGENT_SURFACE = {
-  "name": "Starboard",
-  "url": "https://starboard.codevetter.com",
-  "llmsFullTxt": "# Starboard — full agent brief\n\nGitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Index\n\n# Starboard\n\nGitHub stars organizer + semantic search (CodeVetter sub-product).\n\n## What it is\n\n- Organize and search starred repositories\n- Semantic search over star metadata\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n\n## Product links\n\n- Home: https://starboard.codevetter.com/ — Product\n- CodeVetter: https://codevetter.com/ — Parent product\n\n## Machine surfaces\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/llms-full.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n- https://starboard.codevetter.com/sitemap.xml\n- https://starboard.codevetter.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
-  "llmsTxt": "# Starboard\n\n> GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Product\n\n- [Home](https://starboard.codevetter.com/): Product\n- [CodeVetter](https://codevetter.com/): Parent product\n\n## Machine surfaces\n\n- [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://starboard.codevetter.com/index.md): Product brief without JS\n- [This index](https://starboard.codevetter.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
-  "indexMd": "# Starboard\n\nGitHub stars organizer + semantic search (CodeVetter sub-product).\n\n## What it is\n\n- Organize and search starred repositories\n- Semantic search over star metadata\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n",
-  "catalog": {
-    "name": "Starboard",
-    "version": "1",
-    "url": "https://starboard.codevetter.com",
-    "llms": "https://starboard.codevetter.com/llms.txt",
-    "llmsFull": "https://starboard.codevetter.com/llms-full.txt",
-    "sitemap": "https://starboard.codevetter.com/sitemap.xml",
-    "robots": "https://starboard.codevetter.com/robots.txt",
-    "markdown": {
-      "suffix": ".md",
-      "negotiation": true
+  name: 'Starboard',
+  url: 'https://starboard.codevetter.com',
+  llmsFullTxt:
+    '# Starboard — full agent brief\n\nGitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Index\n\n# Starboard\n\nGitHub stars organizer + semantic search (CodeVetter sub-product).\n\n## What it is\n\n- Organize and search starred repositories\n- Semantic search over star metadata\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n\n## Product links\n\n- Home: https://starboard.codevetter.com/ — Product\n- CodeVetter: https://codevetter.com/ — Parent product\n\n## Machine surfaces\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/llms-full.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n- https://starboard.codevetter.com/sitemap.xml\n- https://starboard.codevetter.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n',
+  llmsTxt:
+    '# Starboard\n\n> GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Product\n\n- [Home](https://starboard.codevetter.com/): Product\n- [CodeVetter](https://codevetter.com/): Parent product\n\n## Machine surfaces\n\n- [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://starboard.codevetter.com/index.md): Product brief without JS\n- [This index](https://starboard.codevetter.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n',
+  indexMd:
+    '# Starboard\n\nGitHub stars organizer + semantic search (CodeVetter sub-product).\n\n## What it is\n\n- Organize and search starred repositories\n- Semantic search over star metadata\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n',
+  catalog: {
+    name: 'Starboard',
+    version: '1',
+    url: 'https://starboard.codevetter.com',
+    llms: 'https://starboard.codevetter.com/llms.txt',
+    llmsFull: 'https://starboard.codevetter.com/llms-full.txt',
+    sitemap: 'https://starboard.codevetter.com/sitemap.xml',
+    robots: 'https://starboard.codevetter.com/robots.txt',
+    markdown: {
+      suffix: '.md',
+      negotiation: true,
     },
-    "surfaces": [
+    surfaces: [
       {
-        "id": "home",
-        "url": "https://starboard.codevetter.com/",
-        "md": "https://starboard.codevetter.com/index.md",
-        "kind": "static",
-        "description": "Product home"
+        id: 'home',
+        url: 'https://starboard.codevetter.com/',
+        md: 'https://starboard.codevetter.com/index.md',
+        kind: 'static',
+        description: 'Product home',
       },
       {
-        "id": "codevetter",
-        "url": "https://codevetter.com/",
-        "md": null,
-        "kind": "static",
-        "description": "Parent product"
-      }
+        id: 'codevetter',
+        url: 'https://codevetter.com/',
+        md: null,
+        kind: 'static',
+        description: 'Parent product',
+      },
     ],
-    "auth": {
-      "public": true,
-      "notes": "Auth-walled app routes are not agent-indexed unless listed here."
-    }
-  }
+    auth: {
+      public: true,
+      notes: 'Auth-walled app routes are not agent-indexed unless listed here.',
+    },
+  },
 };
 
 /**
