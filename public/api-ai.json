@@ -1,0 +1,32 @@
+{
+  "name": "Starboard",
+  "version": "1",
+  "url": "https://starboard.codevetter.com",
+  "llms": "https://starboard.codevetter.com/llms.txt",
+  "llmsFull": null,
+  "sitemap": "https://starboard.codevetter.com/sitemap.xml",
+  "markdown": {
+    "suffix": ".md",
+    "negotiation": true
+  },
+  "surfaces": [
+    {
+      "id": "home",
+      "url": "https://starboard.codevetter.com/",
+      "md": "https://starboard.codevetter.com/index.md",
+      "kind": "static",
+      "description": "Product home"
+    },
+    {
+      "id": "codevetter",
+      "url": "https://codevetter.com/",
+      "md": null,
+      "kind": "static",
+      "description": "Parent product"
+    }
+  ],
+  "auth": {
+    "public": true,
+    "notes": "Auth-walled app routes are not agent-indexed unless listed here."
+  }
+}

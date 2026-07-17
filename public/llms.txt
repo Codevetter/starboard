@@ -1,0 +1,18 @@
+# Starboard
+
+> GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.
+
+## Product
+
+- [Home](https://starboard.codevetter.com/): Product
+- [CodeVetter](https://codevetter.com/): Parent product
+
+## Machine surfaces
+
+- [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces
+- [Homepage markdown](https://starboard.codevetter.com/index.md): Product brief without JS
+- [This index](https://starboard.codevetter.com/llms.txt)
+
+## Optional
+
+- [Foundry](https://sassmaker.com): Parent fleet showcase
