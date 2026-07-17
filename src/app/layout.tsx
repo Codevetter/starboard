@@ -22,6 +22,15 @@ const SITE_DESCRIPTION =
   'Sync, search, and organize your GitHub stars. Filter by language, find similar repos with semantic search, and group everything into collections.';
 
 export const metadata: Metadata = {
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+    ],
+    apple: '/apple-touch-icon.png',
+  },
+
   metadataBase: new URL(SITE_URL),
   title: {
     default: 'Starboard — Your GitHub stars, organized',
