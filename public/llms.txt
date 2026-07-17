@@ -7,16 +7,6 @@
 - [Home](https://starboard.codevetter.com/): Product
 - [CodeVetter](https://codevetter.com/): Parent product
 
-
-## Product surfaces
-
-- [Discover](https://starboard.codevetter.com/discover)
-- [Explore](https://starboard.codevetter.com/explore)
-- [Tools catalog](https://starboard.codevetter.com/tools)
-- [Stack builder](https://starboard.codevetter.com/stack-builder)
-- [Projects](https://starboard.codevetter.com/projects)
-- [Radar](https://starboard.codevetter.com/radar)
-
 ## Machine surfaces
 
 - [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces

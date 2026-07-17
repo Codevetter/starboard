@@ -1,0 +1,39 @@
+# Starboard — full agent brief
+
+GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.
+
+## Index
+
+# Starboard
+
+GitHub stars organizer + semantic search (CodeVetter sub-product).
+
+## What it is
+
+- Organize and search starred repositories
+- Semantic search over star metadata
+
+## Agent entrypoints
+
+- https://starboard.codevetter.com/llms.txt
+- https://starboard.codevetter.com/api/ai
+- https://starboard.codevetter.com/index.md
+
+## Product links
+
+- Home: https://starboard.codevetter.com/ — Product
+- CodeVetter: https://codevetter.com/ — Parent product
+
+## Machine surfaces
+
+- https://starboard.codevetter.com/llms.txt
+- https://starboard.codevetter.com/llms-full.txt
+- https://starboard.codevetter.com/api/ai
+- https://starboard.codevetter.com/index.md
+- https://starboard.codevetter.com/sitemap.xml
+- https://starboard.codevetter.com/robots.txt
+
+## Contact / fleet
+
+- Fleet: https://sassmaker.com
+- Agent email for directory verification: sarthakagrawal@agentmail.to

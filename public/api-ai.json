@@ -3,8 +3,9 @@
   "version": "1",
   "url": "https://starboard.codevetter.com",
   "llms": "https://starboard.codevetter.com/llms.txt",
-  "llmsFull": null,
+  "llmsFull": "https://starboard.codevetter.com/llms-full.txt",
   "sitemap": "https://starboard.codevetter.com/sitemap.xml",
+  "robots": "https://starboard.codevetter.com/robots.txt",
   "markdown": {
     "suffix": ".md",
     "negotiation": true
