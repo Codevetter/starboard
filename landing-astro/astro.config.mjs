@@ -15,7 +15,7 @@ import tailwindcss from '@tailwindcss/vite';
 // repo root rather than `index/index.html`, which is what the overlay
 // script copies into `.open-next/assets/index.html`.
 export default defineConfig({
-  site: 'https://starboard.sarthakagrawal927.workers.dev',
+  site: 'https://starboard.codevetter.com',
   output: 'static',
   trailingSlash: 'never',
   build: {
