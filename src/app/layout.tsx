@@ -58,6 +58,19 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebApplication',
+              name: 'Starboard',
+              url: SITE_URL,
+              applicationCategory: 'DeveloperApplication',
+              description: SITE_DESCRIPTION,
+            }),
+          }}
+        />
+        <script
           id="starboard-name-shim"
           dangerouslySetInnerHTML={{
             __html: 'globalThis.__name=globalThis.__name||function(t){return t};',
