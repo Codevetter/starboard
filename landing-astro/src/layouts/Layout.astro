@@ -15,6 +15,14 @@ const SITE_URL = 'https://starboard.codevetter.com';
 // convention → dynamic JSX → PNG). The single-Worker overlay keeps that
 // route on the OpenNext side, so this URL still resolves.
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Starboard',
+  url: SITE_URL,
+  description,
+  applicationCategory: 'DeveloperApplication',
+};
 ---
 
 <!doctype html>
@@ -44,6 +52,7 @@ const OG_IMAGE = `${SITE_URL}/opengraph-image`;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={OG_IMAGE} />
+    <script type="application/ld+json" set:html={JSON.stringify(structuredData)}></script>
 
     {/* ── Fonts ────────────────────────────────────────────────────
        Self-hosted via @fontsource-variable/{geist,geist-mono} (imported
