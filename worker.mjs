@@ -23,8 +23,28 @@ export {
   BucketCachePurge,
 } from './.open-next/worker.js';
 
-const CACHEABLE_DOCUMENT_PATHS = new Set(['/', '/discover']);
+const CACHEABLE_DOCUMENT_PATHS = new Set([
+  '/',
+  '/discover',
+  '/explore',
+  '/tools',
+  '/stack-builder',
+  '/projects',
+  '/radar',
+  '/stars',
+  '/about',
+  '/privacy',
+  '/terms',
+]);
+const CACHEABLE_PREFIXES = ['/tools', '/projects', '/lists', '/reports', '/explore'];
 const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
+function isCacheableDocumentPath(pathname) {
+  if (CACHEABLE_DOCUMENT_PATHS.has(pathname)) return true;
+  for (const prefix of CACHEABLE_PREFIXES) {
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) return true;
+  }
+  return false;
+}
 
 // Skip cache when ANY of these cookies are present — covers the better-auth
 // session in both prod (__Secure-) and dev variants so signed-in users
@@ -49,7 +69,7 @@ const worker = {
         return openNext.fetch(request, env, ctx);
       }
       const url = new URL(request.url);
-      if (!CACHEABLE_DOCUMENT_PATHS.has(url.pathname)) {
+      if (!isCacheableDocumentPath(url.pathname)) {
         return openNext.fetch(request, env, ctx);
       }
       // Auth-bearing requests pass straight through; the user is likely
@@ -68,7 +88,8 @@ const worker = {
       // responses (Lighthouse flagged ~80 KB wasted on uncompressed HTML
       // even with CF Edge cache HIT). Compress with gzip here so the
       // response — and the downstream CF Edge cache entry — is small.
-      if (env.ASSETS) {
+      // Only Astro overlay at `/` is static; marketing pages use edge HTML cache.
+      if (env.ASSETS && url.pathname === '/') {
         const assetResp = await env.ASSETS.fetch(request);
         // The assets binding answers If-None-Match revalidations with 304.
         // Pass those through — falling through would serve the wrong page.
