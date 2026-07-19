@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
+import { trackSearchOutcome } from '@/lib/analytics';
 import { searchStarboardRag } from '@/lib/knowledgebase';
 import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
 
@@ -212,6 +213,12 @@ export async function GET(request: NextRequest) {
     }));
 
     const total = countResult.rows[0]?.total as number;
+
+    // Privacy-safe search activation evidence. Fires only when a query was
+    // supplied — no query text, repo IDs, or user identifiers are sent.
+    if (q) {
+      trackSearchOutcome(sort === 'relevance' ? 'semantic' : 'lexical', total);
+    }
 
     // Language facets
     const languageFacets: [string, number][] = langResult.rows.map((row) => [

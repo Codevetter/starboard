@@ -25,6 +25,13 @@ const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posth
  */
 export type CoreAction = 'repos_synced' | 'list_created';
 export type DigestItemAction = 'reviewed' | 'dismissed';
+/**
+ * The surface a search ran through. `lexical` and `semantic` are both served
+ * by `/api/stars`; `semantic` covers the knowledgebase RAG path (which falls
+ * back to `lexical` when RAG is unavailable).
+ */
+export type SearchSurface = 'lexical' | 'semantic' | 'discover';
+export type SearchResultBucket = 'zero' | '1-5' | '6-20' | '21+';
 
 interface AnalyticsEventMap {
   /** First session after an account is created. */
@@ -45,6 +52,21 @@ interface AnalyticsEventMap {
     group: string;
     action: DigestItemAction;
   };
+  /**
+   * Privacy-safe search activation evidence. One event per search request.
+   * Carries NO query text, repo IDs, repo full names, or user identifiers —
+   * only the surface and the result-count bucket. Satisfies the
+   * `data-research-toolbox-automation` "Search activation evidence"
+   * requirement.
+   */
+  search_outcome: {
+    project_id: typeof PROJECT;
+    surface: SearchSurface;
+    result_count_bucket: SearchResultBucket;
+    result_count_exact_capped: number;
+  };
+  /** A user opened a repo detail from search results. No repo identity sent. */
+  result_inspection: { project_id: typeof PROJECT; surface: 'repo_detail' };
 }
 
 function emitServer(event: string, props: Record<string, unknown>, distinctId?: string): void {
@@ -133,4 +155,25 @@ export function trackDigestItemActioned(
     group,
     action,
   });
+}
+
+/**
+ * Fire one aggregate `search_outcome` event per search request. Carries NO
+ * query text, repo IDs, repo full names, or user identifiers — only the
+ * surface and the result-count bucket. `resultCount` is capped at 100 to
+ * avoid leaking small-corpus size signals.
+ */
+export function trackSearchOutcome(surface: SearchSurface, resultCount: number): void {
+  const bucket: SearchResultBucket =
+    resultCount === 0 ? 'zero' : resultCount <= 5 ? '1-5' : resultCount <= 20 ? '6-20' : '21+';
+  emit('search_outcome', {
+    surface,
+    result_count_bucket: bucket,
+    result_count_exact_capped: Math.min(resultCount, 100),
+  });
+}
+
+/** Fire when a user opens a repo detail from search results. No repo identity sent. */
+export function trackResultInspection(): void {
+  emit('result_inspection', { surface: 'repo_detail' });
 }
