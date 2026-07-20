@@ -66,7 +66,10 @@ describe('GET /api/discover', () => {
     expect(mainQuery.sql).toContain('repo_tools selected_tools');
     expect(mainQuery.args).toContain('react');
 
-    const payload = await response.json();
+    const payload = (await response.json()) as {
+      repos: Array<{ star_growth_30d: number }>;
+      facets: { tools: Array<{ key: string; name: string; count: number }> };
+    };
     expect(payload.repos[0].star_growth_30d).toBe(250);
     expect(payload.facets.tools).toEqual([{ key: 'react', name: 'React', count: 1 }]);
   });

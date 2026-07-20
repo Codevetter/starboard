@@ -23,7 +23,11 @@ describe('GET /api/health', () => {
     mocks.execute.mockResolvedValue({ rows: [] });
 
     const response = await GET();
-    const payload = await response.json();
+    const payload = (await response.json()) as {
+      ok: boolean;
+      indexing: { search_probe: boolean };
+      surfaces: { search: string; landing: string };
+    };
 
     expect(response.status).toBe(200);
     expect(mocks.execute).toHaveBeenCalledWith({
@@ -43,7 +47,11 @@ describe('GET /api/health', () => {
     );
 
     const response = await GET();
-    const payload = await response.json();
+    const payload = (await response.json()) as {
+      ok: boolean;
+      errors: { search: string };
+      surfaces: { search: string };
+    };
     const publicBody = JSON.stringify(payload);
 
     expect(response.status).toBe(503);
