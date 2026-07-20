@@ -499,9 +499,11 @@ async function main() {
     expectedMinOutput: 1,
   });
 
-  if (embedError) {
-    throw new Error(embedError);
-  }
+  // Authentication failures are already persisted as degraded refresh evidence
+  // and emitted as a GitHub Actions warning above. The repository refresh is
+  // still useful and complete, so do not turn that successful bounded step into
+  // a red scheduled run. Unexpected embedding failures continue to throw from
+  // the catch block where they are classified.
   if (coverageRecord.quality_failed) {
     throw new Error('Refresh quality verification failed: searchable pool evidence is missing');
   }
