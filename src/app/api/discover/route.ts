@@ -6,8 +6,15 @@ import { auth } from '@/lib/auth';
 import { ftsSearchQuery } from '@/lib/search';
 
 const MIN_STARS_FLOOR = 5000;
+// Index-friendly eligibility filter. The previous form
+//   (r.stargazers_count >= ? OR EXISTS (SELECT 1 FROM user_repos ...))
+// forced SQLite to evaluate a correlated subquery against user_repos for
+// every repo row, defeating idx_repos_stars and scanning user_repos once
+// per repo (O(|repos| × |user_repos|) row reads per request). The IN (UNION)
+// form lets each branch use its own index (idx_repos_stars and
+// idx_user_repos_repo) and dedupes via UNION.
 const ELIGIBLE_REPO_SQL =
-  '(r.stargazers_count >= ? OR EXISTS (SELECT 1 FROM user_repos community_ur WHERE community_ur.repo_id = r.id AND community_ur.is_starred = 1))';
+  'r.id IN (SELECT r2.id FROM repos r2 WHERE r2.stargazers_count >= ? UNION SELECT community_ur.repo_id FROM user_repos community_ur WHERE community_ur.is_starred = 1)';
 const STAR_GROWTH_30D_SQL = `CASE
   WHEN (SELECT COUNT(*) FROM repo_star_snapshots count_snapshots
         WHERE count_snapshots.repo_id = r.id

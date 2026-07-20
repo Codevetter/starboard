@@ -116,6 +116,13 @@ function manifestPriority(path: string): number {
 }
 
 async function loadPending(db: Client): Promise<PendingRepo[]> {
+  // Two index-friendly branches UNIONed together so each can use its own index:
+  //   - star-threshold repos use idx_repos_stars
+  //   - user-starred/saved repos use idx_user_repos_repo (lookup by repo_id)
+  // The previous OR EXISTS form forced SQLite to evaluate a correlated subquery
+  // against user_repos for every repo row, defeating idx_repos_stars and
+  // scanning user_repos once per repo (O(|repos| × |user_repos|) row reads).
+  // The UNION form keeps each branch index-served; dedupe happens via UNION.
   const result = await db.execute({
     sql: `SELECT r.id,
                  r.full_name,
@@ -132,12 +139,15 @@ async function loadPending(db: Client): Promise<PendingRepo[]> {
           FROM repos r
           LEFT JOIN repo_tool_enrichment_state state ON state.repo_id = r.id
           LEFT JOIN repo_ai_metadata ram ON ram.repo_id = r.id
-          WHERE r.stargazers_count >= ?
-             OR EXISTS (
-                  SELECT 1 FROM user_repos ur
-                  WHERE ur.repo_id = r.id
-                    AND (ur.is_starred = 1 OR ur.is_saved = 1)
-                )
+          WHERE r.id IN (
+            SELECT r2.id
+            FROM repos r2
+            WHERE r2.stargazers_count >= ?
+            UNION
+            SELECT ur.repo_id
+            FROM user_repos ur
+            WHERE ur.is_starred = 1 OR ur.is_saved = 1
+          )
           ORDER BY
             CASE WHEN state.repo_id IS NULL THEN 0 ELSE 1 END ASC,
             r.stargazers_count DESC

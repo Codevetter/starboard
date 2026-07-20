@@ -93,7 +93,17 @@ async function migrate() {
       VALUES (new.id, new.name, new.full_name, new.description, new.language, new.topics);
     END;
   `);
-  await db.execute("INSERT INTO repos_fts(repos_fts) VALUES('rebuild')");
+  // FTS5 'rebuild' scans every row of the source table and re-tokenizes every
+  // text column. Running it on every db:migrate (which fires daily from the
+  // seed-popular / enrich-repos / weekly-threshold-digest workflows) burns
+  // millions of row reads for no benefit — the AFTER INSERT/UPDATE/DELETE
+  // triggers above already keep the FTS index in sync incrementally. Only
+  // rebuild when the FTS table is empty (first migration, or after a manual
+  // wipe), which is the only case the triggers cannot recover from.
+  const reposFtsCount = await db.execute('SELECT COUNT(*) AS c FROM repos_fts');
+  if ((reposFtsCount.rows[0]?.c as number) === 0) {
+    await db.execute("INSERT INTO repos_fts(repos_fts) VALUES('rebuild')");
+  }
 
   await db.execute(`
     CREATE TRIGGER IF NOT EXISTS repo_ai_metadata_ai AFTER INSERT ON repo_ai_metadata BEGIN
@@ -145,7 +155,12 @@ async function migrate() {
       );
     END;
   `);
-  await db.execute("INSERT INTO repo_ai_metadata_fts(repo_ai_metadata_fts) VALUES('rebuild')");
+  // Same guard as above: only rebuild when the FTS table is empty. The
+  // AFTER INSERT/UPDATE/DELETE triggers maintain it incrementally otherwise.
+  const aiMetadataFtsCount = await db.execute('SELECT COUNT(*) AS c FROM repo_ai_metadata_fts');
+  if ((aiMetadataFtsCount.rows[0]?.c as number) === 0) {
+    await db.execute("INSERT INTO repo_ai_metadata_fts(repo_ai_metadata_fts) VALUES('rebuild')");
+  }
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS user_repo_lists (

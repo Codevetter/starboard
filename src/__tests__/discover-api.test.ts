@@ -82,4 +82,21 @@ describe('GET /api/discover', () => {
     expect(response.status).toBe(401);
     expect(mocks.execute).not.toHaveBeenCalled();
   });
+
+  // Regression guard: the eligibility filter must use the index-friendly
+  // IN (UNION) form, not the OR EXISTS correlated subquery that forced
+  // O(|repos| × |user_repos|) row reads per request (the 500M-row burn).
+  // See scripts/enrich-tools.ts loadPending for the same pattern.
+  it('uses an index-friendly eligibility filter (no OR EXISTS anti-pattern)', async () => {
+    await GET(new NextRequest('http://localhost/api/discover'));
+
+    const calls = mocks.execute.mock.calls.map((call) => {
+      const arg = call[0];
+      return typeof arg === 'string' ? arg : (arg as { sql: string }).sql;
+    });
+    const allSql = calls.join('\n');
+
+    expect(allSql).not.toMatch(/OR\s+EXISTS\s*\(/i);
+    expect(allSql).toMatch(/IN\s*\(\s*SELECT.*UNION\s+SELECT.*user_repos/is);
+  });
 });

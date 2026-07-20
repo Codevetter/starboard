@@ -80,6 +80,7 @@ CREATE TABLE IF NOT EXISTS comment_votes (
 );
 
 CREATE INDEX IF NOT EXISTS idx_user_repos_user ON user_repos(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_repos_repo ON user_repos(repo_id);
 CREATE INDEX IF NOT EXISTS idx_user_repos_list ON user_repos(user_id, list_id);
 CREATE INDEX IF NOT EXISTS idx_user_repo_lists_user_list ON user_repo_lists(user_id, list_id);
 CREATE INDEX IF NOT EXISTS idx_user_repo_lists_repo ON user_repo_lists(repo_id);

@@ -31,12 +31,15 @@ async function seed() {
                  ram.keywords
           FROM repos r
           LEFT JOIN repo_ai_metadata ram ON ram.repo_id = r.id
-          WHERE r.stargazers_count >= ?
-             OR EXISTS (
-               SELECT 1
-               FROM user_repos ur
-               WHERE ur.repo_id = r.id AND ur.is_starred = 1
-             )
+          WHERE r.id IN (
+            SELECT r2.id
+            FROM repos r2
+            WHERE r2.stargazers_count >= ?
+            UNION
+            SELECT ur.repo_id
+            FROM user_repos ur
+            WHERE ur.is_starred = 1
+          )
           ORDER BY r.stargazers_count DESC`,
     args: [MIN_STARS_FLOOR],
   });
