@@ -122,7 +122,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 - Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`, `/api/growth`, Radar fastest-growers, and repo-detail mini history from stored `repo_star_snapshots`.
 - Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.
 - Stack builder surface (`/stack-builder`, `/api/stack-builder`).
-- SaaS Maker feedback, testimonials, and changelog widgets integrated.
+- SaaS Maker feedback widget integrated; product analytics run directly through PostHog.
 - First-run UX, sample prioritized stars board, why-repo-is-hot explanations, GitHub permission trust note, stale-star cleanup proof, weekly digest preview surfaces (product/design loop shipped).
 
 ### Alerts and shareable reports

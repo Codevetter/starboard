@@ -99,6 +99,6 @@ design.
 - **Virtualized grid** via `@tanstack/react-virtual`.
 - **NextAuth v5 beta** — session shape differs from v4; access token threaded
   for GitHub API sync.
-- **SaaS Maker** — feedback, testimonials, changelog widgets integrated.
-  PostHog is the analytics path (SaaS Maker analytics removed).
+- **SaaS Maker** — feedback widget only. PostHog is the direct analytics path;
+  Fleet Workspace owns cross-project marketing and operational automation.
 - Pre-push hook runs Biome lint on changed files.

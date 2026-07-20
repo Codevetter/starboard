@@ -131,7 +131,7 @@ drift and recreates embedding storage when needed.
 - Project recommendations suppress packages already used by the target project before ranking candidate repos.
 - Filter and sort state lives in the URL through `nuqs`, so dashboard links are shareable.
 - Scheduled GitHub Actions seed and enrich popular repositories for discovery.
-- SaaS Maker feedback, analytics, testimonials, and changelog widgets are integrated.
+- SaaS Maker supplies the feedback widget only; product analytics run directly through PostHog.
 
 ## Verification
 
@@ -153,11 +153,11 @@ pnpm build:cf
 <!-- ACTIVE-AI-TASK-LOG:START -->
 ## Active AI Task Log
 
-This section is maintained by the SaaS Maker Active-AI product/design loop so future agents do not reopen duplicate UI tasks.
+This historical task ledger is retained for context; new planning and marketing automation live in Fleet Workspace.
 
 - Business lane: P0 Can make money
 - Rule: do not create another broad "improve the UI" task unless the acceptance criteria differ materially from the tasks listed here.
-- Source of truth for task status: SaaS Maker task board. README entries are durable context only.
+- Source of truth for current work: root `PROJECT_STATUS.md`; Fleet Workspace owns cross-project automation.
 
 | Task | Status | Priority | Last known note |
 | --- | --- | --- | --- |

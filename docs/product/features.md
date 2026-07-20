@@ -68,7 +68,7 @@ today*; for *why* see [../architecture/decisions/](../architecture/decisions/).
   SBOM/tree/manifest-based detection with source/confidence labels. Accuracy
   disclaimer shown in-product.
 - Stack builder surface (`/stack-builder`, `/api/stack-builder`).
-- SaaS Maker feedback, testimonials, and changelog widgets integrated.
+- SaaS Maker feedback widget integrated; direct PostHog analytics.
 - First-run UX, sample prioritized stars board, why-repo-is-hot explanations,
   GitHub permission trust note, stale-star cleanup proof, weekly digest preview
   surfaces.

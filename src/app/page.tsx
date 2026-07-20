@@ -1,7 +1,6 @@
 import { Bookmark, GitCompare, Search } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { SaaSMakerChangelog, SaaSMakerTestimonials } from '@/components/saasmaker-feedback';
 import { SampleStaleCleanup } from '@/components/sample-stale-cleanup';
 import { SampleStarsBoard } from '@/components/sample-stars-board';
 import { SampleWeeklyDigest } from '@/components/sample-weekly-digest';
@@ -13,7 +12,6 @@ export default async function Home() {
   if (session?.user?.githubId) {
     redirect('/discover');
   }
-  const hasSaaSMaker = Boolean(process.env.NEXT_PUBLIC_SAASMAKER_API_KEY);
   return (
     <div className="flex min-h-svh w-full flex-col items-center overflow-x-hidden bg-background dark:bg-[oklch(0.1_0_0)]">
       <main className="flex w-full max-w-6xl flex-col items-center gap-16 overflow-x-hidden px-5 py-12 sm:px-6 sm:py-20">
@@ -124,22 +122,6 @@ export default async function Home() {
           </p>
           <SampleWeeklyDigest />
         </div>
-
-        {/* Testimonials */}
-        {hasSaaSMaker ? (
-          <div className="w-full max-w-3xl">
-            <h2 className="mb-6 text-center text-2xl font-bold">What people are saying</h2>
-            <SaaSMakerTestimonials />
-          </div>
-        ) : null}
-
-        {/* Changelog */}
-        {hasSaaSMaker ? (
-          <div className="w-full max-w-2xl">
-            <h2 className="mb-6 text-center text-2xl font-bold">Changelog</h2>
-            <SaaSMakerChangelog />
-          </div>
-        ) : null}
       </main>
     </div>
   );
