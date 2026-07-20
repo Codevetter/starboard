@@ -22,6 +22,24 @@ interface AiBinding {
   run(model: string, input: { text: string[] }): Promise<{ data: number[][] }>;
 }
 
+// Errors thrown by the Workers AI binding don't always carry an HTTP status.
+// Detect rate-limit / overload signals from the message too so we can back off.
+function isRetryableBindingError(err: unknown): boolean {
+  if (err && typeof err === 'object') {
+    const status = (err as { status?: number }).status;
+    if (status === 429 || (typeof status === 'number' && status >= 500)) return true;
+  }
+  const msg = err instanceof Error ? err.message.toLowerCase() : '';
+  return (
+    msg.includes('rate') ||
+    msg.includes('429') ||
+    msg.includes('overload') ||
+    msg.includes('too many requests') ||
+    msg.includes('busy') ||
+    msg.includes('capacity')
+  );
+}
+
 export { EMBEDDING_DIM };
 
 interface RepoAiMetadataInput {
@@ -47,12 +65,33 @@ async function getAiBinding(): Promise<AiBinding | null> {
   }
 }
 
-async function embedViaBinding(ai: AiBinding, texts: string[]): Promise<number[][]> {
-  const res = await ai.run(EMBEDDING_MODEL, { text: texts });
-  return res.data;
-}
-
 const MAX_EMBED_ATTEMPTS = 3;
+// Pause between consecutive batches so a sync of N repos doesn't fire
+// N/50 binding calls in a tight loop — that burst is what trips Workers AI
+// rate limiting. 200ms keeps a 500-repo sync under ~2s of added wall time
+// while staying well under the per-minute request ceiling.
+const INTER_BATCH_DELAY_MS = 200;
+
+async function embedViaBinding(ai: AiBinding, texts: string[]): Promise<number[][]> {
+  // Mirror embedViaHttp: 3 attempts, exponential backoff with jitter.
+  // The Workers AI binding throws on 429/overload; without this, a single
+  // rate-limited batch fails the whole sync/discover request.
+  let lastError: unknown;
+  for (let attempt = 0; attempt < MAX_EMBED_ATTEMPTS; attempt++) {
+    if (attempt > 0) {
+      await delay(400 * 2 ** (attempt - 1) + Math.floor(Math.random() * 200));
+    }
+    try {
+      const res = await ai.run(EMBEDDING_MODEL, { text: texts });
+      return res.data;
+    } catch (err) {
+      lastError = err;
+      if (isRetryableBindingError(err) && attempt < MAX_EMBED_ATTEMPTS - 1) continue;
+      throw err;
+    }
+  }
+  throw lastError ?? new Error('Binding embedding failed after retries');
+}
 
 function isRetryableStatus(status: number): boolean {
   // 429 (rate limit) + 5xx are transient and worth retrying.
@@ -184,6 +223,7 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   const results: number[][] = new Array(texts.length);
 
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
+    if (i > 0) await delay(INTER_BATCH_DELAY_MS);
     const batch = texts.slice(i, i + BATCH_SIZE);
     const embeddings = ai ? await embedViaBinding(ai, batch) : await embedViaHttp(batch);
     for (let j = 0; j < embeddings.length; j++) {

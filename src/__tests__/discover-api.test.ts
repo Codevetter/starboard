@@ -14,7 +14,6 @@ vi.mock('@/db', () => ({
     batch: mocks.batch,
   },
 }));
-vi.mock('@/lib/embeddings', () => ({ generateEmbedding: vi.fn() }));
 
 import { GET } from '@/app/api/discover/route';
 

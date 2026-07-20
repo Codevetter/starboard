@@ -3,8 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
-import { generateEmbedding } from '@/lib/embeddings';
-import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
+import { ftsSearchQuery } from '@/lib/search';
 
 const MIN_STARS_FLOOR = 5000;
 const ELIGIBLE_REPO_SQL =
@@ -53,12 +52,8 @@ export async function GET(request: NextRequest) {
   let rankedRepoIds: number[] | null = null;
   if (q) {
     const lexicalQuery = ftsSearchQuery(q);
-    const RRF_K = 60;
-    const VEC_TOP_K = 500;
-    const VEC_DIST_MAX = 0.55;
-    const useSemanticSearch = sort === 'relevance';
-    const lexIdsPromise = lexicalQuery
-      ? db
+    const lexIds = lexicalQuery
+      ? await db
           .execute({
             sql: `SELECT r.id,
                        MIN(rank) AS best_rank
@@ -81,45 +76,13 @@ export async function GET(request: NextRequest) {
             args: [lexicalQuery, lexicalQuery, MIN_STARS_FLOOR],
           })
           .then((result) => result.rows.map((r) => r.id as number))
-      : Promise.resolve([]);
+      : [];
 
-    const semIdsPromise = useSemanticSearch
-      ? generateEmbedding(expandedSearchQuery(q))
-          .then((queryEmbedding) =>
-            db.execute({
-              sql: `SELECT re.repo_id,
-                           vector_distance_cos(re.embedding, vector(?)) AS dist
-                    FROM vector_top_k('idx_repo_embeddings_vec', vector(?), ?) AS vt
-                    JOIN repo_embeddings re ON re.rowid = vt.id
-                    JOIN repos r ON r.id = re.repo_id
-                    WHERE ${ELIGIBLE_REPO_SQL}
-                    ORDER BY dist ASC`,
-              args: [
-                JSON.stringify(queryEmbedding),
-                JSON.stringify(queryEmbedding),
-                VEC_TOP_K,
-                MIN_STARS_FLOOR,
-              ],
-            })
-          )
-          .then((vectorResult) =>
-            vectorResult.rows
-              .filter((r) => (r.dist as number) <= VEC_DIST_MAX)
-              .map((r) => r.repo_id as number)
-          )
-          .catch((error) => {
-            console.warn('Discover semantic search failed:', error);
-            return [];
-          })
-      : Promise.resolve([]);
-
-    const [lexIds, semIds] = await Promise.all([lexIdsPromise, semIdsPromise]);
-    const fused = useSemanticSearch ? blendSearchIds(lexIds, semIds, RRF_K) : lexIds;
-    if (fused.length > 0) {
-      rankedRepoIds = fused;
-      const placeholders = fused.map(() => '?').join(', ');
+    if (lexIds.length > 0) {
+      rankedRepoIds = lexIds;
+      const placeholders = lexIds.map(() => '?').join(', ');
       whereClauses.push(`r.id IN (${placeholders})`);
-      whereArgs.push(...fused);
+      whereArgs.push(...lexIds);
     } else {
       whereClauses.push('0 = 1');
     }
