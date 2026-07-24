@@ -37,7 +37,10 @@ const CACHEABLE_DOCUMENT_PATHS = new Set([
   '/terms',
 ]);
 const CACHEABLE_PREFIXES = ['/tools', '/projects', '/lists', '/reports', '/explore'];
-const CACHE_CONTROL = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800';
+// Browsers must revalidate document URLs after a deployment so an open client
+// cannot keep HTML that references chunks removed by the next build. The
+// versioned Cache API key still keeps anonymous document traffic at the edge.
+const CACHE_CONTROL = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800';
 function isCacheableDocumentPath(pathname) {
   if (CACHEABLE_DOCUMENT_PATHS.has(pathname)) return true;
   for (const prefix of CACHEABLE_PREFIXES) {
