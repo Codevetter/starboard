@@ -1,9 +1,9 @@
 // worker.mjs — custom Worker entry that wraps OpenNext with edge cache.
 //
 // The OpenNext-generated worker (`./.open-next/worker.js`) is imported as
-// the inner handler. For GET / requests we consult `caches.default` first
-// and only fall through to the Next handler on a miss — eliminating the
-// Worker cold-start path entirely for warm-cache hits on the homepage.
+// the inner handler. For cacheable document requests we consult
+// `caches.default` first and only fall through to the Next handler on a
+// miss.
 //
 // Cache headers are explicit so CF Edge actually treats the response as
 // cacheable (s-maxage-only was getting marked DYNAMIC at the zone level;
@@ -55,6 +55,12 @@ function hasAuthCookie(request) {
   const cookie = request.headers.get('cookie');
   if (!cookie) return false;
   return AUTH_COOKIE_FRAGMENTS.some((c) => cookie.includes(c));
+}
+
+function cacheKeyFor(request, versionId) {
+  const cacheUrl = new URL(request.url);
+  cacheUrl.searchParams.set('__starboard_worker_version', versionId);
+  return new Request(cacheUrl, request);
 }
 
 const worker = {
@@ -133,7 +139,8 @@ const worker = {
       }
 
       const cache = caches.default;
-      const cached = await cache.match(request);
+      const cacheKey = cacheKeyFor(request, env.CF_VERSION_METADATA?.id ?? 'local');
+      const cached = await cache.match(cacheKey);
       if (cached) {
         const hit = new Response(cached.body, cached);
         hit.headers.set('x-edge-cache', 'HIT');
@@ -163,7 +170,7 @@ const worker = {
         statusText: response.statusText,
         headers,
       });
-      ctx.waitUntil(cache.put(request, cacheable.clone()));
+      ctx.waitUntil(cache.put(cacheKey, cacheable.clone()));
 
       const clientResponse = new Response(body, {
         status: response.status,
