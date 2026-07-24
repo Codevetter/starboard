@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 
-export const runtime = 'edge';
-
 /**
  * Public health endpoint for the Starboard Cloudflare Worker.
  *
@@ -13,7 +11,7 @@ export const runtime = 'edge';
  *
  * The structured refresh manifest (`data/refresh-manifest.json`) is written
  * by the `seed-popular` GitHub Action in Node.js, not by the Worker, so it
- * is not readable from edge runtime. Operators consult the GitHub Actions run
+ * is not readable from the deployed Worker runtime. Operators consult the GitHub Actions run
  * summary for per-run refresh watermark/freshness evidence. The
  * `indexing.search_probe` flag here is the live Worker-side equivalent.
  *
