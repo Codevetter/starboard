@@ -18,7 +18,7 @@ interface DiscoverFacets extends Facets {
   tools: Array<{ key: string; name: string; count: number }>;
 }
 
-interface DiscoverResponse {
+export interface DiscoverResponse {
   repos: UserRepo[];
   total: number;
   facets: DiscoverFacets;
@@ -66,7 +66,10 @@ function filterKey(opts: UseDiscoverReposOptions): string {
   });
 }
 
-export function useDiscoverRepos(opts: UseDiscoverReposOptions = {}) {
+export function useDiscoverRepos(
+  opts: UseDiscoverReposOptions = {},
+  initial?: { data: DiscoverResponse | null; url: string }
+) {
   const [loadedRepos, setLoadedRepos] = useState<UserRepo[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
   const prevFilterKey = useRef(filterKey(opts));
@@ -74,6 +77,7 @@ export function useDiscoverRepos(opts: UseDiscoverReposOptions = {}) {
   const loadMoreAbortRef = useRef<AbortController | null>(null);
 
   const url = buildDiscoverUrl(opts, 0);
+  const hasMatchingInitialData = initial?.data != null && initial.url === url;
   const { data, error, isLoading, isValidating, mutate } = useSWR<DiscoverResponse>(
     url,
     (url: string) => {
@@ -86,8 +90,10 @@ export function useDiscoverRepos(opts: UseDiscoverReposOptions = {}) {
     },
     {
       revalidateOnFocus: false,
+      revalidateOnMount: !hasMatchingInitialData,
       dedupingInterval: 60000 * 5,
       keepPreviousData: true,
+      fallbackData: hasMatchingInitialData ? (initial.data ?? undefined) : undefined,
       shouldRetryOnError: false,
       onError: (err) => {
         if (err?.name === 'AbortError') return;

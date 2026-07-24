@@ -58,7 +58,9 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 - **2026-07-25 (browser compatibility fix)** — Public Discover now loads its
   guest repository feed from `/discover/data`, retaining `/api/discover` for
   integrations while avoiding browser privacy tools that block generic
-  `/api/*` requests. Removed stale auth-status guards from the guest content
+  `/api/*` requests. Its first result set is server-rendered into the document
+  so guests still see the feed when a privacy tool blocks client-side JSON
+  requests entirely. Removed stale auth-status guards from the guest content
   component.
 - **2026-07-25 (ready to ship)** — Made Discover genuinely public for guests:
   unauthenticated reads use the shared seeded corpus, private list filters fail
