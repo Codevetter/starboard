@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
 import { Suspense, useCallback, useEffect, useState } from 'react';
@@ -82,30 +81,19 @@ function PageSkeleton() {
 
 export default function DiscoverPage() {
   const { status } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.replace('/');
-    }
-  }, [router, status]);
 
   if (status === 'loading') {
     return <PageSkeleton />;
   }
 
-  if (status === 'unauthenticated') {
-    return null;
-  }
-
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <DiscoverContent />
+      <DiscoverContent isAuthenticated={status === 'authenticated'} />
     </Suspense>
   );
 }
 
-function DiscoverContent() {
+function DiscoverContent({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [searchQuery, setSearchQuery] = useQueryState('q', parseAsString.withDefault(''));
   const [sortBy, setSortBy] = useQueryState(
     'sort',
@@ -128,11 +116,18 @@ function DiscoverContent() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
+  const activeListId = isAuthenticated ? selectedListId : null;
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 200);
     return () => clearTimeout(t);
   }, [searchQuery]);
+
+  useEffect(() => {
+    if (!isAuthenticated && selectedListId !== null) {
+      setSelectedListId(null);
+    }
+  }, [isAuthenticated, selectedListId, setSelectedListId]);
 
   const {
     repos,
@@ -148,7 +143,7 @@ function DiscoverContent() {
   } = useDiscoverRepos({
     q: debouncedSearch,
     language: selectedLanguages,
-    listId: selectedListId,
+    listId: activeListId,
     tools: selectedTools,
     sort: sortBy,
     limit: 50,
@@ -160,12 +155,12 @@ function DiscoverContent() {
     deleteList,
     shareList,
     assignRepoToList,
-  } = useLists();
+  } = useLists(isAuthenticated);
   const requestKey = [
     debouncedSearch,
     selectedLanguages.join(','),
     selectedTools.join(','),
-    selectedListId ?? '',
+    activeListId ?? '',
     sortBy,
   ].join('|');
   const [settledRequestKey, setSettledRequestKey] = useState(requestKey);
@@ -185,7 +180,7 @@ function DiscoverContent() {
     searchQuery.trim().length > 0 ||
     selectedLanguages.length > 0 ||
     selectedTools.length > 0 ||
-    selectedListId !== null;
+    activeListId !== null;
   const isGridPending =
     searchQuery !== debouncedSearch || requestKey !== settledRequestKey || isValidating;
 
@@ -268,11 +263,12 @@ function DiscoverContent() {
       selectedTools={selectedTools}
       onToolToggle={handleToolToggle}
       lists={lists}
-      selectedListId={selectedListId}
+      selectedListId={activeListId}
       onListSelect={setSelectedListId}
       onCreateList={createList}
       onDeleteList={handleDeleteList}
       onShareList={shareList}
+      collectionsEnabled={isAuthenticated}
     />
   );
 
@@ -328,9 +324,9 @@ function DiscoverContent() {
               isLoading={reposLoading}
               isPending={isGridPending}
               isValidating={isValidating}
-              lists={lists}
-              onAssignList={handleAssignList}
-              onToggleSave={handleToggleSave}
+              lists={isAuthenticated ? lists : undefined}
+              onAssignList={isAuthenticated ? handleAssignList : undefined}
+              onToggleSave={isAuthenticated ? handleToggleSave : undefined}
               hasActiveFilters={hasActiveFilters}
               onClearFilters={clearFilters}
               hasMore={hasMore}

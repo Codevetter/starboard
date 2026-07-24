@@ -32,12 +32,7 @@ END`;
 
 export async function GET(request: NextRequest) {
   const session = await auth();
-
-  if (!session?.user?.githubId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const userId = session.user.githubId;
+  const userId = session?.user?.githubId ?? null;
   const params = request.nextUrl.searchParams;
 
   const q = params.get('q')?.trim() || null;
@@ -112,6 +107,12 @@ export async function GET(request: NextRequest) {
   }
 
   if (listId !== null) {
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required for list filters' },
+        { status: 401 }
+      );
+    }
     const parsedListId = parseInt(listId, 10);
     if (!Number.isInteger(parsedListId)) {
       return NextResponse.json({ error: 'Invalid list_id' }, { status: 400 });
@@ -180,16 +181,21 @@ export async function GET(request: NextRequest) {
       args: [MIN_STARS_FLOOR],
     };
 
-    const listFacetQuery: InStatement = {
-      sql: `SELECT ul.id, ul.name, ul.color, COUNT(r.id) as count
-            FROM user_lists ul
-            LEFT JOIN user_repo_lists url ON url.list_id = ul.id AND url.user_id = ul.user_id
-            LEFT JOIN repos r ON r.id = url.repo_id AND ${ELIGIBLE_REPO_SQL}
-            WHERE ul.user_id = ?
-            GROUP BY ul.id
-            ORDER BY ul.position ASC`,
-      args: [MIN_STARS_FLOOR, userId],
-    };
+    const listFacetQuery: InStatement = userId
+      ? {
+          sql: `SELECT ul.id, ul.name, ul.color, COUNT(r.id) as count
+                FROM user_lists ul
+                LEFT JOIN user_repo_lists url ON url.list_id = ul.id AND url.user_id = ul.user_id
+                LEFT JOIN repos r ON r.id = url.repo_id AND ${ELIGIBLE_REPO_SQL}
+                WHERE ul.user_id = ?
+                GROUP BY ul.id
+                ORDER BY ul.position ASC`,
+          args: [MIN_STARS_FLOOR, userId],
+        }
+      : {
+          sql: 'SELECT NULL AS id, NULL AS name, NULL AS color, 0 AS count WHERE 0 = 1',
+          args: [],
+        };
 
     const toolFacetQuery: InStatement = {
       sql: `SELECT rt.tool_key, rt.tool_name, COUNT(DISTINCT rt.repo_id) AS count

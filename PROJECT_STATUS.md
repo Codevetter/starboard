@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-07-13
+Last updated: 2026-07-25
 
 ## Why/What
 
@@ -55,6 +55,12 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ## Timeline
 
+- **2026-07-25 (ready to ship)** — Made Discover genuinely public for guests:
+  unauthenticated reads use the shared seeded corpus, private list filters fail
+  closed, personalized controls stay hidden, and the landing public CTA reaches
+  `/discover`. Focused API tests, the full suite, typecheck, lint, production
+  build, and local guest-shell browser verification pass. No production
+  deployment was performed.
 - **2026-07-13** — Completed Star History + Tool Intelligence: Discover now supports stored 30-day growth ordering and detected-tool facets, tool enrichment reuses persisted AI/README-derived metadata before GitHub manifest requests, and the 5k+ seed walk has a hard per-run page bound with conflict-safe snapshot inserts and resumable cursors. Added route-level coverage for growth/tool queries and excluded linked fleet agent assets from Vitest discovery; 94 tests, typecheck, lint, and production build pass.
 - **2026-07-11** — Scheduled seed reliability: GitHub search now retries transient network and 5xx failures with bounded exponential backoff, while alert preference fixtures include the current email opt-out default.
 - **2026-07-02** — Added global try/catch error handler to OpenNext worker (`worker.mjs`).
@@ -115,7 +121,9 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 - OSS recommendation integrations evaluated in `docs/oss-integration-evaluation.md`.
 
 ### Discovery, radar, and intelligence surfaces
-- Discover page and `/api/discover` for seeded popular repositories.
+- Public Discover page and `/api/discover` for the seeded popular repository
+  corpus; authentication adds saved state and collection controls but is not
+  required to browse, search, sort, filter, paginate, or open repo details.
 - Discover supports paginated 30-day growth ordering and detected-tool facets from indexed local snapshot/tool tables.
 - Scheduled GitHub Actions seed/enrich/embed popular repos in Turso (`scripts/seed-popular.ts`, `pnpm db:seed-popular`).
 - Radar page and `/api/radar` for maintainer/release-oriented signals.

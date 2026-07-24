@@ -48,6 +48,7 @@ interface SidebarProps {
   onCreateList: (name: string, color?: string) => Promise<unknown>;
   onDeleteList?: (id: number) => Promise<unknown>;
   onShareList?: (id: number) => Promise<{ is_public: boolean; slug: string }>;
+  collectionsEnabled?: boolean;
 }
 
 function SidebarSkeleton() {
@@ -102,6 +103,7 @@ export function Sidebar({
   onCreateList,
   onDeleteList,
   onShareList,
+  collectionsEnabled = true,
 }: SidebarProps) {
   const [listDialogOpen, setListDialogOpen] = useState(false);
   const [newListName, setNewListName] = useState('');
@@ -216,100 +218,104 @@ export function Sidebar({
             </>
           )}
 
-          {/* Collections */}
-          <div className="flex items-center justify-between">
-            <SectionHeader icon={List} label="Collections" />
-            <Button
-              variant="ghost"
-              size="icon-xs"
-              aria-label="New Collection"
-              onClick={() => setListDialogOpen(true)}
-            >
-              <Plus className="size-3.5" />
-            </Button>
-          </div>
-          <div className="mt-1 flex flex-col gap-0.5">
-            {lists.map((list) => {
-              const facet = listFacets.find((f) => f.id === list.id);
-              const count = facet?.count ?? 0;
-              const isShared = list.is_public === 1;
-              const isCopied = copiedListId === list.id;
-              return (
-                <div
-                  key={list.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onListSelect(selectedListId === list.id ? null : list.id)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      onListSelect(selectedListId === list.id ? null : list.id);
-                    }
-                  }}
-                  className={cn(
-                    'group grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent',
-                    selectedListId === list.id && 'bg-accent text-accent-foreground'
-                  )}
+          {collectionsEnabled && (
+            <>
+              {/* Collections */}
+              <div className="flex items-center justify-between">
+                <SectionHeader icon={List} label="Collections" />
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="New Collection"
+                  onClick={() => setListDialogOpen(true)}
                 >
-                  <div className="flex w-full min-w-0 items-center gap-2.5 text-left">
-                    <span
-                      className="inline-block size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: list.color }}
-                    />
-                    <span className="block min-w-0 flex-1 truncate text-left">{list.name}</span>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    {onShareList &&
-                      (isCopied ? (
-                        <span className="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                          <Check className="size-3" />
-                          Copied!
-                        </span>
-                      ) : (
-                        <button
-                          onClick={(e) => handleShareList(e, list)}
-                          className={cn(
-                            'shrink-0 rounded p-0.5 transition-colors hover:bg-accent-foreground/10',
-                            isShared
-                              ? 'text-primary'
-                              : 'text-muted-foreground opacity-0 group-hover:opacity-100'
-                          )}
-                          title={isShared ? 'Copy share link' : 'Share list'}
-                        >
-                          {isShared ? (
-                            <Link className="size-3.5" />
+                  <Plus className="size-3.5" />
+                </Button>
+              </div>
+              <div className="mt-1 flex flex-col gap-0.5">
+                {lists.map((list) => {
+                  const facet = listFacets.find((f) => f.id === list.id);
+                  const count = facet?.count ?? 0;
+                  const isShared = list.is_public === 1;
+                  const isCopied = copiedListId === list.id;
+                  return (
+                    <div
+                      key={list.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => onListSelect(selectedListId === list.id ? null : list.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onListSelect(selectedListId === list.id ? null : list.id);
+                        }
+                      }}
+                      className={cn(
+                        'group grid w-full cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-accent',
+                        selectedListId === list.id && 'bg-accent text-accent-foreground'
+                      )}
+                    >
+                      <div className="flex w-full min-w-0 items-center gap-2.5 text-left">
+                        <span
+                          className="inline-block size-2.5 shrink-0 rounded-full"
+                          style={{ backgroundColor: list.color }}
+                        />
+                        <span className="block min-w-0 flex-1 truncate text-left">{list.name}</span>
+                      </div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        {onShareList &&
+                          (isCopied ? (
+                            <span className="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                              <Check className="size-3" />
+                              Copied!
+                            </span>
                           ) : (
-                            <Share2 className="size-3.5" />
-                          )}
-                        </button>
-                      ))}
-                    {onDeleteList && (
-                      <button
-                        onClick={(e) => handleDeleteList(e, list)}
-                        className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
-                        title="Delete list"
-                      >
-                        <Trash2 className="size-3.5" />
-                      </button>
-                    )}
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                      {count}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-            {lists.length === 0 && (
-              <p className="px-2 py-3 text-xs text-muted-foreground">
-                Create collections to organize your repos
-              </p>
-            )}
-          </div>
+                            <button
+                              onClick={(e) => handleShareList(e, list)}
+                              className={cn(
+                                'shrink-0 rounded p-0.5 transition-colors hover:bg-accent-foreground/10',
+                                isShared
+                                  ? 'text-primary'
+                                  : 'text-muted-foreground opacity-0 group-hover:opacity-100'
+                              )}
+                              title={isShared ? 'Copy share link' : 'Share list'}
+                            >
+                              {isShared ? (
+                                <Link className="size-3.5" />
+                              ) : (
+                                <Share2 className="size-3.5" />
+                              )}
+                            </button>
+                          ))}
+                        {onDeleteList && (
+                          <button
+                            onClick={(e) => handleDeleteList(e, list)}
+                            className="shrink-0 rounded p-0.5 text-muted-foreground opacity-0 transition-colors hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                            title="Delete list"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        )}
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                          {count}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {lists.length === 0 && (
+                  <p className="px-2 py-3 text-xs text-muted-foreground">
+                    Create collections to organize your repos
+                  </p>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </ScrollArea>
 
       {/* Create Collection Dialog */}
-      <Dialog open={listDialogOpen} onOpenChange={setListDialogOpen}>
+      <Dialog open={collectionsEnabled && listDialogOpen} onOpenChange={setListDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Create Collection</DialogTitle>

@@ -74,13 +74,34 @@ describe('GET /api/discover', () => {
     expect(payload.facets.tools).toEqual([{ key: 'react', name: 'React', count: 1 }]);
   });
 
-  it('rejects unauthenticated requests before querying the database', async () => {
+  it('serves the public corpus to guests with null personalized state', async () => {
     mocks.auth.mockResolvedValueOnce(null);
 
     const response = await GET(new NextRequest('http://localhost/api/discover'));
 
+    expect(response.status).toBe(200);
+    const mainQuery = mocks.execute.mock.calls[0]?.[0] as { sql: string; args: unknown[] };
+    expect(mainQuery.args.slice(0, 2)).toEqual([null, null]);
+
+    const batchedQueries = mocks.batch.mock.calls[0]?.[0] as Array<{
+      sql: string;
+      args: unknown[];
+    }>;
+    expect(batchedQueries[2].sql).not.toContain('user_lists');
+    expect(batchedQueries[2].args).toEqual([]);
+  });
+
+  it('rejects guest collection filters before querying personalized state', async () => {
+    mocks.auth.mockResolvedValueOnce(null);
+
+    const response = await GET(new NextRequest('http://localhost/api/discover?list_id=42'));
+
     expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      error: 'Authentication required for list filters',
+    });
     expect(mocks.execute).not.toHaveBeenCalled();
+    expect(mocks.batch).not.toHaveBeenCalled();
   });
 
   // Regression guard: the eligibility filter must use the index-friendly
@@ -97,6 +118,6 @@ describe('GET /api/discover', () => {
     const allSql = calls.join('\n');
 
     expect(allSql).not.toMatch(/OR\s+EXISTS\s*\(/i);
-    expect(allSql).toMatch(/IN\s*\(\s*SELECT.*UNION\s+SELECT.*user_repos/is);
+    expect(allSql).toMatch(/IN\s*\(\s*SELECT[\s\S]*UNION\s+SELECT[\s\S]*user_repos/i);
   });
 });

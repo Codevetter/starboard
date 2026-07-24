@@ -1,6 +1,6 @@
 # STATUS — Starboard
 
-Last updated: 2026-07-18
+Last updated: 2026-07-25
 
 ## Current objective
 
@@ -15,6 +15,12 @@ For the deeper product status (features, timeline, surfaces), see
 
 ## Active work
 
+- **Public Discover ready to ship** (2026-07-25): guests can browse, search,
+  sort, filter, paginate, and open public repository details, while saves,
+  collections, and other personalized controls remain authenticated. The
+  landing CTA again points to `/discover`. Focused API tests, the full test
+  suite, typecheck, lint, build, and local guest-shell browser verification
+  pass. Production deployment remains operator-owned.
 - **Documentation consolidation** (2026-07-18): built a maintainable,
   local-first `docs/` knowledge system with a Blume presentation layer,
   link/structure validator (`scripts/check-docs.mjs`), and Docs CI. AGENTS.md

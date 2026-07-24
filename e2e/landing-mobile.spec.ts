@@ -7,8 +7,7 @@ import { expect, test } from '@playwright/test';
  * playwright.config.ts). The `mobile` project uses a 390px iPhone 13
  * viewport — the fleet mobile target — so layout regressions there fail CI.
  *
- * The landing page is the only route reachable without GitHub auth, so the
- * primary signed-in flow (the virtualized repo grid) is verified manually
+ * The primary signed-in flow (the virtualized repo grid) is verified manually
  * against the mobile conventions doc.
  */
 test.describe('landing page', () => {
@@ -25,6 +24,12 @@ test.describe('landing page', () => {
 
     // The single primary CTA is reachable.
     await expect(page.getByRole('button', { name: /sign in with github/i })).toBeVisible();
+
+    // The guest alternative must lead to a genuinely public surface.
+    await expect(page.getByRole('link', { name: /browse public repos/i })).toHaveAttribute(
+      'href',
+      '/discover'
+    );
 
     // No horizontal scroll — the page must never scroll sideways.
     const overflow = await page.evaluate(

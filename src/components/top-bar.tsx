@@ -74,7 +74,7 @@ export function TopBar({
   syncing,
   onSync,
 }: TopBarProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const isDiscover = pathname?.startsWith('/discover');
   const isProjects = pathname?.startsWith('/projects');
@@ -123,52 +123,56 @@ export function TopBar({
             Discover
           </Link>
         </Button>
-        <Button
-          asChild
-          variant={isProjects ? 'secondary' : 'ghost'}
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs"
-        >
-          <Link href="/projects">
-            <FolderKanban className="size-3.5" />
-            My Projects
-          </Link>
-        </Button>
-        <Button
-          asChild
-          variant={isRadar ? 'secondary' : 'ghost'}
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs"
-        >
-          <Link href="/radar">
-            <RadioTower className="size-3.5" />
-            Radar
-          </Link>
-        </Button>
-        <Button
-          asChild
-          variant={isStackBuilder ? 'secondary' : 'ghost'}
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs"
-        >
-          <Link href={stackHref}>
-            <Boxes className="size-3.5" />
-            Stack
-          </Link>
-        </Button>
-        <Button
-          asChild
-          variant={
-            !isDiscover && !isProjects && !isRadar && !isStackBuilder ? 'secondary' : 'ghost'
-          }
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs"
-        >
-          <Link href="/stars">
-            <Star className="size-3.5" />
-            Library
-          </Link>
-        </Button>
+        {status === 'authenticated' && (
+          <>
+            <Button
+              asChild
+              variant={isProjects ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+            >
+              <Link href="/projects">
+                <FolderKanban className="size-3.5" />
+                My Projects
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant={isRadar ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+            >
+              <Link href="/radar">
+                <RadioTower className="size-3.5" />
+                Radar
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant={isStackBuilder ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+            >
+              <Link href={stackHref}>
+                <Boxes className="size-3.5" />
+                Stack
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant={
+                !isDiscover && !isProjects && !isRadar && !isStackBuilder ? 'secondary' : 'ghost'
+              }
+              size="sm"
+              className="h-7 gap-1.5 px-2 text-xs"
+            >
+              <Link href="/stars">
+                <Star className="size-3.5" />
+                Library
+              </Link>
+            </Button>
+          </>
+        )}
       </div>
 
       {typeof repoCount === 'number' && (
@@ -246,45 +250,51 @@ export function TopBar({
         </ToggleGroupItem>
       </ToggleGroup>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon" className="shrink-0 overflow-hidden rounded-full">
-            {session?.user?.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={userAvatar!.src}
-                srcSet={userAvatar!.srcSet}
-                sizes={userAvatar!.sizes}
-                alt={session.user.name ?? 'User'}
-                className="size-8 rounded-full"
-                width={32}
-                height={32}
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-              />
-            ) : (
-              <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                {session?.user?.name?.[0]?.toUpperCase() ?? '?'}
-              </div>
-            )}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          <div className="px-2 py-1.5">
-            <p className="text-sm font-medium">{session?.user?.name}</p>
-            <p className="text-xs text-muted-foreground">{session?.user?.email}</p>
-          </div>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="gap-2 text-destructive focus:text-destructive"
-          >
-            <LogOut className="size-4" />
-            Sign out
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {status === 'authenticated' ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="shrink-0 overflow-hidden rounded-full">
+              {session?.user?.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={userAvatar!.src}
+                  srcSet={userAvatar!.srcSet}
+                  sizes={userAvatar!.sizes}
+                  alt={session.user.name ?? 'User'}
+                  className="size-8 rounded-full"
+                  width={32}
+                  height={32}
+                  loading="eager"
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              ) : (
+                <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-medium">
+                  {session?.user?.name?.[0]?.toUpperCase() ?? '?'}
+                </div>
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <div className="px-2 py-1.5">
+              <p className="text-sm font-medium">{session?.user?.name}</p>
+              <p className="text-xs text-muted-foreground">{session?.user?.email}</p>
+            </div>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onClick={() => signOut({ callbackUrl: '/' })}
+              className="gap-2 text-destructive focus:text-destructive"
+            >
+              <LogOut className="size-4" />
+              Sign out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : (
+        <Button asChild size="sm" className="shrink-0">
+          <Link href="/">Connect GitHub</Link>
+        </Button>
+      )}
     </header>
   );
 }
