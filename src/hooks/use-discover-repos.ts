@@ -53,7 +53,7 @@ function buildDiscoverUrl(opts: UseDiscoverReposOptions, offset: number): string
   if (limit !== 50) params.set('limit', String(limit));
   if (offset > 0) params.set('offset', String(offset));
   const qs = params.toString();
-  return `/api/discover${qs ? `?${qs}` : ''}`;
+  return `/discover/data${qs ? `?${qs}` : ''}`;
 }
 
 function filterKey(opts: UseDiscoverReposOptions): string {

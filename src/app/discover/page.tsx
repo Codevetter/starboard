@@ -244,14 +244,6 @@ function DiscoverContent({ isAuthenticated }: { isAuthenticated: boolean }) {
     [deleteList, mutate, selectedListId, setSelectedListId]
   );
 
-  if (status === 'loading') {
-    return <PageSkeleton />;
-  }
-
-  if (status === 'unauthenticated') {
-    return null;
-  }
-
   const sidebarContent = (
     <Sidebar
       languageFacets={facets.languages}
