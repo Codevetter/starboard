@@ -27,6 +27,7 @@
 
 import { type Client, createClient, type InStatement } from '@libsql/client';
 
+import { isRetryableDbError } from '../src/lib/db-retry';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../src/lib/embeddings';
 import { recordStep } from '../src/lib/refresh-manifest';
 
@@ -63,18 +64,6 @@ interface GhRepo {
 interface GhSearchResponse {
   total_count: number;
   items: GhRepo[];
-}
-
-function isRetryableDbError(err: unknown): boolean {
-  const cause = (err as { cause?: { code?: string } })?.cause;
-  const message = err instanceof Error ? err.message : String(err);
-  return (
-    cause?.code === 'UND_ERR_CONNECT_TIMEOUT' ||
-    message.includes('fetch failed') ||
-    message.includes('Connect Timeout') ||
-    message.includes('ECONNRESET') ||
-    message.includes('ETIMEDOUT')
-  );
 }
 
 async function withDbRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
