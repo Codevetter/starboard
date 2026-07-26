@@ -55,6 +55,19 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ## Timeline
 
+- **2026-07-25 (Turso row-read incident closed)** — The 486.6M/500M
+  organization rows-read pressure was traced to Starboard: a missing
+  `user_repos(repo_id)` index, correlated `OR EXISTS` eligibility filters, and
+  unconditional FTS rebuilds in the daily migration path compounded into
+  roughly 500M avoidable reads. Commit `08f5ad7` added the index, changed the
+  filters to index-friendly `IN (SELECT ... UNION SELECT ...)` forms, guarded
+  FTS rebuilds, and added regression tests. Read-only verification confirmed
+  the index in the live Turso schema, successful post-fix scheduled seed runs,
+  and an unchanged live counter across two checks on July 25. A separate
+  transient libSQL server failure was fixed by bounded retry handling in
+  `70d57ab`; its manual rerun completed all migration, seed, evidence, and tool
+  enrichment steps. The remaining 97% reading is historical cycle usage and
+  clears at the August 1 quota reset; no provider mutation was performed.
 - **2026-07-25 (browser compatibility fix)** — Public Discover now loads its
   guest repository feed from `/discover/data`, retaining `/api/discover` for
   integrations while avoiding browser privacy tools that block generic
