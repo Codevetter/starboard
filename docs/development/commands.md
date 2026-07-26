@@ -24,7 +24,7 @@ Source of truth: `scripts` in `package.json`. This page annotates intent; run
 | `pnpm cf:build` | `next build --webpack` + inline critical CSS + `opennextjs-cloudflare build --skipNextBuild` + `populateCache local` + landing-astro build + overlay |
 | `pnpm build:cf` | Alias for `cf:build` |
 | `pnpm preview:cf` | `build:cf` + `opennextjs-cloudflare preview` |
-| `pnpm deploy:cf` | `build:cf` + `opennextjs-cloudflare deploy` (manual; CI auto-deploys on push to main) |
+| `pnpm deploy:cf` | `build:cf` + SHA-tagged `opennextjs-cloudflare deploy` (manual) |
 | `pnpm cf:typegen` | `wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts` |
 
 The `--webpack` flag (not Turbopack) is required because opennext-cloudflare

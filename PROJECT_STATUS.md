@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 
 ## Why/What
 
@@ -19,7 +19,7 @@ Out of scope: organization/team dashboards, non-GitHub providers, ATS features, 
 | Client state | SWR (data), nuqs (URL-backed filters/sort) |
 | AI / search | Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5` (768d); optional `knowledgebase` Worker via service binding |
 | Deploy | Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
-| CI | GitHub Actions — push-to-main deploy + scheduled seed/enrich/embed |
+| CI | GitHub Actions — push CI + manual SHA-tagged deploy + scheduled seed/enrich/embed |
 
 **Local dev:** `pnpm install && cp .env.example .env.local && pnpm dev` → http://localhost:3000
 
@@ -50,11 +50,15 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 | Embedding model | `@cf/baai/bge-base-en-v1.5` — change model + dimension in all three contract files together |
 | Fleet snapshot | Refresh `data/fleet-projects.generated.json` after fleet `PROJECT_STATUS.md` / dependency changes |
 | Scheduled jobs | GitHub Actions seed-popular runs `db:migrate` then `db:seed-popular` — primary self-heal for vector dimension drift |
-| Deploy | `pnpm deploy:cf` or push to `main` (CI auto-deploy) |
+| Deploy | `pnpm deploy:cf` or manual `deploy.yml` dispatch; both attach the full Git SHA |
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
 
+- **2026-07-26 (deploy provenance hardened locally)** — Worker deploy
+  entrypoints now attach the full Git SHA to the Cloudflare version, production
+  remains manual, and current runbooks no longer claim that pushes deploy.
+  Pending commit/push and the next operator-owned production deployment.
 - **2026-07-25 (Turso row-read incident closed)** — The 486.6M/500M
   organization rows-read pressure was traced to Starboard: a missing
   `user_repos(repo_id)` index, correlated `OR EXISTS` eligibility filters, and

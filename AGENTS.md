@@ -28,7 +28,7 @@ pnpm install
 pnpm dev               # next dev → http://localhost:3000
 pnpm build             # next build --webpack
 pnpm build:cf          # OpenNext Cloudflare build (production path)
-pnpm deploy:cf         # build:cf + wrangler deploy (manual; CI auto-deploys on push to main)
+pnpm deploy:cf         # build:cf + SHA-tagged wrangler deploy (manual)
 pnpm typecheck         # tsc --noEmit
 pnpm test              # vitest run
 pnpm test:coverage     # vitest run --coverage

@@ -36,7 +36,7 @@ Per-run refresh state (watermark, output counts, failure state) is written to
 | Turso `insight_reports` | irreplaceable-user | User "share" actions | Not reconstructable — user-curated snapshots (with `redact_private=1` default) | n/a — export required | 2026-07-18 |
 | Turso `user_alert_preferences` | irreplaceable-user | User UI actions | Not reconstructable | n/a — export required | 2026-07-18 |
 | `data/fleet-projects.generated.json` | derived (fleet snapshot) | `pnpm fleet:extract-projects` | Regenerate from local fleet repos | seconds | 2026-07-18 |
-| Cloudflare Worker `starboard` (deployed bundle) | cache | `pnpm build:cf` + `wrangler deploy` / CI push-to-main | Rebuild + redeploy | ~minutes | 2026-07-18 |
+| Cloudflare Worker `starboard` (deployed bundle) | cache | `pnpm deploy:cf` or manual deploy workflow | Rebuild + redeploy | ~minutes | 2026-07-18 |
 | knowledgebase Worker RAG index (`STARBOARD_RAG_INDEX_ID`) | derived (RAG index of user repos) | `src/lib/knowledgebase.ts` ingest | Re-ingest from `repos` + README text per user | ~seconds per user | 2026-07-18 |
 
 ## Irreplaceable user state — export path
@@ -78,8 +78,9 @@ self-heals without manual surgery. See
 
 ### Worker redeploy (cache)
 
-`pnpm build:cf && pnpm deploy:cf` or push to `main` (CI auto-deploys). The
-Worker bundle is a cache of the source code; no data loss on redeploy.
+`pnpm deploy:cf` or manually dispatch `.github/workflows/deploy.yml`. Both paths
+tag the Worker version with the exact Git SHA. The Worker bundle is a cache of
+the source code; no data loss on redeploy.
 
 ## Refresh lifecycle controls
 

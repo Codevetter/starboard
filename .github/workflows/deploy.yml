@@ -29,6 +29,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+          command: deploy --tag ${{ github.sha }}
       - name: Smoke check production
         run: curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 20 https://starboard.codevetter.com/ > /dev/null
