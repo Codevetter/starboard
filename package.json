@@ -26,7 +26,7 @@
     "cf:build": "next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
     "build:cf": "next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && opennextjs-cloudflare populateCache local && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
     "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview",
-    "deploy:cf": "pnpm build:cf && opennextjs-cloudflare deploy",
+    "deploy:cf": "pnpm build:cf && opennextjs-cloudflare deploy --tag \"$(git rev-parse HEAD)\"",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",

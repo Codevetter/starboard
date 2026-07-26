@@ -12,12 +12,12 @@ in [jobs.md](jobs.md); this page covers the push/PR and deploy pipelines.
 
 ## Deploy (`.github/workflows/deploy.yml`)
 
-- **Triggers:** `workflow_dispatch` (manual). CI auto-deploys on push to `main`
-  per fleet convention — confirm the current trigger before relying on this.
+- **Triggers:** `workflow_dispatch` only. Push CI keeps `main` releasable but
+  never changes production.
 - **Steps:** checkout → pnpm → Node 22 → install (`--ignore-scripts`) →
   `pnpm cf:build` (with `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` so
   `populateCache local` can resolve bindings) → `wrangler deploy` via
-  `cloudflare/wrangler-action@v3` → curl smoke.
+  `cloudflare/wrangler-action@v3` with `--tag ${{ github.sha }}` → curl smoke.
 - See [deploy.md](deploy.md) for the full pipeline and required secrets.
 
 ## Docs (`.github/workflows/docs.yml`)

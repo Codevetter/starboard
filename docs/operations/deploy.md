@@ -1,13 +1,13 @@
 # Deploy
 
 Starboard deploys to Cloudflare Workers as the `starboard` Worker with a custom
-domain `starboard.codevetter.com`. **CI auto-deploys on push to `main`**
-(`workflow_dispatch` is also available on `.github/workflows/deploy.yml`).
+domain `starboard.codevetter.com`. Production deploys are manual
+`workflow_dispatch` runs; pushing to `main` does not change production.
 
 ## Pipeline
 
 ```
-push to main (or workflow_dispatch)
+workflow_dispatch
   → .github/workflows/deploy.yml
       pnpm install --frozen-lockfile --ignore-scripts
       pnpm cf:build
@@ -17,7 +17,7 @@ push to main (or workflow_dispatch)
         → opennextjs-cloudflare populateCache local
         → pnpm --filter ./landing-astro build
         → node scripts/run-overlay-astro-landing.mjs (overlay landing → assets)
-      wrangler deploy
+      wrangler deploy --tag <full Git SHA>
       curl smoke https://starboard.codevetter.com/
 ```
 
@@ -69,7 +69,7 @@ A non-200 aborts the workflow.
 ## Manual deploy
 
 ```bash
-pnpm deploy:cf        # build:cf + opennextjs-cloudflare deploy
+pnpm deploy:cf        # build:cf + SHA-tagged opennextjs-cloudflare deploy
 ```
 
 Do not deploy without explicit approval — see the hard rules in

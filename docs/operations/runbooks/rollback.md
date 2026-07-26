@@ -23,8 +23,7 @@ within seconds.
 
 ## When to roll back
 
-- A on-push-to-main deploy shipped a regression (500s, broken auth, broken
-  search).
+- A production deploy shipped a regression (500s, broken auth, broken search).
 - A scheduled job altered data in a way that broke the app.
 
 Rollback restores the *code*; it does not undo database writes. If a migration
