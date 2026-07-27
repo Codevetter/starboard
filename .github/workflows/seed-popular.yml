@@ -1,8 +1,6 @@
 name: Seed popular repos
 
 on:
-  schedule:
-    - cron: '0 3 * * *' # 03:00 UTC daily
   workflow_dispatch:
     inputs:
       daily_limit:
@@ -47,15 +45,17 @@ jobs:
       - name: Run seed script
         run: pnpm db:seed-popular
         env:
-          # The runner token has enough GitHub Search quota for the daily walk.
+          # The runner token has enough GitHub Search quota for a bounded manual walk.
           # Keep this independent of long-lived PAT rotation so a stale secret
-          # cannot break scheduled seeding with 401 Bad credentials.
+          # cannot break a manual seed run with 401 Bad credentials.
           GITHUB_TOKEN: ${{ github.token }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           AI_GATEWAY_URL: ${{ secrets.AI_GATEWAY_URL }}
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
           SEED_DAILY_LIMIT: ${{ github.event.inputs.daily_limit || '1000' }}
+          # Operational row-read circuit breaker. The script also hard-caps this at 25.
+          SEED_METADATA_PAGE_LIMIT: '10'
           MIN_STARS_FLOOR: '5000'
 
       - name: Publish refresh evidence

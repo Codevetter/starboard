@@ -147,6 +147,15 @@ CREATE TABLE IF NOT EXISTS seed_cursor (
 
 INSERT OR IGNORE INTO seed_cursor (id) VALUES (1);
 
+CREATE TABLE IF NOT EXISTS migration_markers (
+  key        TEXT PRIMARY KEY,
+  applied_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- This backfill predates the migration marker table and has already run on the
+-- production database. Fresh databases have no legacy rows to backfill.
+INSERT OR IGNORE INTO migration_markers (key) VALUES ('legacy-lists-tags-v1');
+
 CREATE INDEX IF NOT EXISTS idx_repos_stars ON repos(stargazers_count DESC);
 CREATE INDEX IF NOT EXISTS idx_repos_updated ON repos(repo_updated_at);
 CREATE INDEX IF NOT EXISTS idx_repo_star_snapshots_captured ON repo_star_snapshots(captured_at);

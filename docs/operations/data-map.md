@@ -72,8 +72,8 @@ is bounded by `SEED_METADATA_PAGE_LIMIT` (default 120 pages/run) and
 
 `pnpm db:migrate` runs `ensureEmbeddingDimension()` which drops and recreates
 `repo_embeddings` if the pinned `EMBEDDING_DIM=768` doesn't match the live
-table. The daily `seed-popular` workflow runs `db:migrate` first, so drift
-self-heals without manual surgery. See
+table. A manual `seed-popular` workflow dispatch runs `db:migrate` first, so
+drift self-heals without manual surgery. See
 [`runbooks/embedding-dimension-drift.md`](runbooks/embedding-dimension-drift.md).
 
 ### Worker redeploy (cache)
@@ -84,7 +84,7 @@ the source code; no data loss on redeploy.
 
 ## Refresh lifecycle controls
 
-The daily `seed-popular` GitHub Action records a structured manifest at
+Each dispatched `seed-popular` GitHub Action records a structured manifest at
 `data/refresh-manifest.json` and copies it to the existing GitHub Actions run
 summary before the ephemeral runner is discarded. The manifest includes:
 

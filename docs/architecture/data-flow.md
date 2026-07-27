@@ -80,7 +80,7 @@ changes: `pnpm fleet:extract-projects`.
 ## Scheduled enrichment (GitHub Actions)
 
 ```
-seed-popular.yml (daily 03:00 UTC, workflow_dispatch)
+seed-popular.yml (workflow_dispatch only; automatic schedule paused)
   ├── pnpm db:migrate            (dimension self-heal fires here)
   ├── pnpm db:seed-popular       (scripts/seed-popular.ts)
   │     GitHub Search (≥5k stars) → repos + repo_star_snapshots
@@ -91,7 +91,7 @@ seed-popular.yml (daily 03:00 UTC, workflow_dispatch)
 
 enrich-repos.yml (workflow_dispatch)   — AI metadata enrichment
 embed-pending.yml (workflow_dispatch)  — backfill repo_embeddings
-weekly-threshold-digest.yml (Mon 09:30 UTC) — digest → GitHub issue + email
+weekly-threshold-digest.yml (workflow_dispatch) — digest → GitHub issue + email
 weekly.yml (Mon 09:00 UTC)             — lint/typecheck/test/build quality
 ```
 

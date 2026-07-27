@@ -94,14 +94,14 @@ async function migrate() {
     END;
   `);
   // FTS5 'rebuild' scans every row of the source table and re-tokenizes every
-  // text column. Running it on every db:migrate (which fires daily from the
+  // text column. Running it on every db:migrate (which is shared by the
   // seed-popular / enrich-repos / weekly-threshold-digest workflows) burns
   // millions of row reads for no benefit — the AFTER INSERT/UPDATE/DELETE
   // triggers above already keep the FTS index in sync incrementally. Only
   // rebuild when the FTS table is empty (first migration, or after a manual
   // wipe), which is the only case the triggers cannot recover from.
-  const reposFtsCount = await db.execute('SELECT COUNT(*) AS c FROM repos_fts');
-  if ((reposFtsCount.rows[0]?.c as number) === 0) {
+  const reposFtsProbe = await db.execute('SELECT 1 AS present FROM repos_fts LIMIT 1');
+  if (reposFtsProbe.rows.length === 0) {
     await db.execute("INSERT INTO repos_fts(repos_fts) VALUES('rebuild')");
   }
 
@@ -157,8 +157,10 @@ async function migrate() {
   `);
   // Same guard as above: only rebuild when the FTS table is empty. The
   // AFTER INSERT/UPDATE/DELETE triggers maintain it incrementally otherwise.
-  const aiMetadataFtsCount = await db.execute('SELECT COUNT(*) AS c FROM repo_ai_metadata_fts');
-  if ((aiMetadataFtsCount.rows[0]?.c as number) === 0) {
+  const aiMetadataFtsProbe = await db.execute(
+    'SELECT 1 AS present FROM repo_ai_metadata_fts LIMIT 1'
+  );
+  if (aiMetadataFtsProbe.rows.length === 0) {
     await db.execute("INSERT INTO repo_ai_metadata_fts(repo_ai_metadata_fts) VALUES('rebuild')");
   }
 
@@ -179,51 +181,68 @@ async function migrate() {
   );
 
   await db.execute(`
-    INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id)
-    SELECT user_id, repo_id, list_id
-    FROM user_repos
-    WHERE list_id IS NOT NULL
-  `);
-
-  await db.execute(`
-    INSERT INTO user_lists (user_id, name, color, icon, position, description)
-    SELECT tag_rows.user_id,
-           tag_rows.tag,
-           '#64748b',
-           NULL,
-           COALESCE((SELECT MAX(position) FROM user_lists existing WHERE existing.user_id = tag_rows.user_id), -1)
-             + ROW_NUMBER() OVER (PARTITION BY tag_rows.user_id ORDER BY lower(tag_rows.tag)),
-           'Migrated from tags'
-    FROM (
-      SELECT DISTINCT ur.user_id, trim(tag_each.value) AS tag
-      FROM user_repos ur
-      JOIN json_each(ur.tags) AS tag_each
-      WHERE ur.tags != '[]'
-        AND trim(tag_each.value) != ''
-    ) tag_rows
-    WHERE NOT EXISTS (
-      SELECT 1
-      FROM user_lists ul
-      WHERE ul.user_id = tag_rows.user_id
-        AND lower(ul.name) = lower(tag_rows.tag)
+    CREATE TABLE IF NOT EXISTS migration_markers (
+      key        TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL DEFAULT (datetime('now'))
     )
   `);
 
-  await db.execute(`
-    INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id)
-    SELECT ur.user_id, ur.repo_id, ul.id
-    FROM user_repos ur
-    JOIN json_each(ur.tags) AS tag_each
-    JOIN user_lists ul
-      ON ul.user_id = ur.user_id
-     AND lower(ul.name) = lower(trim(tag_each.value))
-    WHERE ur.tags != '[]'
-      AND trim(tag_each.value) != ''
-  `);
+  const legacyListMigration = await db.execute({
+    sql: 'SELECT 1 AS applied FROM migration_markers WHERE key = ? LIMIT 1',
+    args: ['legacy-lists-tags-v1'],
+  });
+  if (legacyListMigration.rows.length === 0) {
+    await db.execute(`
+      INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id)
+      SELECT user_id, repo_id, list_id
+      FROM user_repos
+      WHERE list_id IS NOT NULL
+    `);
 
-  await db.execute(
-    "UPDATE user_repos SET is_saved = 1 WHERE list_id IS NOT NULL OR tags != '[]' OR notes IS NOT NULL"
-  );
+    await db.execute(`
+      INSERT INTO user_lists (user_id, name, color, icon, position, description)
+      SELECT tag_rows.user_id,
+             tag_rows.tag,
+             '#64748b',
+             NULL,
+             COALESCE((SELECT MAX(position) FROM user_lists existing WHERE existing.user_id = tag_rows.user_id), -1)
+               + ROW_NUMBER() OVER (PARTITION BY tag_rows.user_id ORDER BY lower(tag_rows.tag)),
+             'Migrated from tags'
+      FROM (
+        SELECT DISTINCT ur.user_id, trim(tag_each.value) AS tag
+        FROM user_repos ur
+        JOIN json_each(ur.tags) AS tag_each
+        WHERE ur.tags != '[]'
+          AND trim(tag_each.value) != ''
+      ) tag_rows
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM user_lists ul
+        WHERE ul.user_id = tag_rows.user_id
+          AND lower(ul.name) = lower(tag_rows.tag)
+      )
+    `);
+
+    await db.execute(`
+      INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id)
+      SELECT ur.user_id, ur.repo_id, ul.id
+      FROM user_repos ur
+      JOIN json_each(ur.tags) AS tag_each
+      JOIN user_lists ul
+        ON ul.user_id = ur.user_id
+       AND lower(ul.name) = lower(trim(tag_each.value))
+      WHERE ur.tags != '[]'
+        AND trim(tag_each.value) != ''
+    `);
+
+    await db.execute(
+      "UPDATE user_repos SET is_saved = 1 WHERE is_saved != 1 AND (list_id IS NOT NULL OR tags != '[]' OR notes IS NOT NULL)"
+    );
+    await db.execute({
+      sql: 'INSERT INTO migration_markers (key) VALUES (?)',
+      args: ['legacy-lists-tags-v1'],
+    });
+  }
 
   console.info('Migration complete');
   process.exit(0);

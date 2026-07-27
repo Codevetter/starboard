@@ -2,9 +2,10 @@
  * Daily seed/refresh of popular GitHub repos into our `repos` + `repo_embeddings` tables.
  *
  * Each run:
- *   1. Walk GH search across all `stars >= MIN_STARS_FLOOR` buckets, upsert every repo.
- *      Discovers new ≥5k repos AND refreshes stale metadata in one pass. Cursor resumes
- *      mid-walk after a crash; resets when the walk completes.
+ *   1. Walk a bounded slice of GH search across `stars >= MIN_STARS_FLOOR`.
+ *      Only changed repos are updated, so unchanged rows do not fire the FTS
+ *      maintenance trigger. Cursor resumes between runs and resets after a
+ *      complete corpus pass.
  *   2. Embed up to SEED_DAILY_LIMIT pending repos (missing embedding OR drifted text_hash),
  *      ordered by star count desc.
  *
@@ -20,7 +21,7 @@
  *   GITHUB_TOKEN          — fine-grained PAT, public_repo:read
  * Optional env:
  *   SEED_DAILY_LIMIT      — embeddings per run, default 1000
- *   SEED_METADATA_PAGE_LIMIT — GitHub search pages per run, default 120 (hard cap 250)
+ *   SEED_METADATA_PAGE_LIMIT — GitHub search pages per run, default 10 (hard cap 25)
  *   MIN_STARS_FLOOR       — minimum stars to seed, default 5000
  *   STAR_THRESHOLDS       — comma-separated digest thresholds, default 5000,10000,20000,50000,100000
  */
@@ -32,8 +33,8 @@ import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../src/lib
 import { recordStep } from '../src/lib/refresh-manifest';
 
 const DAILY_LIMIT = parseInt(process.env.SEED_DAILY_LIMIT || '1000', 10);
-const REQUESTED_METADATA_PAGE_LIMIT = parseInt(process.env.SEED_METADATA_PAGE_LIMIT || '120', 10);
-const METADATA_PAGE_LIMIT = Math.min(Math.max(REQUESTED_METADATA_PAGE_LIMIT || 0, 1), 250);
+const REQUESTED_METADATA_PAGE_LIMIT = parseInt(process.env.SEED_METADATA_PAGE_LIMIT || '10', 10);
+const METADATA_PAGE_LIMIT = Math.min(Math.max(REQUESTED_METADATA_PAGE_LIMIT || 0, 1), 25);
 const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
 const STAR_THRESHOLDS = (process.env.STAR_THRESHOLDS || '5000,10000,20000,50000,100000')
   .split(',')
@@ -66,6 +67,21 @@ interface GhSearchResponse {
   items: GhRepo[];
 }
 
+interface StoredRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  owner_login: string;
+  owner_avatar: string;
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  archived: number;
+  topics: string;
+  repo_updated_at: string | null;
+}
+
 async function withDbRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
   for (let attempt = 1; ; attempt++) {
     try {
@@ -89,17 +105,64 @@ function batchDb(db: Client, stmts: InStatement[]) {
   return withDbRetry('batch', () => db.batch(stmts));
 }
 
-async function loadPreviousStarCounts(db: Client, repoIds: number[]): Promise<Map<number, number>> {
+async function loadStoredRepos(db: Client, repoIds: number[]): Promise<Map<number, StoredRepo>> {
   if (repoIds.length === 0) return new Map();
 
   const result = await executeDb(db, {
-    sql: `SELECT id, stargazers_count FROM repos WHERE id IN (${repoIds
-      .map(() => '?')
-      .join(', ')})`,
+    sql: `SELECT id,
+                 name,
+                 full_name,
+                 owner_login,
+                 owner_avatar,
+                 html_url,
+                 description,
+                 language,
+                 stargazers_count,
+                 archived,
+                 topics,
+                 repo_updated_at
+          FROM repos
+          WHERE id IN (${repoIds.map(() => '?').join(', ')})`,
     args: repoIds,
   });
 
-  return new Map(result.rows.map((row) => [row.id as number, row.stargazers_count as number]));
+  return new Map(
+    result.rows.map((row) => [
+      row.id as number,
+      {
+        id: row.id as number,
+        name: row.name as string,
+        full_name: row.full_name as string,
+        owner_login: row.owner_login as string,
+        owner_avatar: row.owner_avatar as string,
+        html_url: row.html_url as string,
+        description: row.description as string | null,
+        language: row.language as string | null,
+        stargazers_count: row.stargazers_count as number,
+        archived: row.archived as number,
+        topics: row.topics as string,
+        repo_updated_at: row.repo_updated_at as string | null,
+      },
+    ])
+  );
+}
+
+function storedRepoDiffers(stored: StoredRepo | undefined, repo: GhRepo): boolean {
+  if (!stored) return true;
+
+  return (
+    stored.name !== repo.name ||
+    stored.full_name !== repo.full_name ||
+    stored.owner_login !== repo.owner.login ||
+    stored.owner_avatar !== repo.owner.avatar_url ||
+    stored.html_url !== repo.html_url ||
+    stored.description !== repo.description ||
+    stored.language !== repo.language ||
+    stored.stargazers_count !== repo.stargazers_count ||
+    stored.archived !== (repo.archived ? 1 : 0) ||
+    stored.topics !== JSON.stringify(repo.topics ?? []) ||
+    stored.repo_updated_at !== repo.updated_at
+  );
 }
 
 function buildThresholdEventStatements(
@@ -178,11 +241,20 @@ async function ghSearch(q: string, page: number, token: string): Promise<GhSearc
 
 async function upsertRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
   if (repos.length === 0) return [];
-  const previousStarCounts = await loadPreviousStarCounts(
+  const storedRepos = await loadStoredRepos(
     db,
     repos.map((repo) => repo.id)
   );
-  const stmts: InStatement[] = repos.map((r) => ({
+  const changedRepos = repos.filter((repo) => storedRepoDiffers(storedRepos.get(repo.id), repo));
+  if (changedRepos.length === 0) return [];
+
+  const previousStarCounts = new Map(
+    changedRepos.flatMap((repo) => {
+      const stored = storedRepos.get(repo.id);
+      return stored ? [[repo.id, stored.stargazers_count] as const] : [];
+    })
+  );
+  const stmts: InStatement[] = changedRepos.map((r) => ({
     sql: `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url,
             description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -197,7 +269,18 @@ async function upsertRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
             stargazers_count = excluded.stargazers_count,
             archived = excluded.archived,
             topics = excluded.topics,
-            repo_updated_at = excluded.repo_updated_at`,
+            repo_updated_at = excluded.repo_updated_at
+          WHERE repos.name IS NOT excluded.name
+             OR repos.full_name IS NOT excluded.full_name
+             OR repos.owner_login IS NOT excluded.owner_login
+             OR repos.owner_avatar IS NOT excluded.owner_avatar
+             OR repos.html_url IS NOT excluded.html_url
+             OR repos.description IS NOT excluded.description
+             OR repos.language IS NOT excluded.language
+             OR repos.stargazers_count IS NOT excluded.stargazers_count
+             OR repos.archived IS NOT excluded.archived
+             OR repos.topics IS NOT excluded.topics
+             OR repos.repo_updated_at IS NOT excluded.repo_updated_at`,
     args: [
       r.id,
       r.name,
@@ -214,15 +297,21 @@ async function upsertRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
       r.updated_at,
     ],
   }));
-  const snapshotStmts: InStatement[] = repos.map((repo) => ({
-    sql: `INSERT OR IGNORE INTO repo_star_snapshots (repo_id, stargazers_count)
-          VALUES (?, ?)`,
-    args: [repo.id, repo.stargazers_count],
-  }));
-  const thresholdEventStmts = buildThresholdEventStatements(repos, previousStarCounts);
+  const snapshotStmts: InStatement[] = changedRepos
+    .filter(
+      (repo) =>
+        !storedRepos.has(repo.id) ||
+        storedRepos.get(repo.id)!.stargazers_count !== repo.stargazers_count
+    )
+    .map((repo) => ({
+      sql: `INSERT OR IGNORE INTO repo_star_snapshots (repo_id, stargazers_count)
+            VALUES (?, ?)`,
+      args: [repo.id, repo.stargazers_count],
+    }));
+  const thresholdEventStmts = buildThresholdEventStatements(changedRepos, previousStarCounts);
 
   await batchDb(db, [...stmts, ...snapshotStmts, ...thresholdEventStmts]);
-  return repos.map((r) => r.id);
+  return changedRepos.map((r) => r.id);
 }
 
 async function embedPending(db: Client, limit: number): Promise<number> {
@@ -406,7 +495,7 @@ async function main() {
     },
     timeoutS: 60 * 60,
     idempotency:
-      'INSERT … ON CONFLICT(id) DO UPDATE for repos; INSERT OR IGNORE for repo_star_snapshots and repo_threshold_events',
+      'Stored-row comparison skips unchanged repos; changed repos use INSERT … ON CONFLICT(id) DO UPDATE; snapshots are written only for star-count changes',
     outputCount: upserted,
     expectedMinOutput: 0,
     verifiedNoopReason:

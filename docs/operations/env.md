@@ -45,7 +45,7 @@ for the callback base URL and some internal paths read the legacy
 - `RESEND_API_KEY` (weekly digest email; optional — fail-closed)
 
 The `seed-popular` workflow deliberately uses `${{ github.token }}` for GitHub
-Search (not a long-lived PAT) so a stale PAT cannot break scheduled seeding with
+Search (not a long-lived PAT) so a stale PAT cannot break a manual seed run with
 401 Bad credentials.
 
 ## Public keys

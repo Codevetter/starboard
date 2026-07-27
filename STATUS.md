@@ -74,8 +74,8 @@ For the deeper product status (features, timeline, surfaces), see
 
 ## Next steps
 
-1. Keep `seed-popular` / `enrich-repos` / `embed-pending` / digest workflows
-   green across Turso dimension changes and GitHub API rate limits.
+1. Keep `seed-popular` manual until a provider-side row-read budget and alert
+   can stop a run before it threatens the Turso allowance.
 2. Wire weekly digest email delivery once in-app payloads prove stable.
 3. Tune recommendation weights only via the eval harness.
 4. Harden the RAG path against partial Worker outages.

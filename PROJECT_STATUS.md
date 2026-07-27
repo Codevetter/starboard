@@ -19,7 +19,7 @@ Out of scope: organization/team dashboards, non-GitHub providers, ATS features, 
 | Client state | SWR (data), nuqs (URL-backed filters/sort) |
 | AI / search | Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5` (768d); optional `knowledgebase` Worker via service binding |
 | Deploy | Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
-| CI | GitHub Actions — push CI + manual SHA-tagged deploy + scheduled seed/enrich/embed |
+| CI | GitHub Actions — push CI + manual SHA-tagged deploy + manual seed/enrich/embed |
 
 **Local dev:** `pnpm install && cp .env.example .env.local && pnpm dev` → http://localhost:3000
 
@@ -38,7 +38,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
         └── Insight reports: slugged public snapshots (radar, recommendations, cleanup)
 ```
 
-**Embedding contract:** `EMBEDDING_DIM=768` pinned across `src/lib/embeddings.ts`, `src/db/schema.sql`, and `src/db/migrate.ts` (`ensureEmbeddingDimension()` drops/recreates vector table on drift). Scheduled `db:migrate` before `db:seed-popular` heals dimension mismatches without manual surgery.
+**Embedding contract:** `EMBEDDING_DIM=768` pinned across `src/lib/embeddings.ts`, `src/db/schema.sql`, and `src/db/migrate.ts` (`ensureEmbeddingDimension()` drops/recreates vector table on drift). A manual `seed-popular` dispatch runs `db:migrate` before seeding and heals dimension mismatches without direct database surgery.
 
 **Data model highlights:** tags stored as JSON arrays on `user_repos`; virtualized grid via `@tanstack/react-virtual`; GitHub access token in session for sync; project recommendations suppress packages already used by the target fleet project before ranking.
 
@@ -49,12 +49,22 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 | Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `TURSO_*`; `RAG_SERVICE_KEY`, `STARBOARD_RAG_INDEX_ID` for relevance RAG |
 | Embedding model | `@cf/baai/bge-base-en-v1.5` — change model + dimension in all three contract files together |
 | Fleet snapshot | Refresh `data/fleet-projects.generated.json` after fleet `PROJECT_STATUS.md` / dependency changes |
-| Scheduled jobs | GitHub Actions seed-popular runs `db:migrate` then `db:seed-popular` — primary self-heal for vector dimension drift |
+| Data refresh jobs | Manual GitHub Actions dispatches; automatic seed-popular scheduling is paused pending a provider-side row-read budget |
 | Deploy | `pnpm deploy:cf` or manual `deploy.yml` dispatch; both attach the full Git SHA |
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
 
+- **2026-07-28 (Turso recurrence contained locally)** — The earlier fix removed
+  correlated scans and explicit FTS rebuilds but missed unconditional
+  `seed-popular` updates: the July 26 run rewrote 12,000 local corpus rows,
+  firing FTS update maintenance even when metadata was unchanged. Automatic
+  scheduling is now disabled; manual runs default to 10 metadata pages and
+  hard-cap at 25; unchanged repos and unchanged star snapshots are skipped;
+  FTS emptiness checks probe one row instead of counting the index; and legacy
+  list/tag backfills use a durable one-time marker. These controls require
+  the change on `main` to affect GitHub Actions; no Worker deployment is
+  required.
 - **2026-07-26 (deploy provenance hardened locally)** — Worker deploy
   entrypoints now attach the full Git SHA to the Cloudflare version, production
   remains manual, and current runbooks no longer claim that pushes deploy.
@@ -95,7 +105,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 | Repo intelligence | Repo detail (`/explore`), comments/votes, public shared lists, legal/marketing shell |
 | Semantic search | knowledgebase Worker integration for relevance search; README-backed sync ingest; local embeddings retained for non-RAG Starboard features |
 | Fleet recommendations | My Projects scorer against `fleet-projects.generated.json`, fixture-backed eval harness, OSS integration evaluation |
-| Discovery & radar | Discover page, scheduled seed/enrich/embed, radar maintainer signals, stack builder, first-run UX and digest preview surfaces |
+| Discovery & radar | Discover page, manually dispatched seed/enrich/embed, radar maintainer signals, stack builder, first-run UX and digest preview surfaces |
 | Alerts & reports | Weekly alert inbox/preferences, digest payloads, shareable insight reports at stable public URLs |
 | Ops hardening (2026-06-20) | `.env.example`, Vitest + Playwright path, pre-push lint, self-contained TypeScript/Astro landing for green CF builds |
 
@@ -149,7 +159,9 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
   corpus; authentication adds saved state and collection controls but is not
   required to browse, search, sort, filter, paginate, or open repo details.
 - Discover supports paginated 30-day growth ordering and detected-tool facets from indexed local snapshot/tool tables.
-- Scheduled GitHub Actions seed/enrich/embed popular repos in Turso (`scripts/seed-popular.ts`, `pnpm db:seed-popular`).
+- Manually dispatched GitHub Actions seed/enrich/embed popular repos in Turso
+  (`scripts/seed-popular.ts`, `pnpm db:seed-popular`); automatic seeding is
+  paused pending a provider-side row-read budget.
 - Radar page and `/api/radar` for maintainer/release-oriented signals.
 - Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`, `/api/growth`, Radar fastest-growers, and repo-detail mini history from stored `repo_star_snapshots`.
 - Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.

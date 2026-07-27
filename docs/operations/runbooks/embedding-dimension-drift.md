@@ -33,9 +33,10 @@ The `seed-popular` workflow runs `pnpm db:migrate` before
 4. The subsequent `CREATE TABLE IF NOT EXISTS` in `schema.sql` recreates them at
    the correct dimension.
 
-So **dimension drift heals on the next daily `seed-popular` run** without manual
-DB surgery. Re-embedding proceeds at up to `SEED_DAILY_LIMIT` per day until the
-pool is refilled.
+So **dimension drift heals on the next manually dispatched `seed-popular` run**
+without direct DB surgery. Automatic scheduling is paused while the workflow
+has no provider-side row-read budget circuit breaker. Re-embedding proceeds at
+up to `SEED_DAILY_LIMIT` per dispatch until the pool is refilled.
 
 ## Manual remediation (only if self-heal is not running)
 

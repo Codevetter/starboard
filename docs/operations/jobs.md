@@ -6,7 +6,9 @@ annotates intent, inputs, and dependencies.
 
 ## seed-popular (`.github/workflows/seed-popular.yml`)
 
-- **Schedule:** `cron: '0 3 * * *'` (03:00 UTC daily) + `workflow_dispatch`.
+- **Schedule:** `workflow_dispatch` only. The daily schedule was disabled on
+  2026-07-28 after repeated full-corpus updates exhausted the Turso row-read
+  allowance.
 - **Inputs:** `daily_limit` (default 1000), `tool_enrich_limit` (default 250).
 - **Concurrency:** group `seed-popular`, `cancel-in-progress: false`.
 - **Timeout:** 60 minutes.
@@ -22,8 +24,10 @@ annotates intent, inputs, and dependencies.
      `TOOL_ENRICH_HARD_LIMIT=750`.
 - **Secrets:** `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `AI_GATEWAY_URL`,
   `AI_GATEWAY_API_KEY`.
-- **Why daily:** keeps the seeded popular pool fresh and is the primary self-heal
-  path for embedding dimension drift.
+- **Safety controls:** metadata walks default to 10 GitHub Search pages and
+  hard-cap at 25; unchanged repos do not update or fire FTS maintenance;
+  snapshots are written only when star counts change. Re-enable automation only
+  with an explicit row-read budget and alert.
 
 ## enrich-repos (`.github/workflows/enrich-repos.yml`)
 
@@ -49,7 +53,8 @@ annotates intent, inputs, and dependencies.
 
 ## weekly-threshold-digest (`.github/workflows/weekly-threshold-digest.yml`)
 
-- **Schedule:** `cron: '30 9 * * 1'` (Mondays 09:30 UTC) + `workflow_dispatch`.
+- **Schedule:** `workflow_dispatch` only. Automatic database-backed digest runs
+  are disabled by the Turso circuit-breaker policy.
 - **Inputs:** `days` (default 7).
 - **Timeout:** 15 minutes.
 - **Permissions:** `contents: read`, `issues: write`.

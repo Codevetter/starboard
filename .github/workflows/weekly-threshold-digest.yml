@@ -1,8 +1,6 @@
 name: Weekly threshold digest
 
 on:
-  schedule:
-    - cron: '30 9 * * 1'
   workflow_dispatch:
     inputs:
       days:
