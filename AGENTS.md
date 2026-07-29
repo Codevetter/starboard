@@ -82,10 +82,9 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
 ## Documentation navigation
 
 - **[docs/index.md](docs/index.md)** — canonical documentation hub. Start there.
-- **[STATUS.md](STATUS.md)** — short current-state view (objective, active work,
-  blockers, next steps).
-- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** — deeper product status (fleet
-  tooling reads this filename).
+- **[PROJECT_STATUS.md](PROJECT_STATUS.md)** — current/shipped product truth
+  (fleet tooling reads this filename).
+- **GitHub Issues** — all open, blocked, and deferred work.
 - **[README.md](README.md)** — product readme for humans landing in the repo.
 - **[docs/product/](docs/product/)** — purpose, features, surfaces.
 - **[docs/architecture/](docs/architecture/)** — overview, data flow, ADRs.

@@ -181,24 +181,8 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 - Pre-push lint hook.
 - TypeScript config and Astro landing tooling made self-contained for green Cloudflare builds.
 
-## Todo / Planned / Deferred / Blocked
+## Work queue
 
-### Planned
-1. **Scheduled Actions stability** — keep seed/enrich/embed and digest workflows green across Turso dimension changes and API rate limits.
-2. **Recommendation scoring discipline** — tune production weights only when `recommendation-eval` fixture harness stays green across scorer changes.
-3. **Weekly alert email delivery** — wire transactional email after in-app digest payloads prove stable in production (in-app first).
-4. **Large-library performance** — profile sync, tag, collection, and project recommendation flows for users with 1000+ stars; optimize virtual scroll and API facet paths if needed.
-5. **RAG path hardening** — verify knowledgebase binding ingest lag and lexical-only behavior under partial Worker outages.
-
-### Deferred
-- Organization/team dashboards and multi-user workspaces.
-- General GitHub analytics beyond starred-repo rediscovery.
-- Provider expansion beyond GitHub (npm, PyPI, etc.).
-- Real-time push notifications for alerts (email/in-app digest first).
-- Paid weekly intelligence productization beyond preview surfaces.
-
-### Blocked / Known gaps
-- Email delivery for weekly alerts is not wired — digest payloads and inbox exist; SMTP/Resend path is ops-owned next step.
-- Recommendation scorer weights are fixture-validated but not yet tuned against large real-user libraries.
-- GitHub HTML scraping for star lists is brittle to markup changes — monitor sync error rates.
-- knowledgebase Worker dependency is optional; without it, `/api/stars` relevance search falls back to lexical-only results. Turso embeddings remain for non-RAG discover/similar/recommendation features.
+Open work is tracked only in [GitHub Issues](https://github.com/Codevetter/starboard/issues).
+An open issue is a to-do, a linked pull request is in progress, and merge plus
+issue closure makes the work done.
