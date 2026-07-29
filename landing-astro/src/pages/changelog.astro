@@ -1,0 +1,111 @@
+---
+import Layout from '@/layouts/Layout.astro';
+
+const entries = [
+  {
+    date: '2026-07-25',
+    title: 'Public discovery became useful without signing in',
+    outcomes: [
+      'Visitors can browse, search, sort, filter, paginate, and open seeded repository details before connecting GitHub.',
+      'The first result set is server-rendered and the browser feed uses a privacy-tool-friendly path, so common content blockers no longer leave guests with an empty page.',
+    ],
+  },
+  {
+    date: '2026-07-13',
+    title: 'Release growth and tool intelligence joined discovery',
+    outcomes: [
+      'Discover can sort repositories by stored 30-day star growth and filter by detected tools.',
+      'Repository pages expose source- and confidence-labelled technology evidence, while the enrichment pipeline reuses stored metadata before making more GitHub requests.',
+    ],
+  },
+  {
+    date: '2026-07-11',
+    title: 'Repository refreshes became more resilient',
+    outcomes: [
+      'Popular-repository seeding now retries temporary GitHub and network failures with bounded backoff instead of abandoning the refresh immediately.',
+    ],
+  },
+  {
+    date: '2026-07-02',
+    title: 'Cloudflare runtime failures gained a safe fallback',
+    outcomes: [
+      'The production Worker now has a global error boundary so unexpected runtime failures return a controlled response instead of an unhandled crash.',
+    ],
+  },
+] as const;
+---
+
+<Layout
+  title="Starboard changelog — shipped improvements"
+  description="Verified, user-visible improvements shipped by Starboard."
+>
+  <div class="min-h-svh bg-background text-foreground">
+    <main
+      class="mx-auto w-full max-w-4xl px-5 py-12 sm:px-6 sm:py-20"
+      style="font-family: var(--font-geist-sans);"
+    >
+      <a
+        href="/"
+        class="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        ← Starboard
+      </a>
+
+      <header class="mt-8 border-b pb-10">
+        <p class="font-mono text-xs uppercase tracking-[0.16em] text-primary">Product changelog</p>
+        <h1 class="mt-3 text-balance text-4xl font-bold tracking-tight sm:text-6xl">
+          What changed
+        </h1>
+        <p class="mt-5 max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
+          Verified improvements to organizing and rediscovering GitHub stars,
+          newest first. Future work stays in GitHub Issues.
+        </p>
+      </header>
+
+      <section class="divide-y" aria-label="Shipped changes">
+        {entries.map((entry) => (
+          <article class="grid gap-4 py-8 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-8">
+            <time
+              datetime={entry.date}
+              class="pt-1 font-mono text-xs uppercase tracking-[0.12em] text-primary"
+            >
+              {entry.date}
+            </time>
+            <div>
+              <h2 class="text-xl font-semibold tracking-tight sm:text-2xl">{entry.title}</h2>
+              <ul class="mt-4 space-y-3 text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
+                {entry.outcomes.map((outcome) => (
+                  <li class="flex gap-3">
+                    <span aria-hidden="true" class="mt-[0.7em] size-1.5 shrink-0 rounded-full bg-primary"></span>
+                    <span>{outcome}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <nav class="flex flex-wrap gap-x-6 gap-y-3 border-t pt-7 text-sm" aria-label="Project links">
+        <a
+          href="https://github.com/Codevetter/starboard/issues"
+          class="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Roadmap ↗
+        </a>
+        <a
+          href="https://github.com/Codevetter/starboard"
+          class="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Source ↗
+        </a>
+        <a
+          href="/discover"
+          class="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Public discover →
+        </a>
+      </nav>
+    </main>
+  </div>
+</Layout>

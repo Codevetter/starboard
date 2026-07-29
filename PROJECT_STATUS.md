@@ -55,6 +55,11 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ## Timeline
 
+- **2026-07-29 (owned product changelog)** — Added a same-origin
+  `/changelog` with newest-first, user-visible outcomes drawn only from
+  verified shipped milestones. The landing footer now exposes Changelog,
+  routes Roadmap to GitHub Issues, and keeps Source on the canonical
+  repository. No runtime, database, or deployment behavior changed.
 - **2026-07-28 (Turso recurrence contained locally)** — The earlier fix removed
   correlated scans and explicit FTS rebuilds but missed unconditional
   `seed-popular` updates: the July 26 run rewrote 12,000 local corpus rows,
