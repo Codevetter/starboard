@@ -28,7 +28,9 @@ For a fast agent briefing, read [AGENTS.md](../AGENTS.md) first, then this index
 - **Scheduled jobs / ops?** → [operations/jobs.md](operations/jobs.md) →
   [operations/ci-cd.md](operations/ci-cd.md) → [operations/env.md](operations/env.md)
   → [operations/data-map.md](operations/data-map.md) (data classification +
-  reconstruction + refresh controls)
+  reconstruction + refresh controls) →
+  [operations/large-library-performance.md](operations/large-library-performance.md)
+  (1,000+ repo profile and guardrails)
 - **Marketing the product?** → [marketing/hooks.md](marketing/hooks.md) →
   [marketing/iterations/v2/write-founder-launch-note.md](marketing/iterations/v2/write-founder-launch-note.md)
   → [marketing/iterations/v2/write-reddit-safe-launch-draft.md](marketing/iterations/v2/write-reddit-safe-launch-draft.md)
@@ -67,6 +69,7 @@ docs/
     env.md                      # environment variables and validation
     ci-cd.md                    # GitHub Actions workflows
     jobs.md                     # scheduled jobs (seed/enrich/embed/digest)
+    large-library-performance.md # 1000+ repo profile and guardrails
     data-map.md                 # authoritative vs derived data, reconstruction, refresh controls
     refresh-manifest.md         # schema + quality gate for data/refresh-manifest.json
     foundry.md                  # Foundry snapshot sanitization contract

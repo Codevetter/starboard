@@ -20,6 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { WeeklyActionDigest } from '@/components/weekly-maintainer-digest';
 import { useLists } from '@/hooks/use-lists';
 import { useStarredRepos } from '@/hooks/use-starred-repos';
+import { summarizeSyncRepoNames } from '@/lib/sync-performance';
 
 const sortOptions = [
   'relevance',
@@ -459,14 +460,12 @@ function StarsContent() {
               <p className="font-medium">Sync complete</p>
               {syncResult.added.length > 0 && (
                 <p className="mt-1 text-green-500">
-                  +{syncResult.added.length} new:{' '}
-                  {syncResult.added.map((r) => r.full_name).join(', ')}
+                  +{syncResult.added.length} new: {summarizeSyncRepoNames(syncResult.added)}
                 </p>
               )}
               {syncResult.removed.length > 0 && (
                 <p className="mt-1 text-red-400">
-                  -{syncResult.removed.length} removed:{' '}
-                  {syncResult.removed.map((r) => r.full_name).join(', ')}
+                  -{syncResult.removed.length} removed: {summarizeSyncRepoNames(syncResult.removed)}
                 </p>
               )}
               {syncResult.importedLists.length > 0 && (
