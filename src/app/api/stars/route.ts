@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { trackSearchOutcome } from '@/lib/analytics';
-import { searchStarboardRag } from '@/lib/knowledgebase';
+import { searchStarboardRagOrEmpty } from '@/lib/knowledgebase';
 import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
 
 export async function GET(request: NextRequest) {
@@ -74,12 +74,7 @@ export async function GET(request: NextRequest) {
     //    If it is not configured or returns no matches, relevance falls back to
     //    lexical matches instead of silently using a second local vector path.
     const semIdsPromise = useSemanticSearch
-      ? searchStarboardRag(userId, expandedSearchQuery(q), VEC_TOP_K)
-          .then((ragIds) => ragIds ?? [])
-          .catch((e) => {
-            console.warn('knowledgebase RAG search failed:', e);
-            return [];
-          })
+      ? searchStarboardRagOrEmpty(userId, expandedSearchQuery(q), VEC_TOP_K)
       : Promise.resolve([]);
 
     // 3. RRF fusion of the two ranked lists.

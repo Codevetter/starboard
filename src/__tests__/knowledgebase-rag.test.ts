@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { batchRagDocuments } from '@/lib/knowledgebase';
+import { batchRagDocuments, searchStarboardRagOrEmpty } from '@/lib/knowledgebase';
 import { buildStarboardRagDocument, fetchRepoReadmes } from '@/lib/starboard-rag-documents';
 
 const repo = {
@@ -11,6 +11,13 @@ const repo = {
   stargazers_count: 123,
   topics: ['widgets', 'ui'],
 };
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+  delete process.env.RAG_SERVICE_KEY;
+  delete process.env.STARBOARD_RAG_INDEX_ID;
+});
 
 describe('Starboard knowledgebase RAG documents', () => {
   it('includes README content and searchable repo metadata', () => {
@@ -119,5 +126,25 @@ describe('Starboard knowledgebase RAG documents', () => {
       [documents[1]],
       [documents[2]],
     ]);
+  });
+
+  it('returns no semantic ids when the RAG Worker is partially unavailable', async () => {
+    process.env.RAG_SERVICE_KEY = 'test-key';
+    process.env.STARBOARD_RAG_INDEX_ID = 'test-index';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(new Response('upstream unavailable', { status: 503 }))
+    );
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    await expect(searchStarboardRagOrEmpty('user-1', 'widget framework', 25)).resolves.toEqual([]);
+    expect(warn).toHaveBeenCalledWith(
+      'knowledgebase RAG search failed:',
+      expect.objectContaining({ message: expect.stringContaining('503') })
+    );
+  });
+
+  it('returns no semantic ids when the RAG Worker is not configured', async () => {
+    await expect(searchStarboardRagOrEmpty('user-1', 'widget framework', 25)).resolves.toEqual([]);
   });
 });

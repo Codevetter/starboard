@@ -93,6 +93,19 @@ export async function searchStarboardRag(
   return Array.from(new Set(ids));
 }
 
+export async function searchStarboardRagOrEmpty(
+  userId: string,
+  query: string,
+  topK: number
+): Promise<number[]> {
+  try {
+    return (await searchStarboardRag(userId, query, topK)) ?? [];
+  } catch (error) {
+    console.warn('knowledgebase RAG search failed:', error);
+    return [];
+  }
+}
+
 export async function ingestStarboardRagDocuments(documents: RagDocument[]): Promise<number> {
   const ragIndexId = indexId();
   if (!serviceKey() || !ragIndexId || documents.length === 0) return 0;
