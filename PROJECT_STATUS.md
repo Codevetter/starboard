@@ -55,6 +55,13 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ## Timeline
 
+- **2026-07-31 (large-library paths bounded)** — Profiled the 1,000-repo sync,
+  virtual grid, collection/facet queries, and 2,000-candidate project
+  recommendations without production data. Removed synchronous embedding
+  generation from core sync, bounded immediate README fetches to 25 while
+  retaining metadata-only RAG ingest for every added repo, and capped sync
+  feedback at eight names plus a remaining count. Recommendation scoring
+  measured 27.99 ms p95 across 30 warmed local runs.
 - **2026-07-29 (owned product changelog)** — Added a same-origin
   `/changelog` with newest-first, user-visible outcomes drawn only from
   verified shipped milestones. The landing footer now exposes Changelog,
@@ -148,7 +155,7 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 ### Search and embeddings
 - Workers AI embedding generation with runtime dimension assertion.
 - Turso vector index path (`repo_embeddings`, cosine `libsql_vector_idx`) retained for non-RAG Starboard features such as similar repos, discover, and recommendations.
-- Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are set as Worker secrets/vars or local env, relevance search uses the fleet `knowledgebase` Worker with sync ingest for new repos; new repo RAG documents include full GitHub README text when available, fall back to repo metadata when unavailable, and are sent in bounded ingest batches. `src/__tests__/knowledgebase-rag.test.ts` covers README-only recall terms plus batch splitting so Starboard does not regress to description-only ingestion. If shared RAG is unavailable, relevance search falls back to lexical results instead of local vector search.
+- Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are set as Worker secrets/vars or local env, relevance search uses the fleet `knowledgebase` Worker with sync ingest for new repos; each sync fetches README text for at most 25 new repos and uses metadata-only documents for every other added repo, with bounded ingest batches. `src/__tests__/knowledgebase-rag.test.ts` covers README-only recall terms plus batch splitting, and `src/__tests__/sync-performance.test.ts` fixes the large-import bound. If shared RAG is unavailable, relevance search falls back to lexical results instead of local vector search.
 - `pnpm db:seed-embeddings` backfill script; embedding dimension guard in migrate runner.
 - free-ai HTTP fallback for Node-based GitHub Actions embedding contexts.
 

@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { trackActivated, trackCoreAction } from '@/lib/analytics';
 import { auth } from '@/lib/auth';
-import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
 import { fetchAllStarredRepos } from '@/lib/github';
 import {
   fetchPublicStarListRepoNames,
@@ -14,6 +13,7 @@ import {
 import { ingestStarboardRagDocuments } from '@/lib/knowledgebase';
 import { isRateLimited } from '@/lib/rate-limit';
 import { buildStarboardRagDocument, fetchRepoReadmes } from '@/lib/starboard-rag-documents';
+import { selectSyncReadmeRepos } from '@/lib/sync-performance';
 
 const BOGUS_IMPORTED_SORT_LISTS = new Set([
   'name ascending (a-z)',
@@ -165,34 +165,15 @@ export async function POST() {
       }));
     }
 
-    let embedded = 0;
     let ragIngested = 0;
     let ragReadmesFetched = 0;
     if (added.length > 0) {
-      const texts = added.map((r) =>
-        buildRepoEmbeddingText({
-          full_name: r.full_name,
-          description: r.description,
-          language: r.language,
-          topics: r.topics,
-        })
-      );
-      const readmesPromise = fetchRepoReadmes(session.accessToken, added, {
+      const readmeRepos = selectSyncReadmeRepos(added);
+      const readmesPromise = fetchRepoReadmes(session.accessToken, readmeRepos, {
         onError: (repo, error) => {
           console.warn(`README fetch skipped for ${repo.full_name}:`, error);
         },
       });
-      try {
-        const embeddings = await generateEmbeddings(texts);
-        const embStmts: InStatement[] = added.map((r, i) => ({
-          sql: 'INSERT OR REPLACE INTO repo_embeddings (repo_id, embedding, text_hash) VALUES (?, vector(?), ?)',
-          args: [r.id, JSON.stringify(embeddings[i]), textHash(texts[i])],
-        }));
-        await db.batch(embStmts);
-        embedded = added.length;
-      } catch (error) {
-        console.warn('Embedding generation failed:', error);
-      }
 
       try {
         const readmes = await readmesPromise;
@@ -208,7 +189,6 @@ export async function POST() {
     return NextResponse.json({
       added: added.map((r) => ({ id: r.id, full_name: r.full_name, description: r.description })),
       removed: removedRepos,
-      embedded,
       ragIngested,
       ragReadmesFetched,
       importedLists: githubSync.importedLists,

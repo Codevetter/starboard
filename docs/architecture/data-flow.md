@@ -18,7 +18,8 @@ src/lib/github.ts
         │
         ├── if RAG configured: src/lib/starboard-rag-documents.ts
         │     builds README/metadata doc → knowledgebase Worker ingest
-        │     (bounded batches; README text when available, metadata fallback)
+        │     (bounded batches; at most 25 README fetches per sync,
+        │      metadata fallback for every other added repo)
         └── repo_embeddings row written by seed-embeddings path (not sync)
 ```
 

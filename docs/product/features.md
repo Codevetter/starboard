@@ -30,8 +30,9 @@ today*; for *why* see [../architecture/decisions/](../architecture/decisions/).
 - Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID`
   are set as Worker secrets/vars or local env, relevance search uses the fleet
   `knowledgebase` Worker with sync ingest for new repos; new repo RAG documents
-  include full GitHub README text when available, fall back to repo metadata
-  when unavailable, and are sent in bounded ingest batches.
+  include full GitHub README text for a bounded set of new repos, fall back to
+  repo metadata when unavailable or outside that bound, and are sent in bounded
+  ingest batches.
   `src/__tests__/knowledgebase-rag.test.ts` covers README-only recall terms plus
   batch splitting. If shared RAG is unavailable, relevance search falls back to
   lexical results instead of local vector search.
