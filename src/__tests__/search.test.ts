@@ -114,7 +114,7 @@ describe('stars relevance RAG contract', () => {
   it('uses knowledgebase RAG without a local vector-search fallback', () => {
     const route = readFileSync(join(process.cwd(), 'src/app/api/stars/route.ts'), 'utf-8');
 
-    expect(route).toContain('searchStarboardRag');
+    expect(route).toContain('searchStarboardRagOrEmpty');
     expect(route).not.toContain('generateEmbedding');
     expect(route).not.toContain('vector_top_k');
   });

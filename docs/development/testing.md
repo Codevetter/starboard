@@ -22,8 +22,9 @@ pnpm test:coverage     # vitest run --coverage
   + lexical NOCASE integration tests. These hit a live Turso vector search, so
   they require `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` and are skipped when
   unavailable.
-- `src/__tests__/knowledgebase-rag.test.ts` — README-only recall terms plus
-  batch splitting for the shared RAG ingest path.
+- `src/__tests__/knowledgebase-rag.test.ts` — README-only recall terms, bounded
+  ingest batching, and lexical-only fallback when the shared RAG Worker is
+  unavailable or unconfigured.
 
 ## Recommendation eval harness
 
