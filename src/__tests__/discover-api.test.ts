@@ -91,6 +91,20 @@ describe('GET /api/discover', () => {
     expect(batchedQueries[2].args).toEqual([]);
   });
 
+  it('serves the public corpus when the optional auth session is unavailable', async () => {
+    mocks.auth.mockRejectedValueOnce(new Error('Auth session unavailable'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const response = await GET(new NextRequest('http://localhost/api/discover'));
+
+    expect(response.status).toBe(200);
+    const mainQuery = mocks.execute.mock.calls[0]?.[0] as { sql: string; args: unknown[] };
+    expect(mainQuery.args.slice(0, 2)).toEqual([null, null]);
+    expect(warn).toHaveBeenCalledWith('Discover auth unavailable; serving guest response');
+
+    warn.mockRestore();
+  });
+
   it('rejects guest collection filters before querying personalized state', async () => {
     mocks.auth.mockResolvedValueOnce(null);
 

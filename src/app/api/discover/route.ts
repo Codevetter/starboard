@@ -31,7 +31,14 @@ const STAR_GROWTH_30D_SQL = `CASE
 END`;
 
 export async function GET(request: NextRequest) {
-  const session = await auth();
+  let session = null;
+  try {
+    session = await auth();
+  } catch {
+    // Discover is public. An unavailable auth session must not take the guest
+    // catalogue down with it; authenticated-only filters still fail closed.
+    console.warn('Discover auth unavailable; serving guest response');
+  }
   const userId = session?.user?.githubId ?? null;
   const params = request.nextUrl.searchParams;
 

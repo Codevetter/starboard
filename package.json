@@ -43,7 +43,7 @@
   },
   "dependencies": {
     "@libsql/client": "0.17.4",
-    "@saas-maker/feedback": "^0.2.1",
+    "@saas-maker/feedback": "^0.4.0",
     "@tanstack/react-virtual": "3.14.8",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",

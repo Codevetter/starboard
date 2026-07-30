@@ -16,8 +16,8 @@ importers:
         specifier: 0.17.4
         version: 0.17.4
       '@saas-maker/feedback':
-        specifier: ^0.2.1
-        version: 0.2.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+        specifier: ^0.4.0
+        version: 0.4.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-virtual':
         specifier: 3.14.8
         version: 3.14.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -3488,11 +3488,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@saas-maker/feedback@0.2.1':
-    resolution: {integrity: sha512-ajtrH7t/hhzxrNzX2BU0i5nfGpXNu7w4EQCFBajsuFn255O29trRCu3VNL1NoQhWwypjEEdeaK4DqoEY4zd7rw==}
+  '@saas-maker/feedback@0.4.0':
+    resolution: {integrity: sha512-skVP2Ku9iFuvhYXvKKLk9jNyxKmYWow9IL5UbTUnkAzzwOIpUVOK4z4wLBpr2hDcuVjHmOG8LqwCXcLGXbcSlg==}
     peerDependencies:
-      react: '>=18'
-      react-dom: '>=18'
+      react: '>=18 <20'
+      react-dom: '>=18 <20'
 
   '@scalar/astro@0.4.11':
     resolution: {integrity: sha512-iZHZrLb0bx/s9efUkn5JKdZeyawODmfnoJl5hTu1uJxUwjKtAVtx8MFVXo8JkyC3/s8XFXGGs66d+S/Ji8eYJg==}
@@ -11704,7 +11704,7 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.60.2':
     optional: true
 
-  '@saas-maker/feedback@0.2.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+  '@saas-maker/feedback@0.4.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)

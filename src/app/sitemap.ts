@@ -1,7 +1,5 @@
 import type { MetadataRoute } from 'next';
 
-import { fleetProjects } from '@/lib/fleet-project-data';
-
 export const dynamic = 'force-static';
 
 const siteUrl = 'https://starboard.codevetter.com';
@@ -18,40 +16,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.95,
     },
     {
-      url: `${siteUrl}/explore`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.9,
-    },
-    {
       url: `${siteUrl}/tools`,
       lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
-      url: `${siteUrl}/stack-builder`,
+      url: `${siteUrl}/changelog`,
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.85,
-    },
-    {
-      url: `${siteUrl}/projects`,
-      lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.85,
-    },
-    {
-      url: `${siteUrl}/radar`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.8,
-    },
-    {
-      url: `${siteUrl}/stars`,
-      lastModified: now,
-      changeFrequency: 'daily',
-      priority: 0.75,
+      changeFrequency: 'monthly',
+      priority: 0.65,
     },
     {
       url: `${siteUrl}/about`,
@@ -91,12 +65,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  const projectPages: MetadataRoute.Sitemap = fleetProjects.map((project) => ({
-    url: `${siteUrl}/projects/${encodeURIComponent(project.slug)}`,
-    lastModified: now,
-    changeFrequency: 'weekly' as const,
-    priority: 0.7,
-  }));
-
-  return [...marketing, ...projectPages];
+  return marketing;
 }

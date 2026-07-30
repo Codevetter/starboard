@@ -4,17 +4,10 @@ import '@saas-maker/feedback/dist/index.css';
 
 import { FeedbackWidget } from '@saas-maker/feedback';
 
-const API_KEY = process.env.NEXT_PUBLIC_SAASMAKER_API_KEY ?? '';
-const API_BASE = 'https://api.sassmaker.com';
+const FEEDBACK_INGESTION_URL = 'https://feedback.sassmaker.com/api/feedback';
 
 export function SaaSMakerFeedback() {
-  if (!API_KEY) return null;
   return (
-    <FeedbackWidget
-      projectId={API_KEY}
-      apiBaseUrl={API_BASE}
-      position="bottom-right"
-      theme="auto"
-    />
+    <FeedbackWidget ingestionUrl={FEEDBACK_INGESTION_URL} position="bottom-right" theme="auto" />
   );
 }
