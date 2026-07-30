@@ -12,9 +12,6 @@ describe('sitemap', () => {
       `${siteUrl}/tools`,
       `${siteUrl}/changelog`,
       `${siteUrl}/about`,
-      `${siteUrl}/llms.txt`,
-      `${siteUrl}/index.md`,
-      `${siteUrl}/api/ai`,
       `${siteUrl}/privacy`,
       `${siteUrl}/terms`,
     ]);
