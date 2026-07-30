@@ -6,12 +6,19 @@ GitHub stars organizer with semantic search — sub-product of CodeVetter for re
 
 # Starboard
 
-GitHub stars organizer + semantic search (CodeVetter sub-product).
+GitHub stars organizer, repository discovery surface, and semantic search product.
 
-## What it is
+## Public without sign-in
 
-- Organize and search starred repositories
-- Semantic search over star metadata
+- Browse and search the seeded Discover corpus
+- Inspect detected tool and framework intelligence
+- Read the product history, scope, privacy policy, and terms
+
+## With GitHub sign-in
+
+- Sync and organize personal stars with tags and collections
+- Search starred repositories and receive fleet-aware recommendations
+- Track maintainer signals, alerts, and shareable insight reports
 
 ## Agent entrypoints
 
@@ -22,7 +29,12 @@ GitHub stars organizer + semantic search (CodeVetter sub-product).
 ## Product links
 
 - Home: https://starboard.codevetter.com/ — Product
-- CodeVetter: https://codevetter.com/ — Parent product
+- Discover: https://starboard.codevetter.com/discover — Browse and search the seeded public repository corpus
+- Tools: https://starboard.codevetter.com/tools — Detected tool and framework intelligence
+- Changelog: https://starboard.codevetter.com/changelog — Verified product history
+- About: https://starboard.codevetter.com/about — Product purpose and scope
+- Privacy: https://starboard.codevetter.com/privacy — Privacy and data handling
+- Terms: https://starboard.codevetter.com/terms — Terms of use
 
 ## Machine surfaces
 
@@ -33,7 +45,7 @@ GitHub stars organizer + semantic search (CodeVetter sub-product).
 - https://starboard.codevetter.com/sitemap.xml
 - https://starboard.codevetter.com/robots.txt
 
-## Contact / fleet
+## Contact
 
-- Fleet: https://sassmaker.com
+- Owner: https://sarthakagrawal.dev
 - Agent email for directory verification: sarthakagrawal@agentmail.to

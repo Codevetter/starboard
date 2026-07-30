@@ -5,14 +5,15 @@
 ## Product
 
 - [Home](https://starboard.codevetter.com/): Product
-- [CodeVetter](https://codevetter.com/): Parent product
+- [Discover](https://starboard.codevetter.com/discover): Browse and search the seeded public repository corpus
+- [Tools](https://starboard.codevetter.com/tools): Detected tool and framework intelligence
+- [Changelog](https://starboard.codevetter.com/changelog): Verified product history
+- [About](https://starboard.codevetter.com/about): Product purpose and scope
+- [Privacy](https://starboard.codevetter.com/privacy): Privacy and data handling
+- [Terms](https://starboard.codevetter.com/terms): Terms of use
 
 ## Machine surfaces
 
 - [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces
 - [Homepage markdown](https://starboard.codevetter.com/index.md): Product brief without JS
 - [This index](https://starboard.codevetter.com/llms.txt)
-
-## Optional
-
-- [Foundry](https://sassmaker.com): Parent fleet showcase

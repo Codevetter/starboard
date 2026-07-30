@@ -19,11 +19,46 @@
       "description": "Product home"
     },
     {
-      "id": "codevetter",
-      "url": "https://codevetter.com/",
-      "md": null,
+      "id": "discover",
+      "url": "https://starboard.codevetter.com/discover",
+      "md": "https://starboard.codevetter.com/discover.md",
       "kind": "static",
-      "description": "Parent product"
+      "description": "Browse and search the seeded public repository corpus"
+    },
+    {
+      "id": "tools",
+      "url": "https://starboard.codevetter.com/tools",
+      "md": "https://starboard.codevetter.com/tools.md",
+      "kind": "static",
+      "description": "Detected tool and framework intelligence"
+    },
+    {
+      "id": "changelog",
+      "url": "https://starboard.codevetter.com/changelog",
+      "md": "https://starboard.codevetter.com/changelog.md",
+      "kind": "static",
+      "description": "Verified product history"
+    },
+    {
+      "id": "about",
+      "url": "https://starboard.codevetter.com/about",
+      "md": "https://starboard.codevetter.com/about.md",
+      "kind": "static",
+      "description": "Product purpose and scope"
+    },
+    {
+      "id": "privacy",
+      "url": "https://starboard.codevetter.com/privacy",
+      "md": "https://starboard.codevetter.com/privacy.md",
+      "kind": "static",
+      "description": "Privacy and data handling"
+    },
+    {
+      "id": "terms",
+      "url": "https://starboard.codevetter.com/terms",
+      "md": "https://starboard.codevetter.com/terms.md",
+      "kind": "static",
+      "description": "Terms of use"
     }
   ],
   "auth": {

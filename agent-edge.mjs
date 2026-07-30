@@ -1,6 +1,6 @@
 /**
  * Portable agent-edge handler — copy or generate into each product.
- * Spec: fleet-ops/docs/agent-indexing-standard.md
+ * Spec: foundry/ops/docs/agent-indexing-standard.md
  *
  * Usage in worker.mjs (before openNext.fetch):
  *   import { handleAgentEdge } from './agent-edge.mjs'
@@ -13,9 +13,9 @@
 export const AGENT_SURFACE = {
   "name": "Starboard",
   "url": "https://starboard.codevetter.com",
-  "llmsFullTxt": "# Starboard — full agent brief\n\nGitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Index\n\n# Starboard\n\nGitHub stars organizer + semantic search (CodeVetter sub-product).\n\n## What it is\n\n- Organize and search starred repositories\n- Semantic search over star metadata\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n\n## Product links\n\n- Home: https://starboard.codevetter.com/ — Product\n- CodeVetter: https://codevetter.com/ — Parent product\n\n## Machine surfaces\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/llms-full.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n- https://starboard.codevetter.com/sitemap.xml\n- https://starboard.codevetter.com/robots.txt\n\n## Contact / fleet\n\n- Fleet: https://sassmaker.com\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
-  "llmsTxt": "# Starboard\n\n> GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Product\n\n- [Home](https://starboard.codevetter.com/): Product\n- [CodeVetter](https://codevetter.com/): Parent product\n\n## Machine surfaces\n\n- [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://starboard.codevetter.com/index.md): Product brief without JS\n- [This index](https://starboard.codevetter.com/llms.txt)\n\n## Optional\n\n- [Foundry](https://sassmaker.com): Parent fleet showcase\n",
-  "indexMd": "# Starboard\n\nGitHub stars organizer + semantic search (CodeVetter sub-product).\n\n## What it is\n\n- Organize and search starred repositories\n- Semantic search over star metadata\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n",
+  "llmsFullTxt": "# Starboard — full agent brief\n\nGitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Index\n\n# Starboard\n\nGitHub stars organizer, repository discovery surface, and semantic search product.\n\n## Public without sign-in\n\n- Browse and search the seeded Discover corpus\n- Inspect detected tool and framework intelligence\n- Read the product history, scope, privacy policy, and terms\n\n## With GitHub sign-in\n\n- Sync and organize personal stars with tags and collections\n- Search starred repositories and receive fleet-aware recommendations\n- Track maintainer signals, alerts, and shareable insight reports\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n\n## Product links\n\n- Home: https://starboard.codevetter.com/ — Product\n- Discover: https://starboard.codevetter.com/discover — Browse and search the seeded public repository corpus\n- Tools: https://starboard.codevetter.com/tools — Detected tool and framework intelligence\n- Changelog: https://starboard.codevetter.com/changelog — Verified product history\n- About: https://starboard.codevetter.com/about — Product purpose and scope\n- Privacy: https://starboard.codevetter.com/privacy — Privacy and data handling\n- Terms: https://starboard.codevetter.com/terms — Terms of use\n\n## Machine surfaces\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/llms-full.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n- https://starboard.codevetter.com/sitemap.xml\n- https://starboard.codevetter.com/robots.txt\n\n## Contact\n\n- Owner: https://sarthakagrawal.dev\n- Agent email for directory verification: sarthakagrawal@agentmail.to\n",
+  "llmsTxt": "# Starboard\n\n> GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.\n\n## Product\n\n- [Home](https://starboard.codevetter.com/): Product\n- [Discover](https://starboard.codevetter.com/discover): Browse and search the seeded public repository corpus\n- [Tools](https://starboard.codevetter.com/tools): Detected tool and framework intelligence\n- [Changelog](https://starboard.codevetter.com/changelog): Verified product history\n- [About](https://starboard.codevetter.com/about): Product purpose and scope\n- [Privacy](https://starboard.codevetter.com/privacy): Privacy and data handling\n- [Terms](https://starboard.codevetter.com/terms): Terms of use\n\n## Machine surfaces\n\n- [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces\n- [Homepage markdown](https://starboard.codevetter.com/index.md): Product brief without JS\n- [This index](https://starboard.codevetter.com/llms.txt)\n",
+  "indexMd": "# Starboard\n\nGitHub stars organizer, repository discovery surface, and semantic search product.\n\n## Public without sign-in\n\n- Browse and search the seeded Discover corpus\n- Inspect detected tool and framework intelligence\n- Read the product history, scope, privacy policy, and terms\n\n## With GitHub sign-in\n\n- Sync and organize personal stars with tags and collections\n- Search starred repositories and receive fleet-aware recommendations\n- Track maintainer signals, alerts, and shareable insight reports\n\n## Agent entrypoints\n\n- https://starboard.codevetter.com/llms.txt\n- https://starboard.codevetter.com/api/ai\n- https://starboard.codevetter.com/index.md\n",
   "catalog": {
     "name": "Starboard",
     "version": "1",
@@ -37,11 +37,46 @@ export const AGENT_SURFACE = {
         "description": "Product home"
       },
       {
-        "id": "codevetter",
-        "url": "https://codevetter.com/",
-        "md": null,
+        "id": "discover",
+        "url": "https://starboard.codevetter.com/discover",
+        "md": "https://starboard.codevetter.com/discover.md",
         "kind": "static",
-        "description": "Parent product"
+        "description": "Browse and search the seeded public repository corpus"
+      },
+      {
+        "id": "tools",
+        "url": "https://starboard.codevetter.com/tools",
+        "md": "https://starboard.codevetter.com/tools.md",
+        "kind": "static",
+        "description": "Detected tool and framework intelligence"
+      },
+      {
+        "id": "changelog",
+        "url": "https://starboard.codevetter.com/changelog",
+        "md": "https://starboard.codevetter.com/changelog.md",
+        "kind": "static",
+        "description": "Verified product history"
+      },
+      {
+        "id": "about",
+        "url": "https://starboard.codevetter.com/about",
+        "md": "https://starboard.codevetter.com/about.md",
+        "kind": "static",
+        "description": "Product purpose and scope"
+      },
+      {
+        "id": "privacy",
+        "url": "https://starboard.codevetter.com/privacy",
+        "md": "https://starboard.codevetter.com/privacy.md",
+        "kind": "static",
+        "description": "Privacy and data handling"
+      },
+      {
+        "id": "terms",
+        "url": "https://starboard.codevetter.com/terms",
+        "md": "https://starboard.codevetter.com/terms.md",
+        "kind": "static",
+        "description": "Terms of use"
       }
     ],
     "auth": {
