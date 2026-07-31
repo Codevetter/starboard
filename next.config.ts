@@ -1,4 +1,8 @@
 import type { NextConfig } from 'next';
+import { dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
@@ -21,6 +25,7 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactCompiler: true,
   output: 'standalone',
+  outputFileTracingRoot: projectRoot,
   // Force-bundle libsql for the Worker target — opennext otherwise lazy-chunks
   // it as an external module and fails at runtime in workerd.
   transpilePackages: ['@libsql/client'],

@@ -55,6 +55,9 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ## Timeline
 
+- 2026-07-31: Pinned Next.js output tracing to the Starboard project root so
+  Cloudflare standalone builds do not inherit the surrounding Fleet workspace.
+
 - **2026-07-31 (landing semantics clarified)** — Promoted the visible
   flat-list problem statement into the homepage heading hierarchy without
   changing the landing copy, layout, routes, or sign-in flow.
