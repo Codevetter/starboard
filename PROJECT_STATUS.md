@@ -55,6 +55,9 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ## Timeline
 
+- **2026-07-31 (landing semantics clarified)** — Promoted the visible
+  flat-list problem statement into the homepage heading hierarchy without
+  changing the landing copy, layout, routes, or sign-in flow.
 - **2026-07-31 (large-library paths bounded)** — Profiled the 1,000-repo sync,
   virtual grid, collection/facet queries, and 2,000-candidate project
   recommendations without production data. Removed synchronous embedding
