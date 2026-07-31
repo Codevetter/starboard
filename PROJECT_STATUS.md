@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-07-26
+Last updated: 2026-07-31
 
 ## Why/What
 
@@ -54,6 +54,12 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
+
+- **2026-07-31 (GitHub stars organization guide)** — Replaced the thin About
+  page with a visible and agent-readable guide that starts with GitHub's native
+  lists, explains hybrid lexical and semantic search, gives an organization
+  workflow, and states privacy and recommendation limits. The landing footer
+  now exposes the guide.
 
 - 2026-07-31: Pinned Next.js output tracing to the Starboard project root so
   Cloudflare standalone builds do not inherit the surrounding Fleet workspace.
