@@ -30,10 +30,14 @@ export default function AboutPage() {
             list, add repositories from the Starred menu, and search stars by repository name or
             topic. This keeps organization on GitHub and needs no additional account connection.
           </p>
-          <p className="mt-3 text-muted-foreground">A separate organizer becomes useful when you want to:</p>
+          <p className="mt-3 text-muted-foreground">
+            A separate organizer becomes useful when you want to:
+          </p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>search for an idea when names and topics use different words;</li>
-            <li>combine language, tags, collections, activity, release, and maintenance filters;</li>
+            <li>
+              combine language, tags, collections, activity, release, and maintenance filters;
+            </li>
             <li>add private notes or custom tags to your own library;</li>
             <li>revisit repositories that changed since you starred them; or</li>
             <li>compare and group tools for a particular project.</li>
@@ -50,21 +54,39 @@ export default function AboutPage() {
             results when the semantic service is unavailable.
           </p>
           <p className="mt-3 text-muted-foreground">
-            Semantic similarity is not proof that a repository is good, maintained, secure, or
-            right for your stack. It improves recall; source inspection, releases, maintenance
-            evidence, and your judgment still determine whether to use a repository.
+            Semantic similarity is not proof that a repository is good, maintained, secure, or right
+            for your stack. It improves recall; source inspection, releases, maintenance evidence,
+            and your judgment still determine whether to use a repository.
           </p>
         </section>
 
         <section>
           <h2 className="text-xl font-semibold">A practical organization workflow</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-5">
-            <li><strong>Sync read-only metadata.</strong> Starboard requests access to the public profile and starred repositories, not repository write scopes.</li>
-            <li><strong>Create a few durable collections.</strong> Organize outcomes such as “evaluation tools” or “local inference,” not every repository.</li>
-            <li><strong>Tag the details.</strong> Add language, workflow, status, or personal-use tags across collections.</li>
-            <li><strong>Search by intent.</strong> Try “local eval framework for RAG” instead of guessing a project name.</li>
-            <li><strong>Review activity signals.</strong> Check releases, development recency, archival state, and whether you have revisited it.</li>
-            <li><strong>Keep the decision on GitHub.</strong> Inspect the source and license, then star or unstar through GitHub.</li>
+            <li>
+              <strong>Sync read-only metadata.</strong> Starboard requests access to the public
+              profile and starred repositories, not repository write scopes.
+            </li>
+            <li>
+              <strong>Create a few durable collections.</strong> Organize outcomes such as
+              “evaluation tools” or “local inference,” not every repository.
+            </li>
+            <li>
+              <strong>Tag the details.</strong> Add language, workflow, status, or personal-use tags
+              across collections.
+            </li>
+            <li>
+              <strong>Search by intent.</strong> Try “local eval framework for RAG” instead of
+              guessing a project name.
+            </li>
+            <li>
+              <strong>Review activity signals.</strong> Check releases, development recency,
+              archival state, and whether you have revisited it.
+            </li>
+            <li>
+              <strong>Keep the decision on GitHub.</strong> Inspect the source and license, then
+              star or unstar through GitHub.
+            </li>
           </ol>
         </section>
 
@@ -73,9 +95,8 @@ export default function AboutPage() {
           <p className="mt-3 text-muted-foreground">
             Tools such as Astral demonstrate the value of tags, rule-based filters, notes, README
             previews, and fast search. Starboard keeps those ideas and adds hybrid retrieval,
-            release and maintenance radar, project-aware recommendations, and public discovery.
-            This describes product surfaces; it is not a claim that one organizer is universally
-            better.
+            release and maintenance radar, project-aware recommendations, and public discovery. This
+            describes product surfaces; it is not a claim that one organizer is universally better.
           </p>
         </section>
 
@@ -90,10 +111,18 @@ export default function AboutPage() {
         </section>
 
         <p>
-          <Link href="/discover" className="underline underline-offset-4">Browse public repositories</Link>{' '}
+          <Link href="/discover" className="underline underline-offset-4">
+            Browse public repositories
+          </Link>{' '}
           without connecting GitHub, or sign in from the home page to organize your own stars. See{' '}
-          <Link href="/tools" className="underline underline-offset-4">Tools</Link> and the{' '}
-          <Link href="/changelog" className="underline underline-offset-4">Changelog</Link>.
+          <Link href="/tools" className="underline underline-offset-4">
+            Tools
+          </Link>{' '}
+          and the{' '}
+          <Link href="/changelog" className="underline underline-offset-4">
+            Changelog
+          </Link>
+          .
         </p>
       </div>
     </main>
