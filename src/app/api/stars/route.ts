@@ -1,4 +1,4 @@
-import type { InStatement, InValue } from '@libsql/client';
+import type { InStatement, InValue } from '@/db/client';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
@@ -83,9 +83,8 @@ export async function GET(request: NextRequest) {
 
     if (fused.length > 0) {
       rankedRepoIds = fused;
-      const placeholders = fused.map(() => '?').join(', ');
-      whereClauses.push(`r.id IN (${placeholders})`);
-      whereArgs.push(...fused);
+      whereClauses.push('r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))');
+      whereArgs.push(JSON.stringify(fused));
     } else {
       // No matches — keep the filtered result empty instead of returning the whole library.
       whereClauses.push('0 = 1');
@@ -93,9 +92,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (languages.length > 0) {
-    const placeholders = languages.map(() => '?').join(', ');
-    whereClauses.push(`r.language IN (${placeholders})`);
-    whereArgs.push(...languages);
+    whereClauses.push('r.language IN (SELECT CAST(value AS TEXT) FROM json_each(?))');
+    whereArgs.push(JSON.stringify(languages));
   }
 
   if (listId !== null) {

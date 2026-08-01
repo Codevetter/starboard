@@ -64,7 +64,7 @@ describe('GET /api/discover', () => {
     const mainQuery = mocks.execute.mock.calls[0]?.[0] as { sql: string; args: unknown[] };
     expect(mainQuery.sql).toContain('star_growth_30d DESC');
     expect(mainQuery.sql).toContain('repo_tools selected_tools');
-    expect(mainQuery.args).toContain('react');
+    expect(mainQuery.args).toContain(JSON.stringify(['react']));
 
     const payload = (await response.json()) as {
       repos: Array<{ star_growth_30d: number }>;

@@ -7,14 +7,13 @@ annotates intent, inputs, and dependencies.
 ## seed-popular (`.github/workflows/seed-popular.yml`)
 
 - **Schedule:** `workflow_dispatch` only. The daily schedule was disabled on
-  2026-07-28 after repeated full-corpus updates exhausted the Turso row-read
-  allowance.
+  2026-07-28 after repeated full-corpus updates exhausted the prior database
+  row-read allowance.
 - **Inputs:** `daily_limit` (default 1000), `tool_enrich_limit` (default 250).
 - **Concurrency:** group `seed-popular`, `cancel-in-progress: false`.
 - **Timeout:** 60 minutes.
 - **Steps:**
-  1. `pnpm db:migrate` (dimension self-heal fires here — see
-     [runbooks/embedding-dimension-drift.md](runbooks/embedding-dimension-drift.md)).
+  1. `pnpm db:migrate:remote` (approval-gated D1 migrations).
   2. `pnpm db:seed-popular` (`scripts/seed-popular.ts`) — GitHub Search for
      repos ≥ `MIN_STARS_FLOOR=5000`, resumable cursor in `seed_cursor`, embeddings
      via HTTP gateway (Node env). Uses `${{ github.token }}` deliberately so a
@@ -22,8 +21,8 @@ annotates intent, inputs, and dependencies.
   3. `pnpm db:enrich-tools` (`scripts/enrich-tools.ts`) — SBOM/tree/manifest
      tool detection → `repo_tools`. `TOOL_MIN_STARS=10000`,
      `TOOL_ENRICH_HARD_LIMIT=750`.
-- **Secrets:** `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`, `AI_GATEWAY_URL`,
-  `AI_GATEWAY_API_KEY`.
+- **Credentials:** scoped `CLOUDFLARE_API_TOKEN`, non-secret account/database
+  variables, and `AI_GATEWAY_URL`/`AI_GATEWAY_API_KEY`.
 - **Safety controls:** metadata walks default to 10 GitHub Search pages and
   hard-cap at 25; unchanged repos do not update or fire FTS maintenance;
   snapshots are written only when star counts change. Re-enable automation only
@@ -37,9 +36,9 @@ annotates intent, inputs, and dependencies.
   default medium).
 - **Concurrency:** group `enrich-repos`, `cancel-in-progress: false`.
 - **Timeout:** 20 minutes.
-- **Steps:** `pnpm db:migrate` → `pnpm db:enrich-repos` (AI metadata enrichment
+- **Steps:** `pnpm db:migrate:remote` → `pnpm db:enrich-repos` (AI metadata enrichment
   via free-ai gateway with capped reasoning).
-- **Secrets:** Turso + `AI_GATEWAY_URL`/`AI_GATEWAY_API_KEY`.
+- **Credentials:** scoped Cloudflare API token + AI gateway credentials.
 
 ## embed-pending (`.github/workflows/embed-pending.yml`)
 
@@ -47,19 +46,19 @@ annotates intent, inputs, and dependencies.
 - **Inputs:** `embed_limit` (default 3000).
 - **Concurrency:** group `embed-pending`, `cancel-in-progress: false`.
 - **Timeout:** 30 minutes.
-- **Steps:** `pnpm db:migrate` → `pnpm db:seed-embeddings` (backfill
-  `repo_embeddings`).
-- **Secrets:** Turso + `AI_GATEWAY_URL`/`AI_GATEWAY_API_KEY`.
+- **Steps:** `pnpm db:migrate:remote` → `pnpm db:seed-embeddings` (backfill
+  Vectorize plus D1 `repo_embeddings` hashes).
+- **Credentials:** scoped Cloudflare API token + AI gateway credentials.
 
 ## weekly-threshold-digest (`.github/workflows/weekly-threshold-digest.yml`)
 
 - **Schedule:** `workflow_dispatch` only. Automatic database-backed digest runs
-  are disabled by the Turso circuit-breaker policy.
+  remain disabled pending an explicit operating budget.
 - **Inputs:** `days` (default 7).
 - **Timeout:** 15 minutes.
 - **Permissions:** `contents: read`, `issues: write`.
 - **Steps:**
-  1. `pnpm db:migrate`.
+  1. `pnpm db:migrate:remote`.
   2. `pnpm --silent weekly:threshold-digest > digest.md` (generates the digest
      markdown).
   3. Create or update a GitHub issue titled
@@ -67,8 +66,8 @@ annotates intent, inputs, and dependencies.
      issue with the same title if present).
   4. `pnpm digest:send-emails` — fail-closed: skipped with a log when
      `RESEND_API_KEY` is unset.
-- **Secrets:** Turso, `RESEND_API_KEY` (optional), `DIGEST_EMAIL_FROM` (repo
-  variable, optional).
+- **Credentials:** scoped Cloudflare API token, `RESEND_API_KEY` (optional),
+  `DIGEST_EMAIL_FROM` (repo variable, optional).
 
 ## weekly (`.github/workflows/weekly.yml`)
 

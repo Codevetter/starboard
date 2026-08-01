@@ -1,13 +1,11 @@
 /**
  * Embedding dimension contract.
  *
- * The model below must produce EMBEDDING_DIM-sized vectors. Three places track this:
- *   1. EMBEDDING_DIM here.
- *   2. F32_BLOB(<dim>) in src/db/schema.sql (column + libsql_vector_idx).
- *   3. The self-heal check in src/db/migrate.ts that drops + recreates repo_embeddings
- *      when the live table's dimension drifts.
+ * The model below must produce EMBEDDING_DIM-sized vectors. The Cloudflare
+ * Vectorize index `starboard-repos` is created with the same dimension and the
+ * cosine metric. Changing the model requires recreating that index deliberately.
  *
- * Changing the model requires updating all three together. See agents.md ›
+ * See agents.md ›
  * "Embedding dimension contract".
  */
 const EMBEDDING_MODEL = '@cf/baai/bge-base-en-v1.5';
@@ -230,7 +228,7 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
       const vec = normalizeEmbeddingDimensions(embeddings[j]);
       if (vec.length !== EMBEDDING_DIM) {
         throw new Error(
-          `Embedding dimension mismatch: model "${EMBEDDING_MODEL}" returned ${vec.length}, expected ${EMBEDDING_DIM}. Update EMBEDDING_DIM, schema.sql, and the migrate.ts self-heal check together.`
+          `Embedding dimension mismatch: model "${EMBEDDING_MODEL}" returned ${vec.length}, expected ${EMBEDDING_DIM}. Update EMBEDDING_DIM and recreate the Vectorize index together.`
         );
       }
       results[i + j] = vec;

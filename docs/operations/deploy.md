@@ -40,11 +40,14 @@ served via the `ASSETS` binding. `wrangler.jsonc` configures:
 Set via `wrangler secret put <NAME>`:
 
 - `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
-- `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`
 - `RAG_SERVICE_KEY` (shared RAG; optional — without it relevance search falls
   back to lexical-only)
 - `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (only if keeping the HTTP gateway path
-  active; the Worker prefers the `AI` binding)
+active; the Worker prefers the `AI` binding)
+
+Legacy `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` bindings remain untouched
+while Turso is rollback-held. They are not runtime requirements for the D1
+release and are removed only through a separately approved retirement.
 
 See [env.md](env.md) for the full env map and
 [runbooks/rotate-secrets.md](runbooks/rotate-secrets.md) for rotation.

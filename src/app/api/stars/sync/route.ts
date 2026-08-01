@@ -1,4 +1,4 @@
-import type { InStatement } from '@libsql/client';
+import type { InStatement } from '@/db/client';
 import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
@@ -153,10 +153,11 @@ export async function POST() {
 
     let removedRepos: { id: number; full_name: string; description: string | null }[] = [];
     if (removedIds.length > 0) {
-      const placeholders = removedIds.map(() => '?').join(',');
       const removedResult = await db.execute({
-        sql: `SELECT id, full_name, description FROM repos WHERE id IN (${placeholders})`,
-        args: removedIds,
+        sql: `SELECT id, full_name, description
+              FROM repos
+              WHERE id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
+        args: [JSON.stringify(removedIds)],
       });
       removedRepos = removedResult.rows.map((r) => ({
         id: r.id as number,
@@ -245,10 +246,11 @@ async function syncGitHubLists(
       .map((list) => list.id);
 
     if (bogusSortListIds.length > 0) {
-      const placeholders = bogusSortListIds.map(() => '?').join(',');
       await db.execute({
-        sql: `DELETE FROM user_lists WHERE user_id = ? AND id IN (${placeholders})`,
-        args: [userId, ...bogusSortListIds],
+        sql: `DELETE FROM user_lists
+              WHERE user_id = ?
+                AND id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
+        args: [userId, JSON.stringify(bogusSortListIds)],
       });
       changed = true;
     }
@@ -330,13 +332,13 @@ async function syncGitHubLists(
       }
     }
 
-    const placeholders = importedListIds.map(() => '?').join(',');
     const currentAssignmentsResult = await db.execute({
       sql: `SELECT url.repo_id, url.list_id
             FROM user_repo_lists url
             JOIN user_repos ur ON ur.user_id = url.user_id AND ur.repo_id = url.repo_id AND ur.is_starred = 1
-            WHERE url.user_id = ? AND url.list_id IN (${placeholders})`,
-      args: [userId, ...importedListIds],
+            WHERE url.user_id = ?
+              AND url.list_id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
+      args: [userId, JSON.stringify(importedListIds)],
     });
     const currentAssignments = new Set(
       currentAssignmentsResult.rows.map((row) =>

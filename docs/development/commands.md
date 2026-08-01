@@ -27,17 +27,18 @@ Source of truth: `scripts` in `package.json`. This page annotates intent; run
 | `pnpm deploy:cf` | `build:cf` + SHA-tagged `opennextjs-cloudflare deploy` (manual) |
 | `pnpm cf:typegen` | `wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts` |
 
-The `--webpack` flag (not Turbopack) is required because opennext-cloudflare
-1.19 does not fully bundle externalized packages with Turbopack output — see
-[../architecture/decisions/0003-opennext-libsql-bundling.md](../architecture/decisions/0003-opennext-libsql-bundling.md).
+The `--webpack` flag remains the verified OpenNext production build path.
 
 ## Database
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm db:migrate` | `tsx src/db/migrate.ts` — applies `schema.sql` wholesale; runs `ensureEmbeddingDimension()` self-heal |
-| `pnpm db:seed-embeddings` | `tsx src/db/seed-embeddings.ts` — backfill `repo_embeddings` |
-| `pnpm db:embed-pending` | Alias for `db:seed-embeddings` |
+| `pnpm db:migrate` | Apply ordered migrations to isolated local D1 |
+| `pnpm db:migrate:remote` | Validate non-placeholder D1 config and apply remote migrations (approval required) |
+| `pnpm db:seed-embeddings` | Backfill Vectorize and D1 embedding hashes through scoped Cloudflare APIs |
+| `pnpm db:convert-turso-dump` | Convert a Turso SQL dump to D1 relational import SQL |
+| `pnpm db:convert-turso-vectors` | Validate/convert extracted 768-d vectors to Vectorize NDJSON |
+| `pnpm db:snapshot-turso-logical starboard` | Produce a row-free deterministic Turso digest for final cutover reconciliation |
 | `pnpm db:enrich-repos` | `tsx scripts/enrich-repos.ts` — AI metadata enrichment |
 | `pnpm db:seed-popular` | `tsx scripts/seed-popular.ts` — cold-seed popular repos (≥5k stars) |
 | `pnpm db:enrich-tools` | `tsx scripts/enrich-tools.ts` — SBOM/tree/manifest tool detection |

@@ -10,6 +10,10 @@ Per-run refresh state (watermark, output counts, failure state) is written to
 [`refresh-manifest.md`](refresh-manifest.md) and
 [`jobs.md`](jobs.md).
 
+Migration note: this inventory continues to name Turso as the production source
+until the D1/Vectorize receipt is approved and the cutover completes. The local
+migration branch does not change authority by itself.
+
 ## Classification legend
 
 | Class | Meaning | Backup treatment |

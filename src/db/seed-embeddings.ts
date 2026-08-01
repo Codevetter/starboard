@@ -1,17 +1,15 @@
-import type { InStatement } from '@libsql/client';
-import { createClient } from '@libsql/client';
-
+import type { InStatement } from './client';
+import { createD1RestClientFromEnv } from './rest-client';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../lib/embeddings';
+import { createVectorizeRestWriterFromEnv } from '../lib/repo-vectors-rest';
 
 const BATCH_SIZE = 50;
 const EMBED_LIMIT = parseInt(process.env.EMBED_LIMIT || '0', 10);
 const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
 
 async function seed() {
-  const db = createClient({
-    url: process.env.TURSO_DATABASE_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+  const db = createD1RestClientFromEnv();
+  const vectors = createVectorizeRestWriterFromEnv();
 
   const existing = await db.execute('SELECT repo_id, text_hash FROM repo_embeddings');
   const existingHashes = new Map(
@@ -86,14 +84,14 @@ async function seed() {
     );
 
     const embeddings = await generateEmbeddings(texts);
+    await vectors.upsert(batch.map((item, j) => ({ repoId: item.id, values: embeddings[j] })));
 
-    const stmts: InStatement[] = batch.map((item, j) => ({
-      sql: `INSERT INTO repo_embeddings (repo_id, embedding, text_hash)
-            VALUES (?, vector(?), ?)
+    const stmts: InStatement[] = batch.map((item) => ({
+      sql: `INSERT INTO repo_embeddings (repo_id, text_hash)
+            VALUES (?, ?)
             ON CONFLICT(repo_id) DO UPDATE SET
-              embedding = excluded.embedding,
               text_hash = excluded.text_hash`,
-      args: [item.id, JSON.stringify(embeddings[j]), item.hash],
+      args: [item.id, item.hash],
     }));
 
     await db.batch(stmts);

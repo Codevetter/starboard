@@ -1,17 +1,19 @@
-import { type Client, createClient } from '@libsql/client/web';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
-let _client: Client | undefined;
-function getClient(): Client {
+import { createD1Client, type D1DatabaseLike, type DbClient } from './client';
+
+let _client: DbClient | undefined;
+function getClient(): DbClient {
   if (!_client) {
-    _client = createClient({
-      url: process.env.TURSO_DATABASE_URL!,
-      authToken: process.env.TURSO_AUTH_TOKEN,
-    });
+    const { env } = getCloudflareContext();
+    const database = (env as { DB?: D1DatabaseLike }).DB;
+    if (!database) throw new Error('Cloudflare D1 binding DB is unavailable');
+    _client = createD1Client(database);
   }
   return _client;
 }
 
-export const db = new Proxy({} as Client, {
+export const db = new Proxy({} as DbClient, {
   get(_, prop) {
     const client = getClient();
     const value = Reflect.get(client, prop);

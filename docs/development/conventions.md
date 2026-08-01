@@ -23,13 +23,12 @@ Code style and repo conventions. The executable source of truth is
 
 ## Database
 
-- **NO ORM.** Raw SQL via `@libsql/client`. Schema in `src/db/schema.sql`;
-  applied wholesale by `pnpm db:migrate`. Do not hand-edit the Turso table —
-  the migrate path is the only safe one.
+- **NO ORM.** Raw SQL via the D1 binding/REST adapters. Ordered schema changes
+  live in `migrations/`; apply locally with `pnpm db:migrate`.
 - **Tags** stored as JSON arrays in `user_repos.tags` text column.
-- **Embedding dimension contract** — `EMBEDDING_DIM=768` pinned across
-  `src/lib/embeddings.ts`, `src/db/schema.sql`, `src/db/migrate.ts`. Change all
-  three together. See
+- **Embedding dimension contract** — `EMBEDDING_DIM=768` must match the cosine
+  `starboard-repos` Vectorize index. Replace/repopulate the index deliberately
+  when changing dimensions. See
   [../architecture/decisions/0006-embedding-dimension-contract.md](../architecture/decisions/0006-embedding-dimension-contract.md).
 
 ## Client state & data fetching
@@ -50,10 +49,9 @@ Code style and repo conventions. The executable source of truth is
 
 ## Cloudflare Workers build
 
-- `src/db/index.ts` imports `@libsql/client/web` (not `@libsql/client`) and
-  lazy-inits via a Proxy. Using the default import will re-break the Worker.
-- The CF build uses `--webpack` (not Turbopack). See
-  [../architecture/decisions/0003-opennext-libsql-bundling.md](../architecture/decisions/0003-opennext-libsql-bundling.md).
+- `src/db/index.ts` lazy-initializes the `DB` binding through a Proxy so builds
+  do not require a live Cloudflare environment.
+- The CF build uses `--webpack` (not Turbopack).
 - `open-next.config.ts` uses `staticAssetsIncrementalCache` so prerendered HTML
   with Beasties-inlined critical CSS is served from the assets binding.
 

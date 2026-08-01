@@ -2,8 +2,9 @@
  * Generate the weekly GitHub issue body for repos crossing star thresholds.
  *
  * Required env:
- *   TURSO_DATABASE_URL
- *   TURSO_AUTH_TOKEN
+ *   CLOUDFLARE_ACCOUNT_ID
+ *   D1_DATABASE_ID
+ *   CLOUDFLARE_API_TOKEN — D1 Read
  * Optional env:
  *   DIGEST_DAYS       — lookback window, default 7
  *   STAR_THRESHOLDS   — comma-separated thresholds, default 5000,10000,20000,50000,100000
@@ -12,7 +13,8 @@
 
 import { fileURLToPath } from 'node:url';
 
-import { createClient } from '@libsql/client';
+import type { DbClient } from '../src/db/client';
+import { createD1RestClientFromEnv } from '../src/db/rest-client';
 
 const DIGEST_DAYS = parseInt(process.env.DIGEST_DAYS || '7', 10);
 const STAR_THRESHOLDS = (process.env.STAR_THRESHOLDS || '5000,10000,20000,50000,100000')
@@ -123,7 +125,7 @@ export function capDigestForGithubIssue(
 }
 
 async function loadThresholdBands(
-  db: ReturnType<typeof createClient>
+  db: DbClient
 ): Promise<Map<number, { count: number; repos: TopRepo[] }>> {
   const bands = new Map<number, { count: number; repos: TopRepo[] }>();
 
@@ -168,14 +170,7 @@ async function loadThresholdBands(
 }
 
 async function main() {
-  if (!process.env.TURSO_DATABASE_URL) {
-    throw new Error('TURSO_DATABASE_URL required');
-  }
-
-  const db = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+  const db = createD1RestClientFromEnv();
   const lookback = `-${DIGEST_DAYS} days`;
   const thresholdBands = await loadThresholdBands(db);
   const corpusCounts = await Promise.all(

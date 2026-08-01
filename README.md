@@ -22,11 +22,12 @@ both personal stars and seeded popular repositories.
 | Concern | Service |
 |---------|---------|
 | Hosting | Cloudflare Workers (`starboard`) via `@opennextjs/cloudflare` |
-| Database | Turso (libSQL); raw SQL, no ORM |
+| Database | Cloudflare D1; raw SQL, no ORM |
+| Repository vectors | Cloudflare Vectorize (`starboard-repos`, 768-d cosine) |
 | Auth | NextAuth v5 + GitHub OAuth |
 | RAG search | Shared Cloudflare `knowledgebase` Worker for relevance search |
 | AI | Cloudflare Workers AI binding for non-RAG embeddings; free-ai gateway fallback for Node-based GitHub Actions |
-| CI/CD | GitHub Actions (`.github/workflows/deploy.yml`) — auto-deploy to Cloudflare on push to `main`; scheduled Actions seed/enrich/embed repos in Turso |
+| CI/CD | GitHub Actions — push CI keeps `main` releasable; production deploys are manual and SHA-tagged; operator Actions use scoped D1/Vectorize APIs |
 
 ## Features
 
@@ -48,7 +49,8 @@ both personal stars and seeded popular repositories.
 - **Next.js 16** (App Router)
 - **Tailwind CSS** + **shadcn/ui**
 - **NextAuth v5** (GitHub OAuth)
-- **Turso** (libSQL edge database)
+- **Cloudflare D1** for relational data and FTS5
+- **Cloudflare Vectorize** for repository embeddings
 - **SWR** for client-side data fetching
 - **nuqs** for URL-backed filter/sort state
 - **@tanstack/react-virtual** for virtualized scrolling
@@ -71,8 +73,9 @@ The local app runs at <http://localhost:3000>.
 AUTH_SECRET=
 AUTH_GITHUB_ID=
 AUTH_GITHUB_SECRET=
-TURSO_DATABASE_URL=
-TURSO_AUTH_TOKEN=
+CLOUDFLARE_ACCOUNT_ID=
+D1_DATABASE_ID=
+CLOUDFLARE_API_TOKEN=
 AUTH_TRUST_HOST=true
 ```
 
@@ -86,8 +89,9 @@ src/app/lists/          public shared list pages
 src/app/api/            auth, stars, lists, repo interactions
 src/components/         repo cards, grid, filters, pickers, shell
 src/hooks/              SWR hooks
-src/db/schema.sql       raw SQL schema
-src/db/migrate.ts       migration runner and embedding dimension guard
+src/db/index.ts         Worker D1 binding adapter
+src/db/rest-client.ts   authenticated D1 REST adapter for operator jobs
+migrations/             ordered D1 SQL migrations
 src/db/seed-embeddings.ts
 scripts/seed-popular.ts scheduled popular repo seeding
 scripts/extract-fleet-projects.ts local fleet snapshot generator
@@ -100,7 +104,8 @@ pnpm dev                 # Next.js dev server
 pnpm build               # Next.js build
 pnpm test                # Vitest unit tests
 pnpm test:e2e            # Playwright e2e
-pnpm db:migrate          # apply raw SQL schema to Turso
+pnpm db:migrate          # apply ordered SQL migrations to isolated local D1
+pnpm db:migrate:remote   # apply to configured remote D1 (approval required)
 pnpm db:seed-embeddings  # backfill repo embeddings
 pnpm db:seed-popular     # seed/enrich popular repositories
 pnpm fleet:extract-projects # refresh checked-in fleet project context snapshot
@@ -111,20 +116,19 @@ pnpm deploy:cf           # deploy to Cloudflare Workers
 
 ## Search And Embeddings
 
-The embedding dimension is part of the database contract. The canonical model is
-`@cf/baai/bge-base-en-v1.5` with 768 dimensions. If the model changes, update
-these together:
+The embedding dimension is part of the Vectorize contract. The canonical model
+is `@cf/baai/bge-base-en-v1.5` with 768 dimensions. If the model changes, update
+the code and deliberately create/repopulate a replacement Vectorize index:
 
 - `src/lib/embeddings.ts`
-- `src/db/schema.sql`
-- `src/db/migrate.ts`
+- Cloudflare Vectorize index configuration (`starboard-repos`, cosine)
 
-Do not hand-edit the Turso vector table. The migration path enforces dimension
-drift and recreates embedding storage when needed.
+D1 keeps only repository IDs and text hashes for drift detection; vector values
+live in Vectorize.
 
 ## Operating Notes
 
-- Use raw SQL through `@libsql/client`; there is no ORM in this repo.
+- Use raw SQL through the D1 binding/REST adapters; there is no ORM in this repo.
 - GitHub star sync uses ETag caching to avoid unnecessary API calls.
 - GitHub star lists are scraped from GitHub HTML because there is no official API for that surface.
 - My Projects reads the checked-in `data/fleet-projects.generated.json` snapshot. Refresh it locally with `pnpm fleet:extract-projects` after fleet project scope, dependencies, README, or `PROJECT_STATUS.md` changes.

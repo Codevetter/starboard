@@ -1,4 +1,4 @@
-import type { InStatement, InValue } from '@libsql/client';
+import type { InStatement, InValue } from '@/db/client';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
@@ -89,28 +89,27 @@ export async function GET(request: NextRequest) {
 
     if (lexIds.length > 0) {
       rankedRepoIds = lexIds;
-      const placeholders = lexIds.map(() => '?').join(', ');
-      whereClauses.push(`r.id IN (${placeholders})`);
-      whereArgs.push(...lexIds);
+      whereClauses.push('r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))');
+      whereArgs.push(JSON.stringify(lexIds));
     } else {
       whereClauses.push('0 = 1');
     }
   }
 
   if (languages.length > 0) {
-    const placeholders = languages.map(() => '?').join(', ');
-    whereClauses.push(`r.language IN (${placeholders})`);
-    whereArgs.push(...languages);
+    whereClauses.push('r.language IN (SELECT CAST(value AS TEXT) FROM json_each(?))');
+    whereArgs.push(JSON.stringify(languages));
   }
 
   if (toolKeys.length > 0) {
-    const placeholders = toolKeys.map(() => '?').join(', ');
     whereClauses.push(
       `EXISTS (SELECT 1 FROM repo_tools selected_tools
                WHERE selected_tools.repo_id = r.id
-                 AND selected_tools.tool_key IN (${placeholders}))`
+                 AND selected_tools.tool_key IN (
+                   SELECT CAST(value AS TEXT) FROM json_each(?)
+                 ))`
     );
-    whereArgs.push(...toolKeys);
+    whereArgs.push(JSON.stringify(toolKeys));
   }
 
   if (listId !== null) {

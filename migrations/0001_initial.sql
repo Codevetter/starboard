@@ -1,3 +1,4 @@
+-- Canonical Cloudflare D1 baseline migration.
 CREATE TABLE IF NOT EXISTS users (
   id          TEXT PRIMARY KEY,
   username    TEXT NOT NULL,
@@ -90,17 +91,12 @@ CREATE INDEX IF NOT EXISTS idx_likes_repo ON likes(repo_id);
 CREATE INDEX IF NOT EXISTS idx_user_lists_slug ON user_lists(slug);
 CREATE INDEX IF NOT EXISTS idx_comment_votes_comment ON comment_votes(comment_id);
 
--- Dimension contract: F32_BLOB(768) must match EMBEDDING_DIM in src/lib/embeddings.ts.
--- Changing the embedding model requires updating both, plus the self-heal check in
--- src/db/migrate.ts so existing rows get recreated at the new dimension.
+-- Vector values live in the project-owned Cloudflare Vectorize index. D1 keeps
+-- only the relational ownership key and the hash used to detect embedding drift.
 CREATE TABLE IF NOT EXISTS repo_embeddings (
   repo_id    INTEGER PRIMARY KEY REFERENCES repos(id) ON DELETE CASCADE,
-  embedding  F32_BLOB(768),
   text_hash  TEXT NOT NULL
 );
-
-CREATE INDEX IF NOT EXISTS idx_repo_embeddings_vec
-  ON repo_embeddings(libsql_vector_idx(embedding, 'metric=cosine'));
 
 CREATE TABLE IF NOT EXISTS repo_ai_metadata (
   repo_id       INTEGER PRIMARY KEY REFERENCES repos(id) ON DELETE CASCADE,
@@ -233,3 +229,67 @@ CREATE VIRTUAL TABLE IF NOT EXISTS repo_ai_metadata_fts USING fts5(
   content='repo_ai_metadata',
   content_rowid='repo_id'
 );
+
+CREATE TRIGGER IF NOT EXISTS repos_ai AFTER INSERT ON repos BEGIN
+  INSERT INTO repos_fts(rowid, name, full_name, description, language, topics)
+  VALUES (new.id, new.name, new.full_name, new.description, new.language, new.topics);
+END;
+
+CREATE TRIGGER IF NOT EXISTS repos_ad AFTER DELETE ON repos BEGIN
+  INSERT INTO repos_fts(repos_fts, rowid, name, full_name, description, language, topics)
+  VALUES('delete', old.id, old.name, old.full_name, old.description, old.language, old.topics);
+END;
+
+CREATE TRIGGER IF NOT EXISTS repos_au AFTER UPDATE ON repos BEGIN
+  INSERT INTO repos_fts(repos_fts, rowid, name, full_name, description, language, topics)
+  VALUES('delete', old.id, old.name, old.full_name, old.description, old.language, old.topics);
+  INSERT INTO repos_fts(rowid, name, full_name, description, language, topics)
+  VALUES (new.id, new.name, new.full_name, new.description, new.language, new.topics);
+END;
+
+CREATE TRIGGER IF NOT EXISTS repo_ai_metadata_ai AFTER INSERT ON repo_ai_metadata BEGIN
+  INSERT INTO repo_ai_metadata_fts(rowid, summary, category, subcategories, use_cases, keywords)
+  VALUES (new.repo_id, new.summary, new.category, new.subcategories, new.use_cases, new.keywords);
+END;
+
+CREATE TRIGGER IF NOT EXISTS repo_ai_metadata_ad AFTER DELETE ON repo_ai_metadata BEGIN
+  INSERT INTO repo_ai_metadata_fts(
+    repo_ai_metadata_fts,
+    rowid,
+    summary,
+    category,
+    subcategories,
+    use_cases,
+    keywords
+  ) VALUES(
+    'delete',
+    old.repo_id,
+    old.summary,
+    old.category,
+    old.subcategories,
+    old.use_cases,
+    old.keywords
+  );
+END;
+
+CREATE TRIGGER IF NOT EXISTS repo_ai_metadata_au AFTER UPDATE ON repo_ai_metadata BEGIN
+  INSERT INTO repo_ai_metadata_fts(
+    repo_ai_metadata_fts,
+    rowid,
+    summary,
+    category,
+    subcategories,
+    use_cases,
+    keywords
+  ) VALUES(
+    'delete',
+    old.repo_id,
+    old.summary,
+    old.category,
+    old.subcategories,
+    old.use_cases,
+    old.keywords
+  );
+  INSERT INTO repo_ai_metadata_fts(rowid, summary, category, subcategories, use_cases, keywords)
+  VALUES (new.repo_id, new.summary, new.category, new.subcategories, new.use_cases, new.keywords);
+END;

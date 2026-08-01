@@ -6,7 +6,7 @@ GitHub: sarthakagrawal927
 
 /* SITE */
 Last updated: 2026-05-15
-Software: Next.js, React, Drizzle ORM (libsql_vector_idx), Turso, Cloudflare Workers
+Software: Next.js, React, Cloudflare D1, Vectorize, Cloudflare Workers
 `;
 
 export function GET() {

@@ -1,9 +1,9 @@
-import type { InValue } from '@libsql/client';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { generateEmbedding } from '@/lib/embeddings';
+import { chunkForD1 } from '@/lib/d1-limits';
 import { getFleetProject } from '@/lib/fleet-project-data';
 import {
   buildProjectRecommendationReport,
@@ -11,6 +11,7 @@ import {
   type SemanticDistanceMap,
   semanticKey,
 } from '@/lib/fleet-projects';
+import { repoVectors } from '@/lib/repo-vectors';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
@@ -117,27 +118,31 @@ async function fetchSemanticDistances(
           featureArea.keywords.join(', '),
         ].join('\n');
         const embedding = await generateEmbedding(query);
-        const result = await db.execute({
-          sql: `SELECT re.repo_id,
-                       vector_distance_cos(re.embedding, vector(?)) AS dist
-                FROM vector_top_k('idx_repo_embeddings_vec', vector(?), ?) AS vt
-                JOIN repo_embeddings re ON re.rowid = vt.id
-                JOIN user_repos ur ON ur.repo_id = re.repo_id
-                WHERE ur.user_id = ?
-                  AND (ur.is_starred = 1 OR ur.is_saved = 1)
-                ORDER BY dist ASC`,
-          args: [
-            JSON.stringify(embedding),
-            JSON.stringify(embedding),
-            150,
-            userId,
-          ] satisfies InValue[],
-        });
+        const matches = await repoVectors().query(embedding, 100);
+        if (matches.length === 0) return;
 
-        for (const row of result.rows) {
-          const distance = row.dist as number;
+        const ids = matches.map((match) => match.repoId);
+        const owned = await Promise.all(
+          chunkForD1(ids, 1).map((chunk) =>
+            db.execute({
+              sql: `SELECT repo_id
+                    FROM user_repos
+                    WHERE user_id = ?
+                      AND (is_starred = 1 OR is_saved = 1)
+                      AND repo_id IN (${chunk.map(() => '?').join(', ')})`,
+              args: [userId, ...chunk],
+            })
+          )
+        );
+        const ownedIds = new Set(
+          owned.flatMap((result) => result.rows.map((row) => row.repo_id as number))
+        );
+
+        for (const match of matches) {
+          if (!ownedIds.has(match.repoId)) continue;
+          const distance = match.distance;
           if (distance > 0.72) continue;
-          distances.set(semanticKey(row.repo_id as number, featureArea.id), distance);
+          distances.set(semanticKey(match.repoId, featureArea.id), distance);
         }
       })
     );

@@ -42,6 +42,11 @@ externalized packages without manual intervention.
 
 ## Cloudflare D1 migration (evaluated, rejected)
 
+**Status update (2026-08-01):** superseded by
+[ADR-0009](../architecture/decisions/0009-cloudflare-d1-vectorize.md). D1 gained
+the required capacity/import path and Starboard now pairs it with project-owned
+Vectorize rather than waiting for libSQL-compatible vectors inside D1.
+
 **What:** Evaluated migrating the database from Turso (libSQL) to Cloudflare D1
 to consolidate on a single provider.
 
@@ -55,8 +60,8 @@ and the memory-context decision `Starboard database migration decision — Turso
 **What replaced it:** Stayed on Turso. The `@libsql/client/web` import path
 works on Workers.
 
-**Do not retry unless:** D1 gains native `F32_BLOB`-equivalent vector search
-and a clear migration tool path from Turso.
+**Original retry condition:** a compatible vector and deterministic transfer
+path. Vectorize plus the migration tooling now satisfies that condition.
 
 ## Cross-encoder reranking (ort / ONNX)
 

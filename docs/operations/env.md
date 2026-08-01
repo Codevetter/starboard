@@ -12,7 +12,6 @@ Copied from `.env.example`. **Never commit `.env.local`** — it is gitignored.
 | `GITHUB_ID`, `GITHUB_SECRET` | GitHub OAuth app credentials (NextAuth) |
 | `NEXTAUTH_SECRET` | NextAuth session secret (`openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | App base URL, e.g. `http://localhost:3000` |
-| `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` | Turso libSQL client |
 | `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` | HTTP embedding path (Node/Actions); optional in the Worker which uses the `AI` binding |
 | `RESEND_API_KEY` | Weekly digest email (fail-closed: delivery skipped with a log when unset) |
 | `DIGEST_EMAIL_FROM` | Optional verified Resend sender, e.g. `Starboard <digest@example.com>` |
@@ -24,6 +23,7 @@ Copied from `.env.example`. **Never commit `.env.local`** — it is gitignored.
 - `NEXT_PUBLIC_APP_NAME` = `starboard`
 - `AUTH_URL` = `https://starboard.codevetter.com`
 - `NEXTAUTH_URL` = `https://starboard.codevetter.com`
+- `WRITE_FREEZE` = exact string `false` outside an approved cutover window
 - `STARBOARD_RAG_INDEX_ID` = the RAG index id
 
 Both `AUTH_URL` and `NEXTAUTH_URL` must be set — NextAuth v5 reads `AUTH_URL`
@@ -33,16 +33,17 @@ for the callback base URL and some internal paths read the legacy
 ## Worker secrets (`wrangler secret put`)
 
 - `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
-- `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`
 - `RAG_SERVICE_KEY` (optional)
 - `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (only if keeping the HTTP path)
 
 ## GitHub Actions secrets (repo secrets)
 
-- `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` (deploy)
-- `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN` (all scheduled jobs)
+- `CLOUDFLARE_API_TOKEN` (deploy plus scoped D1/Vectorize access)
 - `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (seed/enrich/embed jobs)
 - `RESEND_API_KEY` (weekly digest email; optional — fail-closed)
+
+GitHub Actions repository variables (non-secret) include
+`CLOUDFLARE_ACCOUNT_ID` and `D1_DATABASE_ID`.
 
 The `seed-popular` workflow deliberately uses `${{ github.token }}` for GitHub
 Search (not a long-lived PAT) so a stale PAT cannot break a manual seed run with

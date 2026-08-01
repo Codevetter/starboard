@@ -12,8 +12,9 @@
  *   - the generated digest has at least one alert (empty digests are skipped)
  *
  * Required env:
- *   TURSO_DATABASE_URL
- *   TURSO_AUTH_TOKEN
+ *   CLOUDFLARE_ACCOUNT_ID
+ *   D1_DATABASE_ID
+ *   CLOUDFLARE_API_TOKEN — D1 Read
  * Fail-closed env (send is skipped with a log when unset — never set values in the repo):
  *   RESEND_API_KEY      — `gh secret set RESEND_API_KEY` for the Actions job
  * Optional env:
@@ -21,8 +22,7 @@
  *   STARBOARD_APP_URL   — defaults to the production Worker URL
  */
 
-import { createClient } from '@libsql/client';
-
+import { createD1RestClientFromEnv } from '../src/db/rest-client';
 import { parseAlertRules } from '../src/lib/alert-preferences';
 import { buildWeeklyDigestEmail } from '../src/lib/digest-email';
 import { isEmailConfigured, sendEmail } from '../src/lib/email';
@@ -45,14 +45,7 @@ async function main() {
     return;
   }
 
-  if (!process.env.TURSO_DATABASE_URL) {
-    throw new Error('TURSO_DATABASE_URL is required');
-  }
-
-  const db = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+  const db = createD1RestClientFromEnv();
 
   const candidates = await db.execute({
     sql: `SELECT u.id, u.username, u.email, p.rules

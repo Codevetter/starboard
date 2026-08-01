@@ -1,7 +1,7 @@
 # ADR-0003 — OpenNext + @libsql bundling workaround
 
 **Date:** 2026-04-25
-**Status:** Active
+**Status:** Superseded by [ADR-0009](0009-cloudflare-d1-vectorize.md)
 
 ## Context
 

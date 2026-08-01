@@ -13,7 +13,7 @@ and a seeded pool of popular repositories.
 - **End users:** developers with many GitHub stars who want to rediscover and
   organize them. Sign-in is GitHub OAuth (NextAuth v5, `read:user` scope); data
   is per-user isolated at the database level.
-- **Operators:** the maintainer running Turso migrations and Cloudflare Workers
+- **Operators:** the maintainer running D1 migrations and Cloudflare Workers
   deploys. Currently single-operator in production.
 
 ## Where

@@ -1,4 +1,4 @@
-import type { Client } from '@libsql/client';
+import type { DbClient } from '@/db/client';
 
 import { type AlertRules, DEFAULT_ALERT_RULES, parseAlertRules } from '@/lib/alert-preferences';
 import type { MaintainerDigestRepoInput } from '@/lib/maintainer-digest';
@@ -6,11 +6,11 @@ import type { RadarRepoInput } from '@/lib/release-radar';
 
 /**
  * Per-user SQL loaders behind the weekly digest/alerts payloads.
- * Shared by the API routes (Worker runtime, @libsql/client/web) and the
- * scheduled email sender script (Node, @libsql/client) — both satisfy the
+ * Shared by the API routes (Worker runtime, D1 binding adapter) and the
+ * scheduled email sender script (Node, authenticated D1 REST adapter) — both satisfy the
  * `execute` surface used here.
  */
-export type DbExecutor = Pick<Client, 'execute'>;
+export type DbExecutor = Pick<DbClient, 'execute'>;
 
 export async function loadAlertRules(db: DbExecutor, userId: string): Promise<AlertRules> {
   const result = await db.execute({
