@@ -6,8 +6,9 @@
  *      Only changed repos are updated, so unchanged rows do not fire the FTS
  *      maintenance trigger. Cursor resumes between runs and resets after a
  *      complete corpus pass.
- *   2. Embed up to SEED_DAILY_LIMIT pending repos (missing embedding OR drifted text_hash),
- *      ordered by star count desc.
+ *   2. In direct/local mode, embed up to SEED_DAILY_LIMIT pending repos. The
+ *      GitHub workflow delegates this step to the deployed Worker so Workers AI,
+ *      Vectorize, and D1 are reached through native bindings.
  *
  * GH metadata walking is free under quota (~120 calls / 5000-per-hour). Bottleneck is
  * the daily embed budget (CF Workers AI). After ~12 catch-up days the pool is fully
@@ -16,7 +17,7 @@
  * Required env:
  *   CLOUDFLARE_ACCOUNT_ID
  *   D1_DATABASE_ID
- *   CLOUDFLARE_API_TOKEN — D1 Write and Vectorize Write
+ *   CLOUDFLARE_API_TOKEN — D1 Write (and Vectorize Write for direct local embedding mode)
  *   AI_GATEWAY_URL
  *   AI_GATEWAY_API_KEY
  *   GITHUB_TOKEN          — fine-grained PAT, public_repo:read
@@ -25,6 +26,7 @@
  *   SEED_METADATA_PAGE_LIMIT — GitHub search pages per run, default 10 (hard cap 25)
  *   MIN_STARS_FLOOR       — minimum stars to seed, default 5000
  *   STAR_THRESHOLDS       — comma-separated digest thresholds, default 5000,10000,20000,50000,100000
+ *   SEED_EMBED_MODE       — `worker` delegates embeddings to the bound Worker endpoint
  */
 
 import type { DbClient as Client, InStatement } from '../src/db/client';
@@ -506,8 +508,13 @@ async function main() {
   console.info(`[embed] generating up to ${DAILY_LIMIT} embeddings`);
   let embedded = 0;
   let embedError: string | null = null;
+  const workerEmbeddingMode = process.env.SEED_EMBED_MODE === 'worker';
   try {
-    embedded = await embedPending(db, DAILY_LIMIT);
+    if (workerEmbeddingMode) {
+      console.info('[embed] delegated to the Worker binding step');
+    } else {
+      embedded = await embedPending(db, DAILY_LIMIT);
+    }
   } catch (err) {
     if (!isEmbeddingAuthError(err)) {
       embedError = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
@@ -545,8 +552,9 @@ async function main() {
       'INSERT INTO repo_embeddings … ON CONFLICT(repo_id) DO UPDATE (text_hash guards drift)',
     outputCount: embedded,
     expectedMinOutput: 0,
-    verifiedNoopReason:
-      embedded === 0 && !embedError
+    verifiedNoopReason: workerEmbeddingMode
+      ? 'Embedding is delegated to the subsequent Worker binding step'
+      : embedded === 0 && !embedError
         ? 'Pending-embedding query completed with no hash-drift candidates'
         : undefined,
     error: embedError,

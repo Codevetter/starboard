@@ -33,8 +33,10 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
 
-      - name: Verify Vectorize access
-        run: pnpm exec wrangler vectorize info starboard-repos --json > /dev/null
+      - name: Verify Worker D1 and Vectorize bindings
+        run: >-
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 30
+          --header "Authorization: Bearer ${AI_GATEWAY_API_KEY}"
+          https://starboard.codevetter.com/api/internal/embed-pending > /dev/null
         env:
-          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}

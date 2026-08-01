@@ -85,12 +85,13 @@ seed-popular.yml (workflow_dispatch only; automatic schedule paused)
   ├── pnpm db:seed-popular       (scripts/seed-popular.ts)
   │     GitHub Search (≥5k stars) → repos + repo_star_snapshots
   │     resumable cursor in seed_cursor table
-  │     embeddings via HTTP gateway → Vectorize; hashes → D1
+  │     metadata refresh → D1; authenticated Worker step performs embeddings
+  │     through Workers AI → Vectorize binding; hashes → D1 binding
   └── pnpm db:enrich-tools       (scripts/enrich-tools.ts)
         SBOM / tree / manifest tool detection → repo_tools
 
 enrich-repos.yml (workflow_dispatch)   — D1 AI metadata enrichment
-embed-pending.yml (workflow_dispatch)  — backfill Vectorize + D1 hashes
+embed-pending.yml (workflow_dispatch)  — authenticated Worker binding backfill
 weekly-threshold-digest.yml (workflow_dispatch) — digest → GitHub issue + email
 weekly.yml (Mon 09:00 UTC)             — lint/typecheck/test/build quality
 ```
