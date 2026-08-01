@@ -18,6 +18,7 @@
     "db:migrate:remote": "node scripts/validate-d1-config.mjs && wrangler d1 migrations apply starboard --remote",
     "db:convert-turso-dump": "node scripts/convert-turso-dump-to-d1.mjs",
     "db:convert-turso-vectors": "node scripts/convert-turso-vectors.mjs",
+    "db:snapshot-turso-logical": "node scripts/snapshot-turso-logical.mjs",
     "db:seed-embeddings": "tsx src/db/seed-embeddings.ts",
     "db:enrich-repos": "tsx scripts/enrich-repos.ts",
     "db:seed-popular": "tsx scripts/seed-popular.ts",

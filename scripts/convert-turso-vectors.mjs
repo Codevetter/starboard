@@ -7,7 +7,7 @@ const sourcePath = process.argv[2];
 const targetPath = process.argv[3];
 if (!sourcePath || !targetPath) {
   throw new Error(
-    'Usage: node scripts/convert-turso-vectors.mjs <source.jsonl> <vectorize.ndjson>'
+    'Usage: node scripts/convert-turso-vectors.mjs <source.jsonl|source.sql> <vectorize.ndjson>'
   );
 }
 
@@ -43,8 +43,26 @@ async function closeOutput() {
 openOutput();
 
 for await (const rawLine of input) {
-  if (!rawLine.trim()) continue;
-  const row = JSON.parse(rawLine);
+  const line = rawLine.trim();
+  if (!line) continue;
+  let row;
+  if (line.startsWith('{')) {
+    row = JSON.parse(line);
+  } else {
+    if (!/^INSERT\s+INTO\s+["'`]?repo_embeddings/i.test(line)) continue;
+    const values = line.match(
+      /^INSERT\s+INTO\s+["'`]?repo_embeddings["'`]?\s+VALUES\(\s*(-?\d+)\s*,\s*X'([0-9A-Fa-f]+)'\s*,/i
+    );
+    if (!values) throw new Error(`Invalid repo_embeddings dump record at input line ${count + 1}`);
+    const buffer = Buffer.from(values[2], 'hex');
+    if (buffer.length !== 768 * Float32Array.BYTES_PER_ELEMENT) {
+      throw new Error(`Invalid vector blob length at input line ${count + 1}`);
+    }
+    row = {
+      repo_id: Number(values[1]),
+      embedding: Array.from({ length: 768 }, (_, index) => buffer.readFloatLE(index * 4)),
+    };
+  }
   const repoId = Number(row.repo_id);
   const values = typeof row.embedding === 'string' ? JSON.parse(row.embedding) : row.embedding;
   if (!Number.isSafeInteger(repoId) || !Array.isArray(values) || values.length !== 768) {

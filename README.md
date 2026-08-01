@@ -27,7 +27,7 @@ both personal stars and seeded popular repositories.
 | Auth | NextAuth v5 + GitHub OAuth |
 | RAG search | Shared Cloudflare `knowledgebase` Worker for relevance search |
 | AI | Cloudflare Workers AI binding for non-RAG embeddings; free-ai gateway fallback for Node-based GitHub Actions |
-| CI/CD | GitHub Actions (`.github/workflows/deploy.yml`) — auto-deploy to Cloudflare on push to `main`; operator Actions use scoped D1/Vectorize APIs |
+| CI/CD | GitHub Actions — push CI keeps `main` releasable; production deploys are manual and SHA-tagged; operator Actions use scoped D1/Vectorize APIs |
 
 ## Features
 

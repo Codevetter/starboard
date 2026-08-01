@@ -35,7 +35,7 @@
     {
       "binding": "DB",
       "database_name": "starboard",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "51a4c261-d024-4aa4-be7c-e6901d1ca9b0",
       "migrations_dir": "migrations"
     }
   ],
