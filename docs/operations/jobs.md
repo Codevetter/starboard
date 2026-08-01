@@ -10,19 +10,22 @@ annotates intent, inputs, and dependencies.
   2026-07-28 after repeated full-corpus updates exhausted the prior database
   row-read allowance.
 - **Inputs:** `daily_limit` (default 1000), `tool_enrich_limit` (default 250).
-- **Concurrency:** group `seed-popular`, `cancel-in-progress: false`.
+- **Concurrency:** shared group `starboard-embedding`, `cancel-in-progress:
+  false`, so seed and standalone backfill cannot duplicate embedding work.
 - **Timeout:** 60 minutes.
 - **Steps:**
   1. `pnpm db:migrate:remote` (approval-gated D1 migrations).
   2. `pnpm db:seed-popular` (`scripts/seed-popular.ts`) — GitHub Search for
-     repos ≥ `MIN_STARS_FLOOR=5000`, resumable cursor in `seed_cursor`, embeddings
-     via HTTP gateway (Node env). Uses `${{ github.token }}` deliberately so a
-     stale PAT cannot break seeding.
-  3. `pnpm db:enrich-tools` (`scripts/enrich-tools.ts`) — SBOM/tree/manifest
+     repos ≥ `MIN_STARS_FLOOR=5000`, with a resumable cursor in `seed_cursor`.
+     Uses `${{ github.token }}` deliberately so a stale PAT cannot break seeding.
+  3. Authenticated Worker operator request — Workers AI embeddings → Vectorize
+     binding, with drift hashes written through the D1 binding.
+  4. `pnpm db:enrich-tools` (`scripts/enrich-tools.ts`) — SBOM/tree/manifest
      tool detection → `repo_tools`. `TOOL_MIN_STARS=10000`,
      `TOOL_ENRICH_HARD_LIMIT=750`.
-- **Credentials:** scoped `CLOUDFLARE_API_TOKEN`, non-secret account/database
-  variables, and `AI_GATEWAY_URL`/`AI_GATEWAY_API_KEY`.
+- **Credentials:** scoped D1 `CLOUDFLARE_API_TOKEN`, non-secret
+  account/database variables, and the existing AI gateway key as the Worker
+  operator bearer. GitHub does not receive Vectorize API access.
 - **Safety controls:** metadata walks default to 10 GitHub Search pages and
   hard-cap at 25; unchanged repos do not update or fire FTS maintenance;
   snapshots are written only when star counts change. Re-enable automation only
@@ -44,11 +47,13 @@ annotates intent, inputs, and dependencies.
 
 - **Schedule:** `workflow_dispatch` only (manual).
 - **Inputs:** `embed_limit` (default 3000).
-- **Concurrency:** group `embed-pending`, `cancel-in-progress: false`.
+- **Concurrency:** shared group `starboard-embedding`, `cancel-in-progress:
+  false`.
 - **Timeout:** 30 minutes.
-- **Steps:** `pnpm db:migrate:remote` → `pnpm db:seed-embeddings` (backfill
-  Vectorize plus D1 `repo_embeddings` hashes).
-- **Credentials:** scoped Cloudflare API token + AI gateway credentials.
+- **Steps:** `pnpm db:migrate:remote` → authenticated Worker operator request
+  (backfill through native Workers AI, Vectorize, and D1 bindings).
+- **Credentials:** scoped D1 migration token + the existing AI gateway key as
+  the Worker operator bearer. GitHub does not receive Vectorize API access.
 
 ## weekly-threshold-digest (`.github/workflows/weekly-threshold-digest.yml`)
 
