@@ -48,7 +48,7 @@ never sends:
 
 - `insight_reports.redact_private` defaults to `1` — shared reports redact
   private repo identity by default (see
-  [`src/db/schema.sql`](../../src/db/schema.sql)).
+  [`migrations/0001_initial.sql`](../../migrations/0001_initial.sql)).
 - Foundry activation events carry **no** repo identity. The `search_outcome`
   event has only the surface and result-count bucket; `result_inspection`
   has only the surface name.

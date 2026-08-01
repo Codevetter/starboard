@@ -13,9 +13,12 @@
     "format:check": "biome format .",
     "check": "biome check .",
     "typecheck": "tsc --noEmit",
-    "db:migrate": "tsx src/db/migrate.ts",
+    "db:migrate": "wrangler d1 migrations apply starboard --local",
+    "db:migrate:local": "wrangler d1 migrations apply starboard --local",
+    "db:migrate:remote": "node scripts/validate-d1-config.mjs && wrangler d1 migrations apply starboard --remote",
+    "db:convert-turso-dump": "node scripts/convert-turso-dump-to-d1.mjs",
+    "db:convert-turso-vectors": "node scripts/convert-turso-vectors.mjs",
     "db:seed-embeddings": "tsx src/db/seed-embeddings.ts",
-    "db:embed-pending": "tsx src/db/seed-embeddings.ts",
     "db:enrich-repos": "tsx scripts/enrich-repos.ts",
     "db:seed-popular": "tsx scripts/seed-popular.ts",
     "db:enrich-tools": "tsx scripts/enrich-tools.ts",
@@ -42,7 +45,6 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@libsql/client": "0.17.4",
     "@saas-maker/feedback": "^0.4.0",
     "@tanstack/react-virtual": "3.14.8",
     "class-variance-authority": "0.7.1",

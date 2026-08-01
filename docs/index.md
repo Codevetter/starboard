@@ -46,7 +46,7 @@ docs/
     features.md                 # shipped feature inventory
     surfaces.md                 # production URLs, API routes, agent surfaces
   architecture/
-    overview.md                 # Next.js + OpenNext + Turso + Workers AI shape
+    overview.md                 # Next.js + OpenNext + D1 + Vectorize shape
     data-flow.md                # sync, search, recommendation lifecycles
     decisions/                  # ADRs (one file per decision)
       index.md
@@ -54,6 +54,7 @@ docs/
       0002-nextauth-v5-beta.md
       0003-opennext-libsql-bundling.md
       0004-turso-f32-blob-vectors.md
+      0009-cloudflare-d1-vectorize.md
       0005-cf-workers-ai-binding-vs-http-gateway.md
       0006-embedding-dimension-contract.md
       0007-similar-repos-reranking.md

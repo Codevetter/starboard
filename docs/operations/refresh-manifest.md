@@ -73,7 +73,7 @@ unreadable or malformed prior evidence fails instead of being overwritten.
 | --- | --- | --- | --- |
 | `seed_walk` | GitHub Search (≥`MIN_STARS_FLOOR`) | `repos` upsert + `INSERT OR IGNORE` snapshots/events | 0 (catch-up runs are legitimate) |
 | `seed_embed` | Workers AI / free-ai gateway | `repo_embeddings` upsert keyed by `text_hash` | 0 (verified no-pending-work only; auth failure fails the job) |
-| `seed_pool_coverage` | Turso aggregate | read-only | 1 |
+| `seed_pool_coverage` | D1 aggregate | read-only | 1 |
 
 ## Activation counters
 

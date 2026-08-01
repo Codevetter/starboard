@@ -4,7 +4,23 @@ Authoritative sources for the novel technologies in Starboard. Each entry: what 
 
 ---
 
+## Cloudflare D1 and Vectorize
+
+**D1 query JSON** — `json_each(?)` keeps variable-length candidate/filter sets
+within D1's bound-parameter limit.
+→ https://developers.cloudflare.com/d1/sql-api/query-json/
+
+**D1 import/export** — supported SQLite dump transfer and Wrangler import path.
+→ https://developers.cloudflare.com/d1/best-practices/import-export-data/
+
+**Vectorize client API** — project-owned 768-d cosine query/upsert contract.
+→ https://developers.cloudflare.com/vectorize/reference/client-api/
+
+---
+
 ## libSQL / Turso vector storage
+
+Historical source-migration reference; superseded at runtime by ADR-0009.
 
 **libSQL vector extensions** — `F32_BLOB` column type, `libsql_vector_idx`, `vector_top_k`, `vector_distance_cos`, `vector_extract`. The core primitives Starboard uses for ANN search in Turso.  
 → https://docs.turso.tech/features/ai-and-embeddings

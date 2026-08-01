@@ -14,8 +14,9 @@
  * embedded; subsequent runs pick up only newly-eligible repos and metadata drift.
  *
  * Required env:
- *   TURSO_DATABASE_URL
- *   TURSO_AUTH_TOKEN
+ *   CLOUDFLARE_ACCOUNT_ID
+ *   D1_DATABASE_ID
+ *   CLOUDFLARE_API_TOKEN — D1 Write and Vectorize Write
  *   AI_GATEWAY_URL
  *   AI_GATEWAY_API_KEY
  *   GITHUB_TOKEN          — fine-grained PAT, public_repo:read
@@ -26,11 +27,13 @@
  *   STAR_THRESHOLDS       — comma-separated digest thresholds, default 5000,10000,20000,50000,100000
  */
 
-import { type Client, createClient, type InStatement } from '@libsql/client';
+import type { DbClient as Client, InStatement } from '../src/db/client';
+import { createD1RestClientFromEnv } from '../src/db/rest-client';
 
 import { isRetryableDbError } from '../src/lib/db-retry';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../src/lib/embeddings';
 import { recordStep } from '../src/lib/refresh-manifest';
+import { createVectorizeRestWriterFromEnv } from '../src/lib/repo-vectors-rest';
 
 const DAILY_LIMIT = parseInt(process.env.SEED_DAILY_LIMIT || '1000', 10);
 const REQUESTED_METADATA_PAGE_LIMIT = parseInt(process.env.SEED_METADATA_PAGE_LIMIT || '10', 10);
@@ -122,8 +125,8 @@ async function loadStoredRepos(db: Client, repoIds: number[]): Promise<Map<numbe
                  topics,
                  repo_updated_at
           FROM repos
-          WHERE id IN (${repoIds.map(() => '?').join(', ')})`,
-    args: repoIds,
+          WHERE id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
+    args: [JSON.stringify(repoIds)],
   });
 
   return new Map(
@@ -315,6 +318,7 @@ async function upsertRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
 }
 
 async function embedPending(db: Client, limit: number): Promise<number> {
+  const vectors = createVectorizeRestWriterFromEnv();
   const pending = await executeDb(db, {
     sql: `SELECT r.id,
                  r.full_name,
@@ -365,13 +369,13 @@ async function embedPending(db: Client, limit: number): Promise<number> {
   for (let i = 0; i < toEmbed.length; i += BATCH_SIZE) {
     const batch = toEmbed.slice(i, i + BATCH_SIZE);
     const embeddings = await generateEmbeddings(batch.map((r) => r.text));
-    const stmts: InStatement[] = batch.map((item, j) => ({
-      sql: `INSERT INTO repo_embeddings (repo_id, embedding, text_hash)
-            VALUES (?, vector(?), ?)
+    await vectors.upsert(batch.map((item, j) => ({ repoId: item.id, values: embeddings[j] })));
+    const stmts: InStatement[] = batch.map((item) => ({
+      sql: `INSERT INTO repo_embeddings (repo_id, text_hash)
+            VALUES (?, ?)
             ON CONFLICT(repo_id) DO UPDATE SET
-              embedding = excluded.embedding,
               text_hash = excluded.text_hash`,
-      args: [item.id, JSON.stringify(embeddings[j]), item.hash],
+      args: [item.id, item.hash],
     }));
     await batchDb(db, stmts);
     console.info(`  embedded ${i + batch.length}/${toEmbed.length} (${batch.length} this batch)`);
@@ -476,10 +480,7 @@ async function main() {
   const ghToken = process.env.GITHUB_TOKEN;
   if (!ghToken) throw new Error('GITHUB_TOKEN required');
 
-  const db = createClient({
-    url: process.env.TURSO_DATABASE_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+  const db = createD1RestClientFromEnv();
 
   const upserted = await walkAndUpsert(db, ghToken);
 

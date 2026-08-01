@@ -5,8 +5,9 @@
  * It uses the same AI Gateway/free-AI path as embeddings, but only when invoked.
  *
  * Required env:
- *   TURSO_DATABASE_URL
- *   TURSO_AUTH_TOKEN
+ *   CLOUDFLARE_ACCOUNT_ID
+ *   D1_DATABASE_ID
+ *   CLOUDFLARE_API_TOKEN — D1 Write
  *   AI_GATEWAY_URL
  *   AI_GATEWAY_API_KEY
  * Optional env:
@@ -17,7 +18,8 @@
  *   AI_GATEWAY_MIN_REASONING_LEVEL  — free-AI minimum model level, default medium
  */
 
-import { type Client, createClient, type InStatement } from '@libsql/client';
+import type { DbClient as Client, InStatement } from '../src/db/client';
+import { createD1RestClientFromEnv } from '../src/db/rest-client';
 
 import {
   generateRepoAiMetadata,
@@ -133,10 +135,7 @@ async function main() {
     return;
   }
 
-  const db = createClient({
-    url: process.env.TURSO_DATABASE_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+  const db = createD1RestClientFromEnv();
 
   console.info(
     `[enrich] route=${REPO_AI_METADATA_ROUTE} limit=${LIMIT} hard_limit=${HARD_LIMIT} min_stars=${MIN_STARS_FLOOR} heuristic_fallback=${ALLOW_HEURISTIC_FALLBACK}`

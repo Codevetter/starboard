@@ -1,4 +1,4 @@
-import type { InStatement } from '@libsql/client';
+import type { InStatement } from '@/db/client';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';

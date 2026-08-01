@@ -2,8 +2,9 @@
  * Bounded repository tool enrichment.
  *
  * Required env:
- *   TURSO_DATABASE_URL
- *   TURSO_AUTH_TOKEN
+ *   CLOUDFLARE_ACCOUNT_ID
+ *   D1_DATABASE_ID
+ *   CLOUDFLARE_API_TOKEN — D1 Write
  * Optional env:
  *   GITHUB_TOKEN              — recommended for rate limits
  *   TOOL_ENRICH_LIMIT         — repos to process, default 250
@@ -14,7 +15,8 @@
 
 import { createHash } from 'node:crypto';
 
-import { type Client, createClient, type InStatement } from '@libsql/client';
+import type { DbClient as Client, InStatement } from '../src/db/client';
+import { createD1RestClientFromEnv } from '../src/db/rest-client';
 
 import {
   detectToolsFromManifest,
@@ -292,10 +294,7 @@ async function main() {
     return;
   }
 
-  const db = createClient({
-    url: process.env.TURSO_DATABASE_URL!,
-    authToken: process.env.TURSO_AUTH_TOKEN,
-  });
+  const db = createD1RestClientFromEnv();
 
   const pending = await loadPending(db);
   console.info(

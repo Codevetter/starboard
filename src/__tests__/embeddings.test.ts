@@ -19,19 +19,18 @@ afterEach(() => {
 });
 
 describe('embedding dimension contract', () => {
-  it('schema.sql repo_embeddings column matches EMBEDDING_DIM', () => {
-    const schema = readFileSync(join(process.cwd(), 'src/db/schema.sql'), 'utf-8');
-    const match = schema.match(
-      /CREATE TABLE IF NOT EXISTS repo_embeddings[\s\S]*?embedding\s+F32_BLOB\((\d+)\)/
-    );
-    expect(match, 'repo_embeddings F32_BLOB declaration not found').not.toBeNull();
-    expect(parseInt(match![1], 10)).toBe(EMBEDDING_DIM);
+  it('keeps vectors out of the D1 relational migration', () => {
+    const migration = readFileSync(join(process.cwd(), 'migrations/0001_initial.sql'), 'utf-8');
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS repo_embeddings');
+    expect(migration).not.toContain('F32_BLOB');
+    expect(migration).not.toContain('libsql_vector_idx');
   });
 
-  it('migrate.ts self-heal references EMBEDDING_DIM', () => {
-    const migrate = readFileSync(join(process.cwd(), 'src/db/migrate.ts'), 'utf-8');
-    expect(migrate).toContain('EMBEDDING_DIM');
-    expect(migrate).toContain('ensureEmbeddingDimension');
+  it('binds the project-owned Vectorize index', () => {
+    const config = readFileSync(join(process.cwd(), 'wrangler.jsonc'), 'utf-8');
+    expect(config).toContain('"binding": "REPO_VECTORS"');
+    expect(config).toContain('"index_name": "starboard-repos"');
+    expect(EMBEDDING_DIM).toBe(768);
   });
 
   it('requests the configured embedding dimension from the HTTP gateway', async () => {

@@ -31,14 +31,28 @@
   "ai": {
     "binding": "AI"
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "starboard",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vectorize": [
+    {
+      "binding": "REPO_VECTORS",
+      "index_name": "starboard-repos"
+    }
+  ],
   // Set non-secret values here. Secrets go via `wrangler secret put`:
-  //   AUTH_SECRET, AUTH_GITHUB_ID, AUTH_GITHUB_SECRET,
-  //   TURSO_DATABASE_URL, TURSO_AUTH_TOKEN
+  //   AUTH_SECRET, AUTH_GITHUB_ID, AUTH_GITHUB_SECRET
   // AI_GATEWAY_URL/KEY only needed if you want to keep the gateway path active.
   "vars": {
     "NEXT_PUBLIC_APP_NAME": "starboard",
     "AUTH_URL": "https://starboard.codevetter.com",
     "NEXTAUTH_URL": "https://starboard.codevetter.com",
+    "WRITE_FREEZE": "false",
     "STARBOARD_RAG_INDEX_ID": "16522a1b-afe6-4167-99d7-d00695ee271a"
   },
   "services": [

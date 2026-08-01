@@ -1,4 +1,4 @@
-import type { InValue } from '@libsql/client';
+import type { InValue } from '@/db/client';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';

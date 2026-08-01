@@ -5,11 +5,12 @@ import { describe, expect, it } from 'vitest';
 // Static regression guards for the row-read burn fixed in this commit.
 // These assert that the index and query shapes that prevent the
 // O(|repos| × |user_repos|) row-read explosion remain in place, and that
-// the daily db:migrate does not unconditionally rebuild the FTS5 index
-// (which scans every row of the source table).
+// the migration does not unconditionally rebuild the FTS5 index.
 
-const schemaSql = readFileSync(join(__dirname, '..', 'db', 'schema.sql'), 'utf-8');
-const migrateTs = readFileSync(join(__dirname, '..', 'db', 'migrate.ts'), 'utf-8');
+const schemaSql = readFileSync(
+  join(__dirname, '..', '..', 'migrations', '0001_initial.sql'),
+  'utf-8'
+);
 const seedPopularTs = readFileSync(
   join(__dirname, '..', '..', 'scripts', 'seed-popular.ts'),
   'utf-8'
@@ -21,7 +22,7 @@ const seedWorkflow = readFileSync(
 const workflowsDirectory = join(__dirname, '..', '..', '.github', 'workflows');
 
 describe('db row-read regression guards', () => {
-  it('schema.sql defines idx_user_repos_repo for repo_id lookups', () => {
+  it('the D1 migration defines idx_user_repos_repo for repo_id lookups', () => {
     // The user_repos PK is (user_id, repo_id) and cannot serve repo_id-only
     // lookups. Without this index, every eligibility filter that joins
     // repos to user_repos by repo_id degrades to a full scan of user_repos
@@ -31,18 +32,10 @@ describe('db row-read regression guards', () => {
     );
   });
 
-  it('migrate.ts does not unconditionally rebuild FTS5 indexes', () => {
-    // The AFTER INSERT/UPDATE/DELETE triggers maintain the FTS index
-    // incrementally. An unconditional 'rebuild' on every db:migrate
-    // re-tokenizes every row of repos and repo_ai_metadata for no benefit.
-    const rebuildCalls = [...migrateTs.matchAll(/INSERT INTO (\w+)\(\1\)\s*VALUES\('rebuild'\)/g)];
-    expect(rebuildCalls.length).toBeGreaterThan(0); // the guarded calls exist
-
-    // Probing one row avoids turning the guard itself into a full FTS scan.
-    expect(migrateTs).toContain('SELECT 1 AS present FROM repos_fts LIMIT 1');
-    expect(migrateTs).toContain('SELECT 1 AS present FROM repo_ai_metadata_fts LIMIT 1');
-    expect(migrateTs).not.toContain('SELECT COUNT(*) AS c FROM repos_fts');
-    expect(migrateTs).not.toContain('SELECT COUNT(*) AS c FROM repo_ai_metadata_fts');
+  it('the D1 migration relies on incremental FTS triggers', () => {
+    expect(schemaSql).toContain('CREATE TRIGGER IF NOT EXISTS repos_ai');
+    expect(schemaSql).toContain('CREATE TRIGGER IF NOT EXISTS repo_ai_metadata_ai');
+    expect(schemaSql).not.toMatch(/INSERT INTO (\w+)\(\1\)\s*VALUES\('rebuild'\)/);
   });
 
   it('seed-popular skips unchanged repo updates and snapshots', () => {
@@ -61,23 +54,21 @@ describe('db row-read regression guards', () => {
     expect(seedPopularTs).toContain(', 25);');
   });
 
-  it('no Turso-backed workflow can run unattended', () => {
+  it('no Turso-backed workflow remains', () => {
     const scheduledDatabaseWorkflows = readdirSync(workflowsDirectory)
       .filter((file) => file.endsWith('.yml') || file.endsWith('.yaml'))
       .filter((file) => {
         const workflow = readFileSync(join(workflowsDirectory, file), 'utf-8');
-        return workflow.includes('TURSO_DATABASE_URL') && /^\s+schedule:/m.test(workflow);
+        return workflow.includes('TURSO_DATABASE_URL');
       });
 
     expect(scheduledDatabaseWorkflows).toEqual([]);
   });
 
-  it('legacy list backfills are guarded by a durable migration marker', () => {
+  it('fresh D1 databases record the legacy list backfill marker', () => {
     expect(schemaSql).toContain('CREATE TABLE IF NOT EXISTS migration_markers');
     expect(schemaSql).toContain(
       "INSERT OR IGNORE INTO migration_markers (key) VALUES ('legacy-lists-tags-v1')"
     );
-    expect(migrateTs).toContain("args: ['legacy-lists-tags-v1']");
-    expect(migrateTs).toMatch(/if \(legacyListMigration\.rows\.length === 0\)/);
   });
 });

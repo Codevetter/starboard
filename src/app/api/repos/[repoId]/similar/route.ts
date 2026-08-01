@@ -2,8 +2,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
+import { chunkForD1 } from '@/lib/d1-limits';
+import { repoVectors } from '@/lib/repo-vectors';
 
-const VEC_TOP_K = 200;
+const VEC_TOP_K = 100;
 const DIST_MAX = 0.62;
 const DEFAULT_LIMIT = 10;
 
@@ -49,12 +51,10 @@ export async function GET(
   const scope = request.nextUrl.searchParams.get('scope') || 'global'; // "user" | "global"
 
   try {
-    // 1. Fetch this repo's embedding (as JSON via vector_extract) and lightweight
-    //    metadata in a single round-trip. vector_top_k requires a vector literal,
-    //    so we extract the embedding to its JSON form here.
+    // 1. Confirm the relational vector metadata exists and load lightweight
+    //    repository metadata for deterministic reranking.
     const seed = await db.execute({
-      sql: `SELECT vector_extract(re.embedding) AS vec,
-                   r.name,
+      sql: `SELECT r.name,
                    r.full_name,
                    r.description,
                    r.language,
@@ -68,27 +68,12 @@ export async function GET(
       return NextResponse.json({ similar: [], reason: 'no_embedding' });
     }
 
-    const vec = seed.rows[0].vec as string | undefined;
-    if (!vec) {
-      return NextResponse.json({ similar: [], reason: 'no_embedding' });
-    }
-
-    // 2. ANN search.
-    const annResult = await db.execute({
-      sql: `SELECT re.repo_id,
-                   vector_distance_cos(re.embedding, vector(?)) AS dist
-            FROM vector_top_k('idx_repo_embeddings_vec', vector(?), ?) AS vt
-            JOIN repo_embeddings re ON re.rowid = vt.id
-            WHERE re.repo_id != ?
-            ORDER BY dist ASC`,
-      args: [vec, vec, VEC_TOP_K, repoId],
-    });
-
-    const candidates = annResult.rows
-      .filter((r) => (r.dist as number) <= DIST_MAX)
-      .map((r) => ({
-        repo_id: r.repo_id as number,
-        dist: r.dist as number,
+    // 2. ANN search through the project-owned Cloudflare Vectorize index.
+    const candidates = (await repoVectors().queryByRepoId(repoId, VEC_TOP_K))
+      .filter((match) => match.repoId !== repoId && match.distance <= DIST_MAX)
+      .map((match) => ({
+        repo_id: match.repoId,
+        dist: match.distance,
       }));
 
     if (candidates.length === 0) {
@@ -97,29 +82,32 @@ export async function GET(
 
     // 3. Hydrate. Optionally restrict to user's own stars.
     const ids = candidates.map((c) => c.repo_id);
-    const placeholders = ids.map(() => '?').join(', ');
-    const sql =
-      scope === 'global'
-        ? `SELECT r.id, r.name, r.full_name, r.owner_login, r.owner_avatar,
-                 r.html_url, r.description, r.language, r.stargazers_count,
-                 r.archived, r.topics, r.repo_updated_at
-           FROM repos r
-           WHERE r.id IN (${placeholders})`
-        : `SELECT r.id, r.name, r.full_name, r.owner_login, r.owner_avatar,
-                 r.html_url, r.description, r.language, r.stargazers_count,
-                 r.archived, r.topics, r.repo_updated_at,
-                 ur.list_id,
-                 COALESCE((
-                   SELECT json_group_array(url.list_id)
-                   FROM user_repo_lists url
-                   WHERE url.user_id = ur.user_id AND url.repo_id = ur.repo_id
-                 ), '[]') AS collection_ids
-           FROM user_repos ur
-           JOIN repos r ON r.id = ur.repo_id
-           WHERE ur.user_id = ? AND r.id IN (${placeholders})`;
-    const args = scope === 'global' ? ids : [userId, ...ids];
-
-    const hydrated = await db.execute({ sql, args });
+    const hydratedResults = await Promise.all(
+      chunkForD1(ids, scope === 'global' ? 0 : 1).map((chunk) => {
+        const placeholders = chunk.map(() => '?').join(', ');
+        const sql =
+          scope === 'global'
+            ? `SELECT r.id, r.name, r.full_name, r.owner_login, r.owner_avatar,
+                     r.html_url, r.description, r.language, r.stargazers_count,
+                     r.archived, r.topics, r.repo_updated_at
+               FROM repos r
+               WHERE r.id IN (${placeholders})`
+            : `SELECT r.id, r.name, r.full_name, r.owner_login, r.owner_avatar,
+                     r.html_url, r.description, r.language, r.stargazers_count,
+                     r.archived, r.topics, r.repo_updated_at,
+                     ur.list_id,
+                     COALESCE((
+                       SELECT json_group_array(url.list_id)
+                       FROM user_repo_lists url
+                       WHERE url.user_id = ur.user_id AND url.repo_id = ur.repo_id
+                     ), '[]') AS collection_ids
+               FROM user_repos ur
+               JOIN repos r ON r.id = ur.repo_id
+               WHERE ur.user_id = ? AND r.id IN (${placeholders})`;
+        return db.execute({ sql, args: scope === 'global' ? chunk : [userId, ...chunk] });
+      })
+    );
+    const hydratedRows = hydratedResults.flatMap((result) => result.rows);
 
     // 4. Re-attach distance and rerank. Vector distance stays primary; shared
     // topics, language, and repo-description terms stabilize close semantic matches.
@@ -130,7 +118,7 @@ export async function GET(
     );
     const seedLanguage = (seedRow.language as string | null) ?? null;
     const distMap = new Map(candidates.map((c) => [c.repo_id, c.dist]));
-    const repoMap = new Map(hydrated.rows.map((r) => [r.id as number, r]));
+    const repoMap = new Map(hydratedRows.map((r) => [r.id as number, r]));
     const ordered = ids
       .map((id) => repoMap.get(id))
       .filter((r): r is NonNullable<typeof r> => r != null)

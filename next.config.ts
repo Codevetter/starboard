@@ -16,7 +16,7 @@ const securityHeaders = [
       "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us-assets.i.posthog.com", // unsafe-inline/eval required by Next.js
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://avatars.githubusercontent.com https://github.com",
-      "connect-src 'self' https://api.github.com https://*.turso.io https://us.i.posthog.com https://us-assets.i.posthog.com",
+      "connect-src 'self' https://api.github.com https://us.i.posthog.com https://us-assets.i.posthog.com",
       "frame-ancestors 'none'",
     ].join('; '),
   },
@@ -26,9 +26,6 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: 'standalone',
   outputFileTracingRoot: projectRoot,
-  // Force-bundle libsql for the Worker target — opennext otherwise lazy-chunks
-  // it as an external module and fails at runtime in workerd.
-  transpilePackages: ['@libsql/client'],
   async headers() {
     return [
       {

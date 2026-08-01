@@ -1,7 +1,7 @@
 # ADR-0004 — Turso (libSQL) with F32_BLOB vectors vs pgvector / Pinecone / Qdrant
 
 **Date:** 2026-04-11
-**Status:** Active
+**Status:** Superseded by [ADR-0009](0009-cloudflare-d1-vectorize.md)
 
 ## Context
 

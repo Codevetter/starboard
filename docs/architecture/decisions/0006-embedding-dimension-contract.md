@@ -1,7 +1,7 @@
 # ADR-0006 — Embedding dimension contract: 768d BGE, enforced at migrate time
 
 **Date:** 2026-04-11 (initial); 2026-05-16 (self-heal added)
-**Status:** Active
+**Status:** Superseded by [ADR-0009](0009-cloudflare-d1-vectorize.md)
 
 ## Context
 

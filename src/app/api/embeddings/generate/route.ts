@@ -1,10 +1,11 @@
-import type { InStatement } from '@libsql/client';
+import type { InStatement } from '@/db/client';
 import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
 import { isRateLimited } from '@/lib/rate-limit';
+import { repoVectors } from '@/lib/repo-vectors';
 
 // Prevent concurrent runs per user
 const activeJobs = new Set<string>();
@@ -55,13 +56,16 @@ export async function POST() {
     if (toEmbed.length > 0) {
       const embeddings = await generateEmbeddings(toEmbed.map((r) => r.text));
 
-      const statements: InStatement[] = toEmbed.map((item, i) => ({
-        sql: `INSERT INTO repo_embeddings (repo_id, embedding, text_hash)
-              VALUES (?, vector(?), ?)
+      await repoVectors().upsert(
+        toEmbed.map((item, i) => ({ repoId: item.repoId, values: embeddings[i] }))
+      );
+
+      const statements: InStatement[] = toEmbed.map((item) => ({
+        sql: `INSERT INTO repo_embeddings (repo_id, text_hash)
+              VALUES (?, ?)
               ON CONFLICT(repo_id) DO UPDATE SET
-                embedding = excluded.embedding,
                 text_hash = excluded.text_hash`,
-        args: [item.repoId, JSON.stringify(embeddings[i]), item.hash],
+        args: [item.repoId, item.hash],
       }));
 
       await db.batch(statements);

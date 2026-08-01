@@ -7,6 +7,9 @@ See also: [external-references.md](external-references.md) for authoritative
 sources, [failed-approaches.md](failed-approaches.md) for abandoned paths, and
 [../architecture/decisions/](../architecture/decisions/) for the *why*.
 
+The Turso/libSQL sections below are retained as historical evidence. Current
+persistence guidance is [ADR-0009](../architecture/decisions/0009-cloudflare-d1-vectorize.md).
+
 ---
 
 ## Embedding pipeline

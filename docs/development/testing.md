@@ -18,10 +18,10 @@ pnpm test:coverage     # vitest run --coverage
 
 ## Integration tests
 
-- `src/__tests__/search-integration.test.ts` — semantic relevance + similar-repos
-  + lexical NOCASE integration tests. These hit a live Turso vector search, so
-  they require `TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` and are skipped when
-  unavailable.
+- `src/__tests__/search-integration.test.ts` — static integration guard proving
+  FTS remains in D1 and ANN routes use the project-owned Vectorize adapter.
+- D1 adapters, Vectorize binding/REST writer, migration converters, and
+  write-freeze behavior have focused unit tests.
 - `src/__tests__/knowledgebase-rag.test.ts` — README-only recall terms, bounded
   ingest batching, and lexical-only fallback when the shared RAG Worker is
   unavailable or unconfigured.

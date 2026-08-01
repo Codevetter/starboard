@@ -37,7 +37,7 @@ export async function GET(
           FROM user_repo_lists url
           JOIN repos r ON r.id = url.repo_id
           WHERE url.list_id = ? AND url.user_id = ?`,
-    args: [row.id, row.user_id],
+    args: [row.id as number, row.user_id as string],
   });
 
   return NextResponse.json({

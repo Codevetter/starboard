@@ -4,8 +4,7 @@
 
 - Node.js 22+ (CI uses 22; the weekly digest workflow uses 24).
 - pnpm 10+ (the `packageManager` field pins the exact version).
-- A Turso database (`turso db create`) and auth token.
-- A Cloudflare account with the `starboard` Worker and Workers AI binding.
+- A Cloudflare account with the `starboard` Worker, D1, Vectorize, and Workers AI.
 - A GitHub OAuth app (GitHub Developer Settings) with a redirect URI for
   `AUTH_URL` (e.g. `http://localhost:3000/api/auth/callback/github` in dev).
 
@@ -24,7 +23,6 @@ cp .env.example .env.local
 Edit `.env.local` (see [../operations/env.md](../operations/env.md) for the full
 list):
 
-- `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`
 - `AUTH_SECRET` / `NEXTAUTH_SECRET` (`openssl rand -base64 32`)
 - `GITHUB_ID`, `GITHUB_SECRET` (GitHub OAuth)
 - `NEXTAUTH_URL` (e.g. `http://localhost:3000`)
@@ -36,10 +34,10 @@ list):
 ## Apply the schema
 
 ```bash
-pnpm db:migrate        # tsx src/db/migrate.ts — applies schema.sql wholesale
+pnpm db:migrate        # applies migrations/* to isolated local D1
 ```
 
-The migrate runner includes `ensureEmbeddingDimension()` self-heal — see
+Vector dimension changes use a replacement index rather than schema self-heal — see
 [../operations/runbooks/embedding-dimension-drift.md](../operations/runbooks/embedding-dimension-drift.md).
 
 ## Run

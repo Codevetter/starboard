@@ -1,7 +1,7 @@
 # Data Flow
 
 Request lifecycles for the three core Starboard paths: star sync, search, and
-fleet recommendations. Schema is in `src/db/schema.sql`; see
+fleet recommendations. Schema is in `migrations/`; see
 [architecture/overview.md](overview.md) for the component map.
 
 ## Star sync (`POST /api/stars/sync`)
@@ -48,14 +48,13 @@ browser → /api/stars?sort=relevance&q=...
 
 Hybrid RRF fusion (FTS5 BM25 + vector ANN) is implemented in
 `src/lib/search.ts:rrfFuse()` but the production relevance path now prefers the
-shared RAG Worker. The Turso vector index (`repo_embeddings`,
-`libsql_vector_idx`) remains for similar-repos, discover, and recommendations —
+shared RAG Worker. The project-owned Vectorize index serves similar-repos and
+recommendations; D1 `repo_embeddings` stores drift hashes and ownership —
 see [decisions/0008-hybrid-rrf-search.md](decisions/0008-hybrid-rrf-search.md)
 and [decisions/0007-similar-repos-reranking.md](decisions/0007-similar-repos-reranking.md).
 
-`vector_top_k` is global (no predicate pushdown): `VEC_TOP_K=500` candidates are
-fetched, then user-scope filtering happens in the outer `WHERE`. Acceptable at
-current corpus size; revisit if the seeded pool exceeds ~100k repos.
+Vectorize returns a bounded global candidate set; D1 ownership filters and
+hydrates those IDs before the existing reranking logic runs.
 
 ## Fleet recommendations (`/projects`, `/projects/[slug]`)
 
@@ -82,20 +81,20 @@ changes: `pnpm fleet:extract-projects`.
 
 ```
 seed-popular.yml (workflow_dispatch only; automatic schedule paused)
-  ├── pnpm db:migrate            (dimension self-heal fires here)
+  ├── pnpm db:migrate:remote     (approval-gated D1 migrations)
   ├── pnpm db:seed-popular       (scripts/seed-popular.ts)
   │     GitHub Search (≥5k stars) → repos + repo_star_snapshots
   │     resumable cursor in seed_cursor table
-  │     embeddings via HTTP gateway (Node env)
+  │     embeddings via HTTP gateway → Vectorize; hashes → D1
   └── pnpm db:enrich-tools       (scripts/enrich-tools.ts)
         SBOM / tree / manifest tool detection → repo_tools
 
-enrich-repos.yml (workflow_dispatch)   — AI metadata enrichment
-embed-pending.yml (workflow_dispatch)  — backfill repo_embeddings
+enrich-repos.yml (workflow_dispatch)   — D1 AI metadata enrichment
+embed-pending.yml (workflow_dispatch)  — backfill Vectorize + D1 hashes
 weekly-threshold-digest.yml (workflow_dispatch) — digest → GitHub issue + email
 weekly.yml (Mon 09:00 UTC)             — lint/typecheck/test/build quality
 ```
 
 See [operations/jobs.md](../operations/jobs.md) for the full schedule and
 [operations/runbooks/embedding-dimension-drift.md](../operations/runbooks/embedding-dimension-drift.md)
-for the self-heal procedure.
+for the replacement-index procedure.

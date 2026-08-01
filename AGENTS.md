@@ -16,10 +16,10 @@ and shareable insight reports. Live at
 
 ## Stack (one-liner)
 
-Next.js 16 (App Router, React 19) + TypeScript, Turso (libSQL, raw SQL — no ORM)
-with `F32_BLOB(768)` vectors, NextAuth v5 beta (GitHub OAuth), nuqs + SWR,
-Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5`, deployed to Cloudflare
-Workers via `@opennextjs/cloudflare`. pnpm.
+Next.js 16 (App Router, React 19) + TypeScript, Cloudflare D1 (raw SQL — no
+ORM) + project-owned Vectorize (768-d cosine), NextAuth v5 beta (GitHub OAuth),
+nuqs + SWR, Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5`, deployed to
+Cloudflare Workers via `@opennextjs/cloudflare`. pnpm.
 
 ## Essential commands
 
@@ -34,7 +34,8 @@ pnpm test              # vitest run
 pnpm test:coverage     # vitest run --coverage
 pnpm test:e2e          # playwright
 pnpm lint              # biome check .
-pnpm db:migrate        # tsx src/db/migrate.ts (applies schema.sql + embedding dim self-heal)
+pnpm db:migrate        # apply migrations/* to isolated local D1
+pnpm db:migrate:remote # validate config + apply migrations/* to remote D1 (approval required)
 pnpm db:seed-popular   # cold-seed popular repos (≥5k stars) — used by daily GH Action
 pnpm db:seed-embeddings# backfill repo_embeddings
 pnpm fleet:extract-projects  # regenerate data/fleet-projects.generated.json
@@ -51,25 +52,23 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
   Verify `.gitignore` before any push.
 - **Do not push, deploy, run migrations, or open PRs without explicit user
   approval.** Make changes locally and leave them staged/committed for review.
-- **Embedding dimension contract** — `EMBEDDING_DIM=768` is pinned across three
-  files that must change together: `src/lib/embeddings.ts`,
-  `src/db/schema.sql`, `src/db/migrate.ts`. The migrate runner self-heals drift
-  (`ensureEmbeddingDimension()`); do not hand-edit the Turso `repo_embeddings`
-  table. See
+- **Embedding dimension contract** — `EMBEDDING_DIM=768` in
+  `src/lib/embeddings.ts` must match the `starboard-repos` Vectorize index.
+  Model/dimension changes require a deliberate replacement index and re-embed;
+  D1 stores only `repo_id` and `text_hash`. See
   [docs/architecture/decisions/0006-embedding-dimension-contract.md](docs/architecture/decisions/0006-embedding-dimension-contract.md)
   and
   [docs/operations/runbooks/embedding-dimension-drift.md](docs/operations/runbooks/embedding-dimension-drift.md).
-- **`@libsql/client/web` import is load-bearing.** `src/db/index.ts` must import
-  from `@libsql/client/web` (not `@libsql/client`) and lazy-init via a Proxy.
-  Using the default import re-breaks the Worker. The CF build must use
-  `--webpack` (not Turbopack). See
-  [docs/architecture/decisions/0003-opennext-libsql-bundling.md](docs/architecture/decisions/0003-opennext-libsql-bundling.md).
+- **Database boundaries.** Worker routes use the direct `DB` binding through
+  `src/db/index.ts`; Node operator jobs use the authenticated D1 REST adapter.
+  Do not add a public raw-SQL proxy. Vector writes use `REPO_VECTORS` in the
+  Worker or the scoped Vectorize REST API in GitHub Actions.
 - **NextAuth v5 beta** — `trustHost: true` is hardcoded in `src/lib/auth.ts`
   (env-driven `AUTH_TRUST_HOST` was unreliable). Both `AUTH_URL` and
   `NEXTAUTH_URL` must be set in `wrangler.jsonc` vars. See
   [docs/architecture/decisions/0002-nextauth-v5-beta.md](docs/architecture/decisions/0002-nextauth-v5-beta.md).
-- **No ORM.** Raw SQL via `@libsql/client`. Schema in `src/db/schema.sql`;
-  apply with `pnpm db:migrate`.
+- **No ORM.** Raw SQL via the D1 adapters. Schema changes are ordered SQL files
+  in `migrations/`; apply locally with `pnpm db:migrate`.
 - **Generated files — do not hand-edit:** `agent-edge.mjs`, `worker.mjs`,
   `cloudflare-env.d.ts`, `data/fleet-projects.generated.json`. See
   [docs/development/conventions.md](docs/development/conventions.md).
@@ -129,7 +128,7 @@ src/
   app/                    # Next.js App Router: stars, explore, discover, projects, lists, radar, reports, api/*
   components/             # repo-card, repo-grid (virtualized), sidebar, top-bar, tag/list pickers
   hooks/                  # SWR data hooks
-  db/                     # index.ts (Turso client), schema.sql, migrate.ts, seed-embeddings.ts
+  db/                     # D1 binding/REST adapters and seed-embeddings.ts
   lib/                    # github, github-lists, embeddings, auth, search, knowledgebase, fleet-projects, ...
 docs/                     # Canonical documentation (source of truth)
 scripts/                  # seed-popular, enrich-repos, enrich-tools, weekly-threshold-digest, check-docs, ...
@@ -137,7 +136,7 @@ landing-astro/            # Astro landing page (overlaid into OpenNext assets du
 openspec/                 # spec-driven change workflow tooling + archived changes
 public/                   # Agent-indexing surfaces (llms.txt, index.md, api-ai.json, robots.txt, sitemap.xml)
 data/fleet-projects.generated.json   # checked-in fleet snapshot for My Projects
-wrangler.jsonc            # Worker config: main=worker.mjs, ASSETS + AI + RAG_SERVICE bindings
+wrangler.jsonc            # Worker config: ASSETS + AI + DB + REPO_VECTORS + RAG_SERVICE
 worker.mjs / agent-edge.mjs         # OpenNext-generated (do not hand-edit)
 ```
 

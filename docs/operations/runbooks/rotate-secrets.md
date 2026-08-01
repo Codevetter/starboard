@@ -1,6 +1,6 @@
 # Runbook: Rotate secrets
 
-Rotate Cloudflare / Turso / GitHub OAuth / Resend secrets. Never commit secrets
+Rotate Cloudflare / GitHub OAuth / Resend secrets. Never commit secrets
 to the repo — all secrets are gitignored or stored as Cloudflare/GitHub
 Actions secrets.
 
@@ -17,23 +17,21 @@ Rotate one:
 ```bash
 wrangler secret put AUTH_SECRET
 wrangler secret put AUTH_GITHUB_SECRET
-wrangler secret put TURSO_AUTH_TOKEN
 wrangler secret put RAG_SERVICE_KEY
 ```
 
 After rotating `AUTH_SECRET`, existing NextAuth sessions are invalidated — users
 must re-authenticate.
 
-## Turso
+## Cloudflare operator token
 
-```bash
-turso db tokens create starboard    # new token
-turso db tokens invalidate starboard # optional: invalidate old tokens
-wrangler secret put TURSO_AUTH_TOKEN  # update the Worker
-```
+Create a scoped replacement token with only the D1/Vectorize/deploy permissions
+required by the workflows, replace the GitHub Actions
+`CLOUDFLARE_API_TOKEN` secret, run one bounded manual job, then revoke the old
+token from the Cloudflare dashboard.
 
-Also update the GitHub Actions repo secret `TURSO_AUTH_TOKEN` (Settings →
-Secrets and variables → Actions) so scheduled jobs keep working.
+Do not remove or invalidate Turso credentials while that database is
+rollback-held. Retirement and secret removal require separate approval.
 
 ## GitHub OAuth app
 
@@ -54,5 +52,5 @@ issue is still created.
 ## After rotation
 
 - Smoke: `curl --fail https://starboard.codevetter.com/` and sign in once.
-- Trigger `seed-popular` manually to confirm Turso + AI gateway secrets are
-  valid.
+- Trigger `seed-popular` manually to confirm scoped D1, Vectorize, and AI
+  gateway access.
