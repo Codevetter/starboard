@@ -1,7 +1,7 @@
 # ADR-0009 — Cloudflare D1 + Vectorize replaces Turso/libSQL
 
-Status: Accepted for the migration branch; production cutover requires the
-separate receipt approval gate in GitHub issue #49.
+Status: Accepted; production cutover completed 2026-08-02 under GitHub issue
+#49. Turso remains rollback-held pending separate retirement approval.
 
 ## Context
 
@@ -19,8 +19,10 @@ SQLite/FTS5 relational shape but not libSQL's `F32_BLOB` vector functions.
   Vectorize index `starboard-repos`, bound as `REPO_VECTORS`.
 - Keep route/domain SQL behind a small D1 adapter so result shapes remain
   stable without introducing an ORM.
-- Run Node operator jobs through Cloudflare's authenticated D1 and Vectorize
-  REST APIs. Do not expose a public raw-SQL maintenance endpoint.
+- Run metadata operator jobs through Cloudflare's authenticated D1 API. Run
+  embedding jobs through an authenticated, bounded Worker route so Workers AI,
+  D1, and Vectorize use native bindings. Do not expose a public raw-SQL
+  maintenance endpoint.
 - Use ordered files in `migrations/`, local D1 isolation, a write-freeze flag,
   deterministic dump/vector converters, receipts, and a rollback hold on Turso.
 
@@ -36,7 +38,8 @@ drift and hydrate search results.
 
 - Vector writes are eventually visible and must complete before the D1
   `text_hash` is advanced; both paths are idempotent.
-- Operator Actions need a scoped Cloudflare token with D1/Vectorize permissions.
+- Operator Actions need scoped D1 access; Vectorize remains behind the Worker
+  binding rather than a broad GitHub API token.
 - Model/dimension changes require a deliberate replacement Vectorize index and
   re-embedding rather than automatic table surgery.
 - Turso remains rollback-held until retirement receives separate approval.

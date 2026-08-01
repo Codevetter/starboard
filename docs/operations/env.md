@@ -34,12 +34,13 @@ for the callback base URL and some internal paths read the legacy
 
 - `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`
 - `RAG_SERVICE_KEY` (optional)
-- `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (only if keeping the HTTP path)
+- `AI_GATEWAY_API_KEY` (authenticates bounded GitHub operator requests)
 
 ## GitHub Actions secrets (repo secrets)
 
-- `CLOUDFLARE_API_TOKEN` (deploy plus scoped D1/Vectorize access)
-- `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (seed/enrich/embed jobs)
+- `CLOUDFLARE_API_TOKEN` (deploy plus scoped D1 access)
+- `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (AI enrichment; the key also
+  authenticates bound Worker embedding jobs)
 - `RESEND_API_KEY` (weekly digest email; optional — fail-closed)
 
 GitHub Actions repository variables (non-secret) include

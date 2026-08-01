@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-07-31
+Last updated: 2026-08-02
 
 ## Why/What
 
@@ -14,7 +14,7 @@ Out of scope: organization/team dashboards, non-GitHub providers, ATS features, 
 |-------|--------|
 | App | Next.js 16 (App Router), React 19, TypeScript |
 | UI | Tailwind CSS v4, shadcn/ui, dark default |
-| Data | Turso (libSQL) — raw SQL, no ORM |
+| Data | Cloudflare D1 (relational + FTS5) and Vectorize (768d ANN) — raw SQL, no ORM |
 | Auth | NextAuth v5 (GitHub OAuth, `read:user`) |
 | Client state | SWR (data), nuqs (URL-backed filters/sort) |
 | AI / search | Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5` (768d); optional `knowledgebase` Worker via service binding |
@@ -29,7 +29,7 @@ Out of scope: organization/team dashboards, non-GitHub providers, ATS features, 
 GitHub OAuth (NextAuth)
         │
         ▼
-Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, user_repos, tags, lists, comments, votes)
+Star sync (ETag + HTML scrape for star lists) ──► D1 (users, repos, user_repos, tags, lists, comments, votes)
         │
         ├── Full-text + facet search (GET /api/stars)
         ├── Semantic search: knowledgebase Worker; lexical-only when shared RAG is unavailable
@@ -38,22 +38,30 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
         └── Insight reports: slugged public snapshots (radar, recommendations, cleanup)
 ```
 
-**Embedding contract:** `EMBEDDING_DIM=768` pinned across `src/lib/embeddings.ts`, `src/db/schema.sql`, and `src/db/migrate.ts` (`ensureEmbeddingDimension()` drops/recreates vector table on drift). A manual `seed-popular` dispatch runs `db:migrate` before seeding and heals dimension mismatches without direct database surgery.
+**Embedding contract:** `EMBEDDING_DIM=768` in `src/lib/embeddings.ts` matches the `starboard-repos` Vectorize index. D1 stores only repository IDs and text hashes; dimension changes require a deliberate replacement index and re-embedding.
 
 **Data model highlights:** tags stored as JSON arrays on `user_repos`; virtualized grid via `@tanstack/react-virtual`; GitHub access token in session for sync; project recommendations suppress packages already used by the target fleet project before ranking.
 
 | Concern | Detail |
 |---------|--------|
 | Hosting | Cloudflare Worker `starboard` via OpenNext |
-| Database | Turso — apply schema with `pnpm db:migrate` |
-| Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `TURSO_*`; `RAG_SERVICE_KEY`, `STARBOARD_RAG_INDEX_ID` for relevance RAG |
-| Embedding model | `@cf/baai/bge-base-en-v1.5` — change model + dimension in all three contract files together |
+| Database | Cloudflare D1 `starboard` — apply ordered schema with `pnpm db:migrate:remote` |
+| Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`; `AI_GATEWAY_API_KEY` for authenticated operator jobs; `RAG_SERVICE_KEY` for relevance RAG. `TURSO_*` remains rollback-held, not used by the runtime. |
+| Embedding model | `@cf/baai/bge-base-en-v1.5` — change model, dimension, and replacement Vectorize index together |
 | Fleet snapshot | Refresh `data/fleet-projects.generated.json` after fleet `PROJECT_STATUS.md` / dependency changes |
 | Data refresh jobs | Manual GitHub Actions dispatches; automatic seed-popular scheduling is paused pending a provider-side row-read budget |
 | Deploy | `pnpm deploy:cf` or manual `deploy.yml` dispatch; both attach the full Git SHA |
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
+
+- **2026-08-02 (Cloudflare data cutover completed)** — Migrated 1,050,033
+  relational rows from Turso to D1 with an exact frozen-source checksum match,
+  moved 12,450 repository vectors to the 768d `starboard-repos` Vectorize
+  index, and deployed SHA `cd5ffbd4d81a874389bfdabf4a63a75343b6ed54`
+  at 100% traffic. Main CI, docs, deploy, D1/Vectorize operator smoke, and
+  embedding backfill Actions pass; the pending embedding queue is zero. Turso
+  and its secrets remain rollback-held pending separate retirement approval.
 
 - **2026-07-31 (GitHub stars organization guide)** — Replaced the thin About
   page with a visible and agent-readable guide that starts with GitHub's native
@@ -166,10 +174,11 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
 
 ### Search and embeddings
 - Workers AI embedding generation with runtime dimension assertion.
-- Turso vector index path (`repo_embeddings`, cosine `libsql_vector_idx`) retained for non-RAG Starboard features such as similar repos, discover, and recommendations.
+- Project-owned Vectorize path (`starboard-repos`, 768d cosine) serves similar repos and recommendations; D1 `repo_embeddings` stores drift hashes.
 - Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID` are set as Worker secrets/vars or local env, relevance search uses the fleet `knowledgebase` Worker with sync ingest for new repos; each sync fetches README text for at most 25 new repos and uses metadata-only documents for every other added repo, with bounded ingest batches. `src/__tests__/knowledgebase-rag.test.ts` covers README-only recall terms plus batch splitting, and `src/__tests__/sync-performance.test.ts` fixes the large-import bound. If shared RAG is unavailable, relevance search falls back to lexical results instead of local vector search.
-- `pnpm db:seed-embeddings` backfill script; embedding dimension guard in migrate runner.
-- free-ai HTTP fallback for Node-based GitHub Actions embedding contexts.
+- Manual embedding backfills run through an authenticated Worker operator route
+  so Workers AI, Vectorize, and D1 use native bindings without broad Vectorize
+  credentials in GitHub.
 
 ### Fleet recommendations
 - **My Projects** ranks saved/starred repos against checked-in fleet project snapshot (`data/fleet-projects.generated.json`).
@@ -183,9 +192,9 @@ Star sync (ETag + HTML scrape for star lists) ──► Turso (users, repos, use
   corpus; authentication adds saved state and collection controls but is not
   required to browse, search, sort, filter, paginate, or open repo details.
 - Discover supports paginated 30-day growth ordering and detected-tool facets from indexed local snapshot/tool tables.
-- Manually dispatched GitHub Actions seed/enrich/embed popular repos in Turso
-  (`scripts/seed-popular.ts`, `pnpm db:seed-popular`); automatic seeding is
-  paused pending a provider-side row-read budget.
+- Manually dispatched GitHub Actions seed/enrich popular repos in D1 and embed
+  through native Worker bindings; automatic seeding remains paused pending an
+  explicit operating budget.
 - Radar page and `/api/radar` for maintainer/release-oriented signals.
 - Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`, `/api/growth`, Radar fastest-growers, and repo-detail mini history from stored `repo_star_snapshots`.
 - Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.
