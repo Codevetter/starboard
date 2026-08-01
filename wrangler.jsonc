@@ -39,6 +39,7 @@
     "NEXT_PUBLIC_APP_NAME": "starboard",
     "AUTH_URL": "https://starboard.codevetter.com",
     "NEXTAUTH_URL": "https://starboard.codevetter.com",
+    "WRITE_FREEZE": "false",
     "STARBOARD_RAG_INDEX_ID": "16522a1b-afe6-4167-99d7-d00695ee271a"
   },
   "services": [
