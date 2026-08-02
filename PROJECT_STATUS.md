@@ -46,7 +46,7 @@ Star sync (ETag + HTML scrape for star lists) ──► D1 (users, repos, user_r
 |---------|--------|
 | Hosting | Cloudflare Worker `starboard` via OpenNext |
 | Database | Cloudflare D1 `starboard` — apply ordered schema with `pnpm db:migrate:remote` |
-| Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`; `AI_GATEWAY_API_KEY` for authenticated operator jobs; `RAG_SERVICE_KEY` for relevance RAG. `TURSO_*` remains rollback-held, not used by the runtime. |
+| Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`; `AI_GATEWAY_API_KEY` for authenticated operator jobs; `RAG_SERVICE_KEY` for relevance RAG. Any legacy unused `TURSO_*` bindings are separate credential-cleanup work. |
 | Embedding model | `@cf/baai/bge-base-en-v1.5` — change model, dimension, and replacement Vectorize index together |
 | Fleet snapshot | Refresh `data/fleet-projects.generated.json` after fleet `PROJECT_STATUS.md` / dependency changes |
 | Data refresh jobs | Manual GitHub Actions dispatches; automatic seed-popular scheduling is paused pending a provider-side row-read budget |
@@ -60,8 +60,8 @@ Star sync (ETag + HTML scrape for star lists) ──► D1 (users, repos, user_r
   moved 12,450 repository vectors to the 768d `starboard-repos` Vectorize
   index, and deployed SHA `cd5ffbd4d81a874389bfdabf4a63a75343b6ed54`
   at 100% traffic. Main CI, docs, deploy, D1/Vectorize operator smoke, and
-  embedding backfill Actions pass; the pending embedding queue is zero. Turso
-  and its secrets remain rollback-held pending separate retirement approval.
+  embedding backfill Actions pass; the pending embedding queue is zero. The
+  retired Turso database was deleted on 2026-08-02 after acceptance.
 
 - **2026-07-31 (GitHub stars organization guide)** — Replaced the thin About
   page with a visible and agent-readable guide that starts with GitHub's native
