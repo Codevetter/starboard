@@ -46,5 +46,5 @@ in [jobs.md](jobs.md); this page covers the push/PR and deploy pipelines.
 
 ## Scheduled jobs
 
-See [jobs.md](jobs.md) for `seed-popular`, `enrich-repos`, `embed-pending`, and
+See [jobs.md](jobs.md) for `seed-popular`, `embed-pending`, and
 `weekly-threshold-digest`.

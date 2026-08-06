@@ -31,18 +31,6 @@ annotates intent, inputs, and dependencies.
   snapshots are written only when star counts change. Re-enable automation only
   with an explicit row-read budget and alert.
 
-## enrich-repos (`.github/workflows/enrich-repos.yml`)
-
-- **Schedule:** `workflow_dispatch` only (manual).
-- **Inputs:** `enrich_limit` (50), `hard_limit` (200), `reasoning_effort`
-  (auto/low/medium/high, default medium), `min_reasoning_level` (low/medium/high,
-  default medium).
-- **Concurrency:** group `enrich-repos`, `cancel-in-progress: false`.
-- **Timeout:** 20 minutes.
-- **Steps:** `pnpm db:migrate:remote` → `pnpm db:enrich-repos` (AI metadata enrichment
-  via free-ai gateway with capped reasoning).
-- **Credentials:** scoped Cloudflare API token + AI gateway credentials.
-
 ## embed-pending (`.github/workflows/embed-pending.yml`)
 
 - **Schedule:** `workflow_dispatch` only (manual).

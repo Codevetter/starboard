@@ -90,10 +90,9 @@ seed-popular.yml (workflow_dispatch only; automatic schedule paused)
   └── pnpm db:enrich-tools       (scripts/enrich-tools.ts)
         SBOM / tree / manifest tool detection → repo_tools
 
-enrich-repos.yml (workflow_dispatch)   — D1 AI metadata enrichment
+enrich-repos (pnpm db:enrich-repos)    — D1 AI metadata enrichment (manual, local)
 embed-pending.yml (workflow_dispatch)  — authenticated Worker binding backfill
 weekly-threshold-digest.yml (workflow_dispatch) — digest → GitHub issue + email
-weekly.yml (Mon 09:00 UTC)             — lint/typecheck/test/build quality
 ```
 
 See [operations/jobs.md](../operations/jobs.md) for the full schedule and
