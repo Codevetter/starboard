@@ -27,38 +27,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import type { FleetProjectSummary } from '@/lib/fleet-project-data';
 import type {
-  FleetFeatureArea,
   FleetProjectRecommendationReport,
   FleetRecommendation,
   FleetRecommendationAction,
 } from '@/lib/fleet-projects';
 
-interface ProjectSummary {
-  slug: string;
-  name: string;
-  description: string;
-  tier: string;
-  category: string;
-  priority: string;
-  maturity: 'public' | 'public-ready' | 'internal-first';
-  featureAreas: FleetFeatureArea[];
-  stack: {
-    languages: string[];
-    frameworks: string[];
-    dependenciesCount: number;
-  };
-}
-
-interface ProjectsResponse {
-  projects: ProjectSummary[];
-}
+type ProjectSummary = FleetProjectSummary;
 
 interface ProjectsWorkspaceProps {
   selectedSlug?: string;
+  /** Server-rendered fleet snapshot so the list does not depend on /api/projects. */
+  initialProjects: ProjectSummary[];
 }
-
-const emptyProjects: ProjectSummary[] = [];
 
 const fetcher = jsonFetcher;
 
@@ -399,15 +381,13 @@ function ProjectSidebar({
   );
 }
 
-export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
+export function ProjectsWorkspace({ selectedSlug, initialProjects }: ProjectsWorkspaceProps) {
   const { status } = useSession();
   const router = useRouter();
   const [query, setQuery] = useState('');
   const searchRef = useRef<HTMLInputElement | null>(null);
-  const { data, error, isLoading } = useSWR<ProjectsResponse>('/api/projects', fetcher, {
-    revalidateOnFocus: false,
-  });
-  const projects = data?.projects ?? emptyProjects;
+  // Catalog is static fleet snapshot — never block the UI on a client /api hop.
+  const projects = initialProjects;
   const selectedProject = useMemo(() => {
     if (projects.length === 0) return null;
     return projects.find((project) => project.slug === selectedSlug) ?? projects[0];
@@ -479,12 +459,23 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeSlug, projects, router]);
 
-  // Auth or project list still settling — full shell skeleton, not a blank spinner.
-  if (status === 'loading' || (isLoading && !data)) {
+  // Auth still settling — full shell skeleton, not a blank spinner.
+  if (status === 'loading') {
     return <ProjectsLoadingShell />;
   }
 
   if (status === 'unauthenticated') return null;
+
+  if (projects.length === 0) {
+    return (
+      <main className="mx-auto max-w-lg px-4 py-24 text-center">
+        <p className="text-sm text-muted-foreground">
+          No fleet projects in the snapshot. Run{' '}
+          <code className="font-mono text-xs">pnpm fleet:extract-projects</code> and redeploy.
+        </p>
+      </main>
+    );
+  }
 
   const exportMarkdown = () => {
     if (!recommendations?.markdown) return;
@@ -566,12 +557,6 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
             </div>
           </div>
         </header>
-
-        {error && !isLoading && (
-          <div className="m-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300 md:m-6">
-            Projects could not load. Refresh and try again.
-          </div>
-        )}
 
         {recommendationsError && !recommendationsLoading && (
           <div className="m-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300 md:m-6">
