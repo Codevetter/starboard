@@ -1,10 +1,5 @@
-/* Starboard landing — Tailwind v4 entry.
- *
- * Tailwind v4 single-import; design tokens trimmed to only what the
- * landing actually uses (background, foreground, card, muted, primary,
- * border). Full shadcn ramp + animations are intentionally NOT loaded
- * here — they're Next.js / dashboard concerns. The landing is dark by
- * default (matches the Next.js `dark:bg-[oklch(0.1_0_0)]` body).
+/* Starboard landing — Tailwind v4 + product craft tokens.
+ * Dark-first. Keep LCP free of client JS; motion is CSS-only.
  */
 @import "tailwindcss";
 
@@ -20,49 +15,185 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-emerald: var(--emerald);
+  --color-sky: var(--sky);
+  --color-amber: var(--amber);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
 }
 
-/* Light tokens kept for completeness even though the landing is dark —
- * any class that resolves through var(--card)/var(--border) still has
- * a fallback if the .dark scope is removed. */
 :root {
-  --radius: 0.625rem;
+  --radius: 0.75rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
+  --muted-foreground: oklch(0.45 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
+  --border: oklch(0.92 0 0);
+  --input: oklch(0.92 0 0);
+  --ring: oklch(0.7 0 0);
+  --accent: oklch(0.55 0.14 250);
+  --accent-foreground: oklch(0.98 0 0);
+  --emerald: oklch(0.72 0.17 155);
+  --sky: oklch(0.72 0.12 230);
+  --amber: oklch(0.78 0.14 85);
 }
 
 .dark {
-  --background: oklch(0.1 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.12 0.01 260);
+  --foreground: oklch(0.97 0.005 90);
+  --card: oklch(0.17 0.012 260);
+  --card-foreground: oklch(0.97 0.005 90);
+  --muted: oklch(0.22 0.012 260);
+  --muted-foreground: oklch(0.72 0.02 260);
+  --primary: oklch(0.93 0.01 90);
+  --primary-foreground: oklch(0.16 0.02 260);
+  --border: oklch(1 0 0 / 9%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.65 0.08 250);
+  --accent: oklch(0.68 0.14 250);
+  --accent-foreground: oklch(0.98 0 0);
+  --emerald: oklch(0.78 0.16 155);
+  --sky: oklch(0.78 0.1 230);
+  --amber: oklch(0.82 0.12 85);
 }
 
 @layer base {
   body {
     background-color: var(--background);
     color: var(--foreground);
+    font-feature-settings: "ss01" on, "cv11" on;
+  }
+
+  ::selection {
+    background: oklch(0.55 0.14 250 / 0.35);
+    color: var(--foreground);
+  }
+}
+
+/* Atmosphere */
+.sb-mesh {
+  background:
+    radial-gradient(ellipse 90% 55% at 12% -8%, oklch(0.5 0.16 250 / 0.32), transparent 55%),
+    radial-gradient(ellipse 70% 45% at 92% 8%, oklch(0.55 0.12 155 / 0.18), transparent 50%),
+    radial-gradient(ellipse 55% 40% at 50% 105%, oklch(0.42 0.1 280 / 0.16), transparent 55%),
+    radial-gradient(ellipse 40% 30% at 70% 40%, oklch(0.5 0.08 200 / 0.08), transparent 60%);
+}
+
+.sb-grid {
+  background-image:
+    linear-gradient(oklch(1 0 0 / 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%);
+}
+
+.sb-glow {
+  box-shadow:
+    0 0 0 1px oklch(1 0 0 / 0.06),
+    0 24px 80px -24px oklch(0.35 0.12 250 / 0.55),
+    0 8px 24px -12px oklch(0 0 0 / 0.6);
+}
+
+.sb-card-lift {
+  transition:
+    transform 200ms ease,
+    border-color 200ms ease,
+    background-color 200ms ease;
+}
+
+.sb-card-lift:hover {
+  transform: translateY(-2px);
+  border-color: oklch(1 0 0 / 0.14);
+  background-color: oklch(0.19 0.014 260);
+}
+
+.sb-mark {
+  background: linear-gradient(145deg, oklch(0.92 0.04 90), oklch(0.75 0.08 250));
+  color: oklch(0.16 0.02 260);
+  box-shadow: 0 0 0 1px oklch(1 0 0 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.35);
+}
+
+.sb-btn-primary {
+  background: linear-gradient(180deg, oklch(0.96 0.01 90), oklch(0.88 0.015 90));
+  color: oklch(0.16 0.02 260);
+  box-shadow:
+    0 1px 0 oklch(1 0 0 / 0.35) inset,
+    0 1px 2px oklch(0 0 0 / 0.35),
+    0 8px 24px -10px oklch(0.7 0.1 250 / 0.45);
+  transition:
+    transform 150ms ease,
+    filter 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.sb-btn-primary:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.sb-btn-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.98);
+}
+
+.sb-btn-ghost {
+  border: 1px solid oklch(1 0 0 / 0.1);
+  background: oklch(1 0 0 / 0.03);
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease;
+}
+
+.sb-btn-ghost:hover {
+  background: oklch(1 0 0 / 0.06);
+  border-color: oklch(1 0 0 / 0.16);
+}
+
+.sb-pill {
+  border: 1px solid oklch(1 0 0 / 0.08);
+  background: oklch(0.18 0.015 260 / 0.75);
+  backdrop-filter: blur(10px);
+}
+
+.sb-divider-fade {
+  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.12), transparent);
+  height: 1px;
+}
+
+@keyframes sb-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.sb-float {
+  animation: sb-float 7s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb-float,
+  .sb-card-lift,
+  .sb-btn-primary {
+    animation: none;
+    transition: none;
+  }
+  .sb-card-lift:hover,
+  .sb-btn-primary:hover {
+    transform: none;
   }
 }
