@@ -3,12 +3,20 @@ import GitHub from 'next-auth/providers/github';
 
 import { db } from '@/db';
 
-export const { handlers, auth } = NextAuth({
+export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
+  // Branded surfaces instead of the stock Auth.js provider picker.
+  pages: {
+    signIn: '/login',
+    error: '/login',
+  },
   providers: [
     GitHub({
       authorization: {
         params: {
+          // Minimal scopes: public profile + starred repos via user token.
+          // Avoid requesting more than we need — larger scopes increase OAuth
+          // friction and can trip GitHub abuse/rate-limit heuristics.
           scope: 'read:user',
         },
       },
@@ -20,6 +28,7 @@ export const { handlers, auth } = NextAuth({
         try {
           // Email comes from the public GitHub profile (read:user scope) and is
           // NULL when private — the weekly digest email skips those users.
+          // Fail-open: never block OAuth because D1 upsert failed.
           await db.execute({
             sql: `INSERT INTO users (id, username, avatar_url, email) VALUES (?, ?, ?, ?)
                   ON CONFLICT(id) DO UPDATE SET

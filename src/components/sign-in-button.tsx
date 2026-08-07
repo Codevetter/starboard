@@ -1,40 +1,96 @@
 'use client';
 
 import { signIn } from 'next-auth/react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { captureAuthFailure } from '@/lib/foundry-monitoring';
 
-export function SignInButton({ label }: { label?: string } = {}) {
+const GITHUB_MARK = (
+  <svg viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden="true">
+    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
+  </svg>
+);
+
+export function SignInButton({
+  label,
+  callbackUrl = '/stars',
+  fullWidth = false,
+}: {
+  label?: string;
+  callbackUrl?: string;
+  fullWidth?: boolean;
+} = {}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   async function handleSignIn() {
+    if (pending) return;
+    setPending(true);
+    setError(null);
     try {
-      const result = await signIn('github', { callbackUrl: '/stars', redirect: false });
+      // Single hop to GitHub — no intermediate Auth.js provider page, no
+      // client-side retry storms that look like (and can trigger) rate limits.
+      const result = await signIn('github', { callbackUrl, redirect: false });
       if (result?.error) {
+        const reason = result.error;
         captureAuthFailure({
           provider: 'github',
           stage: 'signin',
-          reason: result.error,
+          reason,
           source: 'sign-in-button',
         });
-      } else if (result?.url) {
-        window.location.href = result.url;
+        setError(
+          /rate|limit|429/i.test(reason)
+            ? 'Temporarily rate limited. Wait about a minute, then try once.'
+            : 'GitHub sign-in failed. Wait a moment and try once more.'
+        );
+        setPending(false);
+        return;
       }
-    } catch (error) {
+      if (result?.url) {
+        window.location.assign(result.url);
+        return;
+      }
+      setError('Could not start GitHub sign-in. Try again in a moment.');
+      setPending(false);
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'GitHub sign-in failed';
       captureAuthFailure({
         provider: 'github',
         stage: 'signin',
-        reason: error instanceof Error ? error.message : 'GitHub sign-in failed',
+        reason,
         source: 'sign-in-button',
       });
+      setError(
+        /rate|limit|429/i.test(reason)
+          ? 'Temporarily rate limited. Wait about a minute, then try once.'
+          : 'Could not reach GitHub. Check your connection and try once.'
+      );
+      setPending(false);
     }
   }
 
   return (
-    <Button size="lg" onClick={() => void handleSignIn()} className="h-12 gap-3 px-8 text-base">
-      <svg viewBox="0 0 24 24" fill="currentColor" className="size-5" aria-hidden="true">
-        <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
-      </svg>
-      {label ?? 'Sign in with GitHub'}
-    </Button>
+    <div className={fullWidth ? 'flex w-full flex-col gap-2' : 'flex flex-col gap-2'}>
+      <Button
+        size="lg"
+        disabled={pending}
+        onClick={() => void handleSignIn()}
+        className={
+          fullWidth
+            ? 'h-12 w-full gap-3 px-8 text-base'
+            : 'h-12 gap-3 px-8 text-base'
+        }
+      >
+        {GITHUB_MARK}
+        {pending ? 'Redirecting to GitHub…' : (label ?? 'Sign in with GitHub')}
+      </Button>
+      {error && (
+        <p role="alert" className="text-xs text-amber-200/90">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

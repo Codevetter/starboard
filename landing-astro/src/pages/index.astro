@@ -1,159 +1,212 @@
 ---
 import Layout from '@/layouts/Layout.astro';
 
-// Starboard landing — Astro static port of `src/app/page.tsx`.
-//
-// Scoped to the LCP-critical surface only: hero (h1 + sub + 4 value
-// props) and the GitHub sign-in CTA. The deeper sections from the
-// Next.js page (sample stars board, how-it-works, weekly digest,
-// testimonials, changelog) are intentionally omitted — they don't
-// affect LCP and pulling them in would re-introduce the lucide-react
-// + saas-maker widget chains that the Next.js build was racing.
-//
-// Sign-in is a plain `<a>` to NextAuth v5's default sign-in page
-// (`/api/auth/signin?callbackUrl=/stars`). NextAuth handles CSRF on the
-// follow-up POST, so no JS is needed on the landing.
+// Starboard landing — static Astro overlay served at `/` from the Worker.
+// Keep LCP free of client JS: CTAs are plain links to `/login` (branded)
+// or `/discover`. Product mock is pure HTML/CSS.
 
-const TITLE = 'Starboard — Your GitHub stars, organized';
+const TITLE = 'Starboard — Know which GitHub stars matter';
 const DESCRIPTION =
-  'Sync, search, and organize your GitHub stars. Filter by language, find similar repos with semantic search, and group everything into collections.';
+  'Rank, search, and organize your GitHub stars. See releases and momentum, clean up noise, and find tools by meaning — not just name.';
 ---
 
 <Layout title={TITLE} description={DESCRIPTION}>
   <div
-    class="flex min-h-svh w-full flex-col items-center overflow-x-hidden"
+    class="relative flex min-h-svh w-full flex-col items-center overflow-x-hidden"
     style="background-color: oklch(0.1 0 0);"
   >
+    <div
+      aria-hidden="true"
+      class="pointer-events-none absolute inset-0"
+      style="background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, oklch(0.45 0.14 250 / 0.28), transparent 55%),
+        radial-gradient(ellipse 60% 40% at 90% 10%, oklch(0.5 0.12 145 / 0.16), transparent 50%),
+        radial-gradient(ellipse 50% 30% at 50% 100%, oklch(0.4 0.08 280 / 0.12), transparent 55%);"
+    ></div>
+
     <main
-      class="flex w-full max-w-6xl flex-col items-center gap-16 overflow-x-hidden px-5 py-12 sm:px-6 sm:py-20"
+      class="relative flex w-full max-w-6xl flex-col items-center gap-20 overflow-x-hidden px-5 py-12 sm:px-6 sm:py-16 lg:py-20"
       style="font-family: var(--font-geist-sans);"
     >
-      <section class="flex w-full max-w-3xl flex-col items-start gap-10">
+      {/* Top nav */}
+      <header class="flex w-full items-center justify-between gap-4">
+        <a href="/" class="inline-flex items-center gap-2 text-sm font-semibold tracking-tight text-foreground">
+          <span class="inline-flex size-7 items-center justify-center rounded-md border border-border bg-card text-xs">★</span>
+          Starboard
+        </a>
+        <nav class="flex items-center gap-3 text-sm">
+          <a
+            href="/discover"
+            class="hidden text-muted-foreground underline-offset-4 hover:text-foreground hover:underline sm:inline"
+          >Discover</a>
+          <a
+            href="/login"
+            class="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3.5 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >Sign in</a>
+        </nav>
+      </header>
+
+      {/* Hero */}
+      <section class="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-16">
         <div class="flex min-w-0 flex-col items-start gap-6 text-left">
-          <span class="inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs text-muted-foreground">
+          <span class="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground backdrop-blur">
             <span class="inline-block size-1.5 rounded-full bg-emerald-500"></span>
-            Ranked by what matters this week
+            Free · open source · read-only GitHub access
           </span>
 
-          <h1 class="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Know which of your GitHub stars matter right now.
+          <h1 class="text-balance text-3xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-[3.25rem] lg:leading-[1.08]">
+            Your GitHub stars, ranked by what matters <span class="text-muted-foreground">this week</span>.
           </h1>
 
-          <h2 class="max-w-xl text-pretty text-base font-normal text-muted-foreground sm:text-lg">
-            GitHub shows you a flat list.
-          </h2>
           <p class="max-w-xl text-pretty text-base text-muted-foreground sm:text-lg">
-            Starboard ranks your stars by recent releases, active development,
-            and what you haven&apos;t revisited — handles 1,000+ repos without
-            lag, so you act on what matters instead of scrolling through noise.
+            GitHub gives you a flat list. Starboard turns it into a living library —
+            releases, momentum, semantic search, and collections that scale past 1,000 stars.
           </p>
 
-          <ul class="grid w-full gap-2 text-sm text-muted-foreground sm:grid-cols-2">
-            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
-              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <span class="text-base leading-none">🟢</span>
-              </span>
-              <span class="text-foreground/90">See new releases from repos you starred</span>
-            </li>
-            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
-              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                {/* GitCompare icon — inlined to avoid a lucide-react chunk on LCP. */}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="size-4"
-                  aria-hidden="true"
-                >
-                  <circle cx="18" cy="18" r="3" />
-                  <circle cx="6" cy="6" r="3" />
-                  <path d="M13 6h3a2 2 0 0 1 2 2v7" />
-                  <line x1="6" y1="9" x2="6" y2="21" />
-                </svg>
-              </span>
-              <span class="text-foreground/90">Compare repos side-by-side</span>
-            </li>
-            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
-              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="size-4"
-                  aria-hidden="true"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                </svg>
-              </span>
-              <span class="text-foreground/90">Semantic search across all your stars</span>
-            </li>
-            <li class="flex items-center gap-2.5 rounded-lg border bg-card/60 px-3 py-2">
-              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  class="size-4"
-                  aria-hidden="true"
-                >
-                  <path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" />
-                </svg>
-              </span>
-              <span class="text-foreground/90">Organize into tagged collections</span>
-            </li>
-          </ul>
-
-          <div class="flex w-full flex-col items-start gap-4 pt-2">
-            {/* NextAuth v5 sign-in URL — preserves the same destination
-               (`/stars`) that the React `<SignInButton />` used. */}
+          <div class="flex w-full flex-col items-stretch gap-3 pt-1 sm:flex-row sm:items-center">
             <a
-              href="/api/auth/signin?callbackUrl=%2Fstars"
+              href="/login"
               class="inline-flex h-12 items-center justify-center gap-3 rounded-md bg-primary px-8 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                class="size-5"
-                aria-hidden="true"
-              >
+              <svg viewBox="0 0 24 24" fill="currentColor" class="size-5" aria-hidden="true">
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
               </svg>
-              Sign in with GitHub
+              Continue with GitHub
             </a>
-            <div class="flex flex-wrap items-center gap-x-5 gap-y-3">
-              <a
-                href="/discover"
-                class="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-              >
-                or browse public repos →
-              </a>
-            </div>
+            <a
+              href="/discover"
+              class="inline-flex h-12 items-center justify-center rounded-md border border-border bg-card/60 px-6 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+            >
+              Browse public repos
+            </a>
           </div>
 
           <p class="text-xs text-muted-foreground">
-            Read-only · we only read your public profile and starred repos · no write scopes · revoke anytime in GitHub settings
+            Scope: <code class="rounded bg-muted px-1 py-0.5 font-mono text-[11px]">read:user</code>
+            only · no write access · revoke anytime in GitHub settings
           </p>
+
+          <ul class="grid w-full gap-2 text-sm text-muted-foreground sm:grid-cols-2">
+            <li class="flex items-center gap-2.5 rounded-lg border border-border bg-card/50 px-3 py-2.5">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-emerald-500/15 text-emerald-400">●</span>
+              <span class="text-foreground/90">New releases from starred repos</span>
+            </li>
+            <li class="flex items-center gap-2.5 rounded-lg border border-border bg-card/50 px-3 py-2.5">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-3.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              </span>
+              <span class="text-foreground/90">Semantic search across your library</span>
+            </li>
+            <li class="flex items-center gap-2.5 rounded-lg border border-border bg-card/50 px-3 py-2.5">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-3.5" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
+              </span>
+              <span class="text-foreground/90">Collections &amp; GitHub list import</span>
+            </li>
+            <li class="flex items-center gap-2.5 rounded-lg border border-border bg-card/50 px-3 py-2.5">
+              <span class="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="size-3.5" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              </span>
+              <span class="text-foreground/90">Weekly radar of momentum &amp; risk</span>
+            </li>
+          </ul>
         </div>
 
+        {/* Product mock — static, no JS */}
+        <div class="relative min-w-0">
+          <div
+            aria-hidden="true"
+            class="absolute -inset-4 -z-10 rounded-3xl opacity-80 blur-2xl"
+            style="background: linear-gradient(135deg, oklch(0.45 0.14 250 / 0.25), transparent 60%);"
+          ></div>
+          <div class="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl shadow-black/40">
+            <div class="flex items-center gap-2 border-b border-border px-4 py-3">
+              <span class="size-2.5 rounded-full bg-red-500/70"></span>
+              <span class="size-2.5 rounded-full bg-amber-500/70"></span>
+              <span class="size-2.5 rounded-full bg-emerald-500/70"></span>
+              <span class="ml-2 text-xs text-muted-foreground">Your stars · this week</span>
+            </div>
+            <div class="divide-y divide-border">
+              <div class="flex items-start gap-3 px-4 py-3.5">
+                <span class="mt-0.5 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-400">Hot</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-foreground">vercel/next.js</p>
+                  <p class="truncate text-xs text-muted-foreground">Release v15.3 · 2 days ago</p>
+                </div>
+                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">★ 128k</span>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-3.5">
+                <span class="mt-0.5 rounded-md bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-400">New</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-foreground">cloudflare/workers-sdk</p>
+                  <p class="truncate text-xs text-muted-foreground">Starred this week · active commits</p>
+                </div>
+                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">★ 3.1k</span>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-3.5">
+                <span class="mt-0.5 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-400">Watch</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-foreground">langchain-ai/langchain</p>
+                  <p class="truncate text-xs text-muted-foreground">Quiet 90 days · still untagged</p>
+                </div>
+                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">★ 98k</span>
+              </div>
+              <div class="flex items-start gap-3 px-4 py-3.5 opacity-70">
+                <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Stale</span>
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-medium text-foreground">old-org/forgotten-tool</p>
+                  <p class="truncate text-xs text-muted-foreground">No push in 18 months · suggest remove</p>
+                </div>
+                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">★ 420</span>
+              </div>
+            </div>
+            <div class="border-t border-border bg-muted/30 px-4 py-3 text-center text-xs text-muted-foreground">
+              Connect GitHub to rank <em class="not-italic text-foreground/80">your</em> stars like this
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* Signed footer — per LANDING_STANDARD.md, a signed paragraph
-         beats anonymous corporate copy. No fabricated testimonials,
-         no founder photo (deferred until a real asset exists). */}
-      <footer class="flex w-full max-w-3xl flex-col items-start gap-3 border-t pt-8 text-sm text-muted-foreground">
+      {/* How it works */}
+      <section class="w-full max-w-4xl">
+        <h2 class="mb-8 text-center text-2xl font-bold tracking-tight text-foreground">Three steps. Then it stays useful.</h2>
+        <ol class="grid gap-4 sm:grid-cols-3">
+          <li class="rounded-xl border border-border bg-card/60 p-5">
+            <span class="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">1</span>
+            <h3 class="mt-3 font-semibold text-foreground">Connect GitHub</h3>
+            <p class="mt-1.5 text-sm text-muted-foreground">One click, read-only. We never ask for write or private repo scopes.</p>
+          </li>
+          <li class="rounded-xl border border-border bg-card/60 p-5">
+            <span class="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">2</span>
+            <h3 class="mt-3 font-semibold text-foreground">Sync your stars</h3>
+            <p class="mt-1.5 text-sm text-muted-foreground">Import stars and GitHub lists into one searchable library.</p>
+          </li>
+          <li class="rounded-xl border border-border bg-card/60 p-5">
+            <span class="flex size-8 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">3</span>
+            <h3 class="mt-3 font-semibold text-foreground">Act on signal</h3>
+            <p class="mt-1.5 text-sm text-muted-foreground">Radar, digests, semantic search, and collections replace endless scroll.</p>
+          </li>
+        </ol>
+      </section>
+
+      {/* Bottom CTA */}
+      <section class="flex w-full max-w-3xl flex-col items-center gap-4 rounded-2xl border border-border bg-card/50 px-6 py-10 text-center">
+        <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground">Ready when your star list isn&apos;t.</h2>
+        <p class="max-w-md text-sm text-muted-foreground">
+          Free for personal use. Built because a 1,200-star list stopped being searchable.
+        </p>
+        <a
+          href="/login"
+          class="inline-flex h-12 items-center justify-center gap-3 rounded-md bg-primary px-8 text-base font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <svg viewBox="0 0 24 24" fill="currentColor" class="size-5" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
+          </svg>
+          Sign in with GitHub
+        </a>
+      </section>
+
+      <footer class="flex w-full max-w-3xl flex-col items-start gap-3 border-t border-border pt-8 text-sm text-muted-foreground">
         <p class="text-pretty">
           Built by <a
             href="https://github.com/sarthakagrawal927"
@@ -164,34 +217,17 @@ const DESCRIPTION =
           Free, open source, read-only on your GitHub account.
         </p>
         <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
-          <a
-            href="https://github.com/Codevetter/starboard"
-            class="underline-offset-4 hover:text-foreground hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >Source on GitHub</a>
+          <a href="https://github.com/Codevetter/starboard" class="underline-offset-4 hover:text-foreground hover:underline" target="_blank" rel="noopener noreferrer">Source</a>
           <span aria-hidden="true">·</span>
-          <a
-            href="/changelog"
-            class="underline-offset-4 hover:text-foreground hover:underline"
-          >Changelog</a>
+          <a href="/changelog" class="underline-offset-4 hover:text-foreground hover:underline">Changelog</a>
           <span aria-hidden="true">·</span>
-          <a
-            href="/about"
-            class="underline-offset-4 hover:text-foreground hover:underline"
-          >About</a>
+          <a href="/about" class="underline-offset-4 hover:text-foreground hover:underline">About</a>
           <span aria-hidden="true">·</span>
-          <a
-            href="https://github.com/Codevetter/starboard/issues"
-            class="underline-offset-4 hover:text-foreground hover:underline"
-            target="_blank"
-            rel="noopener noreferrer"
-          >Roadmap</a>
+          <a href="https://github.com/Codevetter/starboard/issues" class="underline-offset-4 hover:text-foreground hover:underline" target="_blank" rel="noopener noreferrer">Roadmap</a>
           <span aria-hidden="true">·</span>
-          <a
-            href="/discover"
-            class="underline-offset-4 hover:text-foreground hover:underline"
-          >Public discover</a>
+          <a href="/discover" class="underline-offset-4 hover:text-foreground hover:underline">Discover</a>
+          <span aria-hidden="true">·</span>
+          <a href="/login" class="underline-offset-4 hover:text-foreground hover:underline">Login</a>
         </div>
       </footer>
     </main>

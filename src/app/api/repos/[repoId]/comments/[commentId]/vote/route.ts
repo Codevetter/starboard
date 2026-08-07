@@ -2,7 +2,6 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
-import { isRateLimited } from '@/lib/rate-limit';
 
 export async function POST(
   request: NextRequest,
@@ -33,10 +32,6 @@ export async function POST(
   }
 
   const userId = session.user.githubId;
-
-  if (await isRateLimited(userId)) {
-    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
-  }
 
   try {
     // Verify the comment exists and belongs to this repo
