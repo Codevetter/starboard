@@ -10,6 +10,7 @@ describe('sitemap', () => {
       siteUrl,
       `${siteUrl}/discover`,
       `${siteUrl}/tools`,
+      `${siteUrl}/catalog-updates`,
       `${siteUrl}/changelog`,
       `${siteUrl}/about`,
       `${siteUrl}/privacy`,
