@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowUpRight, Check, GitBranch, Loader2, MoreHorizontal, X } from 'lucide-react';
+import { ArrowUpRight, Check, GitBranch, MoreHorizontal, X } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
@@ -167,10 +167,40 @@ function DigestGroupSection({
 }
 
 export function WeeklyActionDigest() {
-  const { data, error, isLoading } = useSWR<MaintainerDigest>('/api/digest/weekly', fetcher, {
-    revalidateOnFocus: false,
-    dedupingInterval: 5 * 60_000,
-  });
+  // Defer the digest fetch until after first paint so it does not compete with
+  // /api/stars + /api/lists on the critical post-login path.
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    let cancelled = false;
+    const enable = () => {
+      if (!cancelled) setEnabled(true);
+    };
+    const win = globalThis as typeof globalThis & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof win.requestIdleCallback === 'function') {
+      const id = win.requestIdleCallback(enable, { timeout: 2500 });
+      return () => {
+        cancelled = true;
+        win.cancelIdleCallback?.(id);
+      };
+    }
+    const timer = globalThis.setTimeout(enable, 1200);
+    return () => {
+      cancelled = true;
+      globalThis.clearTimeout(timer);
+    };
+  }, []);
+
+  const { data, error, isLoading } = useSWR<MaintainerDigest>(
+    enabled ? '/api/digest/weekly' : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      dedupingInterval: 5 * 60_000,
+    }
+  );
   const [localActions, setLocalActions] = useState<LocalDigestStateById>({
     digestId: null,
     actions: {},
@@ -218,15 +248,9 @@ export function WeeklyActionDigest() {
     trackDigestItemActioned(data.id, item.id, item.group, action);
   };
 
-  if (isLoading) {
-    return (
-      <section className="mb-4 rounded-lg border bg-card p-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 className="size-4 animate-spin" />
-          Loading your weekly action digest
-        </div>
-      </section>
-    );
+  if (!enabled || isLoading) {
+    // Keep layout stable without competing for the critical path.
+    return null;
   }
 
   if (error || !data) {

@@ -6,6 +6,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { Providers } from '@/components/providers';
 import { SaaSMakerFeedback } from '@/components/saasmaker-feedback';
 import { VitalsReporter } from '@/components/VitalsReporter';
+import { auth } from '@/lib/auth';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -58,11 +59,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Hydrate SessionProvider from the server so post-login pages do not block
+  // on a slow client /api/auth/session round-trip (observed ~17s cold).
+  const session = await auth();
+
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -82,7 +87,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Providers>
+        <Providers session={session}>
           {children}
           <SaaSMakerFeedback />
           <VitalsReporter />

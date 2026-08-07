@@ -25,7 +25,8 @@
       "!**/public",
       "!**/design.html",
       "!**/*.css",
-      "!**/*.astro"
+      "!**/*.astro",
+      "!**/data/**/*.generated.json"
     ]
   },
   "formatter": {

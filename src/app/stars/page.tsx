@@ -91,30 +91,20 @@ function PageSkeleton() {
 export default function StarsPage() {
   const { status } = useSession();
   const router = useRouter();
-  // Never park on the skeleton forever if /api/auth/session is slow.
-  const [sessionGraceDone, setSessionGraceDone] = useState(false);
 
   useEffect(() => {
+    // Only bounce after session has resolved — never while still loading.
     if (status === 'unauthenticated') {
-      router.replace('/');
+      router.replace('/login?callbackUrl=%2Fstars');
     }
   }, [router, status]);
 
-  useEffect(() => {
-    if (status !== 'loading') {
-      setSessionGraceDone(true);
-      return;
-    }
-    const timer = window.setTimeout(() => setSessionGraceDone(true), 1200);
-    return () => window.clearTimeout(timer);
-  }, [status]);
-
-  if (status === 'loading' && !sessionGraceDone) {
+  if (status === 'loading') {
     return <PageSkeleton />;
   }
 
   if (status === 'unauthenticated') {
-    return null;
+    return <PageSkeleton />;
   }
 
   return (
