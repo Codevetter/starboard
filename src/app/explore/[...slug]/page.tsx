@@ -18,7 +18,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 
 import { Badge } from '@/components/ui/badge';
@@ -27,12 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRepoDetail } from '@/hooks/use-repo-detail';
 import { useSimilarRepos } from '@/hooks/use-similar-repos';
 import { getAvatarImageAttrs } from '@/lib/avatar';
-
-const fetcher = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status}`);
-  return response.json();
-};
+import { jsonFetcher } from '@/lib/swr-fetcher';
 
 const languageColors: Record<string, string> = {
   JavaScript: '#f1e05a',
@@ -210,16 +205,29 @@ export default function RepoDetailPage() {
 
   const { repo, commentCount, comments, isLoading, error, addComment, voteComment } =
     useRepoDetail(repoSlug);
-  const { similar, isLoading: similarLoading } = useSimilarRepos(repo?.id);
+
+  // Stagger secondary requests after the main repo payload so a single page
+  // open does not fire 4 concurrent /api/* calls (Cloudflare edge 429s).
+  const [secondaryReady, setSecondaryReady] = useState(false);
+  useEffect(() => {
+    if (!repo?.id) {
+      setSecondaryReady(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSecondaryReady(true), 450);
+    return () => window.clearTimeout(timer);
+  }, [repo?.id]);
+
+  const { similar, isLoading: similarLoading } = useSimilarRepos(repo?.id, 8, secondaryReady);
   const { data: starHistory } = useSWR<StarHistoryResponse>(
-    repo?.id ? `/api/repos/${repo.id}/star-history?days=180` : null,
-    fetcher,
-    { revalidateOnFocus: false }
+    secondaryReady && repo?.id ? `/api/repos/${repo.id}/star-history?days=180` : null,
+    jsonFetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
   const { data: repoTools } = useSWR<RepoToolsResponse>(
-    repo?.id ? `/api/repos/${repo.id}/tools` : null,
-    fetcher,
-    { revalidateOnFocus: false }
+    secondaryReady && repo?.id ? `/api/repos/${repo.id}/tools` : null,
+    jsonFetcher,
+    { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
 
   const [commentBody, setCommentBody] = useState('');

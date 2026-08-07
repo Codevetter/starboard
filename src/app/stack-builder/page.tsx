@@ -56,10 +56,14 @@ const fetcher = async <T,>(url: string): Promise<T> => {
     throw new Error('Unauthorized');
   }
   if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(body || `${response.status}`);
+    const retryAfter = response.headers.get('Retry-After');
+    const retryAfterMs = retryAfter
+      ? Math.min((Number.parseInt(retryAfter, 10) || 5) * 1000, 60_000)
+      : null;
+    const { FetchHttpError } = await import('@/lib/swr-fetcher');
+    throw new FetchHttpError(response.status, retryAfterMs);
   }
-  return response.json();
+  return response.json() as Promise<T>;
 };
 
 function formatNumber(value: number): string {
@@ -320,10 +324,14 @@ function StackBuilderContent() {
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link href="/discover">Discover</Link>
+              <Link href="/discover" prefetch={false}>
+                Discover
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/stars">Library</Link>
+              <Link href="/stars" prefetch={false}>
+                Library
+              </Link>
             </Button>
           </div>
         </div>

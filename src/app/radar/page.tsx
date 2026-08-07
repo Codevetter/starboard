@@ -16,6 +16,8 @@ import { useSession } from 'next-auth/react';
 import { useEffect } from 'react';
 import useSWR from 'swr';
 
+import { jsonFetcher } from '@/lib/swr-fetcher';
+
 import { AlertInboxPanel } from '@/components/alert-inbox';
 import { AlertSettingsPanel } from '@/components/alert-settings';
 import { ShareReportButton } from '@/components/share-report-button';
@@ -39,11 +41,7 @@ interface GrowthResponse {
   repos: GrowthRepo[];
 }
 
-const fetcher = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status}`);
-  return response.json();
-};
+const fetcher = jsonFetcher;
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
@@ -229,13 +227,19 @@ function RadarContent() {
           <div className="flex items-center gap-2">
             <ShareReportButton type="radar" label="Share radar report" />
             <Button asChild variant="outline" size="sm">
-              <Link href="/tools">Tools</Link>
+              <Link href="/tools" prefetch={false}>
+                Tools
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/discover">Discover</Link>
+              <Link href="/discover" prefetch={false}>
+                Discover
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/stars">Library</Link>
+              <Link href="/stars" prefetch={false}>
+                Library
+              </Link>
             </Button>
           </div>
         </div>

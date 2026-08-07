@@ -15,6 +15,8 @@ import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 
+import { jsonFetcher } from '@/lib/swr-fetcher';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -55,11 +57,7 @@ interface ToolReposResponse {
   repos: ToolRepo[];
 }
 
-const fetcher = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`${response.status}`);
-  return response.json();
-};
+const fetcher = jsonFetcher;
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);

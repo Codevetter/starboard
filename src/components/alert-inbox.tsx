@@ -4,16 +4,14 @@ import { ArrowUpRight, BellRing, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import useSWR from 'swr';
 
+import { jsonFetcher } from '@/lib/swr-fetcher';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { AlertRules } from '@/lib/alert-preferences';
 import type { WeeklyAlertItem } from '@/lib/weekly-alerts';
 
-const fetcher = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status}`);
-  return response.json();
-};
+const fetcher = jsonFetcher;
 
 interface InboxResponse {
   enabled: boolean;

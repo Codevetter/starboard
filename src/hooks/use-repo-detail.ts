@@ -2,11 +2,7 @@
 
 import useSWR from 'swr';
 
-const fetcher = async <T>(url: string): Promise<T> =>
-  fetch(url).then((r) => {
-    if (!r.ok) throw new Error(`${r.status}`);
-    return r.json() as Promise<T>;
-  });
+import { jsonFetcher } from '@/lib/swr-fetcher';
 
 interface RepoDetail {
   repo: {
@@ -40,14 +36,16 @@ export interface Comment {
 export function useRepoDetail(slug: string) {
   const { data, error, isLoading, mutate } = useSWR<RepoDetail>(
     slug ? `/api/repos/lookup?name=${encodeURIComponent(slug)}` : null,
-    fetcher<RepoDetail>
+    jsonFetcher
   );
 
   const repoId = data?.repo.id;
 
+  // Load comments after the main repo payload so page open is one request first.
   const { data: comments, mutate: mutateComments } = useSWR<Comment[]>(
     repoId ? `/api/repos/${repoId}/comments` : null,
-    fetcher<Comment[]>
+    jsonFetcher,
+    { revalidateOnFocus: false, dedupingInterval: 30_000 }
   );
 
   const addComment = async (body: string) => {

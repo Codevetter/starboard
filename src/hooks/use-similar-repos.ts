@@ -2,6 +2,8 @@
 
 import useSWR from 'swr';
 
+import { jsonFetcher } from '@/lib/swr-fetcher';
+
 interface SimilarRepo {
   id: number;
   name: string;
@@ -25,16 +27,10 @@ interface Response {
   reason?: string;
 }
 
-const fetcher = async <T>(url: string): Promise<T> =>
-  fetch(url).then((r) => {
-    if (!r.ok) throw new Error(`${r.status}`);
-    return r.json() as Promise<T>;
-  });
-
-export function useSimilarRepos(repoId: number | null | undefined, limit = 8) {
+export function useSimilarRepos(repoId: number | null | undefined, limit = 8, enabled = true) {
   const { data, error, isLoading } = useSWR<Response>(
-    repoId ? `/api/repos/${repoId}/similar?limit=${limit}` : null,
-    fetcher<Response>,
+    enabled && repoId ? `/api/repos/${repoId}/similar?limit=${limit}` : null,
+    jsonFetcher,
     {
       revalidateOnFocus: false,
       dedupingInterval: 60_000 * 10,

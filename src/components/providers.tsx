@@ -7,8 +7,10 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import posthog from 'posthog-js';
 import { PostHogProvider } from 'posthog-js/react';
 import { useEffect } from 'react';
+import { SWRConfig } from 'swr';
 
 import { installBrowserMonitoring } from '@/lib/foundry-monitoring';
+import { swrErrorRetry } from '@/lib/swr-fetcher';
 
 export function Providers({
   children,
@@ -31,7 +33,18 @@ export function Providers({
           refetchInterval={0}
           refetchWhenOffline={false}
         >
-          <NuqsAdapter>{children}</NuqsAdapter>
+          <SWRConfig
+            value={{
+              // Avoid focus thrash + CF edge 429s during ordinary browsing.
+              revalidateOnFocus: false,
+              dedupingInterval: 5_000,
+              errorRetryCount: 3,
+              onErrorRetry: swrErrorRetry,
+              shouldRetryOnError: true,
+            }}
+          >
+            <NuqsAdapter>{children}</NuqsAdapter>
+          </SWRConfig>
         </SessionProvider>
       </ThemeProvider>
     </PostHogProvider>

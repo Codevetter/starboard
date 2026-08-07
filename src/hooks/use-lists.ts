@@ -2,11 +2,7 @@
 
 import useSWR from 'swr';
 
-const fetcher = async <T>(url: string): Promise<T> =>
-  fetch(url).then((r) => {
-    if (!r.ok) throw new Error(`${r.status}`);
-    return r.json() as Promise<T>;
-  });
+import { jsonFetcher } from '@/lib/swr-fetcher';
 
 export interface UserList {
   id: number;
@@ -24,7 +20,7 @@ export interface UserList {
 export function useLists(enabled = true) {
   const { data, error, isLoading, mutate } = useSWR<UserList[]>(
     enabled ? '/api/lists' : null,
-    fetcher<UserList[]>,
+    jsonFetcher,
     {
       revalidateOnFocus: false,
       shouldRetryOnError: false,

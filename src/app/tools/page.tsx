@@ -14,6 +14,8 @@ import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 
+import { jsonFetcher } from '@/lib/swr-fetcher';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -39,11 +41,7 @@ interface ToolsResponse {
   tools: ToolSummary[];
 }
 
-const fetcher = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url, { cache: 'no-store' });
-  if (!response.ok) throw new Error(`${response.status}`);
-  return response.json();
-};
+const fetcher = jsonFetcher;
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
@@ -119,13 +117,19 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
           </div>
           <div className="flex items-center gap-2">
             <Button asChild variant="outline" size="sm">
-              <Link href="/radar">Radar</Link>
+              <Link href="/radar" prefetch={false}>
+                Radar
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/discover">Discover</Link>
+              <Link href="/discover" prefetch={false}>
+                Discover
+              </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
-              <Link href="/stars">Library</Link>
+              <Link href="/stars" prefetch={false}>
+                Library
+              </Link>
             </Button>
           </div>
         </div>

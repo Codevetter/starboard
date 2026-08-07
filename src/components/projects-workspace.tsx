@@ -18,6 +18,8 @@ import { useSession } from 'next-auth/react';
 import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 
+import { jsonFetcher } from '@/lib/swr-fetcher';
+
 import { ShareReportButton } from '@/components/share-report-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -58,11 +60,7 @@ interface ProjectsWorkspaceProps {
 
 const emptyProjects: ProjectSummary[] = [];
 
-const fetcher = async <T,>(url: string): Promise<T> => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status}`);
-  return response.json();
-};
+const fetcher = jsonFetcher;
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
