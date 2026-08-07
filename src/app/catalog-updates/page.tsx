@@ -1,36 +1,44 @@
-'use client';
-
-import { ArrowUpRight, Library, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowUpRight, Library } from 'lucide-react';
+import type { Metadata } from 'next';
 import Link from 'next/link';
-import useSWR from 'swr';
 
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { db } from '@/db';
+import { getAvatarImageAttrs } from '@/lib/avatar';
 import {
-  type CatalogUpdatesPayload,
+  CATALOG_UPDATES_DEFAULT_LIMIT,
   formatCatalogDate,
   groupCatalogChangesByDate,
+  loadCatalogUpdates,
 } from '@/lib/catalog-updates';
-import { getAvatarImageAttrs } from '@/lib/avatar';
 
-const fetcher = async (url: string): Promise<CatalogUpdatesPayload> => {
-  const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status}`);
-  return response.json();
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  title: 'Catalog updates',
+  description:
+    'Recently added popular repositories in the shared Starboard Discover corpus — catalogue ingestion history, not the product changelog.',
+  alternates: {
+    canonical: '/catalog-updates',
+  },
 };
 
 function formatStars(n: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(n);
 }
 
-export default function CatalogUpdatesPage() {
-  const { data, error, isLoading, isValidating, mutate } = useSWR<CatalogUpdatesPayload>(
-    '/api/catalog-updates?limit=200',
-    fetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
-  );
+export default async function CatalogUpdatesPage() {
+  let payload: Awaited<ReturnType<typeof loadCatalogUpdates>> | null = null;
+  let loadError: string | null = null;
 
-  const groups = data ? groupCatalogChangesByDate(data.changes) : [];
+  try {
+    payload = await loadCatalogUpdates(db, CATALOG_UPDATES_DEFAULT_LIMIT);
+  } catch (error) {
+    console.error('catalog-updates page failed:', error);
+    loadError = error instanceof Error ? error.message : 'Unknown error';
+  }
+
+  const groups = payload ? groupCatalogChangesByDate(payload.changes) : [];
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -63,66 +71,56 @@ export default function CatalogUpdatesPage() {
                 .
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              onClick={() => void mutate()}
-              disabled={isValidating}
+            <Link
+              href="/catalog-updates"
+              className="inline-flex h-8 items-center justify-center rounded-md border bg-background px-3 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
             >
-              {isValidating ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <RefreshCw className="size-3.5" />
-              )}
               Refresh
-            </Button>
+            </Link>
           </div>
         </div>
 
-        {data?.summary && (
+        {payload?.summary && (
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-xl border bg-card/60 px-4 py-3">
               <p className="text-2xl font-semibold tabular-nums">
-                {formatStars(data.summary.totalCatalogRepos)}
+                {formatStars(payload.summary.totalCatalogRepos)}
               </p>
               <p className="text-xs text-muted-foreground">
-                repos ≥ {formatStars(data.summary.minStarsFloor)} stars
+                repos ≥ {formatStars(payload.summary.minStarsFloor)} stars
               </p>
             </div>
             <div className="rounded-xl border bg-card/60 px-4 py-3">
               <p className="text-sm font-medium">
-                {data.summary.newestCatalogedAt
-                  ? formatCatalogDate(data.summary.newestCatalogedAt.slice(0, 10))
+                {payload.summary.newestCatalogedAt
+                  ? formatCatalogDate(payload.summary.newestCatalogedAt.slice(0, 10))
                   : '—'}
               </p>
               <p className="text-xs text-muted-foreground">Newest catalogue entry</p>
             </div>
             <div className="rounded-xl border bg-card/60 px-4 py-3">
-              <p className="text-sm font-medium">{data.summary.changesReturned} shown</p>
+              <p className="text-sm font-medium">{payload.summary.changesReturned} shown</p>
               <p className="text-xs text-muted-foreground">Latest ingest slice</p>
             </div>
           </div>
         )}
 
-        {data?.summary?.refreshCadence && (
+        {payload?.summary?.refreshCadence && (
           <p className="text-xs leading-relaxed text-muted-foreground">
-            {data.summary.refreshCadence}
+            {payload.summary.refreshCadence}
           </p>
         )}
 
-        {isLoading ? (
-          <div className="flex items-center gap-2 rounded-xl border bg-card/40 px-4 py-8 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            Loading catalogue history…
-          </div>
-        ) : error ? (
+        {loadError ? (
           <div className="space-y-3 rounded-xl border border-red-500/25 bg-red-500/10 p-4">
             <p className="text-sm text-red-200/90">Couldn&apos;t load catalogue updates.</p>
-            <Button type="button" variant="outline" size="sm" onClick={() => void mutate()}>
+            <p className="font-mono text-xs text-red-200/70">{loadError}</p>
+            <Link
+              href="/catalog-updates"
+              className="inline-flex h-8 items-center rounded-md border bg-background px-3 text-sm font-medium"
+            >
               Retry
-            </Button>
+            </Link>
           </div>
         ) : groups.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -218,6 +216,12 @@ export default function CatalogUpdatesPage() {
             className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             Machine-readable .md ↗
+          </a>
+          <a
+            href="/api/catalog-updates?limit=200"
+            className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            JSON API ↗
           </a>
         </nav>
       </main>

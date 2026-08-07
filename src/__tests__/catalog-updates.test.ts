@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  clampCatalogLimit,
   formatCatalogDate,
   groupCatalogChangesByDate,
   type CatalogChangeEntry,
@@ -34,5 +35,12 @@ describe('catalog-updates helpers', () => {
 
   it('formats UTC calendar dates stably', () => {
     expect(formatCatalogDate('2026-08-01')).toMatch(/2026/);
+  });
+
+  it('clamps catalogue limit into a safe range', () => {
+    expect(clampCatalogLimit(undefined)).toBe(200);
+    expect(clampCatalogLimit('0')).toBe(1);
+    expect(clampCatalogLimit(9999)).toBe(500);
+    expect(clampCatalogLimit('50')).toBe(50);
   });
 });
