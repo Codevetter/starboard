@@ -77,11 +77,7 @@ export function SignInButton({
         size="lg"
         disabled={pending}
         onClick={() => void handleSignIn()}
-        className={
-          fullWidth
-            ? 'h-12 w-full gap-3 px-8 text-base'
-            : 'h-12 gap-3 px-8 text-base'
-        }
+        className={fullWidth ? 'h-12 w-full gap-3 px-8 text-base' : 'h-12 gap-3 px-8 text-base'}
       >
         {GITHUB_MARK}
         {pending ? 'Redirecting to GitHub…' : (label ?? 'Sign in with GitHub')}

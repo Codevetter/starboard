@@ -121,7 +121,10 @@ export default async function LoginPage({
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
           Prefer to look around first?{' '}
-          <Link href="/discover" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Link
+            href="/discover"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
             Browse public Discover
           </Link>
           {' · '}

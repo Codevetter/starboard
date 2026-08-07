@@ -58,7 +58,10 @@ export default async function Home() {
 
         <p className="text-xs text-muted-foreground">
           Prefer a dedicated page?{' '}
-          <Link href="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Link
+            href="/login"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
             Open login
           </Link>
         </p>
