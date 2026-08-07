@@ -9,7 +9,6 @@ import {
   CheckCircle2,
   FlaskConical,
   FolderKanban,
-  Loader2,
   Search,
   SearchCheck,
 } from 'lucide-react';
@@ -25,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import type {
   FleetFeatureArea,
   FleetProjectRecommendationReport,
@@ -103,6 +103,133 @@ function recommendationSortValue(recommendation: FleetRecommendation): number {
   if (recommendation.action === 'prototype') return 1;
   if (recommendation.action === 'research') return 2;
   return 3;
+}
+
+function ProjectsLoadingShell() {
+  return (
+    <main className="min-h-screen bg-background md:flex" aria-busy="true" aria-live="polite">
+      <aside className="border-b bg-background md:sticky md:top-0 md:h-screen md:w-80 md:shrink-0 md:border-b-0 md:border-r">
+        <div className="border-b p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-md border">
+              <FolderKanban className="size-4 text-muted-foreground" />
+            </div>
+            <div className="min-w-0 space-y-1.5">
+              <Skeleton className="h-5 w-28" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+          <Skeleton className="mt-4 h-9 w-full rounded-md" />
+        </div>
+        <div className="space-y-2 p-3">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="rounded-md border border-transparent px-3 py-2">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="mt-2 h-3 w-1/2" />
+            </div>
+          ))}
+        </div>
+      </aside>
+
+      <section className="min-w-0 flex-1">
+        <header className="sticky top-0 z-20 border-b bg-background/80 px-4 py-3 backdrop-blur-sm md:px-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 space-y-2">
+              <Skeleton className="h-5 w-20" />
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-72 max-w-full" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-24 rounded-md" />
+              <Skeleton className="h-8 w-20 rounded-md" />
+            </div>
+          </div>
+        </header>
+
+        <div className="grid gap-3 p-4 md:grid-cols-5 md:p-6">
+          <Card className="rounded-lg py-4 shadow-none md:col-span-2">
+            <CardContent className="space-y-3 px-4">
+              <div className="flex flex-wrap gap-1.5">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-14 rounded-full" />
+                <Skeleton className="h-5 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-5/6" />
+            </CardContent>
+          </Card>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="rounded-lg py-4 shadow-none">
+              <CardContent className="space-y-2 px-4">
+                <Skeleton className="h-8 w-12" />
+                <Skeleton className="h-4 w-20" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="space-y-3 px-4 pb-8 md:px-6">
+          <Skeleton className="h-5 w-24" />
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Card key={i} className="rounded-lg py-4 shadow-none">
+                <CardHeader className="gap-3 px-4">
+                  <div className="flex gap-1.5">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-5 w-14 rounded-full" />
+                  </div>
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-4/5" />
+                </CardHeader>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function RecommendationsLoadingBody() {
+  return (
+    <div className="space-y-6" aria-busy="true" aria-label="Loading recommendations">
+      <div className="grid gap-3 p-4 md:grid-cols-5 md:p-6">
+        <Card className="rounded-lg py-4 shadow-none md:col-span-2">
+          <CardContent className="space-y-3 px-4">
+            <div className="flex flex-wrap gap-1.5">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-5 w-14 rounded-full" />
+            </div>
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-5/6" />
+          </CardContent>
+        </Card>
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="rounded-lg py-4 shadow-none">
+            <CardContent className="space-y-2 px-4">
+              <Skeleton className="h-8 w-12" />
+              <Skeleton className="h-4 w-20" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      <div className="space-y-3 px-4 pb-8 md:px-6">
+        <Skeleton className="h-5 w-24" />
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="rounded-lg py-4 shadow-none">
+              <CardHeader className="gap-3 px-4">
+                <Skeleton className="h-5 w-16 rounded-full" />
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function RecommendationCard({ recommendation }: { recommendation: FleetRecommendation }) {
@@ -354,12 +481,9 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [activeSlug, projects, router]);
 
-  if (status === 'loading' || isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+  // Auth or project list still settling — full shell skeleton, not a blank spinner.
+  if (status === 'loading' || (isLoading && !data)) {
+    return <ProjectsLoadingShell />;
   }
 
   if (status === 'unauthenticated') return null;
@@ -445,23 +569,19 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
           </div>
         </header>
 
-        {error && (
+        {error && !isLoading && (
           <div className="m-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300 md:m-6">
-            Projects could not load.
+            Projects could not load. Refresh and try again.
           </div>
         )}
 
-        {recommendationsError && (
+        {recommendationsError && !recommendationsLoading && (
           <div className="m-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300 md:m-6">
-            Recommendations could not load.
+            Recommendations could not load for this project.
           </div>
         )}
 
-        {recommendationsLoading && (
-          <div className="flex min-h-[50vh] items-center justify-center">
-            <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          </div>
-        )}
+        {recommendationsLoading && !recommendations && <RecommendationsLoadingBody />}
 
         {recommendations && (
           <>
@@ -539,6 +659,17 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
                     </div>
                   </div>
                 ))}
+
+              {recommendations.byFeatureArea.every((g) => g.recommendations.length === 0) &&
+                topRecommendations.length === 0 && (
+                  <div className="rounded-lg border border-dashed p-8 text-center">
+                    <p className="text-sm font-medium">No strong matches yet</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Sync more stars or pick another project — recommendations use your library
+                      against this fleet snapshot.
+                    </p>
+                  </div>
+                )}
             </section>
           </>
         )}

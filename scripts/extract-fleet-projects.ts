@@ -9,9 +9,10 @@ import {
 } from '../src/lib/fleet-projects';
 
 const fleetRoot = path.resolve(process.cwd(), '..');
-const registryPath = path.join(fleetRoot, 'saas-maker', 'foundry.projects.json');
+// Canonical fleet catalog (replaces retired saas-maker/foundry.projects.json).
+const registryPath = path.join(fleetRoot, 'foundry', 'ops', 'config', 'projects.json');
 const outputPath = path.join(process.cwd(), 'data', 'fleet-projects.generated.json');
-const outOfFleet = new Set(['personal-memory', 'port-whisperer', 'local-ai']);
+const skippedTiers = new Set(['out-of-fleet', 'non-product']);
 const ignoredDirs = new Set([
   '.git',
   '.next',
@@ -25,13 +26,35 @@ const ignoredDirs = new Set([
   'test-results',
 ]);
 
+interface CatalogPublicMeta {
+  listing?: string;
+  name?: string;
+  description?: string;
+  category?: string;
+  maturity?: string;
+  repositoryUrl?: string;
+}
+
+interface CatalogProject {
+  id: string;
+  name?: string;
+  tier?: string;
+  priority?: string;
+  repo?: string | null;
+  sourcePath?: string | null;
+  repositoryUrl?: string;
+  public?: CatalogPublicMeta;
+}
+
 interface RegistryEntry {
+  name?: string;
   desc?: string;
   url?: string;
   tier?: string;
   category?: string;
   priority?: string;
   maturity?: string;
+  sourcePath?: string;
 }
 
 interface PackageJson {
@@ -164,11 +187,37 @@ function detectConfigFiles(projectRoot: string): string[] {
   ].filter((file) => existsSync(path.join(projectRoot, file)));
 }
 
-function normalizeMaturity(value: string | undefined): FleetProjectMaturity {
+function normalizeMaturity(
+  value: string | undefined,
+  listing?: string | undefined
+): FleetProjectMaturity {
   if (value === 'public' || value === 'public-ready' || value === 'internal-first') {
     return value;
   }
+  // Foundry catalog uses listing/maturity labels like "maintained".
+  if (listing === 'maintained' || value === 'maintained' || value === 'public-ready') {
+    return 'public-ready';
+  }
+  if (listing === 'past' || value === 'past') return 'internal-first';
   return 'internal-first';
+}
+
+function catalogToRegistryEntry(project: CatalogProject): RegistryEntry | null {
+  if (skippedTiers.has(project.tier ?? '')) return null;
+  const sourcePath = project.sourcePath || project.repo;
+  if (!sourcePath) return null;
+
+  const pub = project.public;
+  return {
+    name: pub?.name || project.name || project.id,
+    desc: pub?.description || project.name || project.id,
+    url: pub?.repositoryUrl || project.repositoryUrl || '',
+    tier: project.tier ?? 'unknown',
+    category: pub?.category ?? 'product',
+    priority: project.priority ?? 'P3',
+    maturity: normalizeMaturity(pub?.maturity, pub?.listing),
+    sourcePath,
+  };
 }
 
 function maturityRank(maturity: FleetProjectMaturity): number {
@@ -178,8 +227,8 @@ function maturityRank(maturity: FleetProjectMaturity): number {
 }
 
 function buildSnapshot(slug: string, entry: RegistryEntry): FleetProjectSnapshot | null {
-  if (outOfFleet.has(slug)) return null;
-  const projectRoot = path.join(fleetRoot, slug);
+  const relativeSource = entry.sourcePath || slug;
+  const projectRoot = path.join(fleetRoot, relativeSource);
   if (!existsSync(projectRoot)) return null;
 
   const projectStatus = readText(path.join(projectRoot, 'PROJECT_STATUS.md'));
@@ -228,7 +277,7 @@ function buildSnapshot(slug: string, entry: RegistryEntry): FleetProjectSnapshot
 
   return {
     slug,
-    name: slug,
+    name: entry.name || slug,
     description: entry.desc ?? '',
     url: entry.url ?? '',
     tier: entry.tier ?? 'unknown',
@@ -259,9 +308,23 @@ function buildSnapshot(slug: string, entry: RegistryEntry): FleetProjectSnapshot
 }
 
 function main() {
-  const registry = JSON.parse(readFileSync(registryPath, 'utf8')) as Record<string, RegistryEntry>;
-  const projects = Object.entries(registry)
-    .map(([slug, entry]) => buildSnapshot(slug, entry))
+  if (!existsSync(registryPath)) {
+    throw new Error(`Fleet project catalog not found at ${registryPath}`);
+  }
+
+  const catalog = JSON.parse(readFileSync(registryPath, 'utf8')) as {
+    projects?: CatalogProject[];
+  };
+  if (!Array.isArray(catalog.projects)) {
+    throw new Error(`Invalid catalog shape: expected projects[] in ${registryPath}`);
+  }
+
+  const projects = catalog.projects
+    .map((project) => {
+      const entry = catalogToRegistryEntry(project);
+      if (!entry) return null;
+      return buildSnapshot(project.id, entry);
+    })
     .filter((project): project is FleetProjectSnapshot => project !== null)
     .sort((a, b) => {
       const maturity = maturityRank(a.maturity) - maturityRank(b.maturity);
