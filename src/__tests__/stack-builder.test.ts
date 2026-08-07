@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildStackBuilderReport, parseStackGoal, type StackRepoInput } from '@/lib/stack-builder';
+import {
+  buildStackBuilderReport,
+  normalizeTopics,
+  parseStackGoal,
+  type StackRepoInput,
+} from '@/lib/stack-builder';
 
 const baseRepo: StackRepoInput = {
   id: 1,
@@ -136,5 +141,39 @@ describe('stack builder', () => {
   it('parses unknown goals as web app', () => {
     expect(parseStackGoal('nope')).toBe('web-app');
     expect(parseStackGoal('ai-app')).toBe('ai-app');
+  });
+
+  it('normalizes messy topic payloads without throwing', () => {
+    expect(normalizeTopics(null)).toEqual([]);
+    expect(normalizeTopics('["react","framework"]')).toEqual(['react', 'framework']);
+    expect(normalizeTopics('not-json')).toEqual(['not-json']);
+    expect(normalizeTopics(['auth', 12, 'oauth'] as unknown[])).toEqual(['auth', 'oauth']);
+  });
+
+  it('does not crash when starred repos have malformed topics', () => {
+    const report = buildStackBuilderReport(
+      [
+        {
+          ...baseRepo,
+          id: 1,
+          name: 'broken-topics',
+          fullName: 'owner/broken-topics',
+          topics: null as unknown as string[],
+          description: 'auth oauth login framework for web apps',
+        },
+        {
+          ...baseRepo,
+          id: 2,
+          name: 'string-topics',
+          fullName: 'owner/string-topics',
+          topics: '["auth","oauth"]' as unknown as string[],
+          description: 'authentication library',
+        },
+      ],
+      { goal: 'web-app', now }
+    );
+
+    expect(report.summary.totalRepos).toBe(2);
+    expect(report.roles.length).toBeGreaterThan(0);
   });
 });

@@ -280,8 +280,30 @@ function normalize(value: string | null | undefined): string {
   return (value ?? '').toLowerCase();
 }
 
+/** Coerce messy DB/API topic values into a clean string[]. */
+export function normalizeTopics(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((topic): topic is string => typeof topic === 'string' && topic.length > 0);
+  }
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (topic): topic is string => typeof topic === 'string' && topic.length > 0
+        );
+      }
+    } catch {
+      // Fall through — treat as a single free-form topic token.
+    }
+    return [value];
+  }
+  return [];
+}
+
 function searchableText(repo: StackRepoInput): string {
-  return [repo.name, repo.fullName, repo.description ?? '', repo.language ?? '', ...repo.topics]
+  const topics = normalizeTopics(repo.topics);
+  return [repo.name, repo.fullName, repo.description ?? '', repo.language ?? '', ...topics]
     .join(' ')
     .toLowerCase();
 }
@@ -354,7 +376,7 @@ function scoreRepoForRole(
     reasons.push(`${repo.language} fit`);
   }
 
-  const repoTopics = new Set(repo.topics.map(normalize));
+  const repoTopics = new Set(normalizeTopics(repo.topics).map(normalize));
   const matchedKeywords = role.keywords.filter((keyword) => {
     const normalizedKeyword = normalize(keyword);
     return repoTopics.has(normalizedKeyword) || text.includes(normalizedKeyword);
@@ -461,6 +483,16 @@ export function buildStackBuilderReport(
   const goal = options.goal ?? 'web-app';
   const goalDefinition = goalDefinitions[goal];
   const now = options.now ?? new Date();
+  // Normalize once so role scoring never trips on null / string / malformed topics.
+  const normalizedRepos = repos.map((repo) => ({
+    ...repo,
+    topics: normalizeTopics(repo.topics),
+    stargazersCount:
+      typeof repo.stargazersCount === 'number' && Number.isFinite(repo.stargazersCount)
+        ? repo.stargazersCount
+        : 0,
+    archived: Boolean(repo.archived),
+  }));
   const orderedRoles = [
     ...goalDefinition.preferredRoles,
     ...roleDefinitions
@@ -470,7 +502,7 @@ export function buildStackBuilderReport(
 
   const roles = orderedRoles.map((roleId) => {
     const role = roleDefinitions.find((definition) => definition.id === roleId)!;
-    const candidates = repos
+    const candidates = normalizedRepos
       .map((repo) => scoreRepoForRole(repo, role, goalDefinition, now))
       .filter((repo): repo is StackCandidate => repo !== null)
       .sort((a, b) => {
@@ -498,10 +530,10 @@ export function buildStackBuilderReport(
     roles,
     selectedRepoIds,
     summary: {
-      totalRepos: repos.length,
+      totalRepos: normalizedRepos.length,
       coveredRoles: roles.filter((role) => role.selected !== null).length,
       warningCount: roles.reduce((sum, role) => sum + (role.selected?.warnings.length ?? 0), 0),
-      topLanguages: topLanguages(repos),
+      topLanguages: topLanguages(normalizedRepos),
     },
   };
 

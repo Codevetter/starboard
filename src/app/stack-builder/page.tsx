@@ -48,7 +48,17 @@ const goalLabels: Record<StackGoal, string> = {
 
 const fetcher = async <T,>(url: string): Promise<T> => {
   const response = await fetch(url);
-  if (!response.ok) throw new Error(`${response.status}`);
+  if (response.status === 401) {
+    // Bounce through branded login rather than a generic SWR crash.
+    if (typeof window !== 'undefined') {
+      window.location.assign('/login?callbackUrl=%2Fstack-builder');
+    }
+    throw new Error('Unauthorized');
+  }
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    throw new Error(body || `${response.status}`);
+  }
   return response.json();
 };
 
@@ -113,7 +123,7 @@ function CandidateBlock({
         <Badge variant="outline" className="text-xs">
           score {candidate.score}
         </Badge>
-        {candidate.warnings.map((warning) => (
+        {(candidate.warnings ?? []).map((warning) => (
           <Badge
             key={warning}
             variant="outline"
@@ -126,11 +136,13 @@ function CandidateBlock({
       </div>
       {!compact && (
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {[...candidate.reasons, ...candidate.compatibilityNotes].slice(0, 5).map((reason) => (
-            <Badge key={reason} variant="outline" className="text-xs text-muted-foreground">
-              {reason}
-            </Badge>
-          ))}
+          {[...(candidate.reasons ?? []), ...(candidate.compatibilityNotes ?? [])]
+            .slice(0, 5)
+            .map((reason) => (
+              <Badge key={reason} variant="outline" className="text-xs text-muted-foreground">
+                {reason}
+              </Badge>
+            ))}
         </div>
       )}
     </div>
@@ -202,17 +214,10 @@ function StackBuilderContent() {
   }, [goal, language, listId, searchQuery]);
   const { data, error, isLoading } = useSWR<StackBuilderReport>(apiUrl, fetcher, {
     revalidateOnFocus: false,
+    shouldRetryOnError: false,
   });
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  const report = data ?? {
+  const report: StackBuilderReport = data ?? {
     goal,
     goalLabel: goalLabels[goal],
     roles: [],
@@ -220,6 +225,28 @@ function StackBuilderContent() {
     selectedRepoIds: [],
     summary: { totalRepos: 0, coveredRoles: 0, warningCount: 0, topLanguages: [] },
   };
+
+  if (isLoading && !data) {
+    return (
+      <main className="min-h-screen bg-background">
+        <header className="sticky top-0 z-20 border-b bg-background/80 px-4 py-3 backdrop-blur-sm md:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex size-9 items-center justify-center rounded-md border">
+              <Boxes className="size-4" />
+            </div>
+            <div>
+              <h1 className="text-lg font-semibold">Stack Builder</h1>
+              <p className="text-sm text-muted-foreground">Building a stack from your stars…</p>
+            </div>
+          </div>
+        </header>
+        <div className="flex min-h-[50vh] items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-5 animate-spin" />
+          Scanning starred repositories
+        </div>
+      </main>
+    );
+  }
   const sourceBadges = [
     searchQuery.trim() ? `Search: ${searchQuery.trim()}` : null,
     language ? `Language: ${language}` : null,
@@ -412,7 +439,8 @@ function StackBuilderContent() {
 
       {error && (
         <div className="mx-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300 md:mx-6">
-          Stack Builder could not load.
+          Stack Builder could not load. Refresh and try again — if you just signed in, wait a moment
+          for your session cookie.
         </div>
       )}
 
@@ -423,7 +451,7 @@ function StackBuilderContent() {
       )}
 
       <section className="grid gap-3 px-4 pb-8 md:grid-cols-2 md:px-6 xl:grid-cols-3">
-        {report.roles.map((role) => (
+        {(report.roles ?? []).map((role) => (
           <RoleCard key={role.id} role={role} />
         ))}
       </section>
@@ -437,27 +465,25 @@ export default function StackBuilderPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.replace('/');
+      router.replace('/login?callbackUrl=%2Fstack-builder');
     }
   }, [router, status]);
 
-  if (status === 'loading') {
+  if (status === 'loading' || status === 'unauthenticated') {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
+      <div className="flex min-h-screen items-center justify-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="size-5 animate-spin" />
+        {status === 'unauthenticated' ? 'Redirecting to sign in…' : 'Loading…'}
       </div>
     );
-  }
-
-  if (status === 'unauthenticated') {
-    return null;
   }
 
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+        <div className="flex min-h-screen items-center justify-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="size-5 animate-spin" />
+          Loading Stack Builder…
         </div>
       }
     >
