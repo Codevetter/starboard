@@ -11,7 +11,6 @@ import {
   type GitHubStarList,
 } from '@/lib/github-lists';
 import { ingestStarboardRagDocuments } from '@/lib/knowledgebase';
-import { isRateLimited } from '@/lib/rate-limit';
 import { buildStarboardRagDocument, fetchRepoReadmes } from '@/lib/starboard-rag-documents';
 import { selectSyncReadmeRepos } from '@/lib/sync-performance';
 
@@ -37,10 +36,6 @@ export async function POST() {
   }
 
   const userId = session.user.githubId;
-
-  if (await isRateLimited(userId)) {
-    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
-  }
 
   try {
     const username = await getGitHubUsername(userId);
@@ -199,6 +194,15 @@ export async function POST() {
     });
   } catch (error) {
     console.error('Sync failed:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    // First-session sync often follows OAuth immediately; surface GitHub 429
+    // clearly instead of a generic 500 so the client can retry.
+    if (/\b429\b/.test(message) || /rate limit/i.test(message)) {
+      return NextResponse.json(
+        { error: 'GitHub rate limit hit — wait a minute and sync again.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
+    }
     return NextResponse.json({ error: 'Sync failed' }, { status: 500 });
   }
 }

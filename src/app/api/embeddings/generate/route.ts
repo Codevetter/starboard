@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
-import { isRateLimited } from '@/lib/rate-limit';
 import { repoVectors } from '@/lib/repo-vectors';
 
 // Prevent concurrent runs per user
@@ -17,10 +16,6 @@ export async function POST() {
   }
 
   const userId = session.user.githubId;
-
-  if (await isRateLimited(userId)) {
-    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
-  }
 
   if (activeJobs.has(userId)) {
     return NextResponse.json({ skipped: true, reason: 'already running' });

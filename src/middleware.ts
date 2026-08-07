@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { shouldFreezeWrite } from '@/lib/write-freeze';
 
 export function middleware(request: NextRequest) {
-  if (!shouldFreezeWrite(request.method, process.env.WRITE_FREEZE)) {
+  if (!shouldFreezeWrite(request.method, process.env.WRITE_FREEZE, request.nextUrl.pathname)) {
     return NextResponse.next();
   }
 
