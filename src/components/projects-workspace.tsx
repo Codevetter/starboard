@@ -430,13 +430,13 @@ export function ProjectsWorkspace({ selectedSlug }: ProjectsWorkspaceProps) {
                 Markdown
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link href="/stack-builder">
+                <Link href="/stack-builder" prefetch={false}>
                   <Boxes className="mr-1.5 size-4" />
                   Stack
                 </Link>
               </Button>
               <Button asChild variant="outline" size="sm">
-                <Link href="/stars">
+                <Link href="/stars" prefetch={false}>
                   <BookOpen className="mr-1.5 size-4" />
                   Library
                 </Link>

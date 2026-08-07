@@ -17,7 +17,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <PostHogProvider client={posthog}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-        <SessionProvider>
+        <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
           <NuqsAdapter>{children}</NuqsAdapter>
         </SessionProvider>
       </ThemeProvider>

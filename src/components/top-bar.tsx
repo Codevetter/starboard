@@ -118,7 +118,9 @@ export function TopBar({
           size="sm"
           className="h-7 gap-1.5 px-2 text-xs"
         >
-          <Link href="/discover">
+          {/* prefetch=false: after login, default Link prefetch floods the Worker
+              with concurrent RSC requests and Cloudflare answers 429. */}
+          <Link href="/discover" prefetch={false}>
             <Database className="size-3.5" />
             Discover
           </Link>
@@ -131,7 +133,7 @@ export function TopBar({
               size="sm"
               className="h-7 gap-1.5 px-2 text-xs"
             >
-              <Link href="/projects">
+              <Link href="/projects" prefetch={false}>
                 <FolderKanban className="size-3.5" />
                 My Projects
               </Link>
@@ -142,7 +144,7 @@ export function TopBar({
               size="sm"
               className="h-7 gap-1.5 px-2 text-xs"
             >
-              <Link href="/radar">
+              <Link href="/radar" prefetch={false}>
                 <RadioTower className="size-3.5" />
                 Radar
               </Link>
@@ -153,7 +155,7 @@ export function TopBar({
               size="sm"
               className="h-7 gap-1.5 px-2 text-xs"
             >
-              <Link href={stackHref}>
+              <Link href={stackHref} prefetch={false}>
                 <Boxes className="size-3.5" />
                 Stack
               </Link>
@@ -166,7 +168,7 @@ export function TopBar({
               size="sm"
               className="h-7 gap-1.5 px-2 text-xs"
             >
-              <Link href="/stars">
+              <Link href="/stars" prefetch={false}>
                 <Star className="size-3.5" />
                 Library
               </Link>

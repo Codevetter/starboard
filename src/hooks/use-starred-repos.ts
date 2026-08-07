@@ -181,9 +181,7 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
         const message =
           res.status === 401
             ? 'Sign in with GitHub again to sync your stars.'
-            : res.status === 429
-              ? 'Too many sync requests — wait a minute and try again.'
-              : "Couldn't sync your GitHub stars. Try again in a moment.";
+            : "Couldn't sync your GitHub stars. Try again in a moment.";
         setSyncError(message);
         return null;
       }

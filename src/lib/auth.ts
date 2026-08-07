@@ -15,8 +15,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: {
         params: {
           // Minimal scopes: public profile + starred repos via user token.
-          // Avoid requesting more than we need — larger scopes increase OAuth
-          // friction and can trip GitHub abuse/rate-limit heuristics.
           scope: 'read:user',
         },
       },

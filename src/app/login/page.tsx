@@ -7,11 +7,11 @@ import { auth } from '@/lib/auth';
 const ERROR_COPY: Record<string, { title: string; body: string }> = {
   OAuthSignin: {
     title: 'Could not start GitHub sign-in',
-    body: 'GitHub rejected the first hop. Wait a few seconds and try again — repeated attempts can trip their temporary limits.',
+    body: 'GitHub rejected the first hop. Wait a few seconds and try again.',
   },
   OAuthCallback: {
     title: 'GitHub callback failed',
-    body: 'The OAuth callback did not complete. This is often a temporary GitHub or network limit. Wait a minute, then retry once.',
+    body: 'The OAuth callback did not complete. Try once more.',
   },
   OAuthCreateAccount: {
     title: 'Could not create your session',
@@ -19,7 +19,7 @@ const ERROR_COPY: Record<string, { title: string; body: string }> = {
   },
   Callback: {
     title: 'Sign-in interrupted',
-    body: 'Something went wrong finishing login. Retry once; if it keeps failing, wait a minute for GitHub rate limits to clear.',
+    body: 'Something went wrong finishing login. Retry once.',
   },
   AccessDenied: {
     title: 'Access denied',
@@ -43,12 +43,6 @@ function resolveError(error: string | undefined) {
   if (!error) return null;
   // Auth.js sometimes appends path fragments; normalize.
   const key = error.split('/')[0] ?? error;
-  if (/rate.?limit/i.test(key) || key === 'TooManyRequests') {
-    return {
-      title: 'Temporarily rate limited',
-      body: 'GitHub or the edge network asked us to slow down. Wait about a minute, then sign in once — do not hammer the button.',
-    };
-  }
   return ERROR_COPY[key] ?? ERROR_COPY.Default;
 }
 
@@ -63,8 +57,7 @@ export default async function LoginPage({
   }
 
   const params = await searchParams;
-  const callbackUrl =
-    params.callbackUrl && params.callbackUrl.startsWith('/') ? params.callbackUrl : '/stars';
+  const callbackUrl = params.callbackUrl?.startsWith('/') ? params.callbackUrl : '/stars';
   const errorInfo = resolveError(params.error);
 
   return (

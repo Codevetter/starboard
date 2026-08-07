@@ -29,8 +29,7 @@ export function SignInButton({
     setPending(true);
     setError(null);
     try {
-      // Single hop to GitHub — no intermediate Auth.js provider page, no
-      // client-side retry storms that look like (and can trigger) rate limits.
+      // Single hop to GitHub — no intermediate Auth.js provider page.
       const result = await signIn('github', { callbackUrl, redirect: false });
       if (result?.error) {
         const reason = result.error;
@@ -40,11 +39,7 @@ export function SignInButton({
           reason,
           source: 'sign-in-button',
         });
-        setError(
-          /rate|limit|429/i.test(reason)
-            ? 'Temporarily rate limited. Wait about a minute, then try once.'
-            : 'GitHub sign-in failed. Wait a moment and try once more.'
-        );
+        setError('GitHub sign-in failed. Wait a moment and try once more.');
         setPending(false);
         return;
       }
@@ -62,11 +57,7 @@ export function SignInButton({
         reason,
         source: 'sign-in-button',
       });
-      setError(
-        /rate|limit|429/i.test(reason)
-          ? 'Temporarily rate limited. Wait about a minute, then try once.'
-          : 'Could not reach GitHub. Check your connection and try once.'
-      );
+      setError('Could not reach GitHub. Check your connection and try once.');
       setPending(false);
     }
   }

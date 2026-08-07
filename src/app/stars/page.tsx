@@ -91,6 +91,8 @@ function PageSkeleton() {
 export default function StarsPage() {
   const { status } = useSession();
   const router = useRouter();
+  // Never park on the skeleton forever if /api/auth/session is slow.
+  const [sessionGraceDone, setSessionGraceDone] = useState(false);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -98,7 +100,16 @@ export default function StarsPage() {
     }
   }, [router, status]);
 
-  if (status === 'loading') {
+  useEffect(() => {
+    if (status !== 'loading') {
+      setSessionGraceDone(true);
+      return;
+    }
+    const timer = window.setTimeout(() => setSessionGraceDone(true), 1200);
+    return () => window.clearTimeout(timer);
+  }, [status]);
+
+  if (status === 'loading' && !sessionGraceDone) {
     return <PageSkeleton />;
   }
 
