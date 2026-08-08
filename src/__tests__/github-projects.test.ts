@@ -152,4 +152,10 @@ describe('parseGitHubProjectInput', () => {
       })
     );
   });
+
+  it('surfaces GitHub failures while loading repository choices', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+
+    await expect(fetchPublicGitHubRepositories('token')).rejects.toThrow('GitHub API error: 503');
+  });
 });
