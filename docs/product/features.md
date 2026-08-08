@@ -5,19 +5,25 @@ reasons, see [../architecture/decisions/](../architecture/decisions/).
 
 ## Project-aware discovery
 
+- Guests can preview a public GitHub repository before sign-in. Cataloged
+  repositories use stored evidence; uncataloged repositories use one public
+  GitHub metadata lookup. Preview creates no user-owned row.
 - Authenticated users can connect a public GitHub repository by URL or
-  `owner/repository` without broadening the current OAuth scope.
+  `owner/repository`, or choose from a bounded on-demand list of public GitHub
+  repositories, without broadening the current OAuth scope.
 - Connections are user-owned D1 relations; disconnecting a project does not
   delete shared repository metadata.
-- Projects receive deterministic similar-repository results from the seeded
-  public catalog using visible language, topic, metadata, and detected-tool
-  evidence.
+- Projects retrieve bounded Vectorize, full-catalog FTS, and language candidate
+  lanes before deterministic reranking with visible language, topic, metadata,
+  and detected-tool evidence.
 - Similar repositories ground tool recommendations. Each recommended tool
   lists the exact peer repositories and detection confidence that support it.
 - Recommendation cards state the matching evidence. Sparse-context results are
   explicitly labeled as broad discovery fallbacks and do not generate tool
   recommendations.
 - The complete workflow is free and has no billing or entitlement gate.
+- Recommendation views, inspections, and useful/not-useful feedback emit only
+  categorical buckets; repository identity and query text are excluded.
 
 ## Public discovery and tool intelligence
 
@@ -50,8 +56,8 @@ reasons, see [../architecture/decisions/](../architecture/decisions/).
 
 ## Catalog and operations
 
-- Manually dispatched seed, metadata-enrichment, tool-enrichment, and embedding
-  jobs with explicit per-run bounds.
+- Daily and manually dispatched seed, metadata-enrichment, tool-enrichment, and
+  embedding jobs with explicit per-run bounds.
 - Additive ordered D1 migrations; raw SQL with no ORM.
 - Vitest unit/integration coverage, Playwright path, Biome checks, docs
   validation, and OpenNext Cloudflare builds.

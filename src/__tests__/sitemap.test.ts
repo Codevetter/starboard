@@ -9,6 +9,7 @@ describe('sitemap', () => {
     expect(sitemap().map((entry) => entry.url)).toEqual([
       siteUrl,
       `${siteUrl}/discover`,
+      `${siteUrl}/project-preview`,
       `${siteUrl}/tools`,
       `${siteUrl}/catalog-updates`,
       `${siteUrl}/changelog`,

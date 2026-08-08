@@ -131,7 +131,7 @@ export async function loadCatalogUpdates(
       newestCatalogedAt: (newestResult.rows[0]?.newest as string | null) ?? null,
       changesReturned: changes.length,
       refreshCadence:
-        'Manual seed-popular GitHub Action (auto daily schedule paused); user star sync is on-demand.',
+        'Daily bounded seed-popular GitHub Action with manual dispatch; user star sync is on-demand.',
     },
   };
 }

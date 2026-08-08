@@ -3,7 +3,12 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { PROJECT_SELECT, projectFromRow } from '@/lib/connected-projects';
-import { fetchPublicGitHubProject, parseGitHubProjectInput } from '@/lib/github-projects';
+import { trackProjectConnected, type ProjectConnectionSource } from '@/lib/analytics';
+import {
+  fetchPublicGitHubProject,
+  GitHubProjectApiError,
+  parseGitHubProjectInput,
+} from '@/lib/github-projects';
 
 export async function GET() {
   const session = await auth();
@@ -28,7 +33,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = (await request.json().catch(() => null)) as { repository?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as {
+    repository?: unknown;
+    source?: unknown;
+  } | null;
   const slug = parseGitHubProjectInput(typeof body?.repository === 'string' ? body.repository : '');
   if (!slug) {
     return NextResponse.json(
@@ -41,6 +49,12 @@ export async function POST(request: NextRequest) {
   try {
     project = await fetchPublicGitHubProject(slug, session.accessToken);
   } catch (error) {
+    if (error instanceof GitHubProjectApiError && [403, 429].includes(error.status)) {
+      return NextResponse.json(
+        { error: 'GitHub is temporarily limiting repository lookups. Try again shortly.' },
+        { status: 429, headers: { 'Retry-After': '60' } }
+      );
+    }
     console.error('Failed to resolve connected project:', error);
     return NextResponse.json(
       { error: 'GitHub could not be reached. Try connecting the project again.' },
@@ -103,6 +117,9 @@ export async function POST(request: NextRequest) {
           WHERE up.user_id = ? AND up.repo_id = ?`,
     args: [session.user.githubId, project.id],
   });
+
+  const source: ProjectConnectionSource = body?.source === 'picker' ? 'picker' : 'manual';
+  trackProjectConnected(source);
 
   return NextResponse.json({ project: projectFromRow(connected.rows[0]) }, { status: 201 });
 }

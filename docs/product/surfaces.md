@@ -5,6 +5,7 @@
 | Route | Purpose | Access |
 | --- | --- | --- |
 | `/` | Product landing page | Public |
+| `/project-preview` | Read-only project-context preview before sign-in | Public |
 | `/discover` | Search and filter the seeded repository corpus | Public |
 | `/explore/[...slug]` | Repository detail, tool evidence, history, and similar repos | Public read; signed-in actions |
 | `/tools` | Aggregate tool intelligence | Public |
@@ -26,6 +27,8 @@ ownership checks remain user-scoped regardless of URL knowledge.
 | `/api/auth/*` | NextAuth GitHub OAuth |
 | `/api/stars`, `/api/stars/sync` | Personal library reads and GitHub sync |
 | `/api/discover`, `/discover/data` | Public repository discovery |
+| `/api/project-preview` | Catalog-first, non-persistent public project recommendations |
+| `/api/github/projects` | On-demand public repository choices from the existing signed-in GitHub token |
 | `/api/projects` | List and connect user projects |
 | `/api/projects/[slug]` | Disconnect an owned project |
 | `/api/projects/[slug]/recommendations` | Similar repositories plus tools grounded in exact peer-repository detections |

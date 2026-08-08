@@ -26,6 +26,13 @@
       "description": "Browse and search the seeded public repository corpus"
     },
     {
+      "id": "project-preview",
+      "url": "https://starboard.codevetter.com/project-preview",
+      "md": "https://starboard.codevetter.com/project-preview.md",
+      "kind": "static",
+      "description": "Try project-aware recommendations before sign-in without saving data"
+    },
+    {
       "id": "tools",
       "url": "https://starboard.codevetter.com/tools",
       "md": "https://starboard.codevetter.com/tools.md",

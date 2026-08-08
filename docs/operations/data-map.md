@@ -133,8 +133,9 @@ returns 503 and must not report global health. See
 ## Search activation evidence
 
 Privacy-safe aggregate activation counters are emitted to Foundry (PostHog)
-on successful search result inspection and saved/organized actions. No raw
-query text, repo IDs, repo full names, or user identifiers are sent. See
+on search and project recommendation views, inspections, feedback, and
+saved/organized actions. No raw query text, repo IDs, repo full names, or user
+identifiers are sent. See
 [`foundry.md`](foundry.md) for the sanitization contract and
 [`src/lib/analytics.ts`](../../src/lib/analytics.ts) `trackSearchOutcome`.
 

@@ -1,16 +1,17 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-08-08
+Last updated: 2026-08-09
 
 ## Why/What
 
 Starboard is project-aware tool intelligence for GitHub: connect a public
 project, discover relevant open-source repositories with visible evidence, and
-keep a searchable personal library of starred repositories. The focused local
-implementation removes Fleet project coupling, Alerts, Reports, Stack Builder,
-standalone Radar, and weekly digest. Live remains
-[starboard.codevetter.com](https://starboard.codevetter.com); this local change
-has not been deployed.
+keep a searchable personal library of starred repositories. The focused product
+has removed Fleet project coupling, Alerts, Reports, Stack Builder, standalone
+Radar, and weekly digest. Live at
+[starboard.codevetter.com](https://starboard.codevetter.com), the current
+release adds public project preview, full-catalog hybrid retrieval, and a
+GitHub project picker.
 
 Out of scope: private repositories until the permission model is chosen,
 organization/team dashboards, non-GitHub providers, automated dependency
@@ -42,15 +43,19 @@ Star sync + public project connection ──► D1 (users, repos, user_repos, us
         ├── Full-text + facet search (GET /api/stars)
         ├── Semantic search: knowledgebase Worker; lexical-only when shared RAG is unavailable
         ├── Public catalog + repo_tools → Discover and Tool Intelligence
-        └── Connected project context → explained repository recommendations
+        └── Public preview or connected project context
+              → Vectorize + FTS + language candidates
+              → deterministic evidence reranking
+              → explained repository and tool recommendations
 ```
 
 **Embedding contract:** `EMBEDDING_DIM=768` in `src/lib/embeddings.ts` matches the `starboard-repos` Vectorize index. D1 stores only repository IDs and text hashes; dimension changes require a deliberate replacement index and re-embedding.
 
 **Data model highlights:** tags stored as JSON arrays on `user_repos`;
 `user_projects` connects a user to a shared public `repos` row; tool evidence
-lives in `repo_tools`; similar-project ranking uses visible language, topic,
-metadata, and tool matches with explicit fallback labeling. Additional tools
+lives in `repo_tools`; similar-project retrieval combines bounded Vectorize,
+full-catalog FTS, and language candidates before visible language, topic,
+metadata, and tool reranking with explicit fallback labeling. Additional tools
 are recommended only when detected in those grounded peers, with repository
 provenance. The workflow is free and has no billing or entitlement gate.
 
@@ -66,6 +71,15 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
+
+- **2026-08-09 (project-value hardening released)** — Archived the
+  completed project-focus change after syncing its delta specs. Replaced the
+  500-most-starred recommendation pool with bounded hybrid candidate retrieval
+  across the eligible catalog, added a read-only public project preview and
+  on-demand GitHub public-repository picker, made login project-first, and
+  replaced digest-era analytics with identity-free recommendation evidence.
+  Tests, typecheck, lint, docs, strict OpenSpec validation, and the production
+  Cloudflare build pass.
 
 - **2026-08-08 (free project discovery shipped)** — Removed Alerts,
   Reports, Stack Builder, standalone Radar, weekly digest, and the checked-in
@@ -160,8 +174,8 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Foundation | GitHub OAuth (NextAuth v5), OpenNext Cloudflare deploy, core dashboard with sync, tags, collections, full-text search, virtual scroll |
 | Repo intelligence | Repo detail (`/explore`), comments/votes, public shared lists, legal/marketing shell |
 | Semantic search | knowledgebase Worker integration for relevance search; README-backed sync ingest; local embeddings retained for non-RAG Starboard features |
-| Connected projects (local, pending deploy) | Public GitHub project connections and evidence-based repository recommendations |
-| Discovery & tools | Public Discover, manually dispatched seed/enrich/embed, stored growth sorting, and Tool Intelligence |
+| Connected projects | Shipped public GitHub project connections, public preview, GitHub picker, and evidence-based repository and tool recommendations |
+| Discovery & tools | Public Discover, daily bounded seed/enrich/embed with manual dispatch, stored growth sorting, and Tool Intelligence |
 | Removed 2026-08-08 | Fleet project catalog, Alerts, Reports, Stack Builder, standalone Radar, weekly digest |
 | Ops hardening (2026-06-20) | `.env.example`, Vitest + Playwright path, pre-push lint, self-contained TypeScript/Astro landing for green CF builds |
 
@@ -170,11 +184,13 @@ provenance. The workflow is free and has no billing or entitlement gate.
 **Live:** [starboard.codevetter.com](https://starboard.codevetter.com)
 
 **Primary routes:** `/stars` (library) · `/explore/[...slug]` (repo detail) ·
-`/discover` · `/projects` · `/projects/[slug]` · `/lists/[slug]` · `/tools`
+`/discover` · `/project-preview` · `/projects` · `/projects/[slug]` ·
+`/lists/[slug]` · `/tools`
 
 **Primary API:** `/api/stars` · `/api/stars/sync` ·
-`/api/repos/[repoId]/*` · `/api/lists/*` · `/api/projects/*` · `/api/growth` ·
-`/api/tools` · `/api/embeddings/generate`
+`/api/repos/[repoId]/*` · `/api/lists/*` · `/api/project-preview` ·
+`/api/projects/*` · `/api/github/projects` · `/api/growth` · `/api/tools` ·
+`/api/embeddings/generate`
 
 | Surface | Role |
 |---------|------|
@@ -203,22 +219,25 @@ provenance. The workflow is free and has no billing or entitlement gate.
   so Workers AI, Vectorize, and D1 use native bindings without broad Vectorize
   credentials in GitHub.
 
-### Connected projects (implemented locally; not deployed)
+### Connected projects and public preview
+- Guests can preview a public GitHub repository without sign-in or a user-data
+  write, then carry the normalized repository through sign-in for explicit
+  connection.
 - Authenticated users can connect and disconnect public GitHub repositories
-  without a broader OAuth scope.
+  by URL or an on-demand public-repository picker without a broader OAuth scope.
 - `user_projects` isolates project connections per user while reusing shared
   repository metadata.
-- Deterministic recommendations explain language, topic, metadata, and tool
-  matches; sparse context is labeled as broad discovery.
+- Bounded Vectorize, full-catalog FTS, and language candidates feed deterministic
+  recommendations that explain language, topic, metadata, and tool matches;
+  sparse context is labeled as broad discovery.
 
 ### Discovery and intelligence surfaces
 - Public Discover page and `/api/discover` for the seeded popular repository
   corpus; authentication adds saved state and collection controls but is not
   required to browse, search, sort, filter, paginate, or open repo details.
 - Discover supports paginated 30-day growth ordering and detected-tool facets from indexed local snapshot/tool tables.
-- Manually dispatched GitHub Actions seed/enrich popular repos in D1 and embed
-  through native Worker bindings; automatic seeding remains paused pending an
-  explicit operating budget.
+- Daily bounded GitHub Actions seed/enrich popular repos in D1 and embed through
+  native Worker bindings; manual dispatch remains available for operator checks.
 - Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`, `/api/growth`, Discover growth sorting, and repo-detail mini history from stored `repo_star_snapshots`.
 - Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.
 - SaaS Maker feedback widget integrated; product analytics run directly through PostHog.

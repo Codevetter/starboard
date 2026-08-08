@@ -28,13 +28,15 @@ The system SHALL rank repositories by star growth over a selected window using c
 ### Requirement: Momentum surfaces
 The system SHALL display star momentum in existing Starboard surfaces without blocking page loads on external network calls.
 
-#### Scenario: Radar momentum summary
-- **WHEN** the Radar page loads
-- **THEN** it shows fastest-growing repositories and 30-day growth signals from stored snapshots
-
 #### Scenario: Discover growth sort
 - **WHEN** a user sorts Discover by growth
 - **THEN** the results use stored snapshot growth metrics and remain paginated
+
+#### Scenario: Repository detail history
+
+- **WHEN** a repository has stored star history
+- **THEN** its repository detail surface may show that history without making a
+  synchronous GitHub request
 
 ### Requirement: 5k corpus support
 The system SHALL support a seeded corpus of at least 5,000 repositories without synchronous snapshot or GitHub fetch work during UI requests.

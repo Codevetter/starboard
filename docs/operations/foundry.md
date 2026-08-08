@@ -21,7 +21,11 @@ never sends:
 | --- | --- | --- |
 | `signup` | first session after account creation | `project_id` |
 | `activated` | first successful star sync | `project_id` |
-| `core_action` | each sync / list-created action | `project_id`, `action` (`repos_synced`/`list_created`) |
+| `core_action` | each sync, list-created, or project-connected action | `project_id`, `action` (`repos_synced`/`list_created`/`project_connected`) |
+| `project_connected` | a public project is durably connected | `project_id`, `source` (`manual`/`picker`) |
+| `recommendation_set_viewed` | project recommendations reach the user | `project_id`, `retrieval_mode`, `result_count_bucket`, `fallback` |
+| `recommendation_inspected` | a repository or tool recommendation is opened | `project_id`, `kind`, `rank_bucket`, `retrieval_mode` |
+| `recommendation_feedback` | useful/not-useful is selected | `project_id`, `kind`, `sentiment`, `rank_bucket`, `retrieval_mode`, `support_bucket`, `confidence_bucket` |
 | `returned` | return session by a user with prior activity | `project_id` |
 | `search_outcome` | every `/api/stars` search with a query | `project_id`, `surface` (`lexical`/`semantic`/`discover`), `result_count_bucket` (`zero`/`1-5`/`6-20`/`21+`) |
 | `result_inspection` | a user opens a repo detail from search results | `project_id`, `surface` (`repo_detail`) |
@@ -45,7 +49,8 @@ never sends:
 - The inactive historical `insight_reports` table is not an event source.
 - Foundry activation events carry **no** repo identity. The `search_outcome`
   event has only the surface and result-count bucket; `result_inspection`
-  has only the surface name.
+  has only the surface name. Project recommendation events use categorical
+  retrieval, rank, support, confidence, and sentiment buckets only.
 - The knowledgebase RAG index stores `full_name` in document metadata for
   result-to-repo mapping; this is the search backend (user-scoped via
   `user_id` in the index), not Foundry, and is not covered by this
@@ -53,8 +58,8 @@ never sends:
 
 ## Verification
 
-A future audit task (deferred — not blocking this capability) should grep
-all `track*` and `emit*` call sites to confirm no PII / query text / repo
-identity is passed. The current call sites are limited to
-[`src/lib/analytics.ts`](../../src/lib/analytics.ts) exports and
-[`src/app/api/stars/route.ts`](../../src/app/api/stars/route.ts).
+Audit `track*` and `emit*` call sites during analytics changes to confirm no PII,
+query text, or repository identity is passed. Current project event call sites
+live in the project connection API and the project recommendation components;
+their payloads are constrained by typed categorical helpers in
+[`src/lib/analytics.ts`](../../src/lib/analytics.ts).
