@@ -10,6 +10,7 @@ import {
   Loader2,
   LogOut,
   Menu,
+  PanelLeft,
   RefreshCw,
   Search,
   Star,
@@ -43,13 +44,15 @@ const sortLabels: Record<SortOption, string> = {
 };
 
 interface TopBarProps {
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  sortBy: SortOption;
-  onSortChange: (sort: SortOption) => void;
+  title?: string;
+  description?: string;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+  sortBy?: SortOption;
+  onSortChange?: (sort: SortOption) => void;
   sortOptions?: readonly SortOption[];
-  viewMode: 'grid' | 'list';
-  onViewModeChange: (mode: 'grid' | 'list') => void;
+  viewMode?: 'grid' | 'list';
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
   onMenuClick?: () => void;
   repoCount?: number;
   hasActiveFilters?: boolean;
@@ -59,6 +62,8 @@ interface TopBarProps {
 }
 
 export function TopBar({
+  title,
+  description,
   searchQuery,
   onSearchChange,
   sortBy,
@@ -80,6 +85,30 @@ export function TopBar({
   const isTools = pathname?.startsWith('/tools');
   const userAvatar = session?.user?.image ? getAvatarImageAttrs(session.user.image, 32) : null;
   const visibleSortOptions = sortOptions ?? (Object.keys(sortLabels) as SortOption[]);
+  const navigationItems = [
+    { href: '/discover', label: 'Discover', icon: Database, active: isDiscover, visible: true },
+    {
+      href: '/projects',
+      label: 'Projects',
+      icon: FolderKanban,
+      active: isProjects,
+      visible: status === 'authenticated',
+    },
+    {
+      href: '/tools',
+      label: 'Tools',
+      icon: Wrench,
+      active: isTools,
+      visible: status === 'authenticated',
+    },
+    {
+      href: '/stars',
+      label: 'Library',
+      icon: Star,
+      active: !isDiscover && !isProjects && !isTools,
+      visible: status === 'authenticated',
+    },
+  ].filter((item) => item.visible);
 
   return (
     <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 border-b bg-background/80 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:px-4 sm:py-3 md:px-6">
@@ -87,75 +116,77 @@ export function TopBar({
         <Button
           variant="ghost"
           size="icon"
-          className="shrink-0 md:hidden"
+          className="size-11 shrink-0 md:hidden"
           onClick={onMenuClick}
           aria-label="Toggle sidebar"
         >
-          <Menu className="size-5" />
+          <PanelLeft className="size-5" />
         </Button>
       )}
 
-      <div className="relative min-w-0 flex-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Search repos..."
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9"
-        />
-      </div>
+      {typeof searchQuery === 'string' && onSearchChange ? (
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder="Search repos..."
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      ) : (
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-sm font-semibold">{title}</h1>
+          {description && <p className="truncate text-xs text-muted-foreground">{description}</p>}
+        </div>
+      )}
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-11 shrink-0 sm:hidden"
+            aria-label="Open product navigation"
+          >
+            <Menu className="size-5" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-44 sm:hidden">
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <DropdownMenuItem key={item.href} asChild className={item.active ? 'bg-accent' : ''}>
+                <Link href={item.href} prefetch={false}>
+                  <Icon className="size-4" />
+                  {item.label}
+                </Link>
+              </DropdownMenuItem>
+            );
+          })}
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <div className="hidden shrink-0 items-center rounded-md border p-0.5 sm:flex">
-        <Button
-          asChild
-          variant={isDiscover ? 'secondary' : 'ghost'}
-          size="sm"
-          className="h-7 gap-1.5 px-2 text-xs"
-        >
-          {/* prefetch=false: after login, default Link prefetch floods the Worker
-              with concurrent RSC requests and Cloudflare answers 429. */}
-          <Link href="/discover" prefetch={false}>
-            <Database className="size-3.5" />
-            Discover
-          </Link>
-        </Button>
-        {status === 'authenticated' && (
-          <>
+        {/* prefetch=false: after login, default Link prefetch floods the Worker
+            with concurrent RSC requests and Cloudflare answers 429. */}
+        {navigationItems.map((item) => {
+          const Icon = item.icon;
+          return (
             <Button
+              key={item.href}
               asChild
-              variant={isProjects ? 'secondary' : 'ghost'}
+              variant={item.active ? 'secondary' : 'ghost'}
               size="sm"
               className="h-7 gap-1.5 px-2 text-xs"
             >
-              <Link href="/projects" prefetch={false}>
-                <FolderKanban className="size-3.5" />
-                Projects
+              <Link href={item.href} prefetch={false}>
+                <Icon className="size-3.5" />
+                {item.label}
               </Link>
             </Button>
-            <Button
-              asChild
-              variant={isTools ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-7 gap-1.5 px-2 text-xs"
-            >
-              <Link href="/tools" prefetch={false}>
-                <Wrench className="size-3.5" />
-                Tools
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant={!isDiscover && !isProjects && !isTools ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-7 gap-1.5 px-2 text-xs"
-            >
-              <Link href="/stars" prefetch={false}>
-                <Star className="size-3.5" />
-                Library
-              </Link>
-            </Button>
-          </>
-        )}
+          );
+        })}
       </div>
 
       {typeof repoCount === 'number' && (
@@ -194,49 +225,57 @@ export function TopBar({
         </Button>
       )}
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm" className="hidden gap-2 sm:flex">
-            <ArrowUpDown className="size-3.5" />
-            <span className="hidden md:inline">{sortLabels[sortBy]}</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
-          {visibleSortOptions.map((value) => (
-            <DropdownMenuItem
-              key={value}
-              onClick={() => onSortChange(value)}
-              className="justify-between"
-            >
-              {sortLabels[value]}
-              {sortBy === value && <Check className="size-4 text-primary" />}
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {sortBy && onSortChange && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="hidden gap-2 sm:flex">
+              <ArrowUpDown className="size-3.5" />
+              <span className="hidden md:inline">{sortLabels[sortBy]}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            {visibleSortOptions.map((value) => (
+              <DropdownMenuItem
+                key={value}
+                onClick={() => onSortChange(value)}
+                className="justify-between"
+              >
+                {sortLabels[value]}
+                {sortBy === value && <Check className="size-4 text-primary" />}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
 
-      <ToggleGroup
-        type="single"
-        value={viewMode}
-        onValueChange={(v) => {
-          if (v) onViewModeChange(v as 'grid' | 'list');
-        }}
-        variant="outline"
-        size="sm"
-        className="hidden sm:flex"
-      >
-        <ToggleGroupItem value="grid" aria-label="Grid view">
-          <LayoutGrid className="size-4" />
-        </ToggleGroupItem>
-        <ToggleGroupItem value="list" aria-label="List view">
-          <List className="size-4" />
-        </ToggleGroupItem>
-      </ToggleGroup>
+      {viewMode && onViewModeChange && (
+        <ToggleGroup
+          type="single"
+          value={viewMode}
+          onValueChange={(v) => {
+            if (v) onViewModeChange(v as 'grid' | 'list');
+          }}
+          variant="outline"
+          size="sm"
+          className="hidden sm:flex"
+        >
+          <ToggleGroupItem value="grid" aria-label="Grid view">
+            <LayoutGrid className="size-4" />
+          </ToggleGroupItem>
+          <ToggleGroupItem value="list" aria-label="List view">
+            <List className="size-4" />
+          </ToggleGroupItem>
+        </ToggleGroup>
+      )}
 
       {status === 'authenticated' ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="shrink-0 overflow-hidden rounded-full">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-11 shrink-0 overflow-hidden rounded-full sm:size-9"
+            >
               {session?.user?.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

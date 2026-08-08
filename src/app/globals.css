@@ -124,3 +124,18 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media (max-width: 639px) {
+  [data-feedback-widget] .smw-trigger {
+    right: 12px;
+    bottom: 12px;
+    width: 44px;
+    height: 44px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  [data-feedback-widget] .smw-trigger__text {
+    display: none;
+  }
+}

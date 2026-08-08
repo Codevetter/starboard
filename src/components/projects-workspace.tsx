@@ -1,16 +1,6 @@
 'use client';
 
-import {
-  ArrowUpRight,
-  BookOpen,
-  ChevronsUpDown,
-  FolderGit2,
-  Loader2,
-  Plus,
-  Search,
-  Trash2,
-  Wrench,
-} from 'lucide-react';
+import { ArrowUpRight, ChevronsUpDown, FolderGit2, Loader2, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -21,6 +11,7 @@ import {
   GroundedToolRecommendationCard,
   ProjectRecommendationCard,
 } from '@/components/project-recommendation-cards';
+import { TopBar } from '@/components/top-bar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -56,38 +47,12 @@ function retrievalLabel(mode: RecommendationRetrievalMode): string {
 
 function LoadingScreen() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background" aria-busy="true">
+    <main
+      className="flex min-h-0 flex-1 items-center justify-center bg-background"
+      aria-busy="true"
+    >
       <Loader2 className="size-5 animate-spin text-muted-foreground" />
     </main>
-  );
-}
-
-function ProjectNav() {
-  return (
-    <nav className="flex flex-wrap items-center gap-1" aria-label="Product">
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/discover" prefetch={false}>
-          <Search className="size-4" />
-          Discover
-        </Link>
-      </Button>
-      <Button variant="secondary" size="sm">
-        <FolderGit2 className="size-4" />
-        Projects
-      </Button>
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/tools" prefetch={false}>
-          <Wrench className="size-4" />
-          Tools
-        </Link>
-      </Button>
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/stars" prefetch={false}>
-          <BookOpen className="size-4" />
-          Library
-        </Link>
-      </Button>
-    </nav>
   );
 }
 
@@ -201,7 +166,7 @@ function ConnectProjectForm({
         spellCheck={false}
         autoFocus={Boolean(initialRepository)}
       />
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid gap-2">
         <Button type="submit" disabled={busy || !repository.trim()} className="h-11">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
           Connect
@@ -441,19 +406,8 @@ export function ProjectsWorkspace({
   if (status === 'unauthenticated') return <LoadingScreen />;
 
   return (
-    <main className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/90 px-4 py-3 backdrop-blur-sm md:px-6">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold">Projects</h1>
-            <p className="text-sm text-muted-foreground">
-              Discover tools for what you are building.
-            </p>
-          </div>
-          <ProjectNav />
-        </div>
-      </header>
-
+    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <TopBar title="Projects" description="Discover tools for what you are building." />
       <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[18rem_minmax(0,1fr)] md:px-6">
         <aside className="space-y-5">
           <section>
@@ -522,10 +476,12 @@ export function ProjectsWorkspace({
             </div>
           ) : (
             <div className="space-y-8">
-              <div className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="truncate text-xl font-semibold">{selectedProject.fullName}</h2>
+                    <h2 className="break-words text-xl font-semibold">
+                      {selectedProject.fullName}
+                    </h2>
                     {selectedProject.language && (
                       <Badge variant="secondary">{selectedProject.language}</Badge>
                     )}

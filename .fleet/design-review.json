@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "starboard",
-  "target": "project-aware discovery activation and landing",
+  "target": "projects shared app shell",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,29 +14,29 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": ".fleet/evidence/projects/before-1440.jpg"
+    "before": ".fleet/evidence/projects-shell/before-1440.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": ".fleet/evidence/projects/after-390.jpg"
+        "path": ".fleet/evidence/projects-shell/after-390.png"
       },
       {
         "width": 768,
-        "path": ".fleet/evidence/projects/after-768.jpg"
+        "path": ".fleet/evidence/projects-shell/after-768.png"
       },
       {
         "width": 1440,
-        "path": ".fleet/evidence/projects/after-1440.jpg"
+        "path": ".fleet/evidence/projects-shell/after-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm build:cf",
+      "command": "pnpm build",
       "status": "pass"
     },
     "critique": {
-      "score": 35,
+      "score": 32,
       "maximum": 40
     },
     "audit": {
@@ -49,17 +49,11 @@
     },
     "detector": {
       "posture": "advisory",
-      "findings": [
-        {
-          "rule": "gradient-text",
-          "status": "fixed",
-          "path": "landing-astro/src/pages/index.astro"
-        }
-      ]
+      "findings": []
     }
   },
   "ownerFeedback": {
     "decision": "keep",
-    "note": "Owner approved release of the free, similar-project-grounded product direction on 2026-08-08."
+    "note": "Owner approved the shared-shell Projects correction on 2026-08-09."
   }
 }

@@ -21,12 +21,24 @@ describe('project-first activation wiring', () => {
 
   it('loads GitHub choices only from the explicit picker and preserves manual entry', () => {
     const workspace = source('src/components/projects-workspace.tsx');
+    const projectsLayout = source('src/app/projects/layout.tsx');
+    const starsLayout = source('src/app/stars/layout.tsx');
+    const appShell = source('src/components/app-shell.tsx');
+    const topBar = source('src/components/top-bar.tsx');
 
     expect(workspace).toContain("fetch('/api/github/projects')");
     expect(workspace).toContain("setSource('picker')");
     expect(workspace).toContain("setSource('manual')");
     expect(workspace).toContain('initialRepository={initialRepository}');
     expect(workspace).toContain('Paste a URL instead');
+    expect(workspace).toContain('<TopBar title="Projects"');
+    expect(workspace).not.toContain('function ProjectNav()');
+    expect(projectsLayout).toContain('<AppShell>');
+    expect(starsLayout).toContain('<AppShell>');
+    expect(appShell).toContain('<SessionTracker />');
+    expect(appShell).toContain('flex h-svh flex-col');
+    expect(topBar).toContain('aria-label="Open product navigation"');
+    expect(topBar).toContain('className="size-11 shrink-0 sm:hidden"');
   });
 
   it('carries a successful preview through sign-in without auto-connecting it', () => {
