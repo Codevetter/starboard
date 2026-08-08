@@ -5,9 +5,9 @@
 
 import type { DbClient } from '@/db/client';
 
-export const CATALOG_MIN_STARS_FLOOR = 5000;
+const CATALOG_MIN_STARS_FLOOR = 5000;
 export const CATALOG_UPDATES_DEFAULT_LIMIT = 200;
-export const CATALOG_UPDATES_MAX_LIMIT = 500;
+const CATALOG_UPDATES_MAX_LIMIT = 500;
 
 export interface CatalogChangeEntry {
   date: string;
@@ -22,7 +22,7 @@ export interface CatalogChangeEntry {
   htmlUrl: string;
 }
 
-export interface CatalogUpdatesSummary {
+interface CatalogUpdatesSummary {
   totalCatalogRepos: number;
   minStarsFloor: number;
   newestCatalogedAt: string | null;

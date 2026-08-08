@@ -33,7 +33,7 @@ export interface VectorizeIndexLike {
   ): Promise<unknown>;
 }
 
-export const VECTORIZE_MAX_TOP_K = 100;
+const VECTORIZE_MAX_TOP_K = 100;
 
 function boundedTopK(topK: number): number {
   return Math.min(Math.max(Math.trunc(topK), 1), VECTORIZE_MAX_TOP_K);
