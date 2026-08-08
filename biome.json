@@ -1,5 +1,11 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.5/schema.json",
+  "extends": [
+    "ultracite/biome/core",
+    "ultracite/biome/react",
+    "ultracite/biome/next",
+    "ultracite/biome/vitest"
+  ],
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -44,40 +50,113 @@
       "jsxQuoteStyle": "double"
     }
   },
+  "json": { "formatter": { "enabled": false } },
   "linter": {
     "enabled": true,
     "rules": {
       "preset": "recommended",
       "a11y": {
-        "preset": "none"
+        "preset": "none",
+        "noAriaHiddenOnFocusable": "off",
+        "noLabelWithoutControl": "off",
+        "noNoninteractiveElementInteractions": "off",
+        "noStaticElementInteractions": "off",
+        "noSvgWithoutTitle": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useButtonType": "off",
+        "useSemanticElements": "off"
       },
       "style": {
-        "noNonNullAssertion": "off"
+        "noExportedImports": "off",
+        "noIncrementDecrement": "off",
+        "noInferrableTypes": "off",
+        "noNegationElse": "off",
+        "noNestedTernary": "off",
+        "noNonNullAssertion": "off",
+        "noParameterAssign": "off",
+        "noParameterProperties": "off",
+        "noUnusedTemplateLiteral": "off",
+        "noUselessElse": "off",
+        "useAtIndex": "off",
+        "useBlockStatements": "off",
+        "useCollapsedIf": "off",
+        "useConsistentArrayType": "off",
+        "useConsistentArrowReturn": "off",
+        "useConsistentBuiltinInstantiation": "off",
+        "useConsistentMethodSignatures": "off",
+        "useConsistentMemberAccessibility": "off",
+        "useConsistentObjectDefinitions": "off",
+        "useConsistentTypeDefinitions": "off",
+        "useDestructuring": "off",
+        "useErrorCause": "off",
+        "useFilenamingConvention": "off",
+        "useForOf": "off",
+        "useNumberNamespace": "off",
+        "useNumericSeparators": "off",
+        "useShorthandAssign": "off"
       },
       "performance": {
-        "noImgElement": "off"
+        "noAwaitInLoops": "off",
+        "noBarrelFile": "off",
+        "noDelete": "off",
+        "noImgElement": "off",
+        "noJsxPropsBind": "off",
+        "noNamespaceImport": "off",
+        "useTopLevelRegex": "off"
       },
       "suspicious": {
+        "noAlert": "off",
         "noExplicitAny": "off",
         "noImplicitAnyLet": "off",
         "noArrayIndexKey": "off",
-        "noShadowRestrictedNames": "off"
+        "noBiomeFirstException": "off",
+        "noBitwiseOperators": "off",
+        "noEmptyBlockStatements": "off",
+        "noEqualsToNull": "off",
+        "noEvolvingTypes": "off",
+        "noLeakedRender": "off",
+        "noShadow": "off",
+        "noShadowRestrictedNames": "off",
+        "noSkippedTests": "off",
+        "noUnnecessaryConditions": "off",
+        "noUnusedExpressions": "off",
+        "useArraySortCompare": "off",
+        "useAwait": "off",
+        "useStaticResponseMethods": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
       },
       "correctness": {
+        "noGlobalDirnameFilename": "off",
+        "noUnusedInstantiation": "off",
         "useExhaustiveDependencies": "off",
         "noUnusedVariables": "off",
-        "noUnusedImports": "off"
-      }
+        "noUnusedImports": "off",
+        "useImageSize": "off",
+        "useSingleJsDocAsterisk": "off"
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": "off",
+        "noForEach": "off",
+        "noUselessUndefined": "off",
+        "noUselessReturn": "off",
+        "noVoid": "off",
+        "useOptionalChain": "off",
+        "useSimplifiedLogicExpression": "off"
+      },
+      "nursery": { "useSortedClasses": "off" }
     }
   },
   "assist": {
     "enabled": true,
     "actions": {
       "source": {
-        "organizeImports": "off"
+        "organizeImports": "off",
+        "useSortedAttributes": "off",
+        "useSortedInterfaceMembers": "off",
+        "useSortedKeys": "off",
+        "useSortedPackageJson": "off"
       }
     }
   }
