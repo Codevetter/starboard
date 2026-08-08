@@ -6,9 +6,9 @@ annotates intent, inputs, and dependencies.
 
 ## seed-popular (`.github/workflows/seed-popular.yml`)
 
-- **Schedule:** `workflow_dispatch` only. The daily schedule was disabled on
-  2026-07-28 after repeated full-corpus updates exhausted the prior database
-  row-read allowance.
+- **Schedule:** daily at 03:00 UTC and manual `workflow_dispatch`. Automation
+  was restored after the D1 cutover removed the prior Turso row-read allowance;
+  the bounded walk and unchanged-row protections remain in force.
 - **Inputs:** `daily_limit` (default 1000), `tool_enrich_limit` (default 250).
 - **Concurrency:** shared group `starboard-embedding`, `cancel-in-progress:
   false`, so seed and standalone backfill cannot duplicate embedding work.
@@ -28,8 +28,7 @@ annotates intent, inputs, and dependencies.
   operator bearer. GitHub does not receive Vectorize API access.
 - **Safety controls:** metadata walks default to 10 GitHub Search pages and
   hard-cap at 25; unchanged repos do not update or fire FTS maintenance;
-  snapshots are written only when star counts change. Re-enable automation only
-  with an explicit row-read budget and alert.
+  snapshots are written only when star counts change.
 
 ## embed-pending (`.github/workflows/embed-pending.yml`)
 

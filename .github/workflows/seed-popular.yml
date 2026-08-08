@@ -1,6 +1,8 @@
 name: Seed popular repos
 
 on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC daily
   workflow_dispatch:
     inputs:
       daily_limit:
@@ -45,9 +47,9 @@ jobs:
       - name: Run seed script
         run: pnpm db:seed-popular
         env:
-          # The runner token has enough GitHub Search quota for a bounded manual walk.
+          # The runner token has enough GitHub Search quota for a bounded walk.
           # Keep this independent of long-lived PAT rotation so a stale secret
-          # cannot break a manual seed run with 401 Bad credentials.
+          # cannot break a scheduled seed run with 401 Bad credentials.
           GITHUB_TOKEN: ${{ github.token }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
           D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}

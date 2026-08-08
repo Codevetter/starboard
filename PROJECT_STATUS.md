@@ -27,7 +27,7 @@ installation, alerts, reports, digest email, and stack generation.
 | Client state | SWR (data), nuqs (URL-backed filters/sort) |
 | AI / search | Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5` (768d); optional `knowledgebase` Worker via service binding |
 | Deploy | Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
-| CI | GitHub Actions — push CI + manual SHA-tagged deploy + manual seed/enrich/embed |
+| CI | GitHub Actions — push CI + manual SHA-tagged deploy + daily bounded seed/enrich/embed |
 
 **Local dev:** `pnpm install && cp .env.example .env.local && pnpm dev` → http://localhost:3000
 
@@ -61,20 +61,23 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`; `AI_GATEWAY_API_KEY` for authenticated operator jobs; `RAG_SERVICE_KEY` for relevance RAG. Any legacy unused `TURSO_*` bindings are separate credential-cleanup work. |
 | Embedding model | `@cf/baai/bge-base-en-v1.5` — change model, dimension, and replacement Vectorize index together |
 | Project connections | Additive `0003_user_projects.sql`; remote migration requires explicit approval before application rollout |
-| Data refresh jobs | Manual GitHub Actions dispatches; automatic seed-popular scheduling is paused pending a provider-side row-read budget |
+| Data refresh jobs | Daily bounded `seed-popular` at 03:00 UTC plus manual seed/enrich/embed dispatches |
 | Deploy | `pnpm deploy:cf` or manual `deploy.yml` dispatch; both attach the full Git SHA |
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
 
-- **2026-08-08 (local product focus change; not deployed)** — Removed Alerts,
+- **2026-08-08 (free project discovery shipped)** — Removed Alerts,
   Reports, Stack Builder, standalone Radar, weekly digest, and the checked-in
   Fleet project catalog. Added user-owned public GitHub project connections and
   deterministic similar-project grounding plus repository-sourced tool
   recommendations without broadening OAuth scope. The product is explicitly
   free, and selective core-logic coverage is locked at 100% across statements,
-  branches, functions, and lines. Release was approved; deployment status must
-  be updated from live evidence after the migration and Worker rollout.
+  branches, functions, and lines. D1 migration `0003_user_projects.sql` is
+  applied; the release first reached 100% traffic at Worker SHA
+  `13c5bfa097c00701381707d2704528cf2d532c35`. Daily bounded catalog refresh
+  was restored after the D1 cutover; manual dispatch remains available for
+  operator checks.
 
 - **2026-08-02 (Cloudflare data cutover completed)** — Migrated 1,050,033
   relational rows from Turso to D1 with an exact frozen-source checksum match,

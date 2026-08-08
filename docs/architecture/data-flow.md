@@ -15,7 +15,7 @@ filtered by `session.user.githubId`.
 ## Public discovery
 
 ```text
-manual seed-popular job
+daily or manually dispatched seed-popular job
   → GitHub Search metadata
   → repos + star snapshots in D1
   → bounded embedding and tool-enrichment jobs
