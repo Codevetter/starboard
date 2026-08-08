@@ -2,7 +2,7 @@ import type { FleetFeatureArea, FleetProjectSnapshot } from '@/lib/fleet-project
 
 import fleetProjectsData from '../../data/fleet-projects.generated.json';
 
-export const fleetProjects = fleetProjectsData.projects as FleetProjectSnapshot[];
+const fleetProjects = fleetProjectsData.projects as FleetProjectSnapshot[];
 
 export interface FleetProjectSummary {
   slug: string;
