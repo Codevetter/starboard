@@ -72,6 +72,11 @@ provenance. The workflow is free and has no billing or entitlement gate.
 
 ## Timeline
 
+- **2026-08-09 (shared lint baseline)** — Adopted the Fleet Ultracite baseline
+  for core TypeScript, React, Next.js, and Vitest code. Explicit compatibility
+  exceptions preserve current behavior while 206 files pass with zero
+  diagnostics; generated Worker, public, Astro, and build artifacts remain
+  outside the checked surface.
 - **2026-08-09 (project-value hardening released)** — Archived the
   completed project-focus change after syncing its delta specs. Replaced the
   500-most-starred recommendation pool with bounded hybrid candidate retrieval
@@ -245,6 +250,8 @@ provenance. The workflow is free and has no billing or entitlement gate.
   permission trust note, and public discovery paths remain.
 
 ### Ops and developer experience
+
+- Shared Ultracite lint baseline with a clean 206-file check.
 - Checked-in `.env.example` documents required local variables without secrets.
 - Vitest unit tests with v8 coverage thresholds (80% lines/functions/statements, 70% branches) on `github-projects`, `project-recommendations`, `search`, and `starboard-rag-documents`; Playwright e2e path documented in README.
 - Pre-push lint hook.
