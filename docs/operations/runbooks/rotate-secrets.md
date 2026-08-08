@@ -1,6 +1,6 @@
 # Runbook: Rotate secrets
 
-Rotate Cloudflare / GitHub OAuth / Resend secrets. Never commit secrets
+Rotate Cloudflare and GitHub OAuth secrets. Never commit secrets
 to the repo — all secrets are gitignored or stored as Cloudflare/GitHub
 Actions secrets.
 
@@ -41,13 +41,6 @@ secret. Update:
 - `wrangler secret put AUTH_GITHUB_SECRET`
 - GitHub Actions repo secret `AUTH_GITHUB_SECRET` (only if a workflow uses it —
   the deploy workflow does not).
-
-## Resend (weekly digest email)
-
-Rotate `RESEND_API_KEY` in the Resend dashboard, then update the GitHub Actions
-repo secret `RESEND_API_KEY`. The digest workflow is fail-closed: if the secret
-is missing or invalid, email delivery is skipped with a log and the GitHub
-issue is still created.
 
 ## After rotation
 

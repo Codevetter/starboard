@@ -2,46 +2,57 @@
 
 ## What
 
-Starboard turns a large GitHub star list into a searchable personal knowledge
-base. It syncs stars, enriches repository metadata, lets the user organize repos
-with tags and collections, maps saved repositories to active fleet projects, and
-uses embeddings to make semantic discovery possible across both personal stars
-and a seeded pool of popular repositories.
+Starboard is project-aware tool intelligence for GitHub. It connects a
+developer's public GitHub projects to a seeded open-source repository catalog,
+then explains which repositories and tools may fit the work being built.
+Similar repositories form the grounding layer: tool recommendations come only
+from normalized detections on those peers and name their repository sources.
+
+The product also keeps a personal starred-repository library with search,
+lists, tags, saved state, and notes. Discover and Tool Intelligence remain
+publicly useful without sign-in.
 
 ## Who
 
-- **End users:** developers with many GitHub stars who want to rediscover and
-  organize them. Sign-in is GitHub OAuth (NextAuth v5, `read:user` scope); data
-  is per-user isolated at the database level.
-- **Operators:** the maintainer running D1 migrations and Cloudflare Workers
-  deploys. Currently single-operator in production.
+- **Developers:** people evaluating open-source tools for active software
+  projects or rediscovering useful repositories from a large GitHub star list.
+- **Operators:** the maintainer running D1 migrations, bounded catalog jobs, and
+  Cloudflare Workers deploys.
+
+GitHub OAuth uses the minimal `read:user` scope. The initial connected-project
+workflow supports public repositories only; private-project access is a
+separate permission decision.
+
+Starboard is free. It has no checkout, subscription, credit, or premium-feature
+gate for project connections, similar repositories, tool recommendations,
+Discover, or the personal Library.
 
 ## Where
 
-- Production app: <https://starboard.codevetter.com> (Cloudflare Worker
-  `starboard`, custom domain). See [surfaces.md](surfaces.md) for the full route
-  and API map.
+- Production app: <https://starboard.codevetter.com>.
 - Source: this repository.
-- Landing page: built from `landing-astro/` and overlaid into the OpenNext
-  assets during `pnpm build:cf`.
+- Landing page: `landing-astro/`, overlaid into the OpenNext assets during
+  `pnpm build:cf`.
+
+See [surfaces.md](surfaces.md) for the route and API map.
 
 ## Scope
 
-**In scope:** starred-repo dashboard with tags, collections, filters, and
-semantic search; fleet-aware My Projects recommendations; discovery and repo
-detail pages; radar maintainer signals; weekly alert inbox and digest payloads;
-shareable read-only insight reports; tool intelligence; stack builder.
+**In scope:** public repository discovery; evidence-aware tool intelligence;
+public GitHub project connections; project-aware repository recommendations;
+starred-repository sync, organization, search, and public lists; repository
+details and stored star history.
 
-**Out of scope (deliberate):**
+**Out of scope:**
 
+- Private GitHub repositories until the permission model is deliberately
+  chosen.
 - Organization/team dashboards and multi-user workspaces.
-- Non-GitHub providers (npm, PyPI, etc.).
-- ATS features and general GitHub analytics beyond starred-repo rediscovery.
-- Real-time push notifications (email/in-app digest first).
-- Paid weekly intelligence productization beyond preview surfaces.
+- Non-GitHub providers.
+- Automated dependency installation or code modification.
+- Alerts, email digests, reports, Stack Builder, and standalone Radar.
 
 ## Operating posture
 
 Active product under development. See [STATUS.md](../../STATUS.md) for the
-current objective, active work, blockers, and next steps, and
-[features.md](features.md) for the shipped feature inventory.
+current objective and [features.md](features.md) for the implemented inventory.

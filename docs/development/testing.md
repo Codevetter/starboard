@@ -4,11 +4,9 @@
 
 - **Runner:** Vitest 4 with v8 coverage. Config in `vitest.config.ts`.
 - **Location:** `src/__tests__/` (one file per module under test).
-- **Fixtures:** `src/__tests__/fixtures/` (e.g.
-  `recommendation-eval-fixture.ts`).
 - **Coverage thresholds:** 80% lines/functions/statements, 70% branches on core
-  logic modules (`src/lib/fleet-projects`, `recommendation-eval`, `search`,
-  `stack-builder`, `starboard-rag-documents`, `release-radar`).
+  logic modules (`github-projects`, `project-recommendations`, `search`, and
+  `starboard-rag-documents`).
 
 ```bash
 pnpm test              # vitest run
@@ -26,13 +24,12 @@ pnpm test:coverage     # vitest run --coverage
   ingest batching, and lexical-only fallback when the shared RAG Worker is
   unavailable or unconfigured.
 
-## Recommendation eval harness
+## Project recommendation tests
 
-- `src/lib/recommendation-eval.ts` + `src/__tests__/recommendation-eval.test.ts`
-  + `src/__tests__/fixtures/recommendation-eval-fixture.ts`.
-- Tune production ranking weights **only** when the fixture benchmark stays
-  green across scorer changes. See
-  [../archive/plans-2026-06-12-hybrid-ranking-eval-harness.md](../archive/plans-2026-06-12-hybrid-ranking-eval-harness.md).
+- `src/__tests__/github-projects.test.ts` validates public GitHub input.
+- `src/__tests__/project-recommendations.test.ts` covers evidence ranking,
+  sparse-context fallback labeling, and exclusions.
+- Ranking weight changes must keep explanations tied to observable evidence.
 
 ## End-to-end (Playwright)
 

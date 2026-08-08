@@ -3,19 +3,18 @@
 [![100% AI](https://img.shields.io/badge/Built%20with-100%25%20AI-blueviolet?style=for-the-badge)](https://claude.ai)
 [![Live](https://img.shields.io/badge/Live-starboard.codevetter.com-black?style=for-the-badge)](https://starboard.codevetter.com)
 
-Organize, search, and rediscover GitHub starred repositories. Starboard turns a
-large star list into a searchable personal knowledge base with tags, lists,
-semantic search, fleet project recommendations, and public share pages.
+Connect a GitHub project and discover open-source repositories that fit it.
+Starboard combines project context, semantic discovery, tool evidence, and a
+searchable personal library of GitHub stars.
 
 Live app: <https://starboard.codevetter.com>
 
 ## Product Shape
 
-GitHub stars are useful intent signals, but the native GitHub UI is weak for
-retrieval. Starboard syncs stars, enriches repository metadata, lets the user
-organize repos with tags and collections, maps saved repositories to active
-fleet projects, and uses embeddings to make semantic discovery possible across
-both personal stars and seeded popular repositories.
+GitHub stars and trending lists are useful starting points, but they do not
+answer which repository fits a project being built. Starboard connects public
+GitHub projects, enriches a shared repository catalog, explains relevant
+matches, and keeps personal stars searchable with tags and collections.
 
 ## Deployment & External Services
 
@@ -38,11 +37,17 @@ both personal stars and seeded popular repositories.
 - **Search** — Full-text search across name, description, and topics
 - **Filter** — By language, category, tag, or collection
 - **Sort** — Recently starred, most stars, recently updated, A-Z
-- **My Projects** — Fleet-aware recommendations for current SaaS Maker projects
+- **Projects** — connect public GitHub repositories for explained recommendations
+- **Similar Projects** — ground recommendations in comparable repositories
+- **Grounded Tools** — see which tools peers use and the exact repository evidence
+- **Tool Intelligence** — inspect detected tools, confidence, and repository evidence
+- **Discover** — search and filter a seeded public repository catalog
 - **Grid / List Views** — Toggle between card grid and compact list
 - **Dark Mode** — Dark by default
 - **Virtual Scroll** — Smooth performance with 1000+ repos
 - **Manual Sync** — Sync on demand, see what's added/removed
+
+Starboard is free: there are no paid plans, usage credits, or premium locks.
 
 ## Stack
 
@@ -84,7 +89,7 @@ AUTH_TRUST_HOST=true
 ```text
 src/app/stars/          main dashboard
 src/app/explore/        repo detail and discovery pages
-src/app/projects/       current fleet projects and repository recommendations
+src/app/projects/       connected GitHub projects and repository recommendations
 src/app/lists/          public shared list pages
 src/app/api/            auth, stars, lists, repo interactions
 src/components/         repo cards, grid, filters, pickers, shell
@@ -94,7 +99,6 @@ src/db/rest-client.ts   authenticated D1 REST adapter for operator jobs
 migrations/             ordered D1 SQL migrations
 src/db/seed-embeddings.ts
 scripts/seed-popular.ts scheduled popular repo seeding
-scripts/extract-fleet-projects.ts local fleet snapshot generator
 ```
 
 ## Scripts
@@ -108,7 +112,6 @@ pnpm db:migrate          # apply ordered SQL migrations to isolated local D1
 pnpm db:migrate:remote   # apply to configured remote D1 (approval required)
 pnpm db:seed-embeddings  # backfill repo embeddings
 pnpm db:seed-popular     # seed/enrich popular repositories
-pnpm fleet:extract-projects # refresh checked-in fleet project context snapshot
 pnpm build:cf            # OpenNext Cloudflare build
 pnpm preview:cf          # local Cloudflare preview
 pnpm deploy:cf           # deploy to Cloudflare Workers
@@ -131,8 +134,10 @@ live in Vectorize.
 - Use raw SQL through the D1 binding/REST adapters; there is no ORM in this repo.
 - GitHub star sync uses ETag caching to avoid unnecessary API calls.
 - GitHub star lists are scraped from GitHub HTML because there is no official API for that surface.
-- My Projects reads the checked-in `data/fleet-projects.generated.json` snapshot. Refresh it locally with `pnpm fleet:extract-projects` after fleet project scope, dependencies, README, or `PROJECT_STATUS.md` changes.
-- Project recommendations suppress packages already used by the target project before ranking candidate repos.
+- Projects are public GitHub repositories connected per user in D1. The current OAuth scope is not broadened for private access.
+- Similar projects use visible language, topic, metadata, and tool evidence;
+  grounded tool recommendations then name the exact peer repositories that use
+  each tool. Sparse results are labeled as broad discovery.
 - Filter and sort state lives in the URL through `nuqs`, so dashboard links are shareable.
 - Scheduled GitHub Actions seed and enrich popular repositories for discovery.
 - SaaS Maker supplies the feedback widget only; product analytics run directly through PostHog.
@@ -169,9 +174,9 @@ This historical task ledger is retained for context; new planning and marketing 
 | `b019da19` starboard: first-run UX needs obvious value + GitHub sign-in CTA | done | medium | 2026-05-25 17:09:26 |
 | `5c5f9479` starboard: show a sample prioritized stars board | done | high | 2026-05-26 |
 | `e187b3a9` starboard: add why-this-repo-is-hot explanation | done | high | 2026-05-26 |
-| `cd76368b` starboard: add weekly digest preview | done | high | 2026-05-26 |
+| `cd76368b` starboard: add weekly digest preview (removed 2026-08-08) | done | high | 2026-05-26 |
 | `5a0a8e62` starboard: add stale-star cleanup proof | done | medium | 2026-05-26 |
 | `b3d3b34c` starboard: add GitHub permission trust note | done | medium | 2026-05-26 |
-| `14253981` starboard: add paid weekly intelligence digest preview | done | high | 2026-05-26 |
-| `ec12eae5` starboard: add paid weekly action preview | done | medium | 2026-05-27 |
+| `14253981` starboard: add paid weekly intelligence digest preview (removed 2026-08-08) | done | high | 2026-05-26 |
+| `ec12eae5` starboard: add paid weekly action preview (removed 2026-08-08) | done | medium | 2026-05-27 |
 <!-- ACTIVE-AI-TASK-LOG:END -->

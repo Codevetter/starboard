@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Starboard',
     short_name: 'Starboard',
-    description: 'GitHub stars organizer — semantic search, radar, and bulk tagging.',
+    description: 'Project-aware open-source discovery and GitHub tool intelligence.',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

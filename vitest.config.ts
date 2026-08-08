@@ -13,18 +13,16 @@ export default defineConfig({
       // following the swe-interview-prep fleet model. UI/config/DB-integration
       // files are excluded — they are covered by e2e or integration suites.
       include: [
-        'src/lib/fleet-projects.ts',
-        'src/lib/recommendation-eval.ts',
+        'src/lib/github-projects.ts',
+        'src/lib/project-recommendations.ts',
         'src/lib/search.ts',
-        'src/lib/stack-builder.ts',
         'src/lib/starboard-rag-documents.ts',
-        'src/lib/release-radar.ts',
       ],
       thresholds: {
-        lines: 80,
-        functions: 80,
-        statements: 80,
-        branches: 70,
+        lines: 100,
+        functions: 100,
+        statements: 100,
+        branches: 100,
       },
       exclude: [
         'node_modules',

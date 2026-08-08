@@ -34,12 +34,6 @@ export function blendSearchIds(lexIds: number[], semIds: number[], k = 60): numb
     seen.add(id);
     out.push(id);
   }
-  for (const id of semIds) {
-    if (seen.has(id)) continue;
-    seen.add(id);
-    out.push(id);
-  }
-
   return out;
 }
 
@@ -149,17 +143,14 @@ export function searchTerms(query: string, maxTerms = 24): string[] {
   return Array.from(terms).slice(0, maxTerms);
 }
 
-function ftsTerm(term: string): string | null {
+function ftsTerm(term: string): string {
   const cleaned = term.replace(/"/g, ' ').trim();
-  if (cleaned.length < 2) return null;
   if (/^[a-z0-9]+$/i.test(cleaned)) return `${cleaned}*`;
   return `"${cleaned}"`;
 }
 
 export function ftsSearchQuery(query: string): string | null {
-  const terms = searchTerms(query)
-    .map(ftsTerm)
-    .filter((term): term is string => term !== null);
+  const terms = searchTerms(query).map(ftsTerm);
   if (terms.length === 0) return null;
   return terms.join(' OR ');
 }

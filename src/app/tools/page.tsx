@@ -116,11 +116,13 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/radar" prefetch={false}>
-                Radar
-              </Link>
-            </Button>
+            {isAuthenticated && (
+              <Button asChild variant="outline" size="sm">
+                <Link href="/projects" prefetch={false}>
+                  Projects
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="outline" size="sm">
               <Link href="/discover" prefetch={false}>
                 Discover

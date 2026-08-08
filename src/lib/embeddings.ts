@@ -238,28 +238,6 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   return results;
 }
 
-/** LRU cache for query embeddings — avoids re-embedding the same search query. */
-const CACHE_MAX = 100;
-const embeddingCache = new Map<string, number[]>();
-
-/** Convenience: embed a single text (e.g. a search query). Cached. */
-export async function generateEmbedding(text: string): Promise<number[]> {
-  const key = text.trim().toLowerCase();
-  const cached = embeddingCache.get(key);
-  if (cached) return cached;
-
-  const [embedding] = await generateEmbeddings([key]);
-
-  // Evict oldest if at capacity
-  if (embeddingCache.size >= CACHE_MAX) {
-    const oldest = embeddingCache.keys().next().value!;
-    embeddingCache.delete(oldest);
-  }
-  embeddingCache.set(key, embedding);
-
-  return embedding;
-}
-
 /** Cosine similarity for two equal-length vectors. */
 export function cosineSimilarity(a: number[], b: number[]): number {
   let dot = 0;

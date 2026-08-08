@@ -20,36 +20,40 @@ const geistMono = Geist_Mono({
 
 const SITE_URL = 'https://starboard.codevetter.com';
 const SITE_DESCRIPTION =
-  'Sync, search, and organize your GitHub stars. Filter by language, find similar repos with semantic search, and group everything into collections.';
+  'Connect a public GitHub project, find similar repositories, and trace suggested tools to the peers that actually use them.';
 
 export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
       { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/favicon.ico', sizes: 'any' },
     ],
     apple: '/apple-touch-icon.png',
   },
 
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Starboard — Your GitHub stars, organized',
+    default: 'Starboard — Tool intelligence for GitHub projects',
     template: '%s — Starboard',
   },
   description: SITE_DESCRIPTION,
   applicationName: 'Starboard',
-  keywords: ['GitHub stars', 'repository organizer', 'semantic search', 'open source discovery'],
+  keywords: [
+    'GitHub projects',
+    'developer tools',
+    'repository intelligence',
+    'open source discovery',
+  ],
   openGraph: {
     type: 'website',
     url: SITE_URL,
     siteName: 'Starboard',
-    title: 'Starboard — Your GitHub stars, organized',
+    title: 'Starboard — Tool intelligence for GitHub projects',
     description: SITE_DESCRIPTION,
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Starboard — Your GitHub stars, organized',
+    title: 'Starboard — Tool intelligence for GitHub projects',
     description: SITE_DESCRIPTION,
   },
 };
@@ -75,7 +79,7 @@ export default async function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: `{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://sarthakagrawal.dev/#person","name":"Sarthak Agrawal","url":"https://sarthakagrawal.dev","sameAs":["https://sarthakagrawal.dev","https://github.com/sarthakagrawal927"]},{"@type":"SoftwareApplication","@id":"https://starboard.codevetter.com/#app","name":"Starboard","url":"https://starboard.codevetter.com","description":"GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.","publisher":{"@id":"https://sarthakagrawal.dev/#person"},"sameAs":["https://github.com/Codevetter/starboard"]}]}`,
+            __html: `{"@context":"https://schema.org","@graph":[{"@type":"Person","@id":"https://sarthakagrawal.dev/#person","name":"Sarthak Agrawal","jobTitle":"AI Infrastructure & Product Engineer","url":"https://sarthakagrawal.dev","image":"https://avatars.githubusercontent.com/u/43884471?v=4","sameAs":["https://sarthakagrawal.dev","https://www.linkedin.com/in/sarthakagrawal927","https://github.com/sarthakagrawal927","https://x.com/sarthakcodes","https://huggingface.co/sarthakagrawal927"],"knowsAbout":["AI infrastructure","Local-first software","Post-training language models","AI code review","Cloudflare Workers","TypeScript","Rust"],"affiliation":{"@type":"Organization","@id":"https://sassmaker.com/#app","name":"SaaS Maker","url":"https://sassmaker.com"}},{"@type":"SoftwareApplication","@id":"https://starboard.codevetter.com/#app","name":"CodeVetter","alternateName":["Code Vetter","codevetter.com"],"url":"https://starboard.codevetter.com","description":"GitHub stars organizer with semantic search — sub-product of CodeVetter for repo intelligence.","publisher":{"@id":"https://sarthakagrawal.dev/#person"},"sameAs":["https://github.com/Codevetter/starboard"]}]}`,
           }}
         />
         {/* fleet-jsonld:end */}

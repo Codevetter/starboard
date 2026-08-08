@@ -2,50 +2,39 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
-import { generateEmbedding } from '@/lib/embeddings';
-import { chunkForD1 } from '@/lib/d1-limits';
-import { getFleetProject } from '@/lib/fleet-project-data';
 import {
-  buildProjectRecommendationReport,
-  type FleetRepoCandidate,
-  type SemanticDistanceMap,
-  semanticKey,
-} from '@/lib/fleet-projects';
-import { repoVectors } from '@/lib/repo-vectors';
+  PROJECT_SELECT,
+  parseProjectTools,
+  parseStringArray,
+  projectFromRow,
+} from '@/lib/connected-projects';
+import {
+  type ProjectRecommendationRepo,
+  rankProjectRecommendations,
+} from '@/lib/project-recommendations';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const session = await auth();
-
   if (!session?.user?.githubId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const { slug } = await params;
-  const project = getFleetProject(slug);
-  if (!project) {
+  const repoId = Number(slug);
+  if (!Number.isSafeInteger(repoId) || repoId <= 0) {
     return NextResponse.json({ error: 'Project not found' }, { status: 404 });
   }
 
-  const limit = Math.min(
-    Math.max(parseInt(request.nextUrl.searchParams.get('limit') || '30', 10) || 30, 20),
-    30
-  );
-  const userId = session.user.githubId;
-  const [repos, semanticDistances] = await Promise.all([
-    fetchCandidateRepos(userId),
-    fetchSemanticDistances(userId, project),
-  ]);
+  const projectResult = await db.execute({
+    sql: `${PROJECT_SELECT}
+          WHERE up.user_id = ? AND up.repo_id = ?`,
+    args: [session.user.githubId, repoId],
+  });
+  if (projectResult.rows.length === 0) {
+    return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+  }
 
-  return NextResponse.json(
-    buildProjectRecommendationReport(project, repos, {
-      limit,
-      semanticDistances,
-    })
-  );
-}
-
-async function fetchCandidateRepos(userId: string): Promise<FleetRepoCandidate[]> {
-  const result = await db.execute({
+  const candidateResult = await db.execute({
     sql: `SELECT r.id,
                  r.name,
                  r.full_name,
@@ -55,112 +44,53 @@ async function fetchCandidateRepos(userId: string): Promise<FleetRepoCandidate[]
                  r.stargazers_count,
                  r.archived,
                  r.topics,
-                 r.repo_updated_at,
-                 ur.starred_at,
-                 ur.is_saved,
                  aim.summary AS ai_summary,
                  aim.category AS ai_category,
-                 aim.subcategories AS ai_subcategories,
-                 aim.use_cases AS ai_use_cases,
-                 aim.keywords AS ai_keywords
-          FROM user_repos ur
-          JOIN repos r ON r.id = ur.repo_id
+                 aim.keywords AS ai_keywords,
+                 COALESCE((
+                   SELECT json_group_array(json_object(
+                     'key', rt.tool_key,
+                     'name', rt.tool_name,
+                     'category', rt.category,
+                     'confidence', rt.confidence
+                   ))
+                   FROM repo_tools rt
+                   WHERE rt.repo_id = r.id
+                 ), '[]') AS tools
+          FROM repos r
           LEFT JOIN repo_ai_metadata aim ON aim.repo_id = r.id
-          WHERE ur.user_id = ?
-            AND (ur.is_starred = 1 OR ur.is_saved = 1)
-          ORDER BY ur.is_saved DESC, r.stargazers_count DESC, r.repo_updated_at DESC
-          LIMIT 2000`,
-    args: [userId],
+          WHERE r.id != ?
+            AND r.archived = 0
+            AND r.stargazers_count >= 5000
+          ORDER BY r.stargazers_count DESC
+          LIMIT 500`,
+    args: [repoId],
   });
 
-  return result.rows.map((row) => ({
-    id: row.id as number,
-    name: row.name as string,
-    fullName: row.full_name as string,
-    htmlUrl: row.html_url as string,
-    description: row.description as string | null,
-    language: row.language as string | null,
-    stargazersCount: row.stargazers_count as number,
+  const candidates: ProjectRecommendationRepo[] = candidateResult.rows.map((row) => ({
+    id: Number(row.id),
+    name: String(row.name),
+    fullName: String(row.full_name),
+    htmlUrl: String(row.html_url),
+    description: typeof row.description === 'string' ? row.description : null,
+    language: typeof row.language === 'string' ? row.language : null,
+    stargazersCount: Number(row.stargazers_count ?? 0),
     archived: Boolean(row.archived),
-    topics: parseStringArray(row.topics as string),
-    repoUpdatedAt: row.repo_updated_at as string | null,
-    starredAt: row.starred_at as string | null,
-    isSaved: Boolean(row.is_saved),
-    ai: row.ai_summary
-      ? {
-          summary: row.ai_summary as string,
-          category: row.ai_category as string | null,
-          subcategories: parseStringArray(row.ai_subcategories as string),
-          useCases: parseStringArray(row.ai_use_cases as string),
-          keywords: parseStringArray(row.ai_keywords as string),
-        }
-      : null,
+    topics: parseStringArray(row.topics),
+    aiSummary: typeof row.ai_summary === 'string' ? row.ai_summary : null,
+    aiCategory: typeof row.ai_category === 'string' ? row.ai_category : null,
+    aiKeywords: parseStringArray(row.ai_keywords),
+    tools: parseProjectTools(row.tools),
   }));
-}
 
-async function fetchSemanticDistances(
-  userId: string,
-  project: ReturnType<typeof getFleetProject>
-): Promise<SemanticDistanceMap> {
-  const distances: SemanticDistanceMap = new Map();
-  if (!project) return distances;
+  const limit = Math.min(
+    Math.max(Number(request.nextUrl.searchParams.get('limit') ?? 24) || 24, 1),
+    50
+  );
+  const project = projectFromRow(projectResult.rows[0]);
 
-  try {
-    await Promise.all(
-      project.featureAreas.slice(0, 7).map(async (featureArea) => {
-        const query = [
-          project.name,
-          project.description,
-          project.statusSummary,
-          project.recommendationContext,
-          `Feature: ${featureArea.label}`,
-          featureArea.description,
-          featureArea.keywords.join(', '),
-        ].join('\n');
-        const embedding = await generateEmbedding(query);
-        const matches = await repoVectors().query(embedding, 100);
-        if (matches.length === 0) return;
-
-        const ids = matches.map((match) => match.repoId);
-        const owned = await Promise.all(
-          chunkForD1(ids, 1).map((chunk) =>
-            db.execute({
-              sql: `SELECT repo_id
-                    FROM user_repos
-                    WHERE user_id = ?
-                      AND (is_starred = 1 OR is_saved = 1)
-                      AND repo_id IN (${chunk.map(() => '?').join(', ')})`,
-              args: [userId, ...chunk],
-            })
-          )
-        );
-        const ownedIds = new Set(
-          owned.flatMap((result) => result.rows.map((row) => row.repo_id as number))
-        );
-
-        for (const match of matches) {
-          if (!ownedIds.has(match.repoId)) continue;
-          const distance = match.distance;
-          if (distance > 0.72) continue;
-          distances.set(semanticKey(match.repoId, featureArea.id), distance);
-        }
-      })
-    );
-  } catch (error) {
-    console.warn('Project recommendation semantic scoring failed:', error);
-  }
-
-  return distances;
-}
-
-function parseStringArray(value: string | null | undefined): string[] {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed)
-      ? parsed.filter((item): item is string => typeof item === 'string')
-      : [];
-  } catch {
-    return [];
-  }
+  return NextResponse.json({
+    project,
+    ...rankProjectRecommendations(project, candidates, limit),
+  });
 }

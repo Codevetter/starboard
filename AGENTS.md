@@ -8,9 +8,9 @@
 
 ## Purpose
 
-GitHub stars organizer — sync, tag, and semantic vector search across your
-starred repositories. Fleet-aware recommendations, discovery, radar, alerts,
-and shareable insight reports. Live at
+Project-aware GitHub repository discovery and tool intelligence. Connect public
+GitHub projects, inspect explained recommendations, search the public catalog,
+and organize starred repositories. Live at
 [starboard.codevetter.com](https://starboard.codevetter.com). See
 [docs/product/overview.md](docs/product/overview.md).
 
@@ -38,7 +38,6 @@ pnpm db:migrate        # apply migrations/* to isolated local D1
 pnpm db:migrate:remote # validate config + apply migrations/* to remote D1 (approval required)
 pnpm db:seed-popular   # cold-seed popular repos (≥5k stars) — used by daily GH Action
 pnpm db:seed-embeddings# backfill repo_embeddings
-pnpm fleet:extract-projects  # regenerate data/fleet-projects.generated.json
 pnpm docs:check        # validate docs/ links + structure
 pnpm docs:dev          # blume dev (local docs site; requires pnpm add -D blume)
 pnpm docs:build        # blume build (presentation only; not part of production build)
@@ -69,8 +68,8 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
   [docs/architecture/decisions/0002-nextauth-v5-beta.md](docs/architecture/decisions/0002-nextauth-v5-beta.md).
 - **No ORM.** Raw SQL via the D1 adapters. Schema changes are ordered SQL files
   in `migrations/`; apply locally with `pnpm db:migrate`.
-- **Generated files — do not hand-edit:** `agent-edge.mjs`, `worker.mjs`,
-  `cloudflare-env.d.ts`, `data/fleet-projects.generated.json`. See
+- **Generated files — do not hand-edit:** `agent-edge.mjs`, `worker.mjs`, and
+  `cloudflare-env.d.ts`. See
   [docs/development/conventions.md](docs/development/conventions.md).
 - **Pre-push hook** (`.husky/pre-push`) runs Biome on changed files and scans
   tracked files for common secret patterns. Re-stage modified files and retry.
@@ -125,17 +124,16 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
 
 ```
 src/
-  app/                    # Next.js App Router: stars, explore, discover, projects, lists, radar, reports, api/*
+  app/                    # Next.js App Router: stars, explore, discover, projects, tools, lists, api/*
   components/             # repo-card, repo-grid (virtualized), sidebar, top-bar, tag/list pickers
   hooks/                  # SWR data hooks
   db/                     # D1 binding/REST adapters and seed-embeddings.ts
-  lib/                    # github, github-lists, embeddings, auth, search, knowledgebase, fleet-projects, ...
+  lib/                    # github, connected projects, recommendations, auth, search, knowledgebase, ...
 docs/                     # Canonical documentation (source of truth)
-scripts/                  # seed-popular, enrich-repos, enrich-tools, weekly-threshold-digest, check-docs, ...
+scripts/                  # seed-popular, enrich-repos, enrich-tools, check-docs, ...
 landing-astro/            # Astro landing page (overlaid into OpenNext assets during build:cf)
 openspec/                 # spec-driven change workflow tooling + archived changes
 public/                   # Agent-indexing surfaces (llms.txt, index.md, api-ai.json, robots.txt, sitemap.xml)
-data/fleet-projects.generated.json   # checked-in fleet snapshot for My Projects
 wrangler.jsonc            # Worker config: ASSETS + AI + DB + REPO_VECTORS + RAG_SERVICE
 worker.mjs / agent-edge.mjs         # OpenNext-generated (do not hand-edit)
 ```

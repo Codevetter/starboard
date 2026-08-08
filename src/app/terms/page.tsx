@@ -20,6 +20,12 @@ export default function TermsPage() {
         description, stars, language, topics, archived flag, push date). Nothing private.
       </p>
 
+      <h2 className="mt-8 text-base font-semibold">Free service</h2>
+      <p className="mt-2">
+        Starboard does not charge for project connections, similar-project discovery, grounded tool
+        recommendations, Discover, or the personal Library.
+      </p>
+
       <h2 className="mt-8 text-base font-semibold">Be polite to GitHub</h2>
       <p className="mt-2">
         Embedded API calls run against your OAuth token&apos;s rate limit (5,000/hour). Heavy bulk
@@ -28,7 +34,7 @@ export default function TermsPage() {
 
       <h2 className="mt-8 text-base font-semibold">No warranty</h2>
       <p className="mt-2">
-        Provided as-is. Embeddings, radar classifications, and recommendations are heuristic —
+        Provided as-is. Embeddings, tool detections, and recommendations are heuristic —
         sanity-check anything you action on.
       </p>
     </main>

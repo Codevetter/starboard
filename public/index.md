@@ -11,8 +11,8 @@ GitHub stars organizer, repository discovery surface, and semantic search produc
 ## With GitHub sign-in
 
 - Sync and organize personal stars with tags and collections
-- Search starred repositories and receive fleet-aware recommendations
-- Track maintainer signals, alerts, and shareable insight reports
+- Connect public GitHub projects for explained repository recommendations
+- Search and organize a personal starred-repository library
 
 ## Agent entrypoints
 

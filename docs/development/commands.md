@@ -43,15 +43,6 @@ The `--webpack` flag remains the verified OpenNext production build path.
 | `pnpm db:seed-popular` | `tsx scripts/seed-popular.ts` — cold-seed popular repos (≥5k stars) |
 | `pnpm db:enrich-tools` | `tsx scripts/enrich-tools.ts` — SBOM/tree/manifest tool detection |
 
-## Fleet / digest
-
-| Command | Purpose |
-| --- | --- |
-| `pnpm fleet:audit-recommendation-context` | `tsx scripts/audit-fleet-recommendation-context.ts` |
-| `pnpm fleet:extract-projects` | `tsx scripts/extract-fleet-projects.ts` — regenerate `data/fleet-projects.generated.json` |
-| `pnpm weekly:threshold-digest` | `tsx scripts/weekly-threshold-digest.ts` — generate weekly digest markdown |
-| `pnpm digest:send-emails` | `tsx scripts/send-weekly-digest-emails.ts` — send via Resend (fail-closed without `RESEND_API_KEY`) |
-
 ## Testing
 
 | Command | Purpose |

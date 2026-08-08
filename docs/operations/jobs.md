@@ -43,30 +43,6 @@ annotates intent, inputs, and dependencies.
 - **Credentials:** scoped D1 migration token + the existing AI gateway key as
   the Worker operator bearer. GitHub does not receive Vectorize API access.
 
-## weekly-threshold-digest (`.github/workflows/weekly-threshold-digest.yml`)
-
-- **Schedule:** `workflow_dispatch` only. Automatic database-backed digest runs
-  remain disabled pending an explicit operating budget.
-- **Inputs:** `days` (default 7).
-- **Timeout:** 15 minutes.
-- **Permissions:** `contents: read`, `issues: write`.
-- **Steps:**
-  1. `pnpm db:migrate:remote`.
-  2. `pnpm --silent weekly:threshold-digest > digest.md` (generates the digest
-     markdown).
-  3. Create or update a GitHub issue titled
-     `Starboard weekly repo digest - <date>` (idempotent — edits an existing open
-     issue with the same title if present).
-  4. `pnpm digest:send-emails` — fail-closed: skipped with a log when
-     `RESEND_API_KEY` is unset.
-- **Credentials:** scoped Cloudflare API token, `RESEND_API_KEY` (optional),
-  `DIGEST_EMAIL_FROM` (repo variable, optional).
-
-## weekly (`.github/workflows/weekly.yml`)
-
-- **Schedule:** `cron: '0 9 * * 1'` (Mondays 09:00 UTC) + `workflow_dispatch`.
-- See [ci-cd.md](ci-cd.md).
-
 ## Cloudflare Workers scheduled triggers
 
 **None configured.** `wrangler.jsonc` has no `[[triggers]] crons` entry. All

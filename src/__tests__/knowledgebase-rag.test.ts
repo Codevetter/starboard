@@ -92,6 +92,15 @@ describe('Starboard knowledgebase RAG documents', () => {
     });
   });
 
+  it('omits a stars line when the count is unavailable', () => {
+    const document = buildStarboardRagDocument('user-1', {
+      ...repo,
+      stargazers_count: undefined,
+    });
+
+    expect(document.content).not.toContain('Stars:');
+  });
+
   it('fetches available READMEs and skips missing repos', async () => {
     const calls: string[] = [];
     const fetchImpl = (async (url: string | URL | Request) => {
@@ -112,6 +121,27 @@ describe('Starboard knowledgebase RAG documents', () => {
       'https://api.github.com/repos/acme/widgets/readme',
       'https://api.github.com/repos/acme/missing/readme',
     ]);
+  });
+
+  it('uses the default fetch path and skips an empty README', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('   '));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchRepoReadmes('github-token', [repo])).resolves.toEqual(new Map());
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it('reports non-404 README failures without failing the batch', async () => {
+    const onError = vi.fn();
+    const fetchImpl = vi.fn().mockResolvedValue(new Response('failed', { status: 503 }));
+
+    await expect(
+      fetchRepoReadmes('github-token', [repo], { fetchImpl, concurrency: 0, onError })
+    ).resolves.toEqual(new Map());
+    expect(onError).toHaveBeenCalledWith(
+      repo,
+      expect.objectContaining({ message: 'GitHub README fetch failed 503' })
+    );
   });
 
   it('batches large RAG ingest payloads', () => {

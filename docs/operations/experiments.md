@@ -20,8 +20,8 @@ Experiments MUST NOT:
 
 - trigger corpus expansion (e.g. lowering `MIN_STARS_FLOOR`, adding non-GitHub
   providers), ranking redesign, or new paid data sources
-- alter the embedding model, the RAG index, or the recommendation scorer
-  weights outside the eval harness
+- alter the embedding model, the RAG index, or project recommendation weights
+  outside focused evaluation work
 - promote Starboard into "My Work" or any commercial roadmap surface
 - run without an explicit `experiment_id` and `expiry`
 
@@ -56,9 +56,8 @@ does not deliver.
 
 - "Search and organize your GitHub stars with semantic and full-text search."
 - "Discover popular repositories trending this week."
-- "Fleet-aware recommendations for your projects."
-- "Radar maintainer and release signals with weekly alerts."
-- "Shareable insight reports at stable public URLs."
+- "Connect a public GitHub project for explained repository recommendations."
+- "Inspect detected tools with confidence and source evidence."
 
 ## Current state
 

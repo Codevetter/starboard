@@ -32,11 +32,9 @@ authored in a single `docs/archive/decisions.md` (newest first), split on
   — Hybrid ranking eval harness PRD (shipped 2026-06-13). Implementation:
   `src/lib/recommendation-eval.ts`.
 - [`plans-2026-06-12-weekly-repository-alerts.md`](plans-2026-06-12-weekly-repository-alerts.md)
-  — Weekly repository alerts PRD (shipped 2026-06-13). Implementation:
-  `src/lib/alert-preferences.ts`, `src/lib/weekly-alerts.ts`, `/api/alerts/*`.
+  — Weekly repository alerts PRD (shipped 2026-06-13, removed 2026-08-08).
 - [`plans-2026-06-12-shareable-insight-reports.md`](plans-2026-06-12-shareable-insight-reports.md)
-  — Shareable insight reports PRD (shipped 2026-06-13). Implementation:
-  `src/lib/insight-reports.ts`, `POST /api/reports`, `/reports/[slug]`.
+  — Shareable insight reports PRD (shipped 2026-06-13, removed 2026-08-08).
 
 ## Evaluations & context
 
@@ -47,8 +45,9 @@ authored in a single `docs/archive/decisions.md` (newest first), split on
   [../architecture/decisions/0008-hybrid-rrf-search.md](../architecture/decisions/0008-hybrid-rrf-search.md),
   [../architecture/decisions/0004-turso-f32-blob-vectors.md](../architecture/decisions/0004-turso-f32-blob-vectors.md).
 - [`project-recommendation-context.md`](project-recommendation-context.md) —
-  Fleet project recommendation context audit. Current recommendation scorer:
-  `src/lib/fleet-projects.ts`.
+  Historical Fleet project recommendation context audit. That product path was
+  removed 2026-08-08; current design lives in
+  [../product/overview.md](../product/overview.md).
 - [`learning-new-things.md`](learning-new-things.md) — "New things to learn"
   notes captured during the CF migration. Current external references live in
   [../knowledge/external-references.md](../knowledge/external-references.md).
@@ -68,5 +67,9 @@ authored in a single `docs/archive/decisions.md` (newest first), split on
 
 ## Marketing
 
-Marketing copy iterations live in [`../marketing/`](../marketing/) (current,
-not archived).
+- [`2026-08-08-obsolete-founder-launch-note.md`](2026-08-08-obsolete-founder-launch-note.md)
+  — Historical launch copy for removed Radar and digest positioning.
+- [`2026-08-08-obsolete-reddit-launch-draft.md`](2026-08-08-obsolete-reddit-launch-draft.md)
+  — Historical community draft for removed Radar and digest positioning.
+- [`2026-08-08-obsolete-screenshot-shot-list.md`](2026-08-08-obsolete-screenshot-shot-list.md)
+  — Historical screenshot plan for removed Radar and Stack Builder surfaces.

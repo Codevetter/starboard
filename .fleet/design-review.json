@@ -2,45 +2,45 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "starboard",
-  "target": "/changelog owned product history",
+  "target": "project-aware discovery activation and landing",
   "mode": "preserve",
   "register": "product",
   "context": {
-    "product": "PROJECT_STATUS.md",
-    "design": "landing-astro/src/styles/landing.css"
+    "product": "PRODUCT.md",
+    "design": "src/app/globals.css"
   },
   "direction": {
     "references": [],
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": ".fleet/evidence/changelog/before-1440.png"
+    "before": ".fleet/evidence/projects/before-1440.jpg"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": ".fleet/evidence/changelog/after-390.png"
+        "path": ".fleet/evidence/projects/after-390.jpg"
       },
       {
         "width": 768,
-        "path": ".fleet/evidence/changelog/after-768.png"
+        "path": ".fleet/evidence/projects/after-768.jpg"
       },
       {
         "width": 1440,
-        "path": ".fleet/evidence/changelog/after-1440.png"
+        "path": ".fleet/evidence/projects/after-1440.jpg"
       }
     ],
     "projectCheck": {
-      "command": "pnpm --filter ./landing-astro build",
+      "command": "pnpm build:cf",
       "status": "pass"
     },
     "critique": {
-      "score": 36,
+      "score": 35,
       "maximum": 40
     },
     "audit": {
-      "score": 19,
+      "score": 18,
       "maximum": 20
     },
     "unresolved": {
@@ -49,11 +49,17 @@
     },
     "detector": {
       "posture": "advisory",
-      "findings": []
+      "findings": [
+        {
+          "rule": "gradient-text",
+          "status": "fixed",
+          "path": "landing-astro/src/pages/index.astro"
+        }
+      ]
     }
   },
   "ownerFeedback": {
-    "decision": "delegated",
-    "note": "The owner delegated the cross-project changelog implementation while preserving each product's established visual system."
+    "decision": "keep",
+    "note": "Owner approved release of the free, similar-project-grounded product direction on 2026-08-08."
   }
 }

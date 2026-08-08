@@ -40,7 +40,7 @@ export default async function Home() {
           <span className="flex flex-col leading-none">
             <span className="text-sm font-semibold">Starboard</span>
             <span className="mt-1 text-[10px] font-medium tracking-wide text-white/45">
-              by CodeVetter
+              tool intelligence
             </span>
           </span>
         </Link>
@@ -54,8 +54,8 @@ export default async function Home() {
             GitHub stars, ranked for the work you ship.
           </h1>
           <p className="max-w-xl text-pretty text-base text-white/50 sm:text-lg">
-            The CodeVetter library for tools you already starred — search by meaning, watch signal,
-            map stacks to projects.
+            Connect a public GitHub project, find similar repositories, and trace suggested tools
+            back to the peers that actually use them.
           </p>
         </div>
 
@@ -77,15 +77,6 @@ export default async function Home() {
           >
             Open login
           </Link>
-          {' · '}
-          <a
-            href="https://codevetter.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-medium text-white/75 underline-offset-4 hover:underline"
-          >
-            CodeVetter ↗
-          </a>
         </p>
       </main>
     </div>

@@ -13,9 +13,7 @@ never sends:
 - repo IDs, repo full names, owner logins, or HTML URLs
 - user identifiers, GitHub IDs, session IDs, or IP addresses
 - README text, repo descriptions, or any corpus content
-- private repository identity (the `insight_reports` table defaults to
-  `redact_private=1` for shared reports; Foundry events carry no repo
-  identity at all)
+- private repository identity; Foundry events carry no repo identity at all
 
 ## Events
 
@@ -27,8 +25,6 @@ never sends:
 | `returned` | return session by a user with prior activity | `project_id` |
 | `search_outcome` | every `/api/stars` search with a query | `project_id`, `surface` (`lexical`/`semantic`/`discover`), `result_count_bucket` (`zero`/`1-5`/`6-20`/`21+`) |
 | `result_inspection` | a user opens a repo detail from search results | `project_id`, `surface` (`repo_detail`) |
-| `digest_opened` | weekly maintainer digest rendered | `project_id`, `digest_id`, `item_count` |
-| `digest_item_actioned` | digest item reviewed/dismissed | `project_id`, `digest_id`, `item_id`, `group`, `action` |
 | `error_captured` | React error boundary fires | `project_id`, `route`, `scope`, `digest`, `source`, `message`, `stack` |
 | `foundry_page_crash` | window error / unhandled rejection | `project_id`, `route`, `source`, `message`, `stack` |
 | `foundry_auth_failure` | NextAuth sign-in/callback fails | `project_id`, `route`, `provider`, `stage`, `reason`, `source` |
@@ -46,9 +42,7 @@ never sends:
 
 ## Private-repo redaction
 
-- `insight_reports.redact_private` defaults to `1` — shared reports redact
-  private repo identity by default (see
-  [`migrations/0001_initial.sql`](../../migrations/0001_initial.sql)).
+- The inactive historical `insight_reports` table is not an event source.
 - Foundry activation events carry **no** repo identity. The `search_outcome`
   event has only the surface and result-count bucket; `result_inspection`
   has only the surface name.
