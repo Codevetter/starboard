@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { fetchPublicGitHubProject, parseGitHubProjectInput } from '@/lib/github-projects';
+import {
+  fetchPublicGitHubProject,
+  fetchPublicGitHubRepositories,
+  parseGitHubProjectInput,
+} from '@/lib/github-projects';
 
 const slug = { owner: 'openai', repo: 'openai-node', fullName: 'openai/openai-node' };
 
@@ -113,5 +117,45 @@ describe('parseGitHubProjectInput', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
 
     await expect(fetchPublicGitHubProject(slug)).rejects.toThrow('GitHub API error: 503');
+  });
+
+  it('loads only public repository choices with the existing user token', async () => {
+    const publicRepo = {
+      id: 1,
+      name: 'openai-node',
+      full_name: 'openai/openai-node',
+      private: false,
+      visibility: 'public',
+      owner: { login: 'openai', avatar_url: '' },
+      html_url: 'https://github.com/openai/openai-node',
+      description: null,
+      language: 'TypeScript',
+      stargazers_count: 10,
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify([publicRepo, { ...publicRepo, id: 2, private: true }]))
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchPublicGitHubRepositories('token')).resolves.toEqual([
+      expect.objectContaining({ id: 1, fullName: 'openai/openai-node' }),
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/user/repos?'),
+      expect.objectContaining({
+        cache: 'no-store',
+        headers: expect.objectContaining({ Authorization: 'Bearer token' }),
+      })
+    );
+  });
+
+  it('surfaces GitHub failures while loading repository choices', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
+
+    await expect(fetchPublicGitHubRepositories('token')).rejects.toThrow('GitHub API error: 503');
   });
 });

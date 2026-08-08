@@ -2,9 +2,9 @@
 import Layout from '@/layouts/Layout.astro';
 
 // Static Astro landing overlaid at `/` during build:cf.
-// Zero client JS. CTAs → /login and /discover.
+// Zero client JS. Public preview submits through a native GET form.
 
-const TITLE = 'Starboard — GitHub stars that stay useful';
+const TITLE = 'Starboard — tool intelligence for your GitHub projects';
 const DESCRIPTION =
   'Connect your GitHub projects, search open source by meaning, and discover tools that fit the work you are shipping.';
 ---
@@ -51,30 +51,38 @@ const DESCRIPTION =
           </div>
 
           <h1 class="text-balance text-[2.1rem] font-bold tracking-tight text-foreground sm:text-5xl lg:text-[3.35rem] lg:leading-[1.06]">
-            Your GitHub stars,<br class="hidden sm:block" />
-            <span class="text-foreground">ranked for the work you ship.</span>
+            Start with your project.<br class="hidden sm:block" />
+            <span class="text-foreground">Find the tools that fit it.</span>
           </h1>
 
           <p class="max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            GitHub gives you a flat list. Starboard finds similar repositories for the project you
-            are building, then shows which tools those peers actually use and where the evidence came from.
+            Paste a public GitHub repository. Starboard finds similar projects across the catalog,
+            then shows which tools those peers use and the repository evidence behind each suggestion.
           </p>
 
-          <div class="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-            <a href="/login" class="sb-btn-primary inline-flex h-12 items-center justify-center gap-3 rounded-xl px-7 text-base font-semibold">
-              <svg viewBox="0 0 24 24" fill="currentColor" class="size-5" aria-hidden="true">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
-              </svg>
-              Continue with GitHub
-            </a>
-            <a href="/discover" class="sb-btn-ghost inline-flex h-12 items-center justify-center rounded-xl px-6 text-sm font-medium text-foreground">
-              Browse public Discover
-            </a>
-          </div>
+          <form action="/project-preview" method="get" class="flex w-full flex-col items-stretch gap-3 sm:flex-row">
+            <label class="sr-only" for="hero-repository">Public GitHub repository</label>
+            <input
+              id="hero-repository"
+              name="repository"
+              required
+              autocomplete="off"
+              autocapitalize="none"
+              spellcheck="false"
+              placeholder="github.com/owner/repository"
+              class="h-12 min-w-0 flex-1 rounded-xl border border-border bg-card px-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-sky focus:ring-2 focus:ring-sky/20"
+            />
+            <button type="submit" class="sb-btn-primary inline-flex h-12 shrink-0 items-center justify-center rounded-xl px-7 text-base font-semibold">
+              Preview project
+            </button>
+          </form>
+
+          <a href="/discover" class="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            Or browse the public catalog
+          </a>
 
           <p class="text-xs leading-relaxed text-muted-foreground">
-            Scope <code class="rounded-md bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground/80">read:user</code>
-            only · no write access · revoke anytime in GitHub settings
+            No sign-in to preview · public repositories only · nothing saved until you connect
           </p>
         </div>
 
@@ -90,41 +98,40 @@ const DESCRIPTION =
               <span class="size-2.5 rounded-full bg-red-500/75"></span>
               <span class="size-2.5 rounded-full bg-amber-500/75"></span>
               <span class="size-2.5 rounded-full bg-emerald-500/75"></span>
-              <span class="ml-2 text-xs text-muted-foreground">Library · this week</span>
-              <span class="ml-auto rounded-md bg-muted px-2 py-0.5 font-mono text-[10px] text-muted-foreground">★ 1,247</span>
+              <span class="ml-2 text-xs text-muted-foreground">acme/checkout · similar projects</span>
+              <span class="ml-auto rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">evidence match</span>
             </div>
             <div class="divide-y divide-border">
               <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald">Hot</span>
+                <span class="mt-0.5 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald">Peer 1</span>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">vercel/next.js</p>
-                  <p class="truncate text-xs text-muted-foreground">TypeScript · Next.js · matches project context</p>
+                  <p class="truncate text-sm font-medium text-foreground">medusajs/medusa</p>
+                  <p class="truncate text-xs text-muted-foreground">TypeScript · shared commerce topics</p>
                 </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">128k</span>
+                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">32k</span>
               </div>
               <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky">Match</span>
+                <span class="mt-0.5 rounded-md bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky">Peer 2</span>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">cloudflare/workers-sdk</p>
-                  <p class="truncate text-xs text-muted-foreground">Shared tools · Cloudflare · deployment</p>
+                  <p class="truncate text-sm font-medium text-foreground">saleor/saleor</p>
+                  <p class="truncate text-xs text-muted-foreground">Shared API context · commerce platform</p>
                 </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">3.1k</span>
+                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">21k</span>
               </div>
               <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber">Watch</span>
+                <span class="mt-0.5 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber">Tool</span>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">langchain-ai/langchain</p>
-                  <p class="truncate text-xs text-muted-foreground">Semantic match · agent orchestration</p>
+                  <p class="truncate text-sm font-medium text-foreground">Vitest</p>
+                  <p class="truncate text-xs text-muted-foreground">Used by 3 grounded peers · 94% confidence</p>
                 </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">98k</span>
+                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">inspect</span>
               </div>
-              <div class="flex items-start gap-3 px-4 py-3.5 opacity-65">
-                <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Stale</span>
+              <div class="flex items-start gap-3 px-4 py-3.5">
+                <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Why</span>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">old-org/forgotten-tool</p>
-                  <p class="truncate text-xs text-muted-foreground">Broad discovery · sparse project evidence</p>
+                  <p class="truncate text-sm font-medium text-foreground">Repository evidence stays visible</p>
+                  <p class="truncate text-xs text-muted-foreground">Peer source · detection confidence · direct links</p>
                 </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">420</span>
               </div>
             </div>
             <div class="border-t border-border bg-muted/25 px-4 py-3 text-center text-xs text-muted-foreground">
@@ -139,10 +146,10 @@ const DESCRIPTION =
         <div class="mb-10 max-w-2xl">
           <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What you get</p>
           <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            A library for tools you already trust.
+            Tool intelligence grounded in projects.
           </h2>
           <p class="mt-3 text-pretty text-muted-foreground">
-            Built for developers who star first and remember later — then need the list to behave like product infrastructure.
+            Start with a repository, compare credible peers, and inspect the evidence before adding a tool to your stack.
           </p>
         </div>
         <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -181,23 +188,23 @@ const DESCRIPTION =
       <section class="w-full max-w-4xl">
         <div class="mb-8 text-center">
           <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">How it works</p>
-          <h2 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">Three calm steps.</h2>
+          <h2 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">From project to evidence in three steps.</h2>
         </div>
         <ol class="grid gap-4 sm:grid-cols-3">
           <li class="relative rounded-2xl border border-border bg-card/60 p-6">
             <span class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">1</span>
-            <h3 class="mt-4 font-semibold text-foreground">Connect GitHub</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">One click. Read-only profile + stars. Never write scopes.</p>
+            <h3 class="mt-4 font-semibold text-foreground">Preview a project</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Paste any public GitHub repository. No account or write happens yet.</p>
           </li>
           <li class="relative rounded-2xl border border-border bg-card/60 p-6">
             <span class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">2</span>
-            <h3 class="mt-4 font-semibold text-foreground">Sync the library</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Stars and GitHub lists land in one searchable place — built for 1,000+.</p>
+            <h3 class="mt-4 font-semibold text-foreground">Compare grounded peers</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Multiple catalog signals find similar projects, then visible evidence reranks them.</p>
           </li>
           <li class="relative rounded-2xl border border-border bg-card/60 p-6">
             <span class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">3</span>
-            <h3 class="mt-4 font-semibold text-foreground">Connect a project</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Get explained recommendations from its language, topics, metadata, and detected tools.</p>
+            <h3 class="mt-4 font-semibold text-foreground">Evaluate the tools</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">See peer support and detection confidence, then inspect the source repositories.</p>
           </li>
         </ol>
       </section>
@@ -285,17 +292,14 @@ const DESCRIPTION =
       <section class="flex w-full max-w-3xl flex-col items-center gap-5 rounded-3xl border border-border bg-gradient-to-b from-card/80 to-card/40 px-6 py-12 text-center sm:px-10">
         <span class="sb-mark inline-flex size-11 items-center justify-center rounded-xl text-lg font-bold">★</span>
         <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Ready when your star list isn&apos;t.
+          Start with the project in front of you.
         </h2>
         <p class="max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
           Free. No paid plans or premium locks. Similar repositories ground every tool
           recommendation in open-source evidence you can inspect.
         </p>
-        <a href="/login" class="sb-btn-primary inline-flex h-12 items-center justify-center gap-3 rounded-xl px-8 text-base font-semibold">
-          <svg viewBox="0 0 24 24" fill="currentColor" class="size-5" aria-hidden="true">
-            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12Z" />
-          </svg>
-          Sign in with GitHub
+        <a href="#hero-repository" class="sb-btn-primary inline-flex h-12 items-center justify-center rounded-xl px-8 text-base font-semibold">
+          Preview a public project
         </a>
       </section>
 

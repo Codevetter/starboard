@@ -16,6 +16,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.95,
     },
     {
+      url: `${siteUrl}/project-preview`,
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.98,
+    },
+    {
       url: `${siteUrl}/tools`,
       lastModified: now,
       changeFrequency: 'weekly',

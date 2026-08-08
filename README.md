@@ -30,6 +30,8 @@ matches, and keeps personal stars searchable with tags and collections.
 
 ## Features
 
+- **Public Project Preview** — paste a public GitHub repository and inspect a
+  read-only recommendation sample before sign-in
 - **GitHub OAuth** — Sign in and sync your starred repos
 - **Smart Categories** — Auto-categorize repos (AI/ML, Frontend, DevOps, etc.)
 - **Custom Tags** — Create and assign colored tags to repos
@@ -37,8 +39,9 @@ matches, and keeps personal stars searchable with tags and collections.
 - **Search** — Full-text search across name, description, and topics
 - **Filter** — By language, category, tag, or collection
 - **Sort** — Recently starred, most stars, recently updated, A-Z
-- **Projects** — connect public GitHub repositories for explained recommendations
-- **Similar Projects** — ground recommendations in comparable repositories
+- **Projects** — connect by URL or an on-demand public GitHub repository picker
+- **Similar Projects** — hybrid full-catalog candidates with deterministic,
+  visible-evidence reranking
 - **Grounded Tools** — see which tools peers use and the exact repository evidence
 - **Tool Intelligence** — inspect detected tools, confidence, and repository evidence
 - **Discover** — search and filter a seeded public repository catalog
@@ -89,6 +92,7 @@ AUTH_TRUST_HOST=true
 ```text
 src/app/stars/          main dashboard
 src/app/explore/        repo detail and discovery pages
+src/app/project-preview public read-only project intelligence
 src/app/projects/       connected GitHub projects and repository recommendations
 src/app/lists/          public shared list pages
 src/app/api/            auth, stars, lists, repo interactions
@@ -135,9 +139,12 @@ live in Vectorize.
 - GitHub star sync uses ETag caching to avoid unnecessary API calls.
 - GitHub star lists are scraped from GitHub HTML because there is no official API for that surface.
 - Projects are public GitHub repositories connected per user in D1. The current OAuth scope is not broadened for private access.
-- Similar projects use visible language, topic, metadata, and tool evidence;
-  grounded tool recommendations then name the exact peer repositories that use
-  each tool. Sparse results are labeled as broad discovery.
+- Similar projects combine bounded Vectorize, full-catalog FTS, and language
+  candidate lanes before visible language, topic, metadata, and tool reranking;
+  grounded tool recommendations then name the exact peers that use each tool.
+  Sparse results are labeled as broad discovery.
+- Product analytics use categorical recommendation and evidence buckets only;
+  repository identity and query text are excluded.
 - Filter and sort state lives in the URL through `nuqs`, so dashboard links are shareable.
 - Scheduled GitHub Actions seed and enrich popular repositories for discovery.
 - SaaS Maker supplies the feedback widget only; product analytics run directly through PostHog.

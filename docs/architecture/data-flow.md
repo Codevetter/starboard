@@ -30,12 +30,16 @@ history and remains empty when insufficient samples exist.
 
 ```text
 public GitHub URL or owner/repository
-  → normalize and resolve through GitHub
+  → normalize and check the local catalog
+  → resolve one public GitHub repository on a catalog miss
+  → public preview: no user-owned write
+  → authenticated connection only after explicit confirmation
   → upsert shared repos row
   → insert user_projects ownership relation
   → load project metadata + repo_tools
-  → rank a bounded public-catalog candidate set
-  → return recommendations with evidence
+  → retrieve bounded Vectorize + full-catalog FTS + language candidates
+  → reciprocal-rank fusion + deterministic evidence reranking
+  → return recommendations, retrieval mode, and peer-grounded tools
 ```
 
 The route revalidates that the repository is publicly accessible. Project list,
@@ -46,5 +50,8 @@ project context produces an explicitly labeled broad-discovery fallback.
 
 Repository similarity remains a separate Vectorize path. D1 stores only
 `repo_embeddings(repo_id, text_hash)`; vector values live in the
-`starboard-repos` index. Similar-project recommendations currently use deterministic
-visible evidence so every reason can be explained.
+`starboard-repos` index. Project-aware recommendations use Vectorize as one
+candidate lane, then fuse it with full-catalog lexical and structured lanes.
+Deterministic visible evidence remains the final ranker so every reason can be
+explained. When semantic retrieval is unavailable, lexical and structured lanes
+remain usable; an all-lanes-empty state becomes an explicit broad fallback.

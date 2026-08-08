@@ -20,6 +20,30 @@ export interface PublicGitHubProject {
   updatedAt: string;
 }
 
+interface GitHubRepositoryResponse {
+  id: number;
+  name: string;
+  full_name: string;
+  private: boolean;
+  visibility?: string;
+  owner: { login: string; avatar_url: string };
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  archived?: boolean;
+  topics?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export class GitHubProjectApiError extends Error {
+  constructor(public readonly status: number) {
+    super(`GitHub API error: ${status}`);
+    this.name = 'GitHubProjectApiError';
+  }
+}
+
 const OWNER_PATTERN = /^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
 const REPO_PATTERN = /^[a-z\d_.-]{1,100}$/i;
 
@@ -66,33 +90,23 @@ export async function fetchPublicGitHubProject(
         'User-Agent': 'starboard',
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
+      ...(accessToken ? { cache: 'no-store' as const } : { next: { revalidate: 1800 } }),
     }
   );
 
   if (response.status === 404) return null;
   if (!response.ok) {
-    throw new Error(`GitHub API error: ${response.status}`);
+    throw new GitHubProjectApiError(response.status);
   }
 
-  const repo = (await response.json()) as {
-    id: number;
-    name: string;
-    full_name: string;
-    private: boolean;
-    visibility?: string;
-    owner: { login: string; avatar_url: string };
-    html_url: string;
-    description: string | null;
-    language: string | null;
-    stargazers_count: number;
-    archived?: boolean;
-    topics?: string[];
-    created_at: string;
-    updated_at: string;
-  };
+  const repo = (await response.json()) as GitHubRepositoryResponse;
 
   if (repo.private || (repo.visibility && repo.visibility !== 'public')) return null;
 
+  return mapPublicProject(repo);
+}
+
+function mapPublicProject(repo: GitHubRepositoryResponse): PublicGitHubProject {
   return {
     id: repo.id,
     name: repo.name,
@@ -108,4 +122,27 @@ export async function fetchPublicGitHubProject(
     createdAt: repo.created_at,
     updatedAt: repo.updated_at,
   };
+}
+
+export async function fetchPublicGitHubRepositories(
+  accessToken: string
+): Promise<PublicGitHubProject[]> {
+  const response = await fetch(
+    'https://api.github.com/user/repos?affiliation=owner,collaborator,organization_member&visibility=public&sort=pushed&direction=desc&per_page=100',
+    {
+      cache: 'no-store',
+      headers: {
+        Accept: 'application/vnd.github+json',
+        Authorization: `Bearer ${accessToken}`,
+        'User-Agent': 'starboard',
+      },
+    }
+  );
+
+  if (!response.ok) throw new GitHubProjectApiError(response.status);
+  const repositories = (await response.json()) as GitHubRepositoryResponse[];
+
+  return repositories
+    .filter((repo) => !repo.private && (!repo.visibility || repo.visibility === 'public'))
+    .map(mapPublicProject);
 }

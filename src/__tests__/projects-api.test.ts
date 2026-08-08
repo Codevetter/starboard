@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
   batch: vi.fn(),
   fetchProject: vi.fn(),
+  retrieveProjectIntelligence: vi.fn(),
+  trackProjectConnected: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
@@ -13,6 +15,12 @@ vi.mock('@/db', () => ({ db: { execute: mocks.execute, batch: mocks.batch } }));
 vi.mock('@/lib/github-projects', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/github-projects')>()),
   fetchPublicGitHubProject: mocks.fetchProject,
+}));
+vi.mock('@/lib/project-intelligence', () => ({
+  retrieveProjectIntelligence: mocks.retrieveProjectIntelligence,
+}));
+vi.mock('@/lib/analytics', () => ({
+  trackProjectConnected: mocks.trackProjectConnected,
 }));
 
 import { GET as getRecommendations } from '@/app/api/projects/[slug]/recommendations/route';
@@ -47,6 +55,19 @@ describe('connected project APIs', () => {
     });
     mocks.execute.mockResolvedValue({ rows: [], rowsAffected: 0 });
     mocks.batch.mockResolvedValue([]);
+    mocks.retrieveProjectIntelligence.mockResolvedValue({
+      similarProjects: [],
+      recommendedTools: [],
+      fallback: true,
+      context: { language: null, topics: [], tools: [] },
+      retrieval: {
+        mode: 'fallback',
+        candidateCount: 0,
+        semanticCandidates: 0,
+        lexicalCandidates: 0,
+        structuredCandidates: 0,
+      },
+    });
   });
 
   it('requires authentication before listing projects', async () => {
@@ -79,7 +100,7 @@ describe('connected project APIs', () => {
     const response = await POST(
       new NextRequest('http://localhost/api/projects', {
         method: 'POST',
-        body: JSON.stringify({ repository: 'https://github.com/acme/app' }),
+        body: JSON.stringify({ repository: 'https://github.com/acme/app', source: 'picker' }),
         headers: { 'Content-Type': 'application/json' },
       })
     );
@@ -91,6 +112,7 @@ describe('connected project APIs', () => {
     }>;
     expect(statements[1].sql).toContain('INSERT INTO user_projects');
     expect(statements[1].args).toEqual(['user-1', 42]);
+    expect(mocks.trackProjectConnected).toHaveBeenCalledWith('picker');
   });
 
   it("does not reveal another user's connected project", async () => {
@@ -109,36 +131,34 @@ describe('connected project APIs', () => {
   });
 
   it('returns similar repositories and tools grounded in those peers', async () => {
-    mocks.execute
-      .mockResolvedValueOnce({
-        rows: [
-          {
-            ...connectedRow,
-            tools: '[{"key":"nextjs","name":"Next.js","category":"framework","confidence":98}]',
-          },
-        ],
-        rowsAffected: 0,
-      })
-      .mockResolvedValueOnce({
-        rows: [
-          {
-            id: 84,
-            name: 'peer',
-            full_name: 'oss/peer',
-            html_url: 'https://github.com/oss/peer',
-            description: 'A TypeScript application peer',
-            language: 'TypeScript',
-            stargazers_count: 10_000,
-            archived: 0,
-            topics: '["nextjs"]',
-            ai_summary: null,
-            ai_category: null,
-            ai_keywords: '[]',
-            tools: '[{"key":"vitest","name":"Vitest","category":"testing","confidence":93}]',
-          },
-        ],
-        rowsAffected: 0,
-      });
+    mocks.execute.mockResolvedValueOnce({
+      rows: [
+        {
+          ...connectedRow,
+          tools: '[{"key":"nextjs","name":"Next.js","category":"framework","confidence":98}]',
+        },
+      ],
+      rowsAffected: 0,
+    });
+    mocks.retrieveProjectIntelligence.mockResolvedValueOnce({
+      similarProjects: [{ id: 84, fullName: 'oss/peer' }],
+      recommendedTools: [
+        {
+          key: 'vitest',
+          supportCount: 1,
+          sources: [{ repoId: 84, fullName: 'oss/peer', confidence: 93 }],
+        },
+      ],
+      fallback: false,
+      context: { language: 'TypeScript', topics: ['nextjs'], tools: [] },
+      retrieval: {
+        mode: 'hybrid',
+        candidateCount: 1,
+        semanticCandidates: 1,
+        lexicalCandidates: 1,
+        structuredCandidates: 1,
+      },
+    });
 
     const response = await getRecommendations(
       new NextRequest('http://localhost/api/projects/42/recommendations?limit=10'),
@@ -160,6 +180,10 @@ describe('connected project APIs', () => {
       supportCount: 1,
       sources: [expect.objectContaining({ repoId: 84, fullName: 'oss/peer', confidence: 93 })],
     });
+    expect(mocks.retrieveProjectIntelligence).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 42, fullName: 'acme/app' }),
+      10
+    );
   });
 
   it('disconnects only the signed-in user relation', async () => {

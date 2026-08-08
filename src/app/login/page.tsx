@@ -45,18 +45,27 @@ function resolveError(error: string | undefined) {
   return ERROR_COPY[key] ?? ERROR_COPY.Default;
 }
 
+function internalCallbackUrl(value: string | undefined): string {
+  if (!value?.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+    return '/projects';
+  }
+  return value;
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; callbackUrl?: string }>;
 }) {
+  const params = await searchParams;
+  const callbackUrl = internalCallbackUrl(params.callbackUrl);
+  const callback = new URL(callbackUrl, 'https://starboard.codevetter.com');
+  const continuedRepository =
+    callback.pathname === '/projects' ? callback.searchParams.get('repository') : null;
   const session = await auth();
   if (session?.user?.githubId) {
-    redirect('/stars');
+    redirect(callbackUrl);
   }
-
-  const params = await searchParams;
-  const callbackUrl = params.callbackUrl?.startsWith('/') ? params.callbackUrl : '/stars';
   const errorInfo = resolveError(params.error);
 
   return (
@@ -110,7 +119,7 @@ export default async function LoginPage({
 
           <div className="max-w-md space-y-6">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-300/80">
-              Your tool library
+              Project-aware tool intelligence
             </p>
             <h1 className="text-balance text-3xl font-bold tracking-tight xl:text-4xl">
               Stars that stay useful after you close the tab.
@@ -140,7 +149,7 @@ export default async function LoginPage({
             </div>
           </div>
 
-          <p className="text-xs text-white/35">
+          <p className="text-xs text-white/55">
             Live at <span className="font-mono text-white/55">starboard.codevetter.com</span>
           </p>
         </aside>
@@ -156,9 +165,14 @@ export default async function LoginPage({
                 <span className="inline-block size-1.5 rounded-full bg-emerald-400" />
                 Starboard · tool intelligence
               </Link>
-              <h2 className="text-balance text-3xl font-bold tracking-tight">Welcome back</h2>
+              <h2 className="text-balance text-3xl font-bold tracking-tight">
+                {continuedRepository ? `Connect ${continuedRepository}` : 'Continue to Starboard'}
+              </h2>
               <p className="max-w-sm text-pretty text-sm leading-relaxed text-white/50">
-                Sign in with GitHub to open your library. We only request{' '}
+                {continuedRepository
+                  ? `Your preview stays attached to ${continuedRepository}. Sign in to confirm the connection and keep its recommendations. `
+                  : 'Sign in with GitHub to connect public projects and keep your recommendations. '}
+                We only request{' '}
                 <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[11px] text-white/70">
                   read:user
                 </code>{' '}
@@ -185,6 +199,16 @@ export default async function LoginPage({
                 </div>
               )}
 
+              {continuedRepository && !errorInfo && (
+                <div className="mb-5 rounded-xl border border-sky-300/25 bg-sky-300/10 px-4 py-3 text-left">
+                  <p className="text-xs font-medium text-sky-100">Continuing your preview</p>
+                  <p className="mt-1 truncate text-sm text-white/85">{continuedRepository}</p>
+                  <p className="mt-1 text-xs text-white/60">
+                    Nothing is connected until you confirm it on Projects.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-col gap-5">
                 <SignInButton label="Continue with GitHub" callbackUrl={callbackUrl} fullWidth />
 
@@ -198,21 +222,21 @@ export default async function LoginPage({
                 <ul className="space-y-2.5 text-xs text-white/50">
                   <li className="flex gap-2.5">
                     <span className="text-emerald-400">✓</span>
-                    Sync stars &amp; GitHub lists into one library
+                    Choose a public repository from GitHub or paste its URL
                   </li>
                   <li className="flex gap-2.5">
                     <span className="text-emerald-400">✓</span>
-                    Semantic discovery across your library and the public catalog
+                    Compare it with similar projects across the public catalog
                   </li>
                   <li className="flex gap-2.5">
                     <span className="text-emerald-400">✓</span>
-                    Similar-project grounding with repository-sourced tool recommendations
+                    Inspect repository-sourced tool evidence and save the project
                   </li>
                 </ul>
               </div>
             </div>
 
-            <div className="mt-8 space-y-3 text-center text-xs text-white/40 lg:text-left">
+            <div className="mt-8 space-y-3 text-center text-xs text-white/55 lg:text-left">
               <p>
                 Prefer to look first?{' '}
                 <Link

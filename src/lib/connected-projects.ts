@@ -46,11 +46,20 @@ export function parseProjectTools(value: unknown): ProjectToolSignal[] {
 
 export function projectFromRow(row: Record<string, unknown>): ConnectedProject {
   return {
+    ...projectRecommendationFromRow(row),
+    ownerLogin: String(row.owner_login),
+    ownerAvatar: String(row.owner_avatar),
+    connectedAt: String(row.connected_at ?? ''),
+  };
+}
+
+export function projectRecommendationFromRow(
+  row: Record<string, unknown>
+): ProjectRecommendationRepo {
+  return {
     id: Number(row.id),
     name: String(row.name),
     fullName: String(row.full_name),
-    ownerLogin: String(row.owner_login),
-    ownerAvatar: String(row.owner_avatar),
     htmlUrl: String(row.html_url),
     description: typeof row.description === 'string' ? row.description : null,
     language: typeof row.language === 'string' ? row.language : null,
@@ -61,7 +70,6 @@ export function projectFromRow(row: Record<string, unknown>): ConnectedProject {
     aiCategory: typeof row.ai_category === 'string' ? row.ai_category : null,
     aiKeywords: parseStringArray(row.ai_keywords),
     tools: parseProjectTools(row.tools),
-    connectedAt: String(row.connected_at ?? ''),
   };
 }
 

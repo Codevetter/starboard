@@ -7,6 +7,8 @@ developer's public GitHub projects to a seeded open-source repository catalog,
 then explains which repositories and tools may fit the work being built.
 Similar repositories form the grounding layer: tool recommendations come only
 from normalized detections on those peers and name their repository sources.
+Guests can preview this value with a public repository before sign-in; a durable
+project connection remains an explicit authenticated action.
 
 The product also keeps a personal starred-repository library with search,
 lists, tags, saved state, and notes. Discover and Tool Intelligence remain
@@ -38,8 +40,9 @@ See [surfaces.md](surfaces.md) for the route and API map.
 
 ## Scope
 
-**In scope:** public repository discovery; evidence-aware tool intelligence;
-public GitHub project connections; project-aware repository recommendations;
+**In scope:** public repository discovery; public project preview;
+evidence-aware tool intelligence; public GitHub project connections;
+project-aware repository recommendations;
 starred-repository sync, organization, search, and public lists; repository
 details and stored star history.
 

@@ -20,11 +20,20 @@ const POSTHOG_HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posth
 
 /**
  * The product-specific action behind a `core_action` event.
- * Starboard's core verbs: syncing your GitHub stars in, and organizing
- * them into collections.
  */
-export type CoreAction = 'repos_synced' | 'list_created';
-export type DigestItemAction = 'reviewed' | 'dismissed';
+export type CoreAction = 'repos_synced' | 'list_created' | 'project_connected';
+export type ProjectConnectionSource = 'manual' | 'picker';
+export type RecommendationKind = 'repository' | 'tool';
+export type RecommendationSentiment = 'useful' | 'not_useful';
+export type RecommendationRankBucket = '1-3' | '4-12' | '13+';
+export type RecommendationSupportBucket = 'one' | 'two' | 'three_plus' | 'none';
+export type RecommendationConfidenceBucket = 'high' | 'medium' | 'inferred' | 'none';
+export type RecommendationRetrievalMode =
+  | 'hybrid'
+  | 'semantic'
+  | 'lexical-structured'
+  | 'structured'
+  | 'fallback';
 /**
  * The surface a search ran through. `lexical` and `semantic` are both served
  * by `/api/stars`; `semantic` covers the knowledgebase RAG path (which falls
@@ -42,15 +51,34 @@ interface AnalyticsEventMap {
   core_action: { project_id: typeof PROJECT; action: CoreAction };
   /** A return session by a user with prior activity. */
   returned: { project_id: typeof PROJECT };
-  /** The maintainer digest was rendered for the user. */
-  digest_opened: { project_id: typeof PROJECT; digest_id: string; item_count: number };
-  /** A digest item was reviewed or dismissed. */
-  digest_item_actioned: {
+  /** A project was durably connected without including its identity. */
+  project_connected: {
     project_id: typeof PROJECT;
-    digest_id: string;
-    item_id: string;
-    group: string;
-    action: DigestItemAction;
+    source: ProjectConnectionSource;
+  };
+  /** A recommendation set reached the user. */
+  recommendation_set_viewed: {
+    project_id: typeof PROJECT;
+    retrieval_mode: RecommendationRetrievalMode;
+    result_count_bucket: SearchResultBucket;
+    fallback: boolean;
+  };
+  /** A repository or tool recommendation was inspected. */
+  recommendation_inspected: {
+    project_id: typeof PROJECT;
+    kind: RecommendationKind;
+    rank_bucket: RecommendationRankBucket;
+    retrieval_mode: RecommendationRetrievalMode;
+  };
+  /** Binary recommendation quality evidence with no repository identity. */
+  recommendation_feedback: {
+    project_id: typeof PROJECT;
+    kind: RecommendationKind;
+    sentiment: RecommendationSentiment;
+    rank_bucket: RecommendationRankBucket;
+    retrieval_mode: RecommendationRetrievalMode;
+    support_bucket: RecommendationSupportBucket;
+    confidence_bucket: RecommendationConfidenceBucket;
   };
   /**
    * Privacy-safe search activation evidence. One event per search request.
@@ -136,23 +164,68 @@ export function trackReturned(): void {
   emit('returned', {});
 }
 
-/** Fire when the weekly maintainer digest is opened. */
-export function trackDigestOpened(digestId: string, itemCount: number): void {
-  emit('digest_opened', { digest_id: digestId, item_count: itemCount });
+export function trackProjectConnected(source: ProjectConnectionSource, distinctId?: string): void {
+  emit('project_connected', { source }, distinctId);
+  trackCoreAction('project_connected', distinctId);
 }
 
-/** Fire when a digest item is marked reviewed or dismissed. */
-export function trackDigestItemActioned(
-  digestId: string,
-  itemId: string,
-  group: string,
-  action: DigestItemAction
+function resultCountBucket(resultCount: number): SearchResultBucket {
+  return resultCount === 0 ? 'zero' : resultCount <= 5 ? '1-5' : resultCount <= 20 ? '6-20' : '21+';
+}
+
+export function recommendationRankBucket(rank: number): RecommendationRankBucket {
+  return rank <= 3 ? '1-3' : rank <= 12 ? '4-12' : '13+';
+}
+
+export function trackRecommendationSetViewed(
+  retrievalMode: RecommendationRetrievalMode,
+  resultCount: number,
+  fallback: boolean
 ): void {
-  emit('digest_item_actioned', {
-    digest_id: digestId,
-    item_id: itemId,
-    group,
-    action,
+  emit('recommendation_set_viewed', {
+    retrieval_mode: retrievalMode,
+    result_count_bucket: resultCountBucket(resultCount),
+    fallback,
+  });
+}
+
+export function trackRecommendationInspected(
+  kind: RecommendationKind,
+  rank: number,
+  retrievalMode: RecommendationRetrievalMode
+): void {
+  emit('recommendation_inspected', {
+    kind,
+    rank_bucket: recommendationRankBucket(rank),
+    retrieval_mode: retrievalMode,
+  });
+}
+
+export function trackRecommendationFeedback(input: {
+  kind: RecommendationKind;
+  sentiment: RecommendationSentiment;
+  rank: number;
+  retrievalMode: RecommendationRetrievalMode;
+  supportCount?: number;
+  confidence?: number;
+}): void {
+  const support = input.supportCount ?? 0;
+  const confidence = input.confidence ?? 0;
+  emit('recommendation_feedback', {
+    kind: input.kind,
+    sentiment: input.sentiment,
+    rank_bucket: recommendationRankBucket(input.rank),
+    retrieval_mode: input.retrievalMode,
+    support_bucket:
+      support <= 0 ? 'none' : support === 1 ? 'one' : support === 2 ? 'two' : 'three_plus',
+    confidence_bucket:
+      confidence <= 0
+        ? 'none'
+        : confidence >= 90
+          ? 'high'
+          : confidence >= 65
+            ? 'medium'
+            : 'inferred',
   });
 }
 
@@ -162,11 +235,9 @@ export function trackDigestItemActioned(
  * surface and the result-count bucket. Exact counts are never emitted.
  */
 export function trackSearchOutcome(surface: SearchSurface, resultCount: number): void {
-  const bucket: SearchResultBucket =
-    resultCount === 0 ? 'zero' : resultCount <= 5 ? '1-5' : resultCount <= 20 ? '6-20' : '21+';
   emit('search_outcome', {
     surface,
-    result_count_bucket: bucket,
+    result_count_bucket: resultCountBucket(resultCount),
   });
 }
 
