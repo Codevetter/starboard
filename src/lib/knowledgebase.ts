@@ -69,7 +69,7 @@ async function ragFetch(path: string, init: RequestInit): Promise<Response> {
   return fetch(`${RAG_SERVICE_URL.replace(/\/+$/, '')}${path}`, requestInit);
 }
 
-export async function searchStarboardRag(
+async function searchStarboardRag(
   userId: string,
   query: string,
   topK: number
