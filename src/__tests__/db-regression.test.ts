@@ -51,8 +51,10 @@ describe('db row-read regression guards', () => {
     expect(seedPopularTs).toMatch(/const snapshotStmts:[\s\S]*changedRepos[\s\S]*stargazers_count/);
   });
 
-  it('scheduled full-corpus seed runs are disabled and page-bounded', () => {
-    expect(seedWorkflow).not.toMatch(/^\s+schedule:/m);
+  it('daily seed runs stay scheduled and operationally bounded', () => {
+    expect(seedWorkflow).toContain("cron: '0 3 * * *'");
+    expect(seedWorkflow).toContain('timeout-minutes: 60');
+    expect(seedWorkflow).toContain('cancel-in-progress: false');
     expect(seedWorkflow).toContain("SEED_METADATA_PAGE_LIMIT: '10'");
     expect(seedPopularTs).toContain("process.env.SEED_METADATA_PAGE_LIMIT || '10'");
     expect(seedPopularTs).toContain(', 25);');
