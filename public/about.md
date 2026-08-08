@@ -23,7 +23,7 @@ Semantic similarity does not prove that a repository is good, maintained, secure
 
 ## How Starboard differs from a basic tag manager
 
-Starboard combines tags, collections, and notes with hybrid retrieval, release and maintenance radar, project-aware recommendations, and public discovery. This is a product-surface description, not a claim that one organizer is universally better.
+Starboard combines tags, collections, and notes with hybrid retrieval, similar-project grounding, repository-sourced tool recommendations, and public discovery. The service is free. This is a product-surface description, not a claim that one organizer is universally better.
 
 ## Limits and privacy
 

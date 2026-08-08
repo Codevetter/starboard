@@ -25,7 +25,7 @@ export const { handlers, auth } = NextAuth({
       if (account?.provider === 'github') {
         try {
           // Email comes from the public GitHub profile (read:user scope) and is
-          // NULL when private — the weekly digest email skips those users.
+          // NULL when the user keeps it private.
           // Fail-open: never block OAuth because D1 upsert failed.
           await db.execute({
             sql: `INSERT INTO users (id, username, avatar_url, email) VALUES (?, ?, ?, ?)

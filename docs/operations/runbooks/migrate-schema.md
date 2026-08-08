@@ -24,6 +24,8 @@ pnpm db:migrate:remote
 The remote command first rejects the placeholder database UUID. It requires
 explicit approval because it mutates the configured remote D1 database. GitHub
 operator workflows use this same command before their bounded job.
+The manual production deploy workflow also applies pending migrations before
+the build and deploy steps, so schema failure blocks the application rollout.
 
 ## Cutover safety
 

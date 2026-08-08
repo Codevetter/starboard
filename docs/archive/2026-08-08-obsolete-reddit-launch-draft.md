@@ -1,3 +1,5 @@
+> Historical: this launch positioning describes removed Radar and digest features. Current product truth: [Product Overview](../product/overview.md).
+
 # Reddit-Safe Launch Draft for Starboard v2 — GitHub Starred Repo Intelligence
 
 **Subreddit targets (suggested, post only where on-topic):** r/github, r/selfhosted (for the local-first angle if relevant), r/productivity, r/IndieHackers, r/SaaS, r/OpenSource (value-first cross-posts only after genuine engagement).

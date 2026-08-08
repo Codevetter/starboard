@@ -99,6 +99,19 @@ describe('searchTerms', () => {
     expect(query).toContain('promptfoo*');
     expect(query).toContain('lm-evaluation-harness');
   });
+
+  it('drops stop words, compacts separators, and honors the term limit', () => {
+    expect(searchTerms('the repo foo_bar baz-qux', 2)).toEqual(['foo_bar', 'foobar']);
+  });
+
+  it('returns honest empty-query fallbacks', () => {
+    expect(ftsSearchQuery('the best repo')).toBeNull();
+    expect(expandedSearchQuery('the best repo')).toBe('the best repo');
+  });
+
+  it('quotes FTS terms containing supported punctuation', () => {
+    expect(ftsSearchQuery('foo_bar')).toBe('"foo_bar" OR foobar*');
+  });
 });
 
 describe('blendSearchIds', () => {
@@ -107,6 +120,10 @@ describe('blendSearchIds', () => {
 
     expect(result.slice(0, 3)).toEqual([1, 2, 3]);
     expect(result).toContain(90);
+  });
+
+  it('deduplicates repeated lexical ids', () => {
+    expect(blendSearchIds([1, 1, 2], [2, 3])).toEqual([1, 2, 3]);
   });
 });
 

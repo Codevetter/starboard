@@ -1,3 +1,5 @@
+> Historical: this launch positioning describes removed Radar and digest features. Current product truth: [Product Overview](../product/overview.md).
+
 # Founder's Note v2: GitHub starred repo intelligence
 
 I've been starring repos on GitHub for years. The list grew into the hundreds, then thousands. Most of them just... sat there. GitHub gives you a reverse-chronological dump and very little else. Finding the one thing you vaguely remembered starring six months ago is painful. Knowing which of your stars shipped something this week is basically impossible without manual checking.

@@ -2,7 +2,6 @@
 
 import {
   ArrowUpDown,
-  Boxes,
   Check,
   Database,
   FolderKanban,
@@ -11,10 +10,10 @@ import {
   Loader2,
   LogOut,
   Menu,
-  RadioTower,
   RefreshCw,
   Search,
   Star,
+  Wrench,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -78,14 +77,9 @@ export function TopBar({
   const pathname = usePathname();
   const isDiscover = pathname?.startsWith('/discover');
   const isProjects = pathname?.startsWith('/projects');
-  const isRadar = pathname?.startsWith('/radar');
-  const isStackBuilder = pathname?.startsWith('/stack-builder');
+  const isTools = pathname?.startsWith('/tools');
   const userAvatar = session?.user?.image ? getAvatarImageAttrs(session.user.image, 32) : null;
   const visibleSortOptions = sortOptions ?? (Object.keys(sortLabels) as SortOption[]);
-  const stackHref =
-    searchQuery.trim().length > 0
-      ? `/stack-builder?q=${encodeURIComponent(searchQuery.trim())}`
-      : '/stack-builder';
 
   return (
     <header className="sticky top-0 z-30 flex flex-wrap items-center gap-2 border-b bg-background/80 px-3 py-2.5 backdrop-blur-sm sm:gap-3 sm:px-4 sm:py-3 md:px-6">
@@ -135,36 +129,23 @@ export function TopBar({
             >
               <Link href="/projects" prefetch={false}>
                 <FolderKanban className="size-3.5" />
-                My Projects
+                Projects
               </Link>
             </Button>
             <Button
               asChild
-              variant={isRadar ? 'secondary' : 'ghost'}
+              variant={isTools ? 'secondary' : 'ghost'}
               size="sm"
               className="h-7 gap-1.5 px-2 text-xs"
             >
-              <Link href="/radar" prefetch={false}>
-                <RadioTower className="size-3.5" />
-                Radar
+              <Link href="/tools" prefetch={false}>
+                <Wrench className="size-3.5" />
+                Tools
               </Link>
             </Button>
             <Button
               asChild
-              variant={isStackBuilder ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-7 gap-1.5 px-2 text-xs"
-            >
-              <Link href={stackHref} prefetch={false}>
-                <Boxes className="size-3.5" />
-                Stack
-              </Link>
-            </Button>
-            <Button
-              asChild
-              variant={
-                !isDiscover && !isProjects && !isRadar && !isStackBuilder ? 'secondary' : 'ghost'
-              }
+              variant={!isDiscover && !isProjects && !isTools ? 'secondary' : 'ghost'}
               size="sm"
               className="h-7 gap-1.5 px-2 text-xs"
             >

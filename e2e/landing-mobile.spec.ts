@@ -15,15 +15,13 @@ test.describe('landing page', () => {
     await page.goto('/');
 
     // Hero value prop is visible.
-    await expect(page.getByRole('heading', { name: 'Starboard', level: 1 })).toBeVisible();
-
-    // The three feature cards are present.
-    await expect(page.getByText('Filter', { exact: true })).toBeVisible();
-    await expect(page.getByText('Discover', { exact: true })).toBeVisible();
-    await expect(page.getByText('Organize', { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'GitHub stars, ranked for the work you ship.', level: 1 })
+    ).toBeVisible();
+    await expect(page.getByText(/connect a public github project/i)).toBeVisible();
 
     // The single primary CTA is reachable.
-    await expect(page.getByRole('button', { name: /sign in with github/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /continue with github/i })).toBeVisible();
 
     // The guest alternative must lead to a genuinely public surface.
     await expect(page.getByRole('link', { name: /browse public repos/i })).toHaveAttribute(
@@ -40,7 +38,7 @@ test.describe('landing page', () => {
 
   test('the primary CTA is a large enough touch target', async ({ page }) => {
     await page.goto('/');
-    const cta = page.getByRole('button', { name: /sign in with github/i });
+    const cta = page.getByRole('button', { name: /continue with github/i });
     const box = await cta.boundingBox();
     expect(box).not.toBeNull();
     // WCAG 2.5.5 / iOS HIG: tap targets must be at least 44x44px.

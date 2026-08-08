@@ -31,10 +31,8 @@ For a fast agent briefing, read [AGENTS.md](../AGENTS.md) first, then this index
   reconstruction + refresh controls) →
   [operations/large-library-performance.md](operations/large-library-performance.md)
   (1,000+ repo profile and guardrails)
-- **Marketing the product?** → [marketing/hooks.md](marketing/hooks.md) →
-  [marketing/iterations/v2/write-founder-launch-note.md](marketing/iterations/v2/write-founder-launch-note.md)
-  → [marketing/iterations/v2/write-reddit-safe-launch-draft.md](marketing/iterations/v2/write-reddit-safe-launch-draft.md)
-  → [marketing/iterations/v2/add-screenshot-shot-list.md](marketing/iterations/v2/add-screenshot-shot-list.md)
+- **Marketing the product?** → [marketing/hooks.md](marketing/hooks.md). Older
+  positioning assets live in [archive/](archive/).
 
 ## Layout
 
@@ -63,13 +61,13 @@ docs/
     setup.md                    # local dev environment
     commands.md                 # pnpm scripts and what they do
     conventions.md              # code style, formatting, pre-push hook
-    testing.md                  # vitest + playwright + eval harness
+    testing.md                  # vitest + playwright + project recommendation tests
     openspec.md                 # spec-driven change workflow
   operations/
     deploy.md                   # Cloudflare Workers deploy + secrets
     env.md                      # environment variables and validation
     ci-cd.md                    # GitHub Actions workflows
-    jobs.md                     # scheduled jobs (seed/enrich/embed/digest)
+    jobs.md                     # bounded catalog and embedding jobs
     large-library-performance.md # 1000+ repo profile and guardrails
     data-map.md                 # authoritative vs derived data, reconstruction, refresh controls
     refresh-manifest.md         # schema + quality gate for data/refresh-manifest.json
@@ -86,7 +84,7 @@ docs/
     failed-approaches.md        # approaches tried and abandoned, with reasons
   archive/                      # historical records, preserved verbatim
     index.md
-  marketing/                    # landing/SEO copy iterations (current)
+  marketing/                    # current landing/SEO guidance
     hooks.md
     iterations/v2/
 ```

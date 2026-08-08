@@ -1,11 +1,13 @@
+> Historical: this shot list describes removed Radar and Stack Builder surfaces. Current product truth: [Product Surfaces](../product/surfaces.md).
+
 # GitHub Starred Repo Intelligence: Screenshot Shot List (v2)
 
 This document outlines 8 key product screenshots to showcase Starboard's value as the intelligence layer on top of GitHub stars — hybrid search, radar signals, AI curation, and bulk organization that turns a flat, noisy list into an actionable library.
 
 **Focus:** GitHub starred repo intelligence (releases, momentum, maintenance/stale signals, semantic recall, themed bundles).  
 **Prior related assets (v2 iteration context):**  
-- [write-founder-launch-note.md](./write-founder-launch-note.md) — personal founder pain + radar/search/stale positioning, includes proposed X queue ideas (task source for prior Symphony run).  
-- [write-reddit-safe-launch-draft.md](./write-reddit-safe-launch-draft.md) — Reddit-safe, problem-first launch copy emphasizing read-only trust, hybrid search, radar buckets, and "second brain" value.  
+- [Founder launch note](./2026-08-08-obsolete-founder-launch-note.md) — personal founder pain + historical radar/search/stale positioning.
+- [Reddit launch draft](./2026-08-08-obsolete-reddit-launch-draft.md) — historical read-only trust, hybrid search, and radar positioning.
 - No first-pass `docs/marketing/screenshot-shot-list.md` existed for starboard (per v2 pattern in sibling projects like swe-interview-prep). This is the initial shot list asset.  
 - Supporting product truth: `src/app/about/page.tsx`, landing hero + `Sample*` preview components, `/stars`, `/radar`, `/stack-builder`, `/explore/[...slug]`, `lib/release-radar.ts`, embedding + RRF search paths.
 
@@ -147,4 +149,3 @@ fnd api POST /v1/marketing/posts --auth session --body '{"project_slug":"starboa
 **Environment note (same pattern as prior starboard v2 founder note):** `fnd` CLI not present in this agent's PATH (no `fnd login` session available in the execution context). Per AGENTS.md "ask before network-heavy" + Symphony scoped execution rules, the POSTs were not executed here. The exact bodies + commands above are the durable record. Operator (Sarthak) can run them from a machine with the CLI + Cockpit session, review/accept in SaaS Maker Cockpit, then mark sent after posting.
 
 All work remains scoped, no secrets touched, no public posts performed by agent.
-

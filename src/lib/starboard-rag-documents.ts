@@ -60,7 +60,6 @@ export async function fetchRepoReadmes(
   async function worker() {
     while (cursor < repos.length) {
       const repo = repos[cursor++];
-      if (!repo) continue;
       try {
         const readme = await fetchRepoReadmeText(accessToken, repo, fetchImpl);
         if (readme) out.set(repo.full_name, readme);

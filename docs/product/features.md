@@ -1,97 +1,63 @@
 # Features
 
-Shipped feature inventory, grouped by surface. Source of truth for *what exists
-today*; for *why* see [../architecture/decisions/](../architecture/decisions/).
+Implemented feature inventory, grouped by product job. For architectural
+reasons, see [../architecture/decisions/](../architecture/decisions/).
 
-## Auth, sync, and core dashboard
+## Project-aware discovery
 
-- GitHub OAuth through NextAuth v5; Cloudflare Workers deployment via OpenNext
-  documented and live.
-- Manual sync on demand with added/removed diff feedback; ETag caching on GitHub
-  star API calls.
-- GitHub star-list ingestion via HTML scraping where no official API exists.
-- Main dashboard: smart categories, custom colored tags, named collections,
-  full-text search, language/category/tag/collection filters, sort (recently
-  starred, most stars, recently updated, A-Z), grid/list toggle, virtual scroll
-  for 1000+ repos.
-- URL-shareable filter/sort state through nuqs.
-- Repo detail (`/explore`): comments, votes, likes, similar repos, list
-  assignment, tag picker.
-- Public shared lists at `/lists/[slug]` with SSR and `list.json` export route.
-- Legal/marketing shell: about, privacy, terms, sitemap, robots, OG image,
-  security.txt, humans.txt, PWA manifest.
+- Authenticated users can connect a public GitHub repository by URL or
+  `owner/repository` without broadening the current OAuth scope.
+- Connections are user-owned D1 relations; disconnecting a project does not
+  delete shared repository metadata.
+- Projects receive deterministic similar-repository results from the seeded
+  public catalog using visible language, topic, metadata, and detected-tool
+  evidence.
+- Similar repositories ground tool recommendations. Each recommended tool
+  lists the exact peer repositories and detection confidence that support it.
+- Recommendation cards state the matching evidence. Sparse-context results are
+  explicitly labeled as broad discovery fallbacks and do not generate tool
+  recommendations.
+- The complete workflow is free and has no billing or entitlement gate.
+
+## Public discovery and tool intelligence
+
+- Discover is public and supports search, pagination, language facets, detected
+  tool facets, and stored 30-day growth ordering.
+- Tool Intelligence aggregates normalized `repo_tools` records across the
+  seeded corpus and, for authenticated users, the personal library.
+- Tool detections preserve category, confidence, and source evidence. The UI
+  states that detection is evidence-based but not guaranteed complete.
+- Repository detail pages include tool evidence, similar repositories, and
+  stored star history where available.
+
+## Personal library
+
+- GitHub OAuth and manual starred-repository sync with ETag caching.
+- GitHub list ingestion from public HTML where no official API exists.
+- Full-text and relevance search, language and collection filters, URL-backed
+  state, grid/list views, and virtual scrolling for large libraries.
+- Custom tags, notes, saved state, named collections, compare and bulk actions.
+- Public shared lists with SSR and `list.json` exports.
 
 ## Search and embeddings
 
-- Workers AI embedding generation with runtime dimension assertion.
-- Project-owned Cloudflare Vectorize path (`starboard-repos`, 768-d cosine) for
-  similar repos and recommendations; D1 stores embedding drift hashes.
-- Shared-RAG integration: when `RAG_SERVICE_KEY` and `STARBOARD_RAG_INDEX_ID`
-  are set as Worker secrets/vars or local env, relevance search uses the fleet
-  `knowledgebase` Worker with sync ingest for new repos; new repo RAG documents
-  include full GitHub README text for a bounded set of new repos, fall back to
-  repo metadata when unavailable or outside that bound, and are sent in bounded
-  ingest batches.
-  `src/__tests__/knowledgebase-rag.test.ts` covers README-only recall terms plus
-  batch splitting. If shared RAG is unavailable, relevance search falls back to
-  lexical results instead of local vector search.
-- Authenticated operator jobs idempotently backfill Vectorize and D1 hashes
-  through native Worker bindings.
+- FTS5 lexical search in D1.
+- Shared-RAG relevance search when configured, with lexical fallback when the
+  service is unavailable.
+- Project-owned Vectorize index (`starboard-repos`, 768-d cosine) for repository
+  similarity; D1 stores only embedding drift hashes.
+- Bounded README-backed RAG ingest for newly synced repositories.
 
-## Fleet recommendations
+## Catalog and operations
 
-- **My Projects** ranks saved/starred repos against checked-in fleet project
-  snapshot (`data/fleet-projects.generated.json`).
-- Deterministic scoring with optional embedding boosts; packages already in the
-  target project suppressed before ranking.
-- `pnpm fleet:extract-projects` regenerates fleet snapshot from local fleet
-  repos.
-- Fixture-backed recommendation eval harness: `src/lib/recommendation-eval.ts`,
-  `src/__tests__/fixtures/recommendation-eval-fixture.ts`.
-- OSS recommendation integrations evaluated in
-  [../archive/oss-integration-evaluation.md](../archive/oss-integration-evaluation.md).
+- Manually dispatched seed, metadata-enrichment, tool-enrichment, and embedding
+  jobs with explicit per-run bounds.
+- Additive ordered D1 migrations; raw SQL with no ORM.
+- Vitest unit/integration coverage, Playwright path, Biome checks, docs
+  validation, and OpenNext Cloudflare builds.
 
-## Discovery, radar, and intelligence surfaces
+## Deliberately removed
 
-- Discover page and `/api/discover` for seeded popular repositories.
-- Discover supports paginated 30-day growth ordering and detected-tool facets
-  from indexed local snapshot/tool tables.
-- Manually dispatched GitHub Actions seed/enrich popular repos through scoped
-  D1 APIs and embed through native Worker bindings.
-- Radar page and `/api/radar` for maintainer/release-oriented signals.
-- Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`,
-  `/api/growth`, Radar fastest-growers, and repo-detail mini history from stored
-  `repo_star_snapshots`.
-- Tool Intelligence: additive `repo_tools` index, `/api/tools`,
-  `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded
-  SBOM/tree/manifest-based detection with source/confidence labels. Accuracy
-  disclaimer shown in-product.
-- Stack builder surface (`/stack-builder`, `/api/stack-builder`).
-- SaaS Maker feedback widget integrated; direct PostHog analytics.
-- First-run UX, sample prioritized stars board, why-repo-is-hot explanations,
-  GitHub permission trust note, stale-star cleanup proof, weekly digest preview
-  surfaces.
-
-## Alerts and shareable reports
-
-- Weekly repository alerts: opt-in lanes, in-app inbox (`/api/alerts/inbox`),
-  preference API (`/api/alerts/preferences`).
-- Weekly digest payload generation from radar/maintainer signals
-  (`/api/alerts/weekly`, `/api/digest/weekly`).
-- Shareable insight reports at stable public URLs (`/reports/[slug]`,
-  `POST /api/reports`) for radar snapshots, project recommendation explanations,
-  and cleanup digests.
-- Share buttons wired on Radar, My Projects, and weekly cleanup digest flows.
-
-## Ops and developer experience
-
-- Checked-in `.env.example` documents required local variables without secrets.
-- Vitest unit tests with v8 coverage thresholds (80% lines/functions/statements,
-  70% branches) on core logic modules; Playwright e2e path documented in
-  README.
-- Pre-push lint hook (Biome, changed-files only).
-- TypeScript config and Astro landing tooling made self-contained for green
-  Cloudflare builds.
-- Documentation consolidation: `docs/` knowledge system + Blume presentation
-  layer + `scripts/check-docs.mjs` validator + Docs CI. See
-  [../development/](../development/).
+Alerts, shareable reports, Stack Builder, standalone Radar, weekly digest, and
+the checked-in Fleet project catalog were removed to keep Starboard focused on
+project-aware discovery and tool intelligence.

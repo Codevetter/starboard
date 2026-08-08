@@ -6,8 +6,7 @@ import Layout from '@/layouts/Layout.astro';
 
 const TITLE = 'Starboard — GitHub stars that stay useful';
 const DESCRIPTION =
-  'Starboard is the CodeVetter library for your GitHub stars: sync, rank by signal, search by meaning, and map tools to the work you are shipping.';
-const CODEVETTER = 'https://codevetter.com';
+  'Connect your GitHub projects, search open source by meaning, and discover tools that fit the work you are shipping.';
 ---
 
 <Layout title={TITLE} description={DESCRIPTION}>
@@ -25,19 +24,13 @@ const CODEVETTER = 'https://codevetter.com';
           <span class="sb-mark inline-flex size-8 items-center justify-center rounded-lg text-sm font-bold">★</span>
           <span class="flex flex-col leading-none">
             <span>Starboard</span>
-            <span class="mt-0.5 text-[10px] font-medium tracking-wide text-muted-foreground group-hover:text-foreground/80">by CodeVetter</span>
+            <span class="mt-0.5 text-[10px] font-medium tracking-wide text-muted-foreground group-hover:text-foreground/80">tool intelligence</span>
           </span>
         </a>
         <nav class="flex items-center gap-2 sm:gap-3 text-sm">
           <a href="/discover" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground sm:inline">Discover</a>
           <a href="/catalog-updates" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground md:inline">Catalog</a>
           <a href="/about" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground lg:inline">About</a>
-          <a
-            href={CODEVETTER}
-            target="_blank"
-            rel="noopener noreferrer"
-            class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground lg:inline"
-          >CodeVetter</a>
           <a href="/login" class="sb-btn-ghost inline-flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-foreground">
             Sign in
           </a>
@@ -52,26 +45,19 @@ const CODEVETTER = 'https://codevetter.com';
               <span class="inline-block size-1.5 rounded-full bg-emerald"></span>
               Free · open source · read-only GitHub
             </span>
-            <a
-              href={CODEVETTER}
-              target="_blank"
-              rel="noopener noreferrer"
-              class="sb-pill inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Part of the CodeVetter stack
-              <span aria-hidden="true">↗</span>
-            </a>
+            <span class="sb-pill inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-muted-foreground">
+              Project-aware open-source discovery
+            </span>
           </div>
 
           <h1 class="text-balance text-[2.1rem] font-bold tracking-tight text-foreground sm:text-5xl lg:text-[3.35rem] lg:leading-[1.06]">
             Your GitHub stars,<br class="hidden sm:block" />
-            <span class="bg-gradient-to-r from-foreground via-foreground to-muted-foreground bg-clip-text text-transparent">ranked for the work you ship.</span>
+            <span class="text-foreground">ranked for the work you ship.</span>
           </h1>
 
           <p class="max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            GitHub gives you a flat list. Starboard is the library layer for
-            <strong class="font-medium text-foreground/90"> CodeVetter</strong> —
-            rediscover tools by meaning, watch releases and risk, and map starred repos onto the projects you are building.
+            GitHub gives you a flat list. Starboard finds similar repositories for the project you
+            are building, then shows which tools those peers actually use and where the evidence came from.
           </p>
 
           <div class="flex w-full flex-col items-stretch gap-3 sm:flex-row sm:items-center">
@@ -112,7 +98,7 @@ const CODEVETTER = 'https://codevetter.com';
                 <span class="mt-0.5 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald">Hot</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-foreground">vercel/next.js</p>
-                  <p class="truncate text-xs text-muted-foreground">Release v15.3 · fits CodeVetter web stack</p>
+                  <p class="truncate text-xs text-muted-foreground">TypeScript · Next.js · matches project context</p>
                 </div>
                 <span class="shrink-0 text-xs tabular-nums text-muted-foreground">128k</span>
               </div>
@@ -120,7 +106,7 @@ const CODEVETTER = 'https://codevetter.com';
                 <span class="mt-0.5 rounded-md bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky">Match</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-foreground">cloudflare/workers-sdk</p>
-                  <p class="truncate text-xs text-muted-foreground">My Projects · Starboard deploy path</p>
+                  <p class="truncate text-xs text-muted-foreground">Shared tools · Cloudflare · deployment</p>
                 </div>
                 <span class="shrink-0 text-xs tabular-nums text-muted-foreground">3.1k</span>
               </div>
@@ -128,7 +114,7 @@ const CODEVETTER = 'https://codevetter.com';
                 <span class="mt-0.5 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber">Watch</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-foreground">langchain-ai/langchain</p>
-                  <p class="truncate text-xs text-muted-foreground">Quiet 90 days · still untagged</p>
+                  <p class="truncate text-xs text-muted-foreground">Semantic match · agent orchestration</p>
                 </div>
                 <span class="shrink-0 text-xs tabular-nums text-muted-foreground">98k</span>
               </div>
@@ -136,13 +122,13 @@ const CODEVETTER = 'https://codevetter.com';
                 <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Stale</span>
                 <div class="min-w-0 flex-1">
                   <p class="truncate text-sm font-medium text-foreground">old-org/forgotten-tool</p>
-                  <p class="truncate text-xs text-muted-foreground">No push in 18 months · cleanup candidate</p>
+                  <p class="truncate text-xs text-muted-foreground">Broad discovery · sparse project evidence</p>
                 </div>
                 <span class="shrink-0 text-xs tabular-nums text-muted-foreground">420</span>
               </div>
             </div>
             <div class="border-t border-border bg-muted/25 px-4 py-3 text-center text-xs text-muted-foreground">
-              Signal first — then open the repo, stack it, or archive it
+              Evidence first — then inspect the repository on GitHub
             </div>
           </div>
         </div>
@@ -171,8 +157,8 @@ const CODEVETTER = 'https://codevetter.com';
             <div class="mb-4 flex size-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
             </div>
-            <h3 class="font-semibold text-foreground">Radar &amp; digests</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Releases, momentum, and at-risk stars surface weekly instead of rotting in silence.</p>
+            <h3 class="font-semibold text-foreground">Connected projects</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Use a public GitHub repository as context for finding relevant open-source projects.</p>
           </article>
           <article class="sb-card-lift rounded-2xl border border-border bg-card/70 p-5">
             <div class="mb-4 flex size-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber">
@@ -185,8 +171,8 @@ const CODEVETTER = 'https://codevetter.com';
             <div class="mb-4 flex size-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300">
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
             </div>
-            <h3 class="font-semibold text-foreground">Stack builder</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Turn stars into a goal-shaped stack — framework, DB, auth, deploy — with reasons.</p>
+            <h3 class="font-semibold text-foreground">Tool intelligence</h3>
+            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">See detected frameworks, build tools, platforms, confidence, and source evidence.</p>
           </article>
         </div>
       </section>
@@ -210,54 +196,55 @@ const CODEVETTER = 'https://codevetter.com';
           </li>
           <li class="relative rounded-2xl border border-border bg-card/60 p-6">
             <span class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">3</span>
-            <h3 class="mt-4 font-semibold text-foreground">Act on signal</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Radar, stacks, and My Projects recommendations replace endless scroll.</p>
+            <h3 class="mt-4 font-semibold text-foreground">Connect a project</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Get explained recommendations from its language, topics, metadata, and detected tools.</p>
           </li>
         </ol>
       </section>
 
-      {/* ── CodeVetter link ───────────────────────────────────────── */}
-      <section class="w-full" id="codevetter">
+      {/* ── Project-aware discovery ────────────────────────────────── */}
+      <section class="w-full" id="projects">
         <div class="sb-glow overflow-hidden rounded-3xl border border-border bg-card/80">
           <div class="grid lg:grid-cols-[1.1fr_0.9fr]">
             <div class="space-y-5 p-7 sm:p-10">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky">CodeVetter family</p>
+              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky">Project context</p>
               <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Review the code. Remember the tools.
+                Start with what you are building.
               </h2>
               <p class="max-w-xl text-pretty leading-relaxed text-muted-foreground">
-                <strong class="font-medium text-foreground/90">CodeVetter</strong> is the evidence-backed review loop for agent-written code.
-                <strong class="font-medium text-foreground/90"> Starboard</strong> is the companion library: the OSS and tooling you already starred, organized so recommendations stay grounded in what you actually collect.
+                Connect a public GitHub repository and Starboard uses its visible technical context
+                to rank relevant projects from the shared catalog. Every match states the evidence
+                it used, and broad fallbacks are labeled honestly.
               </p>
               <ul class="space-y-2.5 text-sm text-muted-foreground">
                 <li class="flex gap-2.5">
                   <span class="mt-1 size-1.5 shrink-0 rounded-full bg-emerald"></span>
-                  <span><span class="text-foreground/90">My Projects</span> ranks your stars against fleet / CodeVetter-shaped work.</span>
+                  <span><span class="text-foreground/90">Projects</span> are yours, connected directly from GitHub.</span>
                 </li>
                 <li class="flex gap-2.5">
                   <span class="mt-1 size-1.5 shrink-0 rounded-full bg-sky"></span>
-                  <span>Same operator ethos: read-only where it matters, open source, ship on Cloudflare.</span>
+                  <span>The initial workflow stays public-only and keeps the minimal OAuth permission.</span>
                 </li>
                 <li class="flex gap-2.5">
                   <span class="mt-1 size-1.5 shrink-0 rounded-full bg-amber"></span>
-                  <span>Use them together or alone — Starboard stays useful without the desktop app.</span>
+                  <span>Discover and Tool Intelligence remain useful before you connect anything.</span>
                 </li>
               </ul>
               <div class="flex flex-wrap gap-3 pt-1">
-                <a href={CODEVETTER} target="_blank" rel="noopener noreferrer" class="sb-btn-ghost inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-foreground">
-                  Visit CodeVetter ↗
+                <a href="/projects" class="sb-btn-ghost inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-foreground">
+                  Open Projects after sign-in
                 </a>
-                <a href="/projects" class="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                  Open My Projects after sign-in
+                <a href="/tools" class="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                  Explore Tool Intelligence
                 </a>
               </div>
             </div>
             <div class="relative border-t border-border bg-muted/20 p-7 sm:p-10 lg:border-l lg:border-t-0">
               <div class="space-y-3">
                 <div class="rounded-xl border border-border bg-background/60 p-4">
-                  <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">CodeVetter</p>
-                  <p class="mt-1 text-sm font-medium text-foreground">Review loop</p>
-                  <p class="mt-1 text-xs leading-relaxed text-muted-foreground">Static review · history · runtime checks · fix revalidation</p>
+                  <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your GitHub project</p>
+                  <p class="mt-1 text-sm font-medium text-foreground">Visible technical context</p>
+                  <p class="mt-1 text-xs leading-relaxed text-muted-foreground">Language · topics · metadata · detected tools</p>
                 </div>
                 <div class="flex justify-center py-1">
                   <div class="sb-divider-fade w-16"></div>
@@ -265,7 +252,7 @@ const CODEVETTER = 'https://codevetter.com';
                 <div class="rounded-xl border border-sky/25 bg-sky-500/5 p-4">
                   <p class="text-[10px] font-semibold uppercase tracking-wider text-sky">Starboard</p>
                   <p class="mt-1 text-sm font-medium text-foreground">Tool library</p>
-                  <p class="mt-1 text-xs leading-relaxed text-muted-foreground">Stars · semantic search · radar · stack builder · fleet recs</p>
+                  <p class="mt-1 text-xs leading-relaxed text-muted-foreground">Discover · tool evidence · explained recommendations</p>
                 </div>
                 <p class="pt-2 text-center text-[11px] text-muted-foreground">
                   Live at <span class="font-mono text-foreground/80">starboard.codevetter.com</span>
@@ -301,8 +288,8 @@ const CODEVETTER = 'https://codevetter.com';
           Ready when your star list isn&apos;t.
         </h2>
         <p class="max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-          Free for personal use. Built because a four-digit star list stopped being searchable —
-          and CodeVetter still needed a memory of good tools.
+          Free. No paid plans or premium locks. Similar repositories ground every tool
+          recommendation in open-source evidence you can inspect.
         </p>
         <a href="/login" class="sb-btn-primary inline-flex h-12 items-center justify-center gap-3 rounded-xl px-8 text-base font-semibold">
           <svg viewBox="0 0 24 24" fill="currentColor" class="size-5" aria-hidden="true">
@@ -317,9 +304,7 @@ const CODEVETTER = 'https://codevetter.com';
         <p class="text-pretty leading-relaxed">
           Built by
           <a href="https://github.com/sarthakagrawal927" class="mx-1 font-medium text-foreground underline-offset-4 hover:underline" target="_blank" rel="noopener noreferrer">Sarthak</a>
-          under the
-          <a href={CODEVETTER} class="mx-1 font-medium text-foreground underline-offset-4 hover:underline" target="_blank" rel="noopener noreferrer">CodeVetter</a>
-          family — because starred lists should help you ship, not guilt-trip you.
+          because open-source discovery should start from the project you are actually building.
         </p>
         <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
           <a href="https://github.com/Codevetter/starboard" class="underline-offset-4 hover:text-foreground hover:underline" target="_blank" rel="noopener noreferrer">Source</a>
@@ -331,8 +316,6 @@ const CODEVETTER = 'https://codevetter.com';
           <a href="/about" class="underline-offset-4 hover:text-foreground hover:underline">About</a>
           <span aria-hidden="true" class="text-border">·</span>
           <a href="/discover" class="underline-offset-4 hover:text-foreground hover:underline">Discover</a>
-          <span aria-hidden="true" class="text-border">·</span>
-          <a href={CODEVETTER} class="underline-offset-4 hover:text-foreground hover:underline" target="_blank" rel="noopener noreferrer">CodeVetter</a>
           <span aria-hidden="true" class="text-border">·</span>
           <a href="/login" class="underline-offset-4 hover:text-foreground hover:underline">Login</a>
         </div>

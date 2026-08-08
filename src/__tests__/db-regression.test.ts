@@ -20,6 +20,10 @@ const seedWorkflow = readFileSync(
   'utf-8'
 );
 const workflowsDirectory = join(__dirname, '..', '..', '.github', 'workflows');
+const projectsMigration = readFileSync(
+  join(__dirname, '..', '..', 'migrations', '0003_user_projects.sql'),
+  'utf-8'
+);
 
 describe('db row-read regression guards', () => {
   it('the D1 migration defines idx_user_repos_repo for repo_id lookups', () => {
@@ -70,5 +74,13 @@ describe('db row-read regression guards', () => {
     expect(schemaSql).toContain(
       "INSERT OR IGNORE INTO migration_markers (key) VALUES ('legacy-lists-tags-v1')"
     );
+  });
+
+  it('connected projects are isolated by user and indexed for project lists', () => {
+    expect(projectsMigration).toContain('PRIMARY KEY (user_id, repo_id)');
+    expect(projectsMigration).toContain(
+      'CREATE INDEX IF NOT EXISTS idx_user_projects_user_connected'
+    );
+    expect(projectsMigration).toContain('REFERENCES repos(id) ON DELETE CASCADE');
   });
 });

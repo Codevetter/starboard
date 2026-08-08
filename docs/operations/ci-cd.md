@@ -14,10 +14,12 @@ in [jobs.md](jobs.md); this page covers the push/PR and deploy pipelines.
 
 - **Triggers:** `workflow_dispatch` only. Push CI keeps `main` releasable but
   never changes production.
-- **Steps:** checkout → pnpm → Node 22 → install (`--ignore-scripts`) →
-  `pnpm cf:build` (with `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` so
+- **Steps:** checkout → pnpm → Node 22 → install (`--ignore-scripts`) → apply
+  pending additive D1 migrations → `pnpm cf:build` (with
+  `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` so
   `populateCache local` can resolve bindings) → `wrangler deploy` via
-  `cloudflare/wrangler-action@v3` with `--tag ${{ github.sha }}` → curl smoke.
+  `cloudflare/wrangler-action@v4` with `--tag ${{ github.sha }}` → curl smoke.
+- A migration failure stops the release before application traffic changes.
 - See [deploy.md](deploy.md) for the full pipeline and required secrets.
 
 ## Docs (`.github/workflows/docs.yml`)
@@ -37,14 +39,6 @@ in [jobs.md](jobs.md); this page covers the push/PR and deploy pipelines.
 - Keeps Vectorize API credentials out of GitHub while still proving the live
   binding path used by embedding jobs.
 
-## Weekly quality (`.github/workflows/weekly.yml`)
-
-- **Schedule:** Mondays 09:00 UTC + `workflow_dispatch`.
-- **Steps:** lint, typecheck, test, build (each run only if the script exists).
-- Catches drift that doesn't surface on push CI (dependency regressions,
-  environment drift).
-
 ## Scheduled jobs
 
-See [jobs.md](jobs.md) for `seed-popular`, `embed-pending`, and
-`weekly-threshold-digest`.
+See [jobs.md](jobs.md) for `seed-popular` and `embed-pending`.

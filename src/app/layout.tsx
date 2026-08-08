@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 
 const SITE_URL = 'https://starboard.codevetter.com';
 const SITE_DESCRIPTION =
-  'Connect a public GitHub project, understand its tool context, and discover better open-source projects with explained recommendations.';
+  'Connect a public GitHub project, find similar repositories, and trace suggested tools to the peers that actually use them.';
 
 export const metadata: Metadata = {
   icons: {

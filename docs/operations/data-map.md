@@ -30,6 +30,7 @@ retirement requires separate approval.
 | D1 `users` | irreplaceable-user | NextAuth GitHub OAuth | Not reconstructable — GitHub is the source of identity, but user records (email, created_at) must be exported | n/a — export required | 2026-08-02 |
 | D1 `repos` (popular ≥5k seeded) | authoritative-source | `scripts/seed-popular.ts` | Re-walk GitHub Search ≥`MIN_STARS_FLOOR` | ~hours (rate-limited, resumable cursor) | 2026-08-02 |
 | D1 `user_repos` (starred/saved state) | irreplaceable-user | GitHub sync via `/api/stars/sync` | Re-sync from GitHub starred list (ETag + HTML scrape) | ~seconds per user | 2026-08-02 |
+| D1 `user_projects` | irreplaceable-user | Project connection UI/API | Reconnect public GitHub repositories manually | ~seconds per user | 2026-08-08 |
 | D1 `user_lists`, `user_repo_lists` | irreplaceable-user | User UI actions | Not reconstructable — user-curated collections | n/a — export required | 2026-08-02 |
 | D1 `comments`, `likes`, `comment_votes` | irreplaceable-user | User UI actions | Not reconstructable — user-generated content | n/a — export required | 2026-08-02 |
 | D1 `repo_embeddings` hashes + Vectorize `starboard-repos` values | derived | Worker binding embedding jobs | Re-embed from `repos` + `repo_ai_metadata` text via Workers AI | ~minutes (Workers AI quota) | 2026-08-02 |
@@ -37,9 +38,7 @@ retirement requires separate approval.
 | D1 `repo_tools` | derived | `scripts/enrich-tools.ts` | Re-detect from GH tree/manifest/SBOM | ~minutes per batch | 2026-08-02 |
 | D1 `repo_star_snapshots`, `repo_threshold_events` | derived | `seed-popular.ts` snapshot inserts | Re-derive from `repos` star counts over time | rebuilt on each seed run | 2026-08-02 |
 | D1 `seed_cursor` | derived (walk state) | `seed-popular.ts` | Reset to defaults; walk restarts from top | seconds | 2026-08-02 |
-| D1 `insight_reports` | irreplaceable-user | User "share" actions | Not reconstructable — user-curated snapshots (with `redact_private=1` default) | n/a — export required | 2026-08-02 |
-| D1 `user_alert_preferences` | irreplaceable-user | User UI actions | Not reconstructable | n/a — export required | 2026-08-02 |
-| `data/fleet-projects.generated.json` | derived (fleet snapshot) | `pnpm fleet:extract-projects` | Regenerate from local fleet repos | seconds | 2026-07-18 |
+| D1 `insight_reports`, `user_alert_preferences` | historical inactive storage | Removed product features | Retained to avoid a destructive migration; no active writers | n/a | 2026-08-08 |
 | Cloudflare Worker `starboard` (deployed bundle) | cache | `pnpm deploy:cf` or manual deploy workflow | Rebuild + redeploy | ~minutes | 2026-07-18 |
 | knowledgebase Worker RAG index (`STARBOARD_RAG_INDEX_ID`) | derived (RAG index of user repos) | `src/lib/knowledgebase.ts` ingest | Re-ingest from `repos` + README text per user | ~seconds per user | 2026-07-18 |
 
@@ -48,8 +47,9 @@ retirement requires separate approval.
 D1 is the system of record for user-generated state. Reconstruction is
 **not** possible for: `users`, `user_repos` (saved/organized state beyond
 what GitHub stars alone captures), `user_lists`, `user_repo_lists`,
-`comments`, `likes`, `comment_votes`, `insight_reports`,
-`user_alert_preferences`.
+`comments`, `likes`, `comment_votes`, and `user_projects`. The inactive
+`insight_reports` and `user_alert_preferences` tables remain part of exports
+until a separately approved retention migration exists.
 
 Export path (operator-run, not automated):
 
@@ -140,8 +140,6 @@ query text, repo IDs, repo full names, or user identifiers are sent. See
 
 ## Private-repo redaction
 
-- `insight_reports.redact_private` defaults to `1` — shared reports redact
-  private repo identity by default.
 - Foundry activation events carry **no** repo identity (no `full_name`,
   `repo_id`, or query text). See [`foundry.md`](foundry.md).
 - The knowledgebase RAG index stores `full_name` in document metadata for

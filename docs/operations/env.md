@@ -13,8 +13,6 @@ Copied from `.env.example`. **Never commit `.env.local`** — it is gitignored.
 | `NEXTAUTH_SECRET` | NextAuth session secret (`openssl rand -base64 32`) |
 | `NEXTAUTH_URL` | App base URL, e.g. `http://localhost:3000` |
 | `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` | HTTP embedding path (Node/Actions); optional in the Worker which uses the `AI` binding |
-| `RESEND_API_KEY` | Weekly digest email (fail-closed: delivery skipped with a log when unset) |
-| `DIGEST_EMAIL_FROM` | Optional verified Resend sender, e.g. `Starboard <digest@example.com>` |
 | `RAG_SERVICE_KEY` | Shared `knowledgebase` Worker RAG auth (optional; without it relevance search is lexical-only) |
 | `STARBOARD_RAG_INDEX_ID` | RAG index id (also set as a wrangler var) |
 
@@ -41,7 +39,6 @@ for the callback base URL and some internal paths read the legacy
 - `CLOUDFLARE_API_TOKEN` (deploy plus scoped D1 access)
 - `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (AI enrichment; the key also
   authenticates bound Worker embedding jobs)
-- `RESEND_API_KEY` (weekly digest email; optional — fail-closed)
 
 GitHub Actions repository variables (non-secret) include
 `CLOUDFLARE_ACCOUNT_ID` and `D1_DATABASE_ID`.

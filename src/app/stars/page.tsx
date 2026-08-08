@@ -17,7 +17,6 @@ import { TopBar } from '@/components/top-bar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
-import { WeeklyActionDigest } from '@/components/weekly-maintainer-digest';
 import { useLists } from '@/hooks/use-lists';
 import { useStarredRepos } from '@/hooks/use-starred-repos';
 import { summarizeSyncRepoNames } from '@/lib/sync-performance';
@@ -520,7 +519,6 @@ function StarsContent() {
 
         <ScrollArea className="flex-1">
           <main className="p-4 md:p-6">
-            <WeeklyActionDigest />
             <ActiveFilterChips
               searchQuery={searchQuery}
               onClearSearch={() => setSearchQuery('')}

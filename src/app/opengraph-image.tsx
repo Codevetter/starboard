@@ -5,7 +5,7 @@ import { ImageResponse } from 'next/og';
  * Next.js serves this at `/opengraph-image` and wires it into the page's
  * OpenGraph + Twitter card metadata automatically. No binary asset to ship.
  */
-export const alt = 'Starboard — Your GitHub stars, organized';
+export const alt = 'Starboard — Tool intelligence for your GitHub projects';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 
@@ -25,7 +25,22 @@ export default function OpengraphImage() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={{ fontSize: 44 }}>★</div>
+        <div
+          style={{
+            width: '56px',
+            height: '56px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '14px',
+            background: '#2563eb',
+            color: '#ffffff',
+            fontSize: 32,
+            fontWeight: 700,
+          }}
+        >
+          S
+        </div>
         <div style={{ fontSize: 40, fontWeight: 700 }}>Starboard</div>
       </div>
       <div
@@ -37,7 +52,7 @@ export default function OpengraphImage() {
           maxWidth: '900px',
         }}
       >
-        Your GitHub stars, organized.
+        Find better tools for the project you are building.
       </div>
       <div
         style={{
@@ -47,7 +62,7 @@ export default function OpengraphImage() {
           maxWidth: '880px',
         }}
       >
-        Sync, search, and group every repo you have ever starred.
+        Find similar repositories, then trace suggested tools to the peers that actually use them.
       </div>
     </div>,
     { ...size }

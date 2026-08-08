@@ -9,15 +9,9 @@ describe('D1 and Vectorize search integration', () => {
       join(process.cwd(), 'src/app/api/repos/[repoId]/similar/route.ts'),
       'utf-8'
     );
-    const recommendationsRoute = readFileSync(
-      join(process.cwd(), 'src/app/api/projects/[slug]/recommendations/route.ts'),
-      'utf-8'
-    );
-
     expect(migration).toContain('CREATE VIRTUAL TABLE IF NOT EXISTS repos_fts USING fts5');
     expect(migration).toContain('CREATE TABLE IF NOT EXISTS repo_embeddings');
     expect(migration).not.toContain('vector_top_k');
     expect(similarRoute).toContain('repoVectors().queryByRepoId');
-    expect(recommendationsRoute).toContain('repoVectors().query');
   });
 });

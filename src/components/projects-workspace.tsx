@@ -1,250 +1,172 @@
 'use client';
 
 import {
-  AlertTriangle,
-  ArrowDownToLine,
   ArrowUpRight,
   BookOpen,
-  Boxes,
-  CheckCircle2,
-  FlaskConical,
-  FolderKanban,
+  FolderGit2,
+  Loader2,
+  Plus,
   Search,
-  SearchCheck,
+  Trash2,
+  Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { type RefObject, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import useSWR from 'swr';
 
-import { jsonFetcher } from '@/lib/swr-fetcher';
-
-import { ShareReportButton } from '@/components/share-report-button';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import type { FleetProjectSummary } from '@/lib/fleet-project-data';
+import type { ConnectedProject } from '@/lib/connected-projects';
 import type {
-  FleetProjectRecommendationReport,
-  FleetRecommendation,
-  FleetRecommendationAction,
-} from '@/lib/fleet-projects';
+  GroundedToolRecommendation,
+  ProjectRecommendation,
+} from '@/lib/project-recommendations';
+import { jsonFetcher } from '@/lib/swr-fetcher';
 
-type ProjectSummary = FleetProjectSummary;
-
-interface ProjectsWorkspaceProps {
-  selectedSlug?: string;
-  /** Server-rendered fleet snapshot so the list does not depend on /api/projects. */
-  initialProjects: ProjectSummary[];
+interface ProjectsResponse {
+  projects: ConnectedProject[];
 }
 
-const fetcher = jsonFetcher;
+interface RecommendationsResponse {
+  project: ConnectedProject;
+  similarProjects: ProjectRecommendation[];
+  recommendedTools: GroundedToolRecommendation[];
+  fallback: boolean;
+  context: {
+    language: string | null;
+    topics: string[];
+    tools: ConnectedProject['tools'];
+  };
+}
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
 }
 
-function actionLabel(action: FleetRecommendationAction): string {
-  if (action === 'use-now') return 'Use now';
-  if (action === 'prototype') return 'Prototype';
-  if (action === 'research') return 'Research';
-  return 'Skip';
-}
-
-function actionClass(action: FleetRecommendationAction): string {
-  if (action === 'use-now')
-    return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
-  if (action === 'prototype')
-    return 'border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-300';
-  if (action === 'research')
-    return 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300';
-  return 'border-muted bg-muted/30 text-muted-foreground';
-}
-
-function actionIcon(action: FleetRecommendationAction) {
-  if (action === 'use-now') return <CheckCircle2 className="size-3.5" />;
-  if (action === 'prototype') return <FlaskConical className="size-3.5" />;
-  if (action === 'research') return <SearchCheck className="size-3.5" />;
-  return <AlertTriangle className="size-3.5" />;
-}
-
-function maturityLabel(maturity: ProjectSummary['maturity']): string {
-  if (maturity === 'public') return 'Public';
-  if (maturity === 'public-ready') return 'Public-ready';
-  return 'Internal-first';
-}
-
-function recommendationSortValue(recommendation: FleetRecommendation): number {
-  if (recommendation.action === 'use-now') return 0;
-  if (recommendation.action === 'prototype') return 1;
-  if (recommendation.action === 'research') return 2;
-  return 3;
-}
-
-function ProjectsLoadingShell() {
+function LoadingScreen() {
   return (
-    <main className="min-h-screen bg-background md:flex" aria-busy="true" aria-live="polite">
-      <aside className="border-b bg-background md:sticky md:top-0 md:h-screen md:w-80 md:shrink-0 md:border-b-0 md:border-r">
-        <div className="border-b p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-md border">
-              <FolderKanban className="size-4 text-muted-foreground" />
-            </div>
-            <div className="min-w-0 space-y-1.5">
-              <Skeleton className="h-5 w-28" />
-              <Skeleton className="h-3 w-20" />
-            </div>
-          </div>
-          <Skeleton className="mt-4 h-9 w-full rounded-md" />
-        </div>
-        <div className="space-y-2 p-3">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="rounded-md border border-transparent px-3 py-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="mt-2 h-3 w-1/2" />
-            </div>
-          ))}
-        </div>
-      </aside>
-
-      <section className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 border-b bg-background/80 px-4 py-3 backdrop-blur-sm md:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0 space-y-2">
-              <Skeleton className="h-5 w-20" />
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-72 max-w-full" />
-            </div>
-            <div className="flex items-center gap-2">
-              <Skeleton className="h-8 w-24 rounded-md" />
-              <Skeleton className="h-8 w-20 rounded-md" />
-            </div>
-          </div>
-        </header>
-
-        <div className="grid gap-3 p-4 md:grid-cols-5 md:p-6">
-          <Card className="rounded-lg py-4 shadow-none md:col-span-2">
-            <CardContent className="space-y-3 px-4">
-              <div className="flex flex-wrap gap-1.5">
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-14 rounded-full" />
-                <Skeleton className="h-5 w-20 rounded-full" />
-              </div>
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
-            </CardContent>
-          </Card>
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} className="rounded-lg py-4 shadow-none">
-              <CardContent className="space-y-2 px-4">
-                <Skeleton className="h-8 w-12" />
-                <Skeleton className="h-4 w-20" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="space-y-3 px-4 pb-8 md:px-6">
-          <Skeleton className="h-5 w-24" />
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="rounded-lg py-4 shadow-none">
-                <CardHeader className="gap-3 px-4">
-                  <div className="flex gap-1.5">
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                    <Skeleton className="h-5 w-14 rounded-full" />
-                  </div>
-                  <Skeleton className="h-5 w-2/3" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-4/5" />
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+    <main className="flex min-h-screen items-center justify-center bg-background" aria-busy="true">
+      <Loader2 className="size-5 animate-spin text-muted-foreground" />
     </main>
   );
 }
 
-function RecommendationsLoadingBody() {
+function ProjectNav() {
   return (
-    <div className="space-y-6" aria-busy="true" aria-label="Loading recommendations">
-      <div className="grid gap-3 p-4 md:grid-cols-5 md:p-6">
-        <Card className="rounded-lg py-4 shadow-none md:col-span-2">
-          <CardContent className="space-y-3 px-4">
-            <div className="flex flex-wrap gap-1.5">
-              <Skeleton className="h-5 w-16 rounded-full" />
-              <Skeleton className="h-5 w-14 rounded-full" />
-            </div>
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6" />
-          </CardContent>
-        </Card>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="rounded-lg py-4 shadow-none">
-            <CardContent className="space-y-2 px-4">
-              <Skeleton className="h-8 w-12" />
-              <Skeleton className="h-4 w-20" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-      <div className="space-y-3 px-4 pb-8 md:px-6">
-        <Skeleton className="h-5 w-24" />
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i} className="rounded-lg py-4 shadow-none">
-              <CardHeader className="gap-3 px-4">
-                <Skeleton className="h-5 w-16 rounded-full" />
-                <Skeleton className="h-5 w-2/3" />
-                <Skeleton className="h-4 w-full" />
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      </div>
-    </div>
+    <nav className="flex flex-wrap items-center gap-1" aria-label="Product">
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/discover" prefetch={false}>
+          <Search className="size-4" />
+          Discover
+        </Link>
+      </Button>
+      <Button variant="secondary" size="sm">
+        <FolderGit2 className="size-4" />
+        Projects
+      </Button>
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/tools" prefetch={false}>
+          <Wrench className="size-4" />
+          Tools
+        </Link>
+      </Button>
+      <Button asChild variant="ghost" size="sm">
+        <Link href="/stars" prefetch={false}>
+          <BookOpen className="size-4" />
+          Library
+        </Link>
+      </Button>
+    </nav>
   );
 }
 
-function RecommendationCard({ recommendation }: { recommendation: FleetRecommendation }) {
+function ConnectProjectForm({ onConnected }: { onConnected: (project: ConnectedProject) => void }) {
+  const [repository, setRepository] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!repository.trim() || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ repository }),
+      });
+      const payload = (await response.json()) as { project?: ConnectedProject; error?: string };
+      if (!response.ok || !payload.project) {
+        throw new Error(payload.error || 'Project could not be connected.');
+      }
+      setRepository('');
+      onConnected(payload.project);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Project could not be connected.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-2">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
+          value={repository}
+          onChange={(event) => setRepository(event.target.value)}
+          placeholder="github.com/owner/repository"
+          aria-label="Public GitHub repository"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+        <Button type="submit" disabled={busy || !repository.trim()} className="shrink-0">
+          {busy ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
+          Connect project
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Free. Public repositories only, with the current minimal GitHub permission.
+      </p>
+      {error && (
+        <p className="text-sm text-destructive" role="alert">
+          {error}
+        </p>
+      )}
+    </form>
+  );
+}
+
+function RecommendationCard({ recommendation }: { recommendation: ProjectRecommendation }) {
   return (
     <Card className="rounded-lg py-4 shadow-none">
       <CardHeader className="gap-3 px-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="flex flex-wrap gap-1.5">
-              <Badge variant="outline" className={actionClass(recommendation.action)}>
-                {actionIcon(recommendation.action)}
-                {actionLabel(recommendation.action)}
-              </Badge>
-              <Badge variant="outline" className="text-xs">
-                score {recommendation.score}
-              </Badge>
-              {recommendation.language && (
-                <Badge variant="secondary" className="text-xs">
-                  {recommendation.language}
-                </Badge>
-              )}
-            </div>
-            <CardTitle className="mt-3 truncate text-base">
+            <CardTitle className="truncate text-base">
               <Link href={`/explore/${recommendation.fullName}`} className="hover:underline">
                 {recommendation.fullName}
               </Link>
             </CardTitle>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {recommendation.language && (
+                <Badge variant="secondary">{recommendation.language}</Badge>
+              )}
+              <Badge variant="outline">{formatNumber(recommendation.stargazersCount)} stars</Badge>
+            </div>
           </div>
-          <Button
-            asChild
-            variant="ghost"
-            size="icon-sm"
-            aria-label={`Open ${recommendation.fullName} on GitHub`}
-          >
-            <Link href={recommendation.htmlUrl} target="_blank" rel="noreferrer">
+          <Button asChild variant="ghost" size="icon-sm">
+            <Link
+              href={recommendation.htmlUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={`Open ${recommendation.fullName} on GitHub`}
+            >
               <ArrowUpRight className="size-4" />
             </Link>
           </Button>
@@ -252,411 +174,327 @@ function RecommendationCard({ recommendation }: { recommendation: FleetRecommend
       </CardHeader>
       <CardContent className="space-y-3 px-4">
         <p className="line-clamp-2 min-h-10 text-sm text-muted-foreground">
-          {recommendation.description ?? 'No description available.'}
+          {recommendation.description ?? 'No repository description is available.'}
         </p>
-        <div className="rounded-md border bg-background/60 p-3 text-sm">
-          {recommendation.suggestedUse}
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          {recommendation.reasons.map((reason) => (
-            <Badge key={reason} variant="outline" className="text-xs text-muted-foreground">
-              {reason}
-            </Badge>
+        <ul className="space-y-1.5 text-sm">
+          {recommendation.evidence.map((item) => (
+            <li key={item} className="flex gap-2">
+              <span className="mt-2 size-1 shrink-0 rounded-full bg-primary" />
+              <span>{item}</span>
+            </li>
           ))}
-        </div>
-        <div className="flex flex-wrap gap-1.5 text-xs text-muted-foreground">
-          <Badge variant="outline" className="text-xs">
-            {formatNumber(recommendation.stargazersCount)} stars
-          </Badge>
-          {recommendation.semanticDistance !== null && (
-            <Badge variant="outline" className="text-xs">
-              semantic {recommendation.semanticDistance.toFixed(2)}
-            </Badge>
-          )}
-          {recommendation.cautions.map((caution) => (
-            <Badge
-              key={caution}
-              variant="outline"
-              className="border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300"
-            >
-              {caution}
-            </Badge>
-          ))}
-        </div>
+        </ul>
       </CardContent>
     </Card>
   );
 }
 
-function ProjectSidebar({
-  projects,
-  selectedSlug,
-  query,
-  setQuery,
-  searchRef,
-}: {
-  projects: ProjectSummary[];
-  selectedSlug: string | null;
-  query: string;
-  setQuery: (query: string) => void;
-  searchRef: RefObject<HTMLInputElement | null>;
-}) {
-  const filteredProjects = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return projects;
-    return projects.filter((project) =>
-      [
-        project.name,
-        project.description,
-        project.maturity,
-        ...project.featureAreas.map((feature) => feature.label),
-        ...project.stack.languages,
-        ...project.stack.frameworks,
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(needle)
-    );
-  }, [projects, query]);
-
+function GroundedToolCard({ recommendation }: { recommendation: GroundedToolRecommendation }) {
   return (
-    <aside className="border-b bg-background md:sticky md:top-0 md:h-screen md:w-80 md:shrink-0 md:border-b-0 md:border-r">
-      <div className="border-b p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-md border">
-            <FolderKanban className="size-4" />
+    <Card className="rounded-lg py-4 shadow-none">
+      <CardHeader className="gap-2 px-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardTitle className="text-base">{recommendation.name}</CardTitle>
+            <p className="mt-1 text-xs text-muted-foreground">{recommendation.category}</p>
           </div>
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-semibold">My Projects</h1>
-            <p className="text-sm text-muted-foreground">{projects.length} fleet projects</p>
-          </div>
+          <Badge variant="secondary">
+            {recommendation.supportCount} similar{' '}
+            {recommendation.supportCount === 1 ? 'repo' : 'repos'}
+          </Badge>
         </div>
-        <div className="relative mt-4">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            ref={searchRef}
-            placeholder="Search projects..."
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            className="pl-9"
-          />
-        </div>
-      </div>
-      <ScrollArea className="h-[42vh] md:h-[calc(100vh-137px)]">
-        <nav className="flex gap-2 overflow-x-auto p-3 md:block md:space-y-1 md:overflow-x-visible">
-          {filteredProjects.map((project) => {
-            const selected = selectedSlug === project.slug;
-            return (
-              <Button
-                key={project.slug}
-                asChild
-                variant={selected ? 'secondary' : 'ghost'}
-                className="h-auto min-w-64 shrink-0 justify-start rounded-md px-3 py-2 text-left md:min-w-0 md:w-full"
+      </CardHeader>
+      <CardContent className="space-y-2 px-4">
+        <p className="text-xs font-medium text-muted-foreground">Grounded in repository evidence</p>
+        <ul className="space-y-1.5 text-sm">
+          {recommendation.sources.slice(0, 4).map((source) => (
+            <li key={source.repoId} className="flex items-center justify-between gap-3">
+              <Link
+                href={`/explore/${source.fullName}`}
+                className="min-w-0 truncate hover:underline"
               >
-                <Link
-                  href={`/projects/${project.slug}`}
-                  aria-current={selected ? 'page' : undefined}
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-2">
-                      <span className="truncate font-medium">{project.name}</span>
-                      <Badge variant="outline" className="shrink-0 text-[10px]">
-                        {maturityLabel(project.maturity)}
-                      </Badge>
-                    </span>
-                    <span className="mt-1 line-clamp-1 text-xs font-normal text-muted-foreground">
-                      {project.featureAreas
-                        .slice(0, 2)
-                        .map((feature) => feature.label)
-                        .join(' / ')}
-                    </span>
-                  </span>
-                </Link>
-              </Button>
-            );
-          })}
-        </nav>
-      </ScrollArea>
-    </aside>
+                {source.fullName}
+              </Link>
+              <span className="shrink-0 text-xs text-muted-foreground">
+                {Math.round(source.confidence)}% detection
+              </span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   );
 }
 
-export function ProjectsWorkspace({ selectedSlug, initialProjects }: ProjectsWorkspaceProps) {
+export function ProjectsWorkspace({ selectedSlug }: { selectedSlug?: string }) {
   const { status } = useSession();
   const router = useRouter();
-  const [query, setQuery] = useState('');
-  const searchRef = useRef<HTMLInputElement | null>(null);
-  // Catalog is static fleet snapshot — never block the UI on a client /api hop.
-  const projects = initialProjects;
-  const selectedProject = useMemo(() => {
-    if (projects.length === 0) return null;
-    return projects.find((project) => project.slug === selectedSlug) ?? projects[0];
-  }, [projects, selectedSlug]);
-  const activeSlug = selectedProject?.slug ?? selectedSlug ?? null;
-  const {
-    data: recommendations,
-    error: recommendationsError,
-    isLoading: recommendationsLoading,
-  } = useSWR<FleetProjectRecommendationReport>(
-    activeSlug ? `/api/projects/${activeSlug}/recommendations?limit=30` : null,
-    fetcher,
+  const { data, error, isLoading, mutate } = useSWR<ProjectsResponse>(
+    status === 'authenticated' ? '/api/projects' : null,
+    jsonFetcher,
     { revalidateOnFocus: false }
   );
+  const projects = data?.projects ?? [];
+  const selectedProject = useMemo(
+    () => projects.find((project) => String(project.id) === selectedSlug) ?? projects[0] ?? null,
+    [projects, selectedSlug]
+  );
+  const [disconnectId, setDisconnectId] = useState<number | null>(null);
+  const [disconnecting, setDisconnecting] = useState(false);
+  const recommendationUrl = selectedProject
+    ? `/api/projects/${selectedProject.id}/recommendations?limit=24`
+    : null;
+  const {
+    data: recommendations,
+    error: recommendationError,
+    isLoading: recommendationsLoading,
+  } = useSWR<RecommendationsResponse>(recommendationUrl, jsonFetcher, {
+    revalidateOnFocus: false,
+  });
 
   useEffect(() => {
     if (status === 'unauthenticated') {
-      router.replace('/');
+      router.replace('/login?callbackUrl=%2Fprojects');
     }
   }, [router, status]);
 
   useEffect(() => {
-    if (selectedProject && selectedSlug !== selectedProject.slug) {
-      router.replace(`/projects/${selectedProject.slug}`);
+    if (selectedProject && selectedSlug !== String(selectedProject.id)) {
+      router.replace(`/projects/${selectedProject.id}`);
     }
   }, [router, selectedProject, selectedSlug]);
 
-  useEffect(() => {
-    const isTextEntry = (target: EventTarget | null) => {
-      const element = target as HTMLElement | null;
-      if (!element) return false;
-      const tag = element.tagName.toLowerCase();
-      return tag === 'input' || tag === 'textarea' || element.isContentEditable;
-    };
-    const navigateProject = (offset: number) => {
-      if (!activeSlug || projects.length === 0) return;
-      const index = projects.findIndex((project) => project.slug === activeSlug);
-      if (index < 0) return;
-      const nextProject = projects[(index + offset + projects.length) % projects.length];
-      router.push(`/projects/${nextProject.slug}`);
-    };
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.defaultPrevented) return;
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.key === '/' && !isTextEntry(event.target)) {
-        event.preventDefault();
-        searchRef.current?.focus();
-        return;
-      }
-      if (isTextEntry(event.target)) {
-        if (event.key === 'Escape') {
-          (event.target as HTMLElement).blur();
-        }
-        return;
-      }
-      if (event.key === 'j' || event.key === 'ArrowDown') {
-        event.preventDefault();
-        navigateProject(1);
-      } else if (event.key === 'k' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        navigateProject(-1);
-      } else if (event.key === 'l') {
-        router.push('/stars');
-      } else if (event.key === 's') {
-        router.push('/stack-builder');
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [activeSlug, projects, router]);
-
-  // Auth still settling — full shell skeleton, not a blank spinner.
-  if (status === 'loading') {
-    return <ProjectsLoadingShell />;
+  async function disconnect(project: ConnectedProject) {
+    if (disconnectId !== project.id) {
+      setDisconnectId(project.id);
+      return;
+    }
+    setDisconnecting(true);
+    try {
+      const response = await fetch(`/api/projects/${project.id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Project could not be disconnected.');
+      setDisconnectId(null);
+      await mutate(
+        { projects: projects.filter((item) => item.id !== project.id) },
+        { revalidate: false }
+      );
+      router.replace('/projects');
+    } finally {
+      setDisconnecting(false);
+    }
   }
 
-  if (status === 'unauthenticated') return null;
-
-  if (projects.length === 0) {
-    return (
-      <main className="mx-auto max-w-lg px-4 py-24 text-center">
-        <p className="text-sm text-muted-foreground">
-          No fleet projects in the snapshot. Run{' '}
-          <code className="font-mono text-xs">pnpm fleet:extract-projects</code> and redeploy.
-        </p>
-      </main>
-    );
+  function connected(project: ConnectedProject) {
+    const nextProjects = [project, ...projects.filter((item) => item.id !== project.id)];
+    mutate({ projects: nextProjects }, { revalidate: false });
+    router.push(`/projects/${project.id}`);
   }
 
-  const exportMarkdown = () => {
-    if (!recommendations?.markdown) return;
-    const blob = new Blob([recommendations.markdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `starboard-${recommendations.project.slug}-recommendations.md`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const topRecommendations =
-    recommendations?.recommendations
-      .slice()
-      .sort((a, b) => {
-        const actionSort = recommendationSortValue(a) - recommendationSortValue(b);
-        if (actionSort !== 0) return actionSort;
-        return b.score - a.score;
-      })
-      .slice(0, 6) ?? [];
+  if (status === 'loading' || (status === 'authenticated' && isLoading && !data)) {
+    return <LoadingScreen />;
+  }
+  if (status === 'unauthenticated') return <LoadingScreen />;
 
   return (
-    <main className="min-h-screen bg-background md:flex">
-      <ProjectSidebar
-        projects={projects}
-        selectedSlug={activeSlug}
-        query={query}
-        setQuery={setQuery}
-        searchRef={searchRef}
-      />
+    <main className="min-h-screen bg-background">
+      <header className="sticky top-0 z-20 border-b bg-background/90 px-4 py-3 backdrop-blur-sm md:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-lg font-semibold">Projects</h1>
+            <p className="text-sm text-muted-foreground">
+              Discover tools for what you are building.
+            </p>
+          </div>
+          <ProjectNav />
+        </div>
+      </header>
 
-      <section className="min-w-0 flex-1">
-        <header className="sticky top-0 z-20 border-b bg-background/80 px-4 py-3 backdrop-blur-sm md:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="flex flex-wrap gap-1.5">
-                {selectedProject && (
-                  <Badge variant="secondary">{maturityLabel(selectedProject.maturity)}</Badge>
-                )}
+      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[18rem_minmax(0,1fr)] md:px-6">
+        <aside className="space-y-5">
+          <section>
+            <h2 className="mb-2 text-sm font-medium">Connect a GitHub project</h2>
+            <ConnectProjectForm onConnected={connected} />
+          </section>
+
+          <section className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-medium">Connected</h2>
+              <span className="text-xs text-muted-foreground">{projects.length}</span>
+            </div>
+            {error && (
+              <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                Connected projects could not load.
+              </p>
+            )}
+            {projects.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                Connect a public repository to get project-aware recommendations.
               </div>
-              <h2 className="mt-2 truncate text-lg font-semibold">
-                {selectedProject?.name ?? 'My Projects'}
-              </h2>
-              <p className="line-clamp-2 text-sm text-muted-foreground">
-                {selectedProject?.description ??
-                  'Fleet projects matched against your Starboard repository library.'}
+            ) : (
+              <nav
+                className="flex gap-2 overflow-x-auto pb-1 md:block md:space-y-1"
+                aria-label="Connected projects"
+              >
+                {projects.map((project) => {
+                  const active = selectedProject?.id === project.id;
+                  return (
+                    <Button
+                      key={project.id}
+                      asChild
+                      variant={active ? 'secondary' : 'ghost'}
+                      className="h-auto min-w-56 justify-start px-3 py-2 text-left md:w-full md:min-w-0"
+                    >
+                      <Link href={`/projects/${project.id}`}>
+                        <span className="min-w-0">
+                          <span className="block truncate font-medium">{project.fullName}</span>
+                          <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                            {project.language ?? 'Language not detected'}
+                          </span>
+                        </span>
+                      </Link>
+                    </Button>
+                  );
+                })}
+              </nav>
+            )}
+          </section>
+        </aside>
+
+        <section className="min-w-0">
+          {!selectedProject ? (
+            <div className="flex min-h-[28rem] flex-col items-center justify-center rounded-xl border border-dashed px-6 text-center">
+              <div className="flex size-12 items-center justify-center rounded-xl border bg-card">
+                <FolderGit2 className="size-5" />
+              </div>
+              <h2 className="mt-5 text-xl font-semibold">Start with a project</h2>
+              <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                Add a public GitHub repository. Starboard will use its language, topics, metadata,
+                and detected tools to explain useful matches from the public catalog.
               </p>
             </div>
-            <div className="flex items-center gap-2">
-              {activeSlug && (
-                <ShareReportButton
-                  type="project-recommendations"
-                  projectSlug={activeSlug}
-                  label="Share report"
-                />
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportMarkdown}
-                disabled={!recommendations?.markdown}
-              >
-                <ArrowDownToLine className="mr-1.5 size-4" />
-                Markdown
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/stack-builder" prefetch={false}>
-                  <Boxes className="mr-1.5 size-4" />
-                  Stack
-                </Link>
-              </Button>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/stars" prefetch={false}>
-                  <BookOpen className="mr-1.5 size-4" />
-                  Library
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        {recommendationsError && !recommendationsLoading && (
-          <div className="m-4 rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300 md:m-6">
-            Recommendations could not load for this project.
-          </div>
-        )}
-
-        {recommendationsLoading && !recommendations && <RecommendationsLoadingBody />}
-
-        {recommendations && (
-          <>
-            <section className="grid gap-3 p-4 md:grid-cols-5 md:p-6">
-              <Card className="rounded-lg py-4 shadow-none md:col-span-2">
-                <CardContent className="space-y-3 px-4">
-                  <div className="flex flex-wrap gap-1.5">
-                    {recommendations.project.stack.frameworks.slice(0, 5).map((framework) => (
-                      <Badge key={framework} variant="secondary" className="text-xs">
-                        {framework}
-                      </Badge>
-                    ))}
-                    {recommendations.project.stack.languages.slice(0, 4).map((language) => (
-                      <Badge key={language} variant="outline" className="text-xs">
-                        {language}
-                      </Badge>
-                    ))}
+          ) : (
+            <div className="space-y-6">
+              <div className="flex flex-col gap-4 border-b pb-5 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="truncate text-xl font-semibold">{selectedProject.fullName}</h2>
+                    {selectedProject.language && (
+                      <Badge variant="secondary">{selectedProject.language}</Badge>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {recommendations.project.statusSummary || recommendations.project.readmeSummary}
+                  <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+                    {selectedProject.description ?? 'No repository description is available.'}
                   </p>
-                </CardContent>
-              </Card>
-              <Card className="rounded-lg py-4 shadow-none">
-                <CardContent className="px-4">
-                  <div className="text-2xl font-semibold">{recommendations.summary.returned}</div>
-                  <div className="text-sm text-muted-foreground">repos returned</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-lg py-4 shadow-none">
-                <CardContent className="px-4">
-                  <div className="text-2xl font-semibold">{recommendations.summary.useNow}</div>
-                  <div className="text-sm text-muted-foreground">use now</div>
-                </CardContent>
-              </Card>
-              <Card className="rounded-lg py-4 shadow-none">
-                <CardContent className="px-4">
-                  <div className="text-2xl font-semibold">
-                    {recommendations.suppressed.dependencyMatches}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {selectedProject.topics.slice(0, 6).map((topic) => (
+                      <Badge key={topic} variant="outline">
+                        {topic}
+                      </Badge>
+                    ))}
+                    {selectedProject.tools.slice(0, 5).map((tool) => (
+                      <Badge key={tool.key} variant="outline">
+                        {tool.name}
+                      </Badge>
+                    ))}
                   </div>
-                  <div className="text-sm text-muted-foreground">already in use</div>
-                </CardContent>
-              </Card>
-            </section>
-
-            {topRecommendations.length > 0 && (
-              <section className="space-y-3 px-4 pb-6 md:px-6">
-                <h3 className="text-base font-semibold">Top picks</h3>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {topRecommendations.map((recommendation) => (
-                    <RecommendationCard key={recommendation.id} recommendation={recommendation} />
-                  ))}
                 </div>
-              </section>
-            )}
+                <div className="flex shrink-0 gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={selectedProject.htmlUrl} target="_blank" rel="noreferrer">
+                      GitHub
+                      <ArrowUpRight className="size-4" />
+                    </Link>
+                  </Button>
+                  <Button
+                    variant={disconnectId === selectedProject.id ? 'destructive' : 'outline'}
+                    size="sm"
+                    disabled={disconnecting}
+                    onClick={() => disconnect(selectedProject)}
+                  >
+                    {disconnecting ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="size-4" />
+                    )}
+                    {disconnectId === selectedProject.id ? 'Confirm' : 'Disconnect'}
+                  </Button>
+                </div>
+              </div>
 
-            <section className="space-y-6 px-4 pb-8 md:px-6">
-              {recommendations.byFeatureArea
-                .filter((group) => group.recommendations.length > 0)
-                .map((group) => (
-                  <div key={group.featureArea.id} className="space-y-3">
-                    <div>
-                      <h3 className="text-base font-semibold">{group.featureArea.label}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {group.featureArea.description}
-                      </p>
+              <div>
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-semibold">Similar projects</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      The grounding set for recommendations, ranked by visible repository evidence.
+                    </p>
+                  </div>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/discover" prefetch={false}>
+                      Browse all
+                    </Link>
+                  </Button>
+                </div>
+
+                {recommendations?.fallback && (
+                  <p className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+                    This project has limited context, so these are broad discovery picks. Tool
+                    enrichment will make future matches more specific.
+                  </p>
+                )}
+                {recommendationError && (
+                  <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                    Recommendations could not load. Try again shortly.
+                  </p>
+                )}
+                {recommendationsLoading && !recommendations && (
+                  <div className="flex min-h-56 items-center justify-center" aria-busy="true">
+                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+                {recommendations && recommendations.similarProjects.length === 0 && (
+                  <div className="mt-4 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+                    No eligible catalog matches yet. Browse Discover while the public corpus grows.
+                  </div>
+                )}
+                {recommendations && recommendations.similarProjects.length > 0 && (
+                  <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                    {recommendations.similarProjects.map((recommendation) => (
+                      <RecommendationCard key={recommendation.id} recommendation={recommendation} />
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {recommendations && !recommendations.fallback && (
+                <div>
+                  <div>
+                    <h3 className="text-base font-semibold">Tools used by similar projects</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Free recommendations derived only from detected tools in the grounded peers
+                      above.
+                    </p>
+                  </div>
+                  {recommendations.recommendedTools.length === 0 ? (
+                    <div className="mt-4 rounded-lg border border-dashed p-6 text-sm text-muted-foreground">
+                      No additional tools are grounded strongly enough yet.
                     </div>
-                    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                      {group.recommendations.map((recommendation) => (
-                        <RecommendationCard
-                          key={recommendation.id}
+                  ) : (
+                    <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+                      {recommendations.recommendedTools.map((recommendation) => (
+                        <GroundedToolCard
+                          key={recommendation.key}
                           recommendation={recommendation}
                         />
                       ))}
                     </div>
-                  </div>
-                ))}
-
-              {recommendations.byFeatureArea.every((g) => g.recommendations.length === 0) &&
-                topRecommendations.length === 0 && (
-                  <div className="rounded-lg border border-dashed p-8 text-center">
-                    <p className="text-sm font-medium">No strong matches yet</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Sync more stars or pick another project — recommendations use your library
-                      against this fleet snapshot.
-                    </p>
-                  </div>
-                )}
-            </section>
-          </>
-        )}
-      </section>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      </div>
     </main>
   );
 }

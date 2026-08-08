@@ -38,9 +38,7 @@ export default function AboutPage() {
           </p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>search for an idea when names and topics use different words;</li>
-            <li>
-              combine language, tags, collections, activity, release, and maintenance filters;
-            </li>
+            <li>combine language, tags, collections, activity, and tool filters;</li>
             <li>add private notes or custom tags to your own library;</li>
             <li>revisit repositories that changed since you starred them; or</li>
             <li>compare and group tools for a particular project.</li>
@@ -83,8 +81,8 @@ export default function AboutPage() {
               guessing a project name.
             </li>
             <li>
-              <strong>Review activity signals.</strong> Check releases, development recency,
-              archival state, and whether you have revisited it.
+              <strong>Connect a project.</strong> Use its public language, topics, metadata, and
+              detected tools to find similar repositories and trace suggested tools back to them.
             </li>
             <li>
               <strong>Keep the decision on GitHub.</strong> Inspect the source and license, then
@@ -98,8 +96,8 @@ export default function AboutPage() {
           <p className="mt-3 text-muted-foreground">
             Tools such as Astral demonstrate the value of tags, rule-based filters, notes, README
             previews, and fast search. Starboard keeps those ideas and adds hybrid retrieval,
-            release and maintenance radar, project-aware recommendations, and public discovery. This
-            describes product surfaces; it is not a claim that one organizer is universally better.
+            similar-project grounding, tool intelligence, and public discovery. This describes
+            product surfaces; it is not a claim that one organizer is universally better.
           </p>
         </section>
 
@@ -108,8 +106,9 @@ export default function AboutPage() {
           <p className="mt-3 text-muted-foreground">
             Starboard is not a replacement for GitHub, a security scanner, or an endorsement engine.
             Results can be incomplete or stale. The account permission is read-only, but synced
-            metadata, tags, lists, and notes still become application data. Review the privacy page
-            and revoke access from GitHub settings whenever you stop using the service.
+            metadata, connected projects, tags, lists, and notes still become application data.
+            Review the privacy page and revoke access from GitHub settings whenever you stop using
+            the service.
           </p>
         </section>
 

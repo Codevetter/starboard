@@ -29,12 +29,11 @@ cannot dominate.
 
 ## Tradeoffs
 
-Boosts are hard-coded; a fixture-backed eval harness
-(`src/lib/recommendation-eval.ts`) now exists to validate ranking before
-adjusting weights.
+Boosts are hard-coded and covered by focused similar-repository tests. The
+separate removed Fleet recommendation eval harness does not govern this path.
 
 ## See also
 
 - [0008-hybrid-rrf-search.md](0008-hybrid-rrf-search.md)
-- [../../development/testing.md](../../development/testing.md) —
-  recommendation eval harness.
+- [../../development/testing.md](../../development/testing.md) — verification
+  commands and project recommendation tests.

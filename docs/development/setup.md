@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 22+ (CI uses 22; the weekly digest workflow uses 24).
+- Node.js 22+ (CI uses 22).
 - pnpm 10+ (the `packageManager` field pins the exact version).
 - A Cloudflare account with the `starboard` Worker, D1, Vectorize, and Workers AI.
 - A GitHub OAuth app (GitHub Developer Settings) with a redirect URI for
@@ -28,8 +28,7 @@ list):
 - `NEXTAUTH_URL` (e.g. `http://localhost:3000`)
 - `AI_GATEWAY_URL`, `AI_GATEWAY_API_KEY` (only needed for the Node/HTTP
   embedding path; the Worker uses the `AI` binding)
-- Optional: `RAG_SERVICE_KEY`, `STARBOARD_RAG_INDEX_ID` for shared RAG search;
-  `RESEND_API_KEY`, `DIGEST_EMAIL_FROM` for weekly digest email.
+- Optional: `RAG_SERVICE_KEY`, `STARBOARD_RAG_INDEX_ID` for shared RAG search.
 
 ## Apply the schema
 

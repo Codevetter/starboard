@@ -4,8 +4,6 @@ import { redirect } from 'next/navigation';
 import { SignInButton } from '@/components/sign-in-button';
 import { auth } from '@/lib/auth';
 
-const CODEVETTER = 'https://codevetter.com';
-
 const ERROR_COPY: Record<string, { title: string; body: string }> = {
   OAuthSignin: {
     title: 'Could not start GitHub sign-in',
@@ -105,7 +103,7 @@ export default async function LoginPage({
             <span className="flex flex-col leading-none">
               <span className="text-sm font-semibold tracking-tight">Starboard</span>
               <span className="mt-1 text-[10px] font-medium tracking-wide text-white/45">
-                by CodeVetter
+                project-aware tool discovery
               </span>
             </span>
           </Link>
@@ -118,24 +116,15 @@ export default async function LoginPage({
               Stars that stay useful after you close the tab.
             </h1>
             <p className="text-pretty text-sm leading-relaxed text-white/55">
-              Sync GitHub stars, rank by signal, search by meaning, and map tools onto the projects
-              you ship — including the{' '}
-              <a
-                href={CODEVETTER}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-white/85 underline-offset-4 hover:underline"
-              >
-                CodeVetter
-              </a>{' '}
-              review loop.
+              Sync GitHub stars, connect public projects, find similar repositories, and discover
+              tools grounded in what those peers actually use.
             </p>
 
             <div className="space-y-2.5 pt-2">
               {[
                 { label: 'Library', body: 'Stars, lists, tags — built for 1,000+' },
-                { label: 'Signal', body: 'Radar, digests, releases, cleanup' },
-                { label: 'CodeVetter', body: 'My Projects recommendations from your stars' },
+                { label: 'Discover', body: 'Search a public catalog by intent and evidence' },
+                { label: 'Projects', body: 'Ground tool matches in similar repositories' },
               ].map((item) => (
                 <div
                   key={item.label}
@@ -165,7 +154,7 @@ export default async function LoginPage({
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/55 backdrop-blur transition-colors hover:text-white/85 lg:hidden"
               >
                 <span className="inline-block size-1.5 rounded-full bg-emerald-400" />
-                Starboard · by CodeVetter
+                Starboard · tool intelligence
               </Link>
               <h2 className="text-balance text-3xl font-bold tracking-tight">Welcome back</h2>
               <p className="max-w-sm text-pretty text-sm leading-relaxed text-white/50">
@@ -213,11 +202,11 @@ export default async function LoginPage({
                   </li>
                   <li className="flex gap-2.5">
                     <span className="text-emerald-400">✓</span>
-                    Radar, digests, semantic search, stack builder
+                    Semantic discovery across your library and the public catalog
                   </li>
                   <li className="flex gap-2.5">
                     <span className="text-emerald-400">✓</span>
-                    My Projects recommendations for CodeVetter work
+                    Similar-project grounding with repository-sourced tool recommendations
                   </li>
                 </ul>
               </div>
@@ -239,17 +228,6 @@ export default async function LoginPage({
                 >
                   Home
                 </Link>
-              </p>
-              <p>
-                Sibling product:{' '}
-                <a
-                  href={CODEVETTER}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-medium text-white/75 underline-offset-4 hover:underline"
-                >
-                  CodeVetter — evidence-backed code review ↗
-                </a>
               </p>
             </div>
           </div>
