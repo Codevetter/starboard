@@ -66,8 +66,8 @@ window.
 
 ### Full popular-pool rebuild (bounded)
 
-`pnpm db:migrate:remote` → manual `seed-popular` workflow (resumable cursor
-walk of GitHub Search ≥5k stars plus bound Worker embedding backfill) →
+`pnpm db:migrate:remote` → scheduled or manual `seed-popular` workflow
+(resumable cursor walk of GitHub Search ≥5k stars plus bound Worker embedding backfill) →
 `pnpm db:enrich-tools` (tool detection). Total runtime
 is bounded by `SEED_METADATA_PAGE_LIMIT` (default 10, hard cap 25 pages/run)
 and the workflow's `daily_limit` input (default 1000 embeddings/run). See
@@ -88,9 +88,9 @@ the source code; no data loss on redeploy.
 
 ## Refresh lifecycle controls
 
-Each dispatched `seed-popular` GitHub Action records a structured manifest at
-`data/refresh-manifest.json` and copies it to the existing GitHub Actions run
-summary before the ephemeral runner is discarded. The manifest includes:
+Each scheduled or dispatched `seed-popular` GitHub Action records a structured
+manifest at `data/refresh-manifest.json` and copies it to the existing GitHub
+Actions run summary before the ephemeral runner is discarded. The manifest includes:
 
 - `source_watermark` — GitHub Search cursor (`next_max_stars`/`next_page`)
   and run timestamp

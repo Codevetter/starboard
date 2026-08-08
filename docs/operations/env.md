@@ -44,8 +44,8 @@ GitHub Actions repository variables (non-secret) include
 `CLOUDFLARE_ACCOUNT_ID` and `D1_DATABASE_ID`.
 
 The `seed-popular` workflow deliberately uses `${{ github.token }}` for GitHub
-Search (not a long-lived PAT) so a stale PAT cannot break a manual seed run with
-401 Bad credentials.
+Search (not a long-lived PAT) so a stale PAT cannot break a scheduled or manual
+seed run with 401 Bad credentials.
 
 ## Public keys
 
