@@ -31,7 +31,7 @@ export default defineConfig({
     {
       name: 'mobile',
       testMatch: /public-app\.spec\.ts/,
-      use: { ...devices['iPhone 13'], baseURL: appURL },
+      use: { ...devices['iPhone 13'], baseURL: appURL, browserName: 'chromium' },
     },
     {
       name: 'landing-desktop',
@@ -41,7 +41,7 @@ export default defineConfig({
     {
       name: 'landing-mobile',
       testMatch: /landing-mobile\.spec\.ts/,
-      use: { ...devices['iPhone 13'], baseURL: appURL },
+      use: { ...devices['iPhone 13'], baseURL: appURL, browserName: 'chromium' },
     },
   ],
 });
