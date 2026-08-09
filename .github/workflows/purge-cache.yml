@@ -1,0 +1,19 @@
+name: Purge Starboard Cache
+
+on:
+  workflow_dispatch:
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with: { node-version: '22' }
+      - name: Purge starboard.codevetter.com
+        run: node scripts/purge-cloudflare-cache.mjs
+        env:
+          CLOUDFLARE_CACHE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_CACHE_PURGE_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: c1e6464302240c22f727ce64262136fe
+          CLOUDFLARE_CACHE_HOSTNAME: starboard.codevetter.com

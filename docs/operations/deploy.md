@@ -18,8 +18,17 @@ workflow_dispatch
         → pnpm --filter ./landing-astro build
         → node scripts/run-overlay-astro-landing.mjs (overlay landing → assets)
       wrangler deploy --tag <full Git SHA>
+      node scripts/purge-cloudflare-cache.mjs
       curl smoke https://starboard.codevetter.com/
 ```
+
+The deploy workflow purges only `starboard.codevetter.com` after a successful
+Worker deployment. It does not purge the rest of `codevetter.com`. An emergency
+purge can be run independently through the **Purge Starboard Cache** workflow.
+Use a repository secret named `CLOUDFLARE_CACHE_PURGE_TOKEN` with only the
+`Zone.Cache Purge` permission for the `codevetter.com` zone. Until that dedicated
+secret is configured, the workflows fall back to the existing deploy token; the
+purge step will fail closed if that token lacks cache-purge permission.
 
 The Worker `main` is `worker.mjs`; built assets in `.open-next/assets` are
 served via the `ASSETS` binding. `wrangler.jsonc` configures:

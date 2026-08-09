@@ -3,6 +3,12 @@ name: Deploy to Cloudflare Workers
 # dash.cloudflare.com → Workers → starboard → Versions → "Rollback".
 on:
   workflow_dispatch:
+    inputs:
+      purge_cache:
+        description: Purge starboard.codevetter.com after deployment
+        required: true
+        default: true
+        type: boolean
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -35,5 +41,12 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --tag ${{ github.sha }}
+      - name: Purge Starboard cache
+        if: ${{ inputs.purge_cache }}
+        run: node scripts/purge-cloudflare-cache.mjs
+        env:
+          CLOUDFLARE_CACHE_PURGE_TOKEN: ${{ secrets.CLOUDFLARE_CACHE_PURGE_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ZONE_ID: c1e6464302240c22f727ce64262136fe
+          CLOUDFLARE_CACHE_HOSTNAME: starboard.codevetter.com
       - name: Smoke check production
         run: curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 20 https://starboard.codevetter.com/ > /dev/null
