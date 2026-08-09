@@ -72,14 +72,14 @@ provenance. The workflow is free and has no billing or entitlement gate.
 
 ## Timeline
 
-- **2026-08-09 (core discovery hardening, local)** — Stabilized aborted filter
+- **2026-08-09 (core discovery hardening released)** — Stabilized aborted filter
   requests, added hybrid public Discover relevance with lexical fallback,
   tightened peer/tool evidence thresholds, protected uncataloged previews with
   the user's GitHub token, paginated Tool Intelligence evidence, moved
   repository intelligence into the shared shell, and retired its discussion
   controls while retaining legacy data. The production-accurate Playwright
   suite now covers the Astro landing and core public journeys at desktop and
-  mobile widths. This work is locally testable and not yet released.
+  mobile widths without Cloudflare operator credentials.
 
 - **2026-08-09 (shared lint baseline)** — Adopted the Fleet Ultracite baseline
   for core TypeScript, React, Next.js, and Vitest code. Explicit compatibility
