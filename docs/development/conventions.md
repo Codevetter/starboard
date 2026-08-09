@@ -52,8 +52,11 @@ Code style and repo conventions. The executable source of truth is
 - `src/db/index.ts` lazy-initializes the `DB` binding through a Proxy so builds
   do not require a live Cloudflare environment.
 - The CF build uses `--webpack` (not Turbopack).
-- `open-next.config.ts` uses `staticAssetsIncrementalCache` so prerendered HTML
-  with Beasties-inlined critical CSS is served from the assets binding.
+- `open-next.config.ts` keeps OpenNext's default dynamic-route behavior. Do not
+  use `staticAssetsIncrementalCache` for this mixed authenticated application;
+  it is intended for fully static sites and can cache personalized HTML.
+- The Astro landing overlay and immutable assets retain their own cache policy
+  in `public/_headers`; authenticated Next.js pages are private and `no-store`.
 
 ## Generated files — do not hand-edit
 

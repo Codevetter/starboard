@@ -12,8 +12,9 @@ describe('project-first activation wiring', () => {
 
     expect(landing).toContain('action="/project-preview"');
     expect(landing).toContain('name="repository"');
-    expect(landing).toContain('Catalog matches preview without sign-in');
-    expect(landing).toContain('uncataloged repositories use your signed-in GitHub session');
+    expect(landing).toContain('No account needed for catalog matches');
+    expect(landing).toContain('Uncataloged repositories use your signed-in GitHub session');
+    expect(landing).toContain('Browse Discover instead');
     expect(landing).not.toContain('Library · this week');
     expect(landing).not.toContain('>Hot<');
     expect(landing).not.toContain('>Watch<');
@@ -54,6 +55,10 @@ describe('project-first activation wiring', () => {
     expect(toolsLayout).toContain('<AppShell>');
     expect(tools).toContain('<TopBar');
     expect(toolDetail).toContain('<TopBar');
+    expect(tools).toContain('<ToolIntelligenceGuide');
+    expect(tools).toContain('<ToolScopeSelector');
+    expect(toolDetail).toContain('<ToolIntelligenceGuide');
+    expect(toolDetail).toContain('<ToolScopeSelector');
     expect(tools).not.toContain('<header className=');
     expect(toolDetail).not.toContain('<header className=');
     expect(discover).toContain('repoCountDescription=');
@@ -66,14 +71,17 @@ describe('project-first activation wiring', () => {
   it('carries a successful preview through sign-in without auto-connecting it', () => {
     const preview = source('src/components/project-preview-workspace.tsx');
     const login = source('src/app/login/page.tsx');
+    const authNavigation = source('src/lib/auth-navigation.ts');
     const projectsPage = source('src/app/projects/page.tsx');
 
     expect(preview).toContain('/login?callbackUrl=');
     expect(preview).toContain('/projects?repository=');
     expect(preview).toContain('Nothing is saved until');
     expect(preview).toContain('you explicitly connect the project');
-    expect(login).toContain("value.startsWith('//')");
-    expect(login).toContain("value.includes('\\\\')");
+    expect(login).toContain('resolveInternalCallbackUrl');
+    expect(authNavigation).toContain("value.startsWith('//')");
+    expect(authNavigation).toContain("value.includes('\\\\')");
+    expect(authNavigation).toContain("DEFAULT_AUTH_DESTINATION = '/discover'");
     expect(projectsPage).toContain('initialRepository={repository ??');
   });
 });

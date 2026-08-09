@@ -29,7 +29,7 @@ describe('GitHub project picker API', () => {
     expect(mocks.fetchRepositories).not.toHaveBeenCalled();
   });
 
-  it('returns a bounded public repository choice list', async () => {
+  it('returns every public repository choice loaded by the GitHub fetcher', async () => {
     const response = await GET();
 
     expect(response.status).toBe(200);

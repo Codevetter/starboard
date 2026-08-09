@@ -84,42 +84,19 @@
 /* Atmosphere */
 .sb-mesh {
   background:
-    radial-gradient(ellipse 90% 55% at 12% -8%, oklch(0.5 0.16 250 / 0.32), transparent 55%),
-    radial-gradient(ellipse 70% 45% at 92% 8%, oklch(0.55 0.12 155 / 0.18), transparent 50%),
-    radial-gradient(ellipse 55% 40% at 50% 105%, oklch(0.42 0.1 280 / 0.16), transparent 55%),
-    radial-gradient(ellipse 40% 30% at 70% 40%, oklch(0.5 0.08 200 / 0.08), transparent 60%);
-}
-
-.sb-grid {
-  background-image:
-    linear-gradient(oklch(1 0 0 / 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, oklch(1 0 0 / 0.03) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, black 20%, transparent 75%);
+    radial-gradient(ellipse 75% 42% at 52% -12%, oklch(0.72 0.07 82 / 0.12), transparent 62%),
+    linear-gradient(180deg, oklch(0.18 0.008 70 / 0.45), transparent 28%);
 }
 
 .sb-glow {
   box-shadow:
     0 0 0 1px oklch(1 0 0 / 0.06),
-    0 24px 80px -24px oklch(0.35 0.12 250 / 0.55),
+    0 24px 80px -24px oklch(0.45 0.06 80 / 0.24),
     0 8px 24px -12px oklch(0 0 0 / 0.6);
 }
 
-.sb-card-lift {
-  transition:
-    transform 200ms ease,
-    border-color 200ms ease,
-    background-color 200ms ease;
-}
-
-.sb-card-lift:hover {
-  transform: translateY(-2px);
-  border-color: oklch(1 0 0 / 0.14);
-  background-color: oklch(0.19 0.014 260);
-}
-
 .sb-mark {
-  background: linear-gradient(145deg, oklch(0.92 0.04 90), oklch(0.75 0.08 250));
+  background: linear-gradient(145deg, oklch(0.94 0.025 90), oklch(0.78 0.05 72));
   color: oklch(0.16 0.02 260);
   box-shadow: 0 0 0 1px oklch(1 0 0 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.35);
 }
@@ -130,7 +107,7 @@
   box-shadow:
     0 1px 0 oklch(1 0 0 / 0.35) inset,
     0 1px 2px oklch(0 0 0 / 0.35),
-    0 8px 24px -10px oklch(0.7 0.1 250 / 0.45);
+    0 8px 24px -10px oklch(0.72 0.08 80 / 0.3);
   transition:
     transform 150ms ease,
     filter 150ms ease,
@@ -166,11 +143,6 @@
   backdrop-filter: blur(10px);
 }
 
-.sb-divider-fade {
-  background: linear-gradient(90deg, transparent, oklch(1 0 0 / 0.12), transparent);
-  height: 1px;
-}
-
 @keyframes sb-float {
   0%,
   100% {
@@ -187,12 +159,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .sb-float,
-  .sb-card-lift,
   .sb-btn-primary {
     animation: none;
     transition: none;
   }
-  .sb-card-lift:hover,
   .sb-btn-primary:hover {
     transform: none;
   }

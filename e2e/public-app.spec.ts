@@ -37,6 +37,21 @@ test.beforeEach(async ({ page }) => {
   await mockGuestSession(page);
 });
 
+test('protected HTML is private and contains no serialized session credentials', async ({
+  request,
+}) => {
+  const projects = await request.get('/projects', { maxRedirects: 0 });
+  expect([302, 303, 307, 308]).toContain(projects.status());
+  expect(projects.headers()['cache-control']).toContain('private');
+  expect(projects.headers()['cache-control']).toContain('no-store');
+  expect(await projects.text()).not.toContain('accessToken');
+
+  const login = await request.get('/login');
+  expect(login.headers()['cache-control']).toContain('private');
+  expect(login.headers()['cache-control']).toContain('no-store');
+  expect(await login.text()).not.toContain('accessToken');
+});
+
 test('Discover keeps the first search request alive and shows matching repositories', async ({
   page,
 }) => {
@@ -74,7 +89,68 @@ test('Discover keeps the first search request alive and shows matching repositor
   }
 });
 
-test('tool intelligence renders one bounded page and loads more on demand', async ({ page }) => {
+test('Discover constrains unusually long repository metadata inside each card', async ({
+  page,
+}, testInfo) => {
+  const longName = `acme/${'repository-with-a-very-long-name-'.repeat(5)}`;
+  await page.route('**/discover/data**', (route) =>
+    route.fulfill({
+      json: {
+        repos: [
+          {
+            ...repo,
+            id: 99,
+            name: longName.slice('acme/'.length),
+            full_name: longName,
+            owner_login: 'acme',
+            owner: { login: 'acme', avatar_url: repo.owner.avatar_url },
+            description: 'A long description '.repeat(30),
+            topics: ['extremely-long-repository-topic-name', 'another-unusually-long-topic-name'],
+          },
+        ],
+        total: 1,
+        facets: { languages: [], lists: [], tags: [], tools: [] },
+        minStars: 5000,
+      },
+    })
+  );
+
+  await page.goto('/discover');
+  await page.getByPlaceholder('Search repos...').fill('long-content-fixture');
+  const repositoryLink = page.getByRole('link', { name: longName });
+  await expect(repositoryLink).toBeVisible();
+  await expect(repositoryLink).toHaveAttribute('title', longName);
+
+  const bounds = await repositoryLink.evaluate((link) => {
+    const card = link.closest('.group');
+    const linkRect = link.getBoundingClientRect();
+    const cardRect = card?.getBoundingClientRect();
+    return {
+      isTruncated: link.scrollWidth > link.clientWidth,
+      linkRight: linkRect.right,
+      cardRight: cardRect?.right ?? 0,
+      pageOverflows: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    };
+  });
+
+  expect(bounds.isTruncated).toBe(true);
+  expect(bounds.linkRight).toBeLessThanOrEqual(bounds.cardRight);
+  expect(bounds.pageOverflows).toBe(false);
+
+  if (!process.env.CI && testInfo.project.name === 'desktop') {
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.waitForTimeout(150);
+      await page.screenshot({
+        path: `.fleet/evidence/discovery-entry-clarity/after-discover-${width}.png`,
+      });
+    }
+  }
+});
+
+test('tool intelligence renders one bounded page and loads more on demand', async ({
+  page,
+}, testInfo) => {
   await page.route('**/api/tools?**', async (route) => {
     const url = new URL(route.request().url());
     const offset = Number(url.searchParams.get('offset') ?? 0);
@@ -118,8 +194,27 @@ test('tool intelligence renders one bounded page and loads more on demand', asyn
 
   await page.goto('/tools/vitest');
   await expect(page.getByRole('heading', { name: 'Vitest', level: 1 })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'How Tool Intelligence works' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Popular tools' })).toHaveAttribute(
+    'aria-pressed',
+    'true'
+  );
+  await expect(
+    page.getByText(/tools detected across public catalog repositories with at least 10,000 stars/i)
+  ).toBeVisible();
+  await expect(page.getByText(/combined does not double-count overlaps/i)).toBeVisible();
   await expect(page.getByText('Showing 48 of 49 matching repositories.')).toBeVisible();
   await expect(page.getByRole('link', { name: /^acme\/repo-/ })).toHaveCount(48);
+
+  if (!process.env.CI && testInfo.project.name === 'desktop') {
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({
+        path: `.fleet/evidence/discovery-entry-clarity/after-tools-${width}.png`,
+      });
+    }
+  }
 
   await page.getByRole('button', { name: 'Load 48 more' }).click();
   await expect(page.getByText('Showing 49 of 49 matching repositories.')).toBeVisible();

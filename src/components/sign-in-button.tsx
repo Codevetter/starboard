@@ -4,6 +4,7 @@ import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
+import { DEFAULT_AUTH_DESTINATION } from '@/lib/auth-navigation';
 import { captureAuthFailure } from '@/lib/foundry-monitoring';
 
 const GITHUB_MARK = (
@@ -14,7 +15,7 @@ const GITHUB_MARK = (
 
 export function SignInButton({
   label,
-  callbackUrl = '/stars',
+  callbackUrl = DEFAULT_AUTH_DESTINATION,
   fullWidth = false,
 }: {
   label?: string;

@@ -12,10 +12,9 @@ const DESCRIPTION =
 <Layout title={TITLE} description={DESCRIPTION}>
   <div class="relative flex min-h-svh w-full flex-col items-center overflow-x-hidden bg-background">
     <div aria-hidden="true" class="pointer-events-none absolute inset-0 sb-mesh"></div>
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0 sb-grid opacity-70"></div>
 
     <main
-      class="relative flex w-full max-w-6xl flex-col items-center gap-24 overflow-x-hidden px-5 py-10 sm:px-6 sm:py-14 lg:gap-28 lg:py-16"
+      class="relative flex w-full max-w-6xl flex-col items-center gap-20 overflow-x-hidden px-5 py-10 sm:px-6 sm:py-14 lg:gap-24 lg:py-16"
       style="font-family: var(--font-geist-sans);"
     >
       {/* ── Nav ───────────────────────────────────────────────────── */}
@@ -29,7 +28,7 @@ const DESCRIPTION =
         </a>
         <nav class="flex items-center gap-2 sm:gap-3 text-sm">
           <a href="/discover" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground sm:inline">Discover</a>
-          <a href="/catalog-updates" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground md:inline">Catalog</a>
+          <a href="/tools" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground md:inline">Tools</a>
           <a href="/about" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground lg:inline">About</a>
           <a href="/login" class="sb-btn-ghost inline-flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-foreground">
             Sign in
@@ -40,24 +39,18 @@ const DESCRIPTION =
       {/* ── Hero ──────────────────────────────────────────────────── */}
       <section class="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14">
         <div class="flex min-w-0 flex-col items-start gap-7 text-left">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="sb-pill inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-muted-foreground">
-              <span class="inline-block size-1.5 rounded-full bg-emerald"></span>
-              Free · open source · read-only GitHub
-            </span>
-            <span class="sb-pill inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs text-muted-foreground">
-              Project-aware open-source discovery
-            </span>
-          </div>
+          <span class="sb-pill inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-muted-foreground">
+            <span class="inline-block size-1.5 rounded-full bg-amber"></span>
+            Free · open source · read-only GitHub
+          </span>
 
           <h1 class="text-balance text-[2.1rem] font-bold tracking-tight text-foreground sm:text-5xl lg:text-[3.35rem] lg:leading-[1.06]">
-            Start with your project.<br class="hidden sm:block" />
-            <span class="text-foreground">Find the tools that fit it.</span>
+            Discover better tools for the project you’re building.
           </h1>
 
           <p class="max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Paste a public GitHub repository. Starboard finds similar projects across the catalog,
-            then shows which tools those peers use and the repository evidence behind each suggestion.
+            Paste a public GitHub repository. Starboard finds similar projects, then shows which
+            tools those peers use and the exact repository evidence behind each suggestion.
           </p>
 
           <form action="/project-preview" method="get" class="flex w-full flex-col items-stretch gap-3 sm:flex-row">
@@ -77,12 +70,16 @@ const DESCRIPTION =
             </button>
           </form>
 
-          <a href="/discover" class="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-            Or browse the public catalog
-          </a>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <a href="/discover" class="font-medium text-foreground underline-offset-4 hover:underline">
+              Browse Discover instead
+            </a>
+            <span class="text-muted-foreground">No account needed for catalog matches</span>
+          </div>
 
-          <p class="text-xs leading-relaxed text-muted-foreground">
-            Catalog matches preview without sign-in · uncataloged repositories use your signed-in GitHub session · nothing saved until you connect
+          <p class="max-w-xl text-xs leading-relaxed text-muted-foreground">
+            Uncataloged repositories use your signed-in GitHub session. Nothing is saved until you
+            explicitly connect a project.
           </p>
         </div>
 
@@ -91,40 +88,37 @@ const DESCRIPTION =
           <div
             aria-hidden="true"
             class="absolute -inset-6 -z-10 rounded-[2rem] opacity-90 blur-3xl"
-            style="background: linear-gradient(135deg, oklch(0.48 0.16 250 / 0.35), oklch(0.5 0.1 155 / 0.15), transparent 65%);"
+            style="background: radial-gradient(ellipse at center, oklch(0.72 0.08 80 / 0.2), transparent 68%);"
           ></div>
           <div class="sb-float sb-glow overflow-hidden rounded-2xl border border-border bg-card">
             <div class="flex items-center gap-2 border-b border-border px-4 py-3">
               <span class="size-2.5 rounded-full bg-red-500/75"></span>
               <span class="size-2.5 rounded-full bg-amber-500/75"></span>
               <span class="size-2.5 rounded-full bg-emerald-500/75"></span>
-              <span class="ml-2 text-xs text-muted-foreground">acme/checkout · similar projects</span>
-              <span class="ml-auto rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">evidence match</span>
+              <span class="ml-2 truncate text-xs text-muted-foreground">codevetter/starboard</span>
+              <span class="ml-auto shrink-0 rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">project context</span>
             </div>
             <div class="divide-y divide-border">
               <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald">Peer 1</span>
+                <span class="mt-0.5 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber">Project</span>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">medusajs/medusa</p>
-                  <p class="truncate text-xs text-muted-foreground">TypeScript · shared commerce topics</p>
+                  <p class="truncate text-sm font-medium text-foreground">Read the visible context</p>
+                  <p class="truncate text-xs text-muted-foreground">Language · topics · metadata · detected tools</p>
                 </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">32k</span>
               </div>
               <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-sky-500/15 px-2 py-0.5 text-[10px] font-semibold text-sky">Peer 2</span>
+                <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Peers</span>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">saleor/saleor</p>
-                  <p class="truncate text-xs text-muted-foreground">Shared API context · commerce platform</p>
+                  <p class="truncate text-sm font-medium text-foreground">Find similar repositories</p>
+                  <p class="truncate text-xs text-muted-foreground">Retrieve broadly, then rerank with visible evidence</p>
                 </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">21k</span>
               </div>
               <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber">Tool</span>
+                <span class="mt-0.5 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald">Tools</span>
                 <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">Vitest</p>
-                  <p class="truncate text-xs text-muted-foreground">Used by 3 grounded peers · 94% confidence</p>
+                  <p class="truncate text-sm font-medium text-foreground">See what those peers actually use</p>
+                  <p class="truncate text-xs text-muted-foreground">Only grounded support becomes a recommendation</p>
                 </div>
-                <span class="shrink-0 text-xs tabular-nums text-muted-foreground">inspect</span>
               </div>
               <div class="flex items-start gap-3 px-4 py-3.5">
                 <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Why</span>
@@ -141,47 +135,31 @@ const DESCRIPTION =
         </div>
       </section>
 
-      {/* ── Capabilities ──────────────────────────────────────────── */}
-      <section class="w-full" id="capabilities">
-        <div class="mb-10 max-w-2xl">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">What you get</p>
+      {/* ── Difference ───────────────────────────────────────────── */}
+      <section class="grid w-full gap-10 border-y border-border py-10 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:gap-16 lg:py-14">
+        <div class="max-w-2xl">
           <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Tool intelligence grounded in projects.
+            Popular is easy to find. Relevant takes context.
           </h2>
-          <p class="mt-3 text-pretty text-muted-foreground">
-            Start with a repository, compare credible peers, and inspect the evidence before adding a tool to your stack.
+          <p class="mt-4 text-pretty leading-relaxed text-muted-foreground">
+            GitHub can show what is trending. Starboard starts with the repository in front of you,
+            builds a defensible peer set, and keeps the evidence attached to every recommendation.
           </p>
         </div>
-        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <article class="sb-card-lift rounded-2xl border border-border bg-card/70 p-5">
-            <div class="mb-4 flex size-9 items-center justify-center rounded-lg bg-sky-500/10 text-sky">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-            </div>
-            <h3 class="font-semibold text-foreground">Semantic search</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Find repos by intent — “vector DB for Workers”, not just name matches.</p>
-          </article>
-          <article class="sb-card-lift rounded-2xl border border-border bg-card/70 p-5">
-            <div class="mb-4 flex size-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4" aria-hidden="true"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
-            </div>
-            <h3 class="font-semibold text-foreground">Connected projects</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Use a public GitHub repository as context for finding relevant open-source projects.</p>
-          </article>
-          <article class="sb-card-lift rounded-2xl border border-border bg-card/70 p-5">
-            <div class="mb-4 flex size-9 items-center justify-center rounded-lg bg-amber-500/10 text-amber">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/></svg>
-            </div>
-            <h3 class="font-semibold text-foreground">Collections</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">Import GitHub lists, tag privately, share public collections when you want.</p>
-          </article>
-          <article class="sb-card-lift rounded-2xl border border-border bg-card/70 p-5">
-            <div class="mb-4 flex size-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" class="size-4" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
-            </div>
-            <h3 class="font-semibold text-foreground">Tool intelligence</h3>
-            <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">See detected frameworks, build tools, platforms, confidence, and source evidence.</p>
-          </article>
-        </div>
+        <dl class="divide-y divide-border">
+          <div class="grid gap-1 py-4 first:pt-0 sm:grid-cols-[10rem_1fr] lg:first:pt-4">
+            <dt class="text-sm font-medium text-foreground">Similar first</dt>
+            <dd class="text-sm leading-relaxed text-muted-foreground">Repository peers are the grounding layer, not a decorative related-results list.</dd>
+          </div>
+          <div class="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]">
+            <dt class="text-sm font-medium text-foreground">Evidence attached</dt>
+            <dd class="text-sm leading-relaxed text-muted-foreground">Tool support names its source repositories and detection confidence.</dd>
+          </div>
+          <div class="grid gap-1 py-4 last:pb-0 sm:grid-cols-[10rem_1fr] lg:last:pb-4">
+            <dt class="text-sm font-medium text-foreground">Useful before login</dt>
+            <dd class="text-sm leading-relaxed text-muted-foreground">Discover, project previews, and Tool Intelligence remain publicly explorable.</dd>
+          </div>
+        </dl>
       </section>
 
       {/* ── How it works ──────────────────────────────────────────── */}
@@ -209,81 +187,58 @@ const DESCRIPTION =
         </ol>
       </section>
 
-      {/* ── Project-aware discovery ────────────────────────────────── */}
-      <section class="w-full" id="projects">
+      {/* ── Library workflow ───────────────────────────────────────── */}
+      <section class="w-full" id="library">
         <div class="sb-glow overflow-hidden rounded-3xl border border-border bg-card/80">
           <div class="grid lg:grid-cols-[1.1fr_0.9fr]">
             <div class="space-y-5 p-7 sm:p-10">
-              <p class="text-xs font-semibold uppercase tracking-[0.14em] text-sky">Project context</p>
               <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Start with what you are building.
+                Discover first. Organize the good finds later.
               </h2>
               <p class="max-w-xl text-pretty leading-relaxed text-muted-foreground">
-                Connect a public GitHub repository and Starboard uses its visible technical context
-                to rank relevant projects from the shared catalog. Every match states the evidence
-                it used, and broad fallbacks are labeled honestly.
+                Your Library turns GitHub stars into a searchable working set. Keep private notes,
+                use lists and tags, or select several repositories and act on them together.
               </p>
               <ul class="space-y-2.5 text-sm text-muted-foreground">
                 <li class="flex gap-2.5">
                   <span class="mt-1 size-1.5 shrink-0 rounded-full bg-emerald"></span>
-                  <span><span class="text-foreground/90">Projects</span> are yours, connected directly from GitHub.</span>
-                </li>
-                <li class="flex gap-2.5">
-                  <span class="mt-1 size-1.5 shrink-0 rounded-full bg-sky"></span>
-                  <span>The initial workflow stays public-only and keeps the minimal OAuth permission.</span>
+                  <span>Sync the public repositories you already starred on GitHub.</span>
                 </li>
                 <li class="flex gap-2.5">
                   <span class="mt-1 size-1.5 shrink-0 rounded-full bg-amber"></span>
-                  <span>Discover and Tool Intelligence remain useful before you connect anything.</span>
+                  <span>Search, tag, save, and group them without changing anything on GitHub.</span>
+                </li>
+                <li class="flex gap-2.5">
+                  <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground"></span>
+                  <span>Bulk actions stay in a bottom bar that appears only when you select items.</span>
                 </li>
               </ul>
               <div class="flex flex-wrap gap-3 pt-1">
-                <a href="/projects" class="sb-btn-ghost inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-foreground">
-                  Open Projects after sign-in
+                <a href="/login?callbackUrl=%2Fstars" class="sb-btn-ghost inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-foreground">
+                  Open your Library
                 </a>
-                <a href="/tools" class="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                  Explore Tool Intelligence
+                <a href="/discover" class="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+                  Keep browsing Discover
                 </a>
               </div>
             </div>
             <div class="relative border-t border-border bg-muted/20 p-7 sm:p-10 lg:border-l lg:border-t-0">
-              <div class="space-y-3">
-                <div class="rounded-xl border border-border bg-background/60 p-4">
-                  <p class="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Your GitHub project</p>
-                  <p class="mt-1 text-sm font-medium text-foreground">Visible technical context</p>
-                  <p class="mt-1 text-xs leading-relaxed text-muted-foreground">Language · topics · metadata · detected tools</p>
+              <div class="overflow-hidden rounded-xl border border-border bg-background/70">
+                <div class="divide-y divide-border">
+                  <div class="flex items-center gap-3 px-4 py-3 text-sm"><span class="size-4 rounded border border-amber/50 bg-amber/15"></span><span class="truncate text-foreground">codevetter/starboard</span></div>
+                  <div class="flex items-center gap-3 px-4 py-3 text-sm"><span class="size-4 rounded border border-amber/50 bg-amber/15"></span><span class="truncate text-foreground">openai/openai-node</span></div>
+                  <div class="flex items-center gap-3 px-4 py-3 text-sm"><span class="size-4 rounded border border-amber/50 bg-amber/15"></span><span class="truncate text-foreground">cloudflare/workers-sdk</span></div>
                 </div>
-                <div class="flex justify-center py-1">
-                  <div class="sb-divider-fade w-16"></div>
+                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3">
+                  <span class="text-xs font-medium text-foreground">3 selected</span>
+                  <div class="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span class="rounded-md border border-border px-2 py-1">Add to list</span>
+                    <span class="rounded-md border border-border px-2 py-1">Tag</span>
+                    <span>Clear</span>
+                  </div>
                 </div>
-                <div class="rounded-xl border border-sky/25 bg-sky-500/5 p-4">
-                  <p class="text-[10px] font-semibold uppercase tracking-wider text-sky">Starboard</p>
-                  <p class="mt-1 text-sm font-medium text-foreground">Tool library</p>
-                  <p class="mt-1 text-xs leading-relaxed text-muted-foreground">Discover · tool evidence · explained recommendations</p>
-                </div>
-                <p class="pt-2 text-center text-[11px] text-muted-foreground">
-                  Live at <span class="font-mono text-foreground/80">starboard.codevetter.com</span>
-                </p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Trust ─────────────────────────────────────────────────── */}
-      <section class="w-full max-w-4xl">
-        <div class="grid gap-3 sm:grid-cols-3">
-          <div class="rounded-2xl border border-border bg-card/40 px-5 py-5 text-center">
-            <p class="text-2xl font-semibold tabular-nums text-foreground">read:user</p>
-            <p class="mt-1 text-xs text-muted-foreground">OAuth scope — public profile &amp; stars only</p>
-          </div>
-          <div class="rounded-2xl border border-border bg-card/40 px-5 py-5 text-center">
-            <p class="text-2xl font-semibold text-foreground">Cloudflare</p>
-            <p class="mt-1 text-xs text-muted-foreground">Workers · D1 · Vectorize · edge-close</p>
-          </div>
-          <div class="rounded-2xl border border-border bg-card/40 px-5 py-5 text-center">
-            <p class="text-2xl font-semibold text-foreground">OSS</p>
-            <p class="mt-1 text-xs text-muted-foreground">Source on GitHub · no write scopes</p>
           </div>
         </div>
       </section>
@@ -298,6 +253,7 @@ const DESCRIPTION =
           Free. No paid plans or premium locks. Similar repositories ground every tool
           recommendation in open-source evidence you can inspect.
         </p>
+        <p class="text-xs text-muted-foreground">Minimal <code class="font-mono text-foreground/80">read:user</code> OAuth scope · no GitHub write access</p>
         <a href="#hero-repository" class="sb-btn-primary inline-flex h-12 items-center justify-center rounded-xl px-8 text-base font-semibold">
           Preview a public project
         </a>

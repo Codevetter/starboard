@@ -1,0 +1,59 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "starboard",
+  "target": "core discovery hardening and shared repository shell",
+  "mode": "preserve",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "src/app/globals.css"
+  },
+  "direction": {
+    "references": [],
+    "probes": [],
+    "selected": "existing-design",
+    "approval": "not-required",
+    "before": ".fleet/evidence/core-discovery-hardening/before-1440.png"
+  },
+  "evidence": {
+    "screenshots": [
+      {
+        "width": 390,
+        "path": ".fleet/evidence/core-discovery-hardening/after-390.png"
+      },
+      {
+        "width": 768,
+        "path": ".fleet/evidence/core-discovery-hardening/after-768.png"
+      },
+      {
+        "width": 1440,
+        "path": ".fleet/evidence/core-discovery-hardening/after-1440.png"
+      }
+    ],
+    "projectCheck": {
+      "command": "pnpm build:cf",
+      "status": "pass"
+    },
+    "critique": {
+      "score": 35,
+      "maximum": 40
+    },
+    "audit": {
+      "score": 18,
+      "maximum": 20
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": []
+    }
+  },
+  "ownerFeedback": {
+    "decision": "delegated",
+    "note": "Owner delegated the final implementation and testability judgment by asking to fix the full audited surface before their own test pass."
+  }
+}

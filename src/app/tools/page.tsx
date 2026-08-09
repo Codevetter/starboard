@@ -1,20 +1,23 @@
 'use client';
 
-import { ArrowUpRight, Info, Loader2, Search, ShieldCheck } from 'lucide-react';
+import { ArrowUpRight, Loader2, Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 
 import { TopBar } from '@/components/top-bar';
+import {
+  ToolIntelligenceGuide,
+  type ToolScope,
+  ToolScopeSelector,
+} from '@/components/tool-intelligence-guide';
 import { jsonFetcher } from '@/lib/swr-fetcher';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-
-type ToolScope = 'discover' | 'user' | 'all';
 
 interface ToolSummary {
   toolKey: string;
@@ -97,41 +100,15 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
       />
 
       <section className="space-y-4 p-4 md:p-6">
-        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-          <div className="flex items-start gap-2">
-            <Info className="mt-0.5 size-4 shrink-0" />
-            <p>
-              {data?.disclaimer ??
-                'Loading evidence-based tool intelligence from repository manifests and metadata.'}
-            </p>
-          </div>
-        </div>
+        <ToolIntelligenceGuide disclaimer={data?.disclaimer} />
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {(['discover', 'user', 'all'] as const).map((value) => (
-              <Button
-                key={value}
-                variant={scope === value ? 'default' : 'outline'}
-                size="sm"
-                disabled={!isAuthenticated && value !== 'discover'}
-                title={
-                  value === 'discover'
-                    ? 'Public repositories with at least 10,000 stars'
-                    : value === 'user'
-                      ? 'Repositories in your library'
-                      : 'Popular repositories and your library'
-                }
-                onClick={() => setScope(value)}
-              >
-                {value === 'discover'
-                  ? 'Popular repos'
-                  : value === 'user'
-                    ? 'My library'
-                    : 'Combined'}
-              </Button>
-            ))}
-          </div>
+          <ToolScopeSelector
+            scope={scope}
+            minStars={data?.minStars ?? 10_000}
+            isAuthenticated={isAuthenticated}
+            onScopeChange={setScope}
+          />
           <div className="flex flex-col gap-2 sm:flex-row lg:min-w-[520px]">
             <div className="relative min-w-0 flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

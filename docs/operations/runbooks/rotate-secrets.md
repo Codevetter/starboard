@@ -21,7 +21,8 @@ wrangler secret put RAG_SERVICE_KEY
 ```
 
 After rotating `AUTH_SECRET`, existing NextAuth sessions are invalidated — users
-must re-authenticate.
+must re-authenticate. This does not revoke an upstream GitHub OAuth access
+token.
 
 ## Cloudflare operator token
 
@@ -41,6 +42,22 @@ secret. Update:
 - `wrangler secret put AUTH_GITHUB_SECRET`
 - GitHub Actions repo secret `AUTH_GITHUB_SECRET` (only if a workflow uses it —
   the deploy workflow does not).
+
+## Cached authenticated HTML incident
+
+If protected HTML was served from a shared cache:
+
+1. Deploy the cache-boundary fix before restoring ordinary traffic.
+2. Purge the affected Cloudflare cache entries (or the zone cache when the
+   affected keys cannot be enumerated safely).
+3. Revoke the affected user's Starboard GitHub OAuth authorization/access token
+   in GitHub, then have the user sign in again.
+4. Verify `/projects` is `private, no-store`, is not a Cloudflare cache hit, and
+   contains no serialized access token or session credential.
+
+Treat any token present in cached HTML as compromised even if it may have
+expired. Never paste a token into logs, issues, commands, or chat. Rotating
+`AUTH_SECRET` alone is insufficient because it cannot revoke GitHub's token.
 
 ## After rotation
 

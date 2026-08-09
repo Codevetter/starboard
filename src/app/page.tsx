@@ -21,8 +21,8 @@ export default async function Home() {
         className="pointer-events-none absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse 80% 50% at 20% -10%, oklch(0.5 0.16 250 / 0.28), transparent 55%),
-            radial-gradient(ellipse 60% 40% at 90% 10%, oklch(0.5 0.12 155 / 0.16), transparent 50%)
+            radial-gradient(ellipse 75% 42% at 52% -12%, oklch(0.72 0.07 82 / 0.12), transparent 62%),
+            linear-gradient(180deg, oklch(0.18 0.008 70 / 0.45), transparent 28%)
           `,
         }}
       />
@@ -31,7 +31,7 @@ export default async function Home() {
           <span
             className="inline-flex size-9 items-center justify-center rounded-xl text-base font-bold"
             style={{
-              background: 'linear-gradient(145deg, oklch(0.92 0.04 90), oklch(0.75 0.08 250))',
+              background: 'linear-gradient(145deg, oklch(0.94 0.025 90), oklch(0.78 0.05 72))',
               color: 'oklch(0.16 0.02 260)',
             }}
           >
@@ -47,11 +47,11 @@ export default async function Home() {
 
         <div className="flex flex-col gap-4">
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/55">
-            <span className="inline-block size-1.5 rounded-full bg-emerald-400" />
+            <span className="inline-block size-1.5 rounded-full bg-amber-300" />
             Free · open source · read-only GitHub
           </span>
           <h1 className="text-balance text-3xl font-bold tracking-tight sm:text-5xl">
-            GitHub stars, ranked for the work you ship.
+            Discover better tools for the project you&apos;re building.
           </h1>
           <p className="max-w-xl text-pretty text-base text-white/50 sm:text-lg">
             Connect a public GitHub project, find similar repositories, and trace suggested tools

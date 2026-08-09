@@ -11,8 +11,8 @@ import type { UserList } from '@/hooks/use-lists';
 import type { UserRepo } from '@/hooks/use-starred-repos';
 
 function widthToColumns(width: number): number {
-  if (width >= 1080) return 4;
-  if (width >= 820) return 3;
+  if (width >= 1280) return 4;
+  if (width >= 900) return 3;
   if (width >= 640) return 2;
   return 1;
 }
@@ -95,7 +95,7 @@ export function RepoGrid({
   selectionActive = false,
 }: RepoGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
-  const [columns, setColumns] = useState(viewMode === 'grid' ? 3 : 1);
+  const [columns, setColumns] = useState(1);
 
   // Track container width to compute responsive column count
   useEffect(() => {
@@ -123,7 +123,7 @@ export function RepoGrid({
     return result;
   }, [repos, viewMode, columns]);
 
-  const estimateSize = useCallback(() => (viewMode === 'grid' ? 240 : 100), [viewMode]);
+  const estimateSize = useCallback(() => (viewMode === 'grid' ? 224 : 100), [viewMode]);
 
   const virtualizer = useVirtualizer({
     count: rows.length,

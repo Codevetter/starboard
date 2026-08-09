@@ -22,6 +22,8 @@ const securityHeaders = [
   },
 ];
 
+const privatePageHeaders = [{ key: 'Cache-Control', value: 'private, no-store, max-age=0' }];
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   output: 'standalone',
@@ -32,15 +34,10 @@ const nextConfig: NextConfig = {
         source: '/(.*)',
         headers: securityHeaders,
       },
-      {
-        source: '/',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=60, s-maxage=600, stale-while-revalidate=86400',
-          },
-        ],
-      },
+      { source: '/login', headers: privatePageHeaders },
+      { source: '/projects', headers: privatePageHeaders },
+      { source: '/projects/:path*', headers: privatePageHeaders },
+      { source: '/stars', headers: privatePageHeaders },
     ];
   },
 };

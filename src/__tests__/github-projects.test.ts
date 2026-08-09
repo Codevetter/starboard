@@ -153,6 +153,100 @@ describe('parseGitHubProjectInput', () => {
     );
   });
 
+  it('loads every public repository page without an artificial cap', async () => {
+    const repository = (id: number) => ({
+      id,
+      name: `repo-${id}`,
+      full_name: `acme/repo-${id}`,
+      private: false,
+      visibility: 'public',
+      owner: { login: 'acme', avatar_url: '' },
+      html_url: `https://github.com/acme/repo-${id}`,
+      description: null,
+      language: 'TypeScript',
+      stargazers_count: id,
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2026-01-01T00:00:00Z',
+    });
+    const pageTwo = 'https://api.github.com/user/repos?per_page=100&page=2';
+    const pageThree = 'https://api.github.com/user/repos?per_page=100&page=3';
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(Array.from({ length: 100 }, (_, index) => repository(index))), {
+          headers: { Link: `<${pageTwo}>; rel="next"` },
+        })
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify(Array.from({ length: 100 }, (_, index) => repository(index + 100))),
+          { headers: { Link: `<${pageThree}>; rel="next"` } }
+        )
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify([repository(200)])));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const repositories = await fetchPublicGitHubRepositories('token');
+
+    expect(repositories).toHaveLength(201);
+    expect(repositories.at(-1)?.fullName).toBe('acme/repo-200');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock.mock.calls[1]?.[0]).toBe(pageTwo);
+    expect(fetchMock.mock.calls[2]?.[0]).toBe(pageThree);
+  });
+
+  it('rejects pagination outside the GitHub API origin', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        headers: { Link: '<https://example.com/user/repos?page=2>; rel="next"' },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchPublicGitHubRepositories('token')).rejects.toThrow(
+      'unexpected pagination origin'
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('rejects invalid and repeated GitHub pagination URLs', async () => {
+    const invalidFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        headers: { Link: '<https://[>; rel="next"' },
+      })
+    );
+    vi.stubGlobal('fetch', invalidFetch);
+
+    await expect(fetchPublicGitHubRepositories('token')).rejects.toThrow('invalid pagination URL');
+
+    const initialUrl = String(invalidFetch.mock.calls[0]?.[0]);
+    const repeatedFetch = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        headers: { Link: `<${initialUrl}>; rel="next"` },
+      })
+    );
+    vi.stubGlobal('fetch', repeatedFetch);
+
+    await expect(fetchPublicGitHubRepositories('token')).rejects.toThrow(
+      'pagination repeated a page'
+    );
+    expect(repeatedFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores malformed and non-next GitHub pagination links', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify([]), {
+        headers: {
+          Link: 'malformed, <https://api.github.com/user/repos?page=3>; rel="last"',
+        },
+      })
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchPublicGitHubRepositories('token')).resolves.toEqual([]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it('surfaces GitHub failures while loading repository choices', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 503 })));
 

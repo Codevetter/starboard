@@ -52,8 +52,13 @@ Historical source-migration reference; superseded at runtime by ADR-0009.
 **@opennextjs/cloudflare** — the adapter that wraps a Next.js `standalone` build into a Cloudflare Worker. Documents `defineCloudflareConfig`, the `incrementalCache` override pattern, and the `--skipNextBuild` flag used in Starboard's `build:cf` script.  
 → https://opennext.js.org/cloudflare
 
-**OpenNext incremental cache override** — explains why `staticAssetsIncrementalCache` is needed for fully-prerendered apps: without it, the runtime re-renders from `page.js` and discards any HTML post-processing (e.g. Beasties critical CSS inlining).  
+**OpenNext caching** — documents that SSR routes need no incremental-cache
+override and that `staticAssetsIncrementalCache` is for fully static sites.
 → https://opennext.js.org/cloudflare/caching
+
+**Cloudflare cache configuration** — documents response directives including
+`private` and `no-store`, used to keep authenticated HTML out of shared cache.
+→ https://developers.cloudflare.com/workers/cache/configuration/
 
 ---
 

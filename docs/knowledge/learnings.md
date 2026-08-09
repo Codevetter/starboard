@@ -96,11 +96,18 @@ The project briefly tried deploying via CF Pages (`ci: migrate deploy from CF Wo
 
 ---
 
-### Beasties-inlined critical CSS is lost without the incremental cache override
+### Static-assets incremental caching is unsafe for this mixed authenticated app
 
-OpenNext's default runtime re-renders pages from `page.js` on each request, discarding the Beasties-processed HTML that has critical CSS inlined. Setting `incrementalCache: staticAssetsIncrementalCache` in `open-next.config.ts` makes the Worker serve the prerendered HTML from the assets binding instead.
+OpenNext's `staticAssetsIncrementalCache` is for fully static sites. Starboard
+also has authenticated SSR routes, so using that adapter allowed personalized
+HTML to be stored in the public asset cache. Keep OpenNext's default behavior
+for dynamic routes, cache only the Astro landing and immutable assets through
+their explicit asset policy, and mark protected HTML `private, no-store`.
 
-**Evidence:** `open-next.config.ts` comment lines 4–11; `apply fleet Beasties + cache-wrapper pattern` commit.
+**Operational consequence:** after correcting this boundary in production,
+purge the affected edge cache and revoke any GitHub OAuth token that may have
+been serialized into a cached response. Rotating `AUTH_SECRET` invalidates the
+Starboard session but does not revoke the upstream GitHub token.
 
 ---
 

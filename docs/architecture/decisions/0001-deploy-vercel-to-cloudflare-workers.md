@@ -34,10 +34,11 @@ provides the Node API surface needed by NextAuth and libsql.
 ## Tradeoffs
 
 The opennext build must use `--webpack` not Turbopack. Static asset CDN is
-wrangler `assets` binding. `open-next.config.ts` uses
-`staticAssetsIncrementalCache` so prerendered HTML (with Beasties-inlined
-critical CSS) is served from the assets binding instead of being re-rendered at
-request time — without this, the CSS inlining is discarded.
+wrangler `assets` binding. The mixed public/authenticated Next.js application
+uses OpenNext's default dynamic-route behavior; the static-assets incremental
+cache is not used because it is only safe for fully static sites. The separate
+Astro landing overlay and immutable files keep explicit asset cache policies,
+while protected application HTML is `private, no-store`.
 
 ## See also
 

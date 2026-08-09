@@ -72,6 +72,16 @@ provenance. The workflow is free and has no billing or entitlement gate.
 
 ## Timeline
 
+- **2026-08-09 (discovery entry and cache isolation complete locally)** — Made
+  Discover the default generic sign-in destination, removed the 100-repository
+  GitHub picker cap through safe pagination, tightened Discover card sizing and
+  truncation, clarified Tool Intelligence scopes and methodology, and refined
+  the landing around project-aware evidence. A production audit also found
+  authenticated Projects HTML in a public edge cache; the local fix removes
+  root session serialization and the SSG-only cache override and marks
+  protected HTML private. Production remains pending an approved deploy, edge
+  purge, and revocation of the potentially exposed GitHub OAuth token.
+
 - **2026-08-09 (core discovery hardening released)** — Stabilized aborted filter
   requests, added hybrid public Discover relevance with lexical fallback,
   tightened peer/tool evidence thresholds, protected uncataloged previews with

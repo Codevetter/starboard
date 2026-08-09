@@ -116,7 +116,7 @@ export const RepoCard = memo(function RepoCard({
   ) : null;
 
   const cardClassName = cn(
-    'group rounded-lg border bg-card transition-colors hover:bg-accent/50',
+    'group overflow-hidden rounded-lg border bg-card transition-colors hover:bg-accent/50',
     isSelected && 'border-primary/60 bg-primary/5 ring-1 ring-primary/20'
   );
   const selectCheckbox = onToggleSelect ? (
@@ -215,19 +215,18 @@ export const RepoCard = memo(function RepoCard({
   }
 
   return (
-    <div className={cn(cardClassName, 'flex flex-col p-3.5 sm:p-4')}>
-      <div className="flex items-start gap-2.5">
+    <div className={cn(cardClassName, 'flex min-w-0 flex-col p-3.5 sm:p-4')}>
+      <div className="flex min-w-0 items-start gap-2.5">
         {selectCheckbox}
         <div className="shrink-0">{avatar}</div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 overflow-hidden">
           <Link
             href={`/explore/${repo.full_name}`}
-            className="inline-flex items-center gap-1.5 font-medium leading-tight text-foreground hover:underline"
+            className="block min-w-0 truncate font-medium leading-tight text-foreground hover:underline"
+            title={repo.full_name}
           >
-            <span className="truncate">
-              <span className="text-muted-foreground">{repo.owner.login}/</span>
-              {repo.name}
-            </span>
+            <span className="text-muted-foreground">{repo.owner.login}/</span>
+            {repo.name}
           </Link>
           {repo.archived && (
             <Badge
@@ -260,31 +259,36 @@ export const RepoCard = memo(function RepoCard({
 
       <div className="mt-auto pt-3">
         {repo.topics.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1.5">
+          <div className="mb-3 flex h-5 min-w-0 gap-1.5 overflow-hidden">
             {repo.topics.slice(0, 4).map((topic) => (
-              <Badge key={topic} variant="secondary" className="text-[10px] font-normal">
-                {topic}
+              <Badge
+                key={topic}
+                variant="secondary"
+                className="max-w-32 shrink-0 text-[10px] font-normal"
+                title={topic}
+              >
+                <span className="block min-w-0 truncate">{topic}</span>
               </Badge>
             ))}
           </div>
         )}
 
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+        <div className="flex min-w-0 items-center gap-3 overflow-hidden whitespace-nowrap text-xs text-muted-foreground">
           {repo.language && (
-            <span className="flex items-center gap-1.5">
+            <span className="flex min-w-0 items-center gap-1.5 overflow-hidden">
               <span
-                className="inline-block size-2.5 rounded-full"
+                className="inline-block size-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: langColor ?? undefined }}
               />
-              {repo.language}
+              <span className="truncate">{repo.language}</span>
             </span>
           )}
-          <span className="flex items-center gap-1">
+          <span className="flex shrink-0 items-center gap-1">
             <Star className="size-3 fill-current" />
             {formatStarCount(repo.stargazers_count)}
           </span>
           {updatedDate && (
-            <span className="flex items-center gap-1">
+            <span className="flex shrink-0 items-center gap-1">
               <Clock3 className="size-3" />
               {updatedDate}
             </span>

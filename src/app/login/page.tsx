@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 
 import { SignInButton } from '@/components/sign-in-button';
 import { auth } from '@/lib/auth';
+import { resolveInternalCallbackUrl } from '@/lib/auth-navigation';
 
 const ERROR_COPY: Record<string, { title: string; body: string }> = {
   OAuthSignin: {
@@ -45,20 +46,13 @@ function resolveError(error: string | undefined) {
   return ERROR_COPY[key] ?? ERROR_COPY.Default;
 }
 
-function internalCallbackUrl(value: string | undefined): string {
-  if (!value?.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
-    return '/projects';
-  }
-  return value;
-}
-
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; callbackUrl?: string }>;
 }) {
   const params = await searchParams;
-  const callbackUrl = internalCallbackUrl(params.callbackUrl);
+  const callbackUrl = resolveInternalCallbackUrl(params.callbackUrl);
   const callback = new URL(callbackUrl, 'https://starboard.codevetter.com');
   const continuedRepository =
     callback.pathname === '/projects' ? callback.searchParams.get('repository') : null;
@@ -69,16 +63,15 @@ export default async function LoginPage({
   const errorInfo = resolveError(params.error);
 
   return (
-    <div className="relative flex min-h-svh w-full overflow-hidden bg-[oklch(0.12_0.01_260)] text-[oklch(0.97_0.005_90)]">
+    <div className="relative flex min-h-svh w-full overflow-hidden bg-[oklch(0.115_0.006_70)] text-[oklch(0.97_0.005_90)]">
       {/* Atmosphere */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse 80% 50% at 15% -10%, oklch(0.5 0.16 250 / 0.3), transparent 55%),
-            radial-gradient(ellipse 60% 40% at 95% 20%, oklch(0.52 0.12 155 / 0.16), transparent 50%),
-            radial-gradient(ellipse 50% 35% at 60% 100%, oklch(0.4 0.08 280 / 0.14), transparent 55%)
+            radial-gradient(ellipse 75% 42% at 35% -12%, oklch(0.72 0.07 82 / 0.14), transparent 62%),
+            linear-gradient(180deg, oklch(0.18 0.008 70 / 0.42), transparent 38%)
           `,
         }}
       />
@@ -91,7 +84,7 @@ export default async function LoginPage({
             linear-gradient(90deg, oklch(1 0 0 / 0.03) 1px, transparent 1px)
           `,
           backgroundSize: '48px 48px',
-          maskImage: 'radial-gradient(ellipse 80% 70% at 30% 40%, black 10%, transparent 70%)',
+          maskImage: 'linear-gradient(to bottom, black, transparent 72%)',
         }}
       />
 
@@ -102,7 +95,7 @@ export default async function LoginPage({
             <span
               className="inline-flex size-9 items-center justify-center rounded-xl text-base font-bold"
               style={{
-                background: 'linear-gradient(145deg, oklch(0.92 0.04 90), oklch(0.75 0.08 250))',
+                background: 'linear-gradient(145deg, oklch(0.94 0.025 90), oklch(0.78 0.05 72))',
                 color: 'oklch(0.16 0.02 260)',
                 boxShadow: '0 0 0 1px oklch(1 0 0 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.35)',
               }}
@@ -118,7 +111,7 @@ export default async function LoginPage({
           </Link>
 
           <div className="max-w-md space-y-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-300/80">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/80">
               Project-aware tool intelligence
             </p>
             <h1 className="text-balance text-3xl font-bold tracking-tight xl:text-4xl">
@@ -139,7 +132,7 @@ export default async function LoginPage({
                   key={item.label}
                   className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3"
                 >
-                  <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-emerald-400" />
+                  <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-amber-300" />
                   <div>
                     <p className="text-sm font-medium text-white/90">{item.label}</p>
                     <p className="text-xs text-white/45">{item.body}</p>
@@ -162,7 +155,7 @@ export default async function LoginPage({
                 href="/"
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/55 backdrop-blur transition-colors hover:text-white/85 lg:hidden"
               >
-                <span className="inline-block size-1.5 rounded-full bg-emerald-400" />
+                <span className="inline-block size-1.5 rounded-full bg-amber-300" />
                 Starboard · tool intelligence
               </Link>
               <h2 className="text-balance text-3xl font-bold tracking-tight">
@@ -185,7 +178,7 @@ export default async function LoginPage({
               style={{
                 background: 'oklch(0.17 0.012 260 / 0.85)',
                 boxShadow:
-                  '0 0 0 1px oklch(1 0 0 / 0.04), 0 24px 80px -28px oklch(0.3 0.1 250 / 0.55), 0 8px 24px -12px oklch(0 0 0 / 0.5)',
+                  '0 0 0 1px oklch(1 0 0 / 0.04), 0 24px 80px -28px oklch(0.45 0.06 80 / 0.28), 0 8px 24px -12px oklch(0 0 0 / 0.5)',
                 backdropFilter: 'blur(12px)',
               }}
             >
@@ -200,8 +193,8 @@ export default async function LoginPage({
               )}
 
               {continuedRepository && !errorInfo && (
-                <div className="mb-5 rounded-xl border border-sky-300/25 bg-sky-300/10 px-4 py-3 text-left">
-                  <p className="text-xs font-medium text-sky-100">Continuing your preview</p>
+                <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left">
+                  <p className="text-xs font-medium text-white/80">Continuing your preview</p>
                   <p className="mt-1 truncate text-sm text-white/85">{continuedRepository}</p>
                   <p className="mt-1 text-xs text-white/60">
                     Nothing is connected until you confirm it on Projects.
@@ -221,15 +214,15 @@ export default async function LoginPage({
 
                 <ul className="space-y-2.5 text-xs text-white/50">
                   <li className="flex gap-2.5">
-                    <span className="text-emerald-400">✓</span>
+                    <span className="text-amber-300">✓</span>
                     Choose a public repository from GitHub or paste its URL
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="text-emerald-400">✓</span>
+                    <span className="text-amber-300">✓</span>
                     Compare it with similar projects across the public catalog
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="text-emerald-400">✓</span>
+                    <span className="text-amber-300">✓</span>
                     Inspect repository-sourced tool evidence and save the project
                   </li>
                 </ul>

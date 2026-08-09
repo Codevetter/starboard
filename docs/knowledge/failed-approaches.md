@@ -23,6 +23,23 @@ and
 **Do not retry unless:** OpenNext publishes a first-class, tested Pages adapter
 and a trivial sample app verifies it before adopting for production.
 
+## Static-assets incremental cache in a mixed authenticated app
+
+**What:** Applied OpenNext's `staticAssetsIncrementalCache` to the whole Worker
+to preserve prerendered HTML and inlined critical CSS.
+
+**Why abandoned:** Starboard is not fully static. The adapter allowed an
+authenticated SSR response to enter the public edge cache, including the
+server-hydrated session embedded in the HTML payload.
+
+**What replaced it:** OpenNext's default dynamic-route behavior, no server
+session hydration in the root layout, explicit `private, no-store` headers on
+protected pages, and independent caching for the Astro landing and immutable
+assets.
+
+**Do not retry unless:** the entire Next.js surface is demonstrably static and
+contains no user-specific or credential-bearing response data.
+
 ## OpenNext `useWorkerdCondition` / webpack externals for @libsql
 
 **What:** Tried `useWorkerdCondition: true` in OpenNext config and a webpack

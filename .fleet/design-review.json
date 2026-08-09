@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "starboard",
-  "target": "core discovery hardening and shared repository shell",
+  "target": "Landing, Discover repository cards, Tool Intelligence explanations, and Projects repository import",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,33 +14,57 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": ".fleet/evidence/core-discovery-hardening/before-1440.png"
+    "before": ".fleet/evidence/discovery-entry-clarity/before-landing-1440.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": ".fleet/evidence/core-discovery-hardening/after-390.png"
+        "path": ".fleet/evidence/discovery-entry-clarity/after-landing-390.png"
       },
       {
         "width": 768,
-        "path": ".fleet/evidence/core-discovery-hardening/after-768.png"
+        "path": ".fleet/evidence/discovery-entry-clarity/after-landing-768.png"
       },
       {
         "width": 1440,
-        "path": ".fleet/evidence/core-discovery-hardening/after-1440.png"
+        "path": ".fleet/evidence/discovery-entry-clarity/after-landing-1440.png"
+      },
+      {
+        "width": 390,
+        "path": ".fleet/evidence/discovery-entry-clarity/after-discover-390.png"
+      },
+      {
+        "width": 768,
+        "path": ".fleet/evidence/discovery-entry-clarity/after-discover-768.png"
+      },
+      {
+        "width": 1440,
+        "path": ".fleet/evidence/discovery-entry-clarity/after-discover-1440.png"
+      },
+      {
+        "width": 390,
+        "path": ".fleet/evidence/discovery-entry-clarity/after-tools-390.png"
+      },
+      {
+        "width": 768,
+        "path": ".fleet/evidence/discovery-entry-clarity/after-tools-768.png"
+      },
+      {
+        "width": 1440,
+        "path": ".fleet/evidence/discovery-entry-clarity/after-tools-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm build:cf",
+      "command": "CI=1 CLOUDFLARE_API_TOKEN= pnpm test:e2e",
       "status": "pass"
     },
     "critique": {
-      "score": 35,
+      "score": 37,
       "maximum": 40
     },
     "audit": {
-      "score": 18,
+      "score": 19,
       "maximum": 20
     },
     "unresolved": {
@@ -49,11 +73,18 @@
     },
     "detector": {
       "posture": "advisory",
-      "findings": []
+      "findings": [
+        {
+          "severity": "advisory",
+          "name": "Decorative grid-line background",
+          "status": "resolved",
+          "note": "Removed the non-functional landing-page grid overlay after the detector pass."
+        }
+      ]
     }
   },
   "ownerFeedback": {
     "decision": "delegated",
-    "note": "Owner delegated the final implementation and testability judgment by asking to fix the full audited surface before their own test pass."
+    "note": "Owner asked Codex to complete the implementation, audit it, and make it ready for owner testing; final implementation judgment was delegated."
   }
 }

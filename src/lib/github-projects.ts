@@ -44,6 +44,13 @@ export class GitHubProjectApiError extends Error {
   }
 }
 
+export class GitHubProjectPaginationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GitHubProjectPaginationError';
+  }
+}
+
 const OWNER_PATTERN = /^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
 const REPO_PATTERN = /^[a-z\d_.-]{1,100}$/i;
 
@@ -127,22 +134,61 @@ function mapPublicProject(repo: GitHubRepositoryResponse): PublicGitHubProject {
 export async function fetchPublicGitHubRepositories(
   accessToken: string
 ): Promise<PublicGitHubProject[]> {
-  const response = await fetch(
-    'https://api.github.com/user/repos?affiliation=owner,collaborator,organization_member&visibility=public&sort=pushed&direction=desc&per_page=100',
-    {
+  const initialUrl = new URL('https://api.github.com/user/repos');
+  initialUrl.search = new URLSearchParams({
+    affiliation: 'owner,collaborator,organization_member',
+    visibility: 'public',
+    sort: 'pushed',
+    direction: 'desc',
+    per_page: '100',
+  }).toString();
+  const seenUrls = new Set<string>();
+  const repositories: GitHubRepositoryResponse[] = [];
+  let nextUrl: string | null = initialUrl.toString();
+
+  while (nextUrl) {
+    if (seenUrls.has(nextUrl)) {
+      throw new GitHubProjectPaginationError('GitHub repository pagination repeated a page');
+    }
+    seenUrls.add(nextUrl);
+
+    const response = await fetch(nextUrl, {
       cache: 'no-store',
       headers: {
         Accept: 'application/vnd.github+json',
         Authorization: `Bearer ${accessToken}`,
         'User-Agent': 'starboard',
       },
-    }
-  );
+    });
 
-  if (!response.ok) throw new GitHubProjectApiError(response.status);
-  const repositories = (await response.json()) as GitHubRepositoryResponse[];
+    if (!response.ok) throw new GitHubProjectApiError(response.status);
+    repositories.push(...((await response.json()) as GitHubRepositoryResponse[]));
+    nextUrl = nextGitHubPage(response.headers.get('link'));
+  }
 
   return repositories
     .filter((repo) => !repo.private && (!repo.visibility || repo.visibility === 'public'))
     .map(mapPublicProject);
+}
+
+function nextGitHubPage(linkHeader: string | null): string | null {
+  if (!linkHeader) return null;
+
+  for (const entry of linkHeader.split(',')) {
+    const match = entry.trim().match(/^<([^>]+)>;\s*rel="([^"]+)"$/);
+    if (!match?.[1] || !match[2]?.split(/\s+/).includes('next')) continue;
+
+    let url: URL;
+    try {
+      url = new URL(match[1]);
+    } catch {
+      throw new GitHubProjectPaginationError('GitHub returned an invalid pagination URL');
+    }
+    if (url.origin !== 'https://api.github.com') {
+      throw new GitHubProjectPaginationError('GitHub returned an unexpected pagination origin');
+    }
+    return url.toString();
+  }
+
+  return null;
 }
