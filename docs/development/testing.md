@@ -38,11 +38,15 @@ pnpm test:coverage     # vitest run --coverage
   OpenNext artifact, overlays the real Astro landing, then exercises landing
   and mocked public-product journeys at desktop and mobile widths. CI builds
   that artifact once before starting Playwright.
+- Cloudflare and E2E builds remove only the generated `.next` and `.open-next`
+  directories first. E2E also uses and clears its isolated
+  `.wrangler/e2e-state`, preventing stale HTML and client chunk hashes from
+  being combined across consecutive local builds.
 - Playwright starts the artifact with `wrangler.e2e.jsonc`, a local-only
   binding set and applies migrations to its disposable local D1 before the
   preview starts. The config omits Cloudflare AI, Vectorize, and service
-  bindings, so the suite needs no operator credentials and cannot call those
-  production resources.
+  bindings, and the runner loads `/dev/null` instead of `.dev.vars`, so the
+  suite needs no operator credentials and cannot call production resources.
 - Covered journeys: public project CTA, Discover search stability, bounded Tool
   Intelligence pagination, the shared repository-intelligence shell, and the
   uncataloged-preview sign-in boundary.
