@@ -1,19 +1,12 @@
 'use client';
 
-import {
-  ArrowUpRight,
-  ExternalLink,
-  Info,
-  Loader2,
-  Search,
-  ShieldCheck,
-  Wrench,
-} from 'lucide-react';
+import { ArrowUpRight, Info, Loader2, Search, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 
+import { TopBar } from '@/components/top-bar';
 import { jsonFetcher } from '@/lib/swr-fetcher';
 
 import { Badge } from '@/components/ui/badge';
@@ -96,46 +89,12 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
     );
   }, [data?.tools, query]);
 
-  const totalRepoMentions = tools.reduce((sum, tool) => sum + tool.repoCount, 0);
-  const highConfidenceTools = tools.filter((tool) => tool.avgConfidence >= 90).length;
-  const categoryCount = new Set(tools.map((tool) => tool.category)).size;
-
   return (
-    <main className="min-h-screen bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/80 px-4 py-3 backdrop-blur-sm md:px-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 items-center justify-center rounded-md border">
-              <Wrench className="size-4" />
-            </div>
-            <div>
-              <h1 className="text-lg font-semibold">Tool Intelligence</h1>
-              <p className="text-sm text-muted-foreground">
-                Tools, frameworks, build systems, and platforms detected across repositories.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {isAuthenticated && (
-              <Button asChild variant="outline" size="sm">
-                <Link href="/projects" prefetch={false}>
-                  Projects
-                </Link>
-              </Button>
-            )}
-            <Button asChild variant="outline" size="sm">
-              <Link href="/discover" prefetch={false}>
-                Discover
-              </Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/stars" prefetch={false}>
-                Library
-              </Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <TopBar
+        title="Tool Intelligence"
+        description="Inspect tools and the repository evidence behind each detection."
+      />
 
       <section className="space-y-4 p-4 md:p-6">
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
@@ -148,39 +107,6 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">
-              {isInitialLoading ? (
-                <span className="block h-8 w-16 animate-pulse rounded bg-muted" />
-              ) : (
-                formatNumber(tools.length)
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">detected tools</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">
-              {isInitialLoading ? (
-                <span className="block h-8 w-20 animate-pulse rounded bg-muted" />
-              ) : (
-                formatNumber(totalRepoMentions)
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">repo-tool matches</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">
-              {isInitialLoading ? (
-                <span className="block h-8 w-24 animate-pulse rounded bg-muted" />
-              ) : (
-                `${formatNumber(highConfidenceTools)} / ${formatNumber(categoryCount)}`
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">high-confidence tools / categories</div>
-          </div>
-        </div>
-
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
             {(['discover', 'user', 'all'] as const).map((value) => (
@@ -188,10 +114,21 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
                 key={value}
                 variant={scope === value ? 'default' : 'outline'}
                 size="sm"
-                disabled={value === 'user' && !isAuthenticated}
+                disabled={!isAuthenticated && value !== 'discover'}
+                title={
+                  value === 'discover'
+                    ? 'Public repositories with at least 10,000 stars'
+                    : value === 'user'
+                      ? 'Repositories in your library'
+                      : 'Popular repositories and your library'
+                }
                 onClick={() => setScope(value)}
               >
-                {value === 'discover' ? '10k+ corpus' : value === 'user' ? 'My library' : 'All'}
+                {value === 'discover'
+                  ? 'Popular repos'
+                  : value === 'user'
+                    ? 'My library'
+                    : 'Combined'}
               </Button>
             ))}
           </div>
@@ -202,6 +139,7 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Filter tools..."
+                aria-label="Filter detected tools"
                 className="pl-9"
               />
             </div>
@@ -219,6 +157,13 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
 
         {isValidating && data && (
           <div className="text-sm text-muted-foreground">Refreshing tool intelligence...</div>
+        )}
+
+        {!isInitialLoading && !error && (
+          <p className="text-sm text-muted-foreground">
+            {tools.length} {tools.length === 1 ? 'tool' : 'tools'} match this view. Open a tool to
+            inspect repository-level evidence.
+          </p>
         )}
 
         {error && (
@@ -261,14 +206,17 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
                   </div>
                   <div className="mt-3 flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
                     <span>{tool.avgConfidence}% avg confidence</span>
-                    <span className="inline-flex items-center gap-1">
-                      Link
-                      <ExternalLink className="size-3" />
-                    </span>
+                    <span>View evidence</span>
                   </div>
                 </Link>
               ))}
         </section>
+
+        {!isInitialLoading && !error && tools.length === 0 && (
+          <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+            No detected tools match this scope and filter.
+          </p>
+        )}
       </section>
     </main>
   );

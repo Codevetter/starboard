@@ -5,7 +5,7 @@
 ## Product
 
 - [Home](https://starboard.codevetter.com/): Product
-- [Project Preview](https://starboard.codevetter.com/project-preview): Try project-aware recommendations before sign-in
+- [Project Preview](https://starboard.codevetter.com/project-preview): Preview cataloged recommendations before sign-in; new lookups require GitHub sign-in
 - [Discover](https://starboard.codevetter.com/discover): Browse and search the seeded public repository corpus
 - [Tools](https://starboard.codevetter.com/tools): Detected tool and framework intelligence
 - [Changelog](https://starboard.codevetter.com/changelog): Verified product history

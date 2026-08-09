@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
+  embed: vi.fn(),
   execute: vi.fn(),
   batch: vi.fn(),
+  vectorQuery: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
@@ -14,6 +16,10 @@ vi.mock('@/db', () => ({
     batch: mocks.batch,
   },
 }));
+vi.mock('@/lib/embeddings', () => ({ generateEmbeddings: mocks.embed }));
+vi.mock('@/lib/repo-vectors', () => ({
+  repoVectors: () => ({ query: mocks.vectorQuery }),
+}));
 
 import { GET } from '@/app/api/discover/route';
 
@@ -21,6 +27,8 @@ describe('GET /api/discover', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue({ user: { githubId: 'user-1' } });
+    mocks.embed.mockResolvedValue([[0.1, 0.2]]);
+    mocks.vectorQuery.mockResolvedValue([]);
     mocks.execute.mockResolvedValue({
       rows: [
         {
@@ -116,6 +124,36 @@ describe('GET /api/discover', () => {
     });
     expect(mocks.execute).not.toHaveBeenCalled();
     expect(mocks.batch).not.toHaveBeenCalled();
+  });
+
+  it('fuses semantic candidates ahead of lexical-only matches for relevance search', async () => {
+    mocks.vectorQuery.mockResolvedValue([{ repoId: 2, distance: 0.2 }]);
+
+    const response = await GET(
+      new NextRequest('http://localhost/api/discover?q=vector%20database&sort=relevance')
+    );
+
+    expect(response.status).toBe(200);
+    expect(mocks.embed).toHaveBeenCalledWith(['vector database vector database']);
+    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
+    expect(mainQuery.sql).toContain('CASE r.id WHEN 2 THEN 0 WHEN 1 THEN 1');
+    expect(mainQuery.args).toContain(JSON.stringify([2, 1]));
+  });
+
+  it('degrades to lexical Discover results when semantic retrieval fails', async () => {
+    mocks.embed.mockRejectedValueOnce(new Error('AI unavailable'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const response = await GET(new NextRequest('http://localhost/api/discover?q=database'));
+
+    expect(response.status).toBe(200);
+    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
+    expect(mainQuery.args).toContain(JSON.stringify([1]));
+    expect(warn).toHaveBeenCalledWith(
+      'Discover semantic retrieval unavailable; using lexical search',
+      expect.any(Error)
+    );
+    warn.mockRestore();
   });
 
   // Regression guard: the eligibility filter must use the index-friendly

@@ -25,6 +25,17 @@ and make the grounding set representative of the full eligible catalog.
   recommendation sentiment. No repository identity or query text is emitted.
 - Clarify tool cards with support strength, source confidence, and a direct path
   to the existing Tool Intelligence detail surface.
+- Harden the shipped first-value path: prevent client searches from cancelling
+  themselves, combine semantic and lexical Discover candidates, and keep an
+  uncataloged guest preview from consuming shared unauthenticated GitHub quota.
+- Tighten the recommendation contract so primary-language overlap alone cannot
+  admit a peer and language or weak one-source detections cannot become tool
+  recommendations.
+- Paginate repository evidence on Tool Intelligence detail pages and bring the
+  core repository-detail route into the shared application shell.
+- Remove the peripheral repository discussion UI, repair production telemetry,
+  and add browser journeys for the actual Astro landing plus core public app
+  surfaces.
 - Update active product/status documentation and add a deterministic retrieval
   evaluation fixture for the core recommendation path.
 
@@ -53,4 +64,4 @@ and make the grounding set representative of the full eligible catalog.
 - Reuses the existing D1 full-text indexes, Cloudflare Vectorize binding,
   Workers AI embedding adapter, GitHub OAuth token, and UI components.
 - Adds no production dependency, billing/entitlement gate, private-repository
-  scope, raw-SQL proxy, deployment, or production configuration change.
+  scope, raw-SQL proxy, deployment, secret, or production binding change.

@@ -5,7 +5,7 @@
 | Route | Purpose | Access |
 | --- | --- | --- |
 | `/` | Product landing page | Public |
-| `/project-preview` | Read-only project-context preview before sign-in | Public |
+| `/project-preview` | Read-only project-context preview; catalog hits are public and uncataloged lookups require GitHub sign-in | Conditional public |
 | `/discover` | Search and filter the seeded repository corpus | Public |
 | `/explore/[...slug]` | Repository detail, tool evidence, history, and similar repos | Public read; signed-in actions |
 | `/tools` | Aggregate tool intelligence | Public |

@@ -7,11 +7,8 @@ import {
   ExternalLink,
   GitFork,
   Info,
-  MessageSquare,
   Sparkles,
   Star,
-  ThumbsDown,
-  ThumbsUp,
   TrendingUp,
   Wrench,
 } from 'lucide-react';
@@ -24,6 +21,7 @@ import useSWR from 'swr';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { TopBar } from '@/components/top-bar';
 import { useRepoDetail } from '@/hooks/use-repo-detail';
 import { useSimilarRepos } from '@/hooks/use-similar-repos';
 import { getAvatarImageAttrs } from '@/lib/avatar';
@@ -154,45 +152,51 @@ function MiniStarHistory({ history }: { history: StarHistoryResponse }) {
 
 function PageSkeleton() {
   return (
-    <div className="mx-auto max-w-3xl p-4 md:p-6">
-      <Skeleton className="mb-6 h-8 w-20" />
-      <div className="rounded-xl border bg-card p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-10 rounded-full" />
-            <div>
-              <Skeleton className="h-5 w-48" />
-              <Skeleton className="mt-1.5 h-3.5 w-28" />
+    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <TopBar
+        title="Repository Intelligence"
+        description="Inspect repository evidence and related projects."
+      />
+      <div className="mx-auto max-w-3xl p-4 md:p-6">
+        <Skeleton className="mb-6 h-8 w-20" />
+        <div className="rounded-xl border bg-card p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="size-10 rounded-full" />
+              <div>
+                <Skeleton className="h-5 w-48" />
+                <Skeleton className="mt-1.5 h-3.5 w-28" />
+              </div>
             </div>
+            <Skeleton className="h-9 w-28 rounded-md" />
           </div>
-          <Skeleton className="h-9 w-28 rounded-md" />
+          <Skeleton className="mt-4 h-4 w-full" />
+          <Skeleton className="mt-2 h-4 w-3/4" />
+          <div className="mt-4 flex gap-2">
+            <Skeleton className="h-5 w-16 rounded-full" />
+            <Skeleton className="h-5 w-20 rounded-full" />
+          </div>
+          <div className="mt-6 flex gap-4 border-t pt-4">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-4 w-20" />
+          </div>
         </div>
-        <Skeleton className="mt-4 h-4 w-full" />
-        <Skeleton className="mt-2 h-4 w-3/4" />
-        <div className="mt-4 flex gap-2">
-          <Skeleton className="h-5 w-16 rounded-full" />
-          <Skeleton className="h-5 w-20 rounded-full" />
-        </div>
-        <div className="mt-6 flex gap-4 border-t pt-4">
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-20" />
-          <Skeleton className="h-4 w-20" />
+        <div className="mt-6 space-y-3">
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-xl border bg-card p-4">
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-6 rounded-full" />
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+              <Skeleton className="mt-3 h-4 w-full" />
+              <Skeleton className="mt-1.5 h-4 w-2/3" />
+            </div>
+          ))}
         </div>
       </div>
-      <div className="mt-6 space-y-3">
-        {[1, 2].map((i) => (
-          <div key={i} className="rounded-xl border bg-card p-4">
-            <div className="flex items-center gap-2">
-              <Skeleton className="size-6 rounded-full" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-3 w-16" />
-            </div>
-            <Skeleton className="mt-3 h-4 w-full" />
-            <Skeleton className="mt-1.5 h-4 w-2/3" />
-          </div>
-        ))}
-      </div>
-    </div>
+    </main>
   );
 }
 
@@ -203,8 +207,7 @@ export default function RepoDetailPage() {
   const { status } = useSession();
   const isAuthenticated = status === 'authenticated';
 
-  const { repo, commentCount, comments, isLoading, error, addComment, voteComment } =
-    useRepoDetail(repoSlug);
+  const { repo, isLoading, error } = useRepoDetail(repoSlug);
 
   // Stagger secondary requests after the main repo payload so a single page
   // open does not fire 4 concurrent /api/* calls (Cloudflare edge 429s).
@@ -230,37 +233,17 @@ export default function RepoDetailPage() {
     { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
 
-  const [commentBody, setCommentBody] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [votingId, setVotingId] = useState<number | null>(null);
-
-  const handleSubmitComment = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!commentBody.trim() || submitting) return;
-    setSubmitting(true);
-    try {
-      await addComment(commentBody.trim());
-      setCommentBody('');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleVote = async (commentId: number, value: 1 | -1) => {
-    if (!isAuthenticated || votingId === commentId) return;
-    setVotingId(commentId);
-    try {
-      await voteComment(commentId, value);
-    } finally {
-      setVotingId(null);
-    }
-  };
-
   if (!repoSlug) {
     return (
-      <div className="mx-auto max-w-3xl p-4 md:p-6">
-        <p className="text-muted-foreground">Invalid repository path. Use /explore/owner/repo</p>
-      </div>
+      <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+        <TopBar
+          title="Repository Intelligence"
+          description="Inspect repository evidence and related projects."
+        />
+        <div className="mx-auto max-w-3xl p-4 md:p-6">
+          <p className="text-muted-foreground">Invalid repository path. Use /explore/owner/repo</p>
+        </div>
+      </main>
     );
   }
 
@@ -268,370 +251,261 @@ export default function RepoDetailPage() {
 
   if (error || !repo) {
     return (
-      <div className="mx-auto max-w-3xl p-4 md:p-6">
-        <Link
-          href="/stars"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          Back
-        </Link>
-        <div className="rounded-xl border bg-card p-8 text-center">
-          <p className="text-muted-foreground">
-            {error ? 'Failed to load repository.' : 'Repository not found.'}
-          </p>
+      <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+        <TopBar
+          title="Repository Intelligence"
+          description="Inspect repository evidence and related projects."
+        />
+        <div className="mx-auto max-w-3xl p-4 md:p-6">
+          <Link
+            href="/stars"
+            className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeft className="size-4" />
+            Back
+          </Link>
+          <div className="rounded-xl border bg-card p-8 text-center">
+            <p className="text-muted-foreground">
+              {error ? 'Failed to load repository.' : 'Repository not found.'}
+            </p>
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 
   const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
   const ownerAvatar = getAvatarImageAttrs(repo.owner_avatar, 40);
+  const backHref = isAuthenticated ? '/stars' : '/discover';
+  const backLabel = isAuthenticated ? 'Back to Library' : 'Back to Discover';
 
   return (
-    <div className="mx-auto max-w-3xl p-4 md:p-6">
-      {/* Back link */}
-      <Link
-        href="/stars"
-        className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Back to stars
-      </Link>
+    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <TopBar
+        title="Repository Intelligence"
+        description="Inspect repository evidence and related projects."
+      />
+      <div className="mx-auto max-w-3xl p-4 md:p-6">
+        {/* Back link */}
+        <Link
+          href={backHref}
+          className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          {backLabel}
+        </Link>
 
-      {/* Repo header card */}
-      <div className="rounded-xl border bg-card p-6">
-        <div className="flex items-start justify-between gap-4">
-          {/* Owner + name */}
-          <div className="flex min-w-0 items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={ownerAvatar.src}
-              srcSet={ownerAvatar.srcSet}
-              sizes={ownerAvatar.sizes}
-              alt={repo.owner_login}
-              width={40}
-              height={40}
-              className="size-10 shrink-0 rounded-full"
-              loading="eager"
-              decoding="async"
-              fetchPriority="high"
-            />
-            <div className="min-w-0">
-              <p className="truncate text-xs text-muted-foreground">{repo.owner_login}</p>
-              <p className="truncate text-base font-semibold">{repo.name}</p>
-            </div>
-          </div>
-
-          {/* GitHub CTA */}
-          <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <ExternalLink className="size-3.5" />
-              View on GitHub
-            </Button>
-          </a>
-        </div>
-
-        {/* Description */}
-        {repo.description && (
-          <p className="mt-4 leading-relaxed text-muted-foreground">{repo.description}</p>
-        )}
-
-        {/* Topics */}
-        {repo.topics.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {repo.topics.map((topic) => (
-              <Badge key={topic} variant="secondary" className="text-xs font-normal">
-                {topic}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* Stats row */}
-        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-            <span className="font-medium text-foreground">
-              {formatStarCount(repo.stargazers_count)}
-            </span>
-            <span>stars</span>
-          </div>
-          {repo.language && (
-            <div className="flex items-center gap-1.5">
-              <span
-                className="inline-block size-2.5 rounded-full"
-                style={{ backgroundColor: langColor ?? undefined }}
+        {/* Repo header card */}
+        <div className="rounded-xl border bg-card p-6">
+          <div className="flex items-start justify-between gap-4">
+            {/* Owner + name */}
+            <div className="flex min-w-0 items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={ownerAvatar.src}
+                srcSet={ownerAvatar.srcSet}
+                sizes={ownerAvatar.sizes}
+                alt={repo.owner_login}
+                width={40}
+                height={40}
+                className="size-10 shrink-0 rounded-full"
+                loading="eager"
+                decoding="async"
+                fetchPriority="high"
               />
-              <span>{repo.language}</span>
+              <div className="min-w-0">
+                <p className="truncate text-xs text-muted-foreground">{repo.owner_login}</p>
+                <h1 className="truncate text-base font-semibold">{repo.name}</h1>
+              </div>
             </div>
-          )}
-          <div className="flex items-center gap-1.5">
-            <MessageSquare className="size-3.5" />
-            <span>
-              {commentCount} {commentCount === 1 ? 'comment' : 'comments'}
-            </span>
-          </div>
-          {repo.archived && (
-            <div className="flex items-center gap-1.5">
-              <Archive className="size-3.5" />
-              <span>Archived</span>
-            </div>
-          )}
-          {repo.repo_updated_at && (
-            <div className="flex items-center gap-1.5">
-              <GitFork className="size-3.5" />
-              <span>Updated {timeAgo(repo.repo_updated_at)}</span>
-            </div>
-          )}
-          {repo.repo_created_at && (
-            <div className="flex items-center gap-1.5">
-              <Calendar className="size-3.5" />
-              <span>Created {formatDate(repo.repo_created_at)}</span>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {(starHistory || (repoTools?.tools.length ?? 0) > 0) && (
-        <div className="mt-6 grid gap-3 md:grid-cols-2">
-          <div className="rounded-xl border bg-card p-4">
-            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <TrendingUp className="size-3.5 text-primary" />
-              Star history
-            </h2>
-            {starHistory ? (
-              <MiniStarHistory history={starHistory} />
-            ) : (
-              <p className="text-sm text-muted-foreground">No snapshots available yet.</p>
-            )}
+            {/* GitHub CTA */}
+            <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <ExternalLink className="size-3.5" />
+                View on GitHub
+              </Button>
+            </a>
           </div>
 
-          <div className="rounded-xl border bg-card p-4">
-            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Wrench className="size-3.5 text-primary" />
-              Detected tools
-            </h2>
-            {repoTools?.tools.length ? (
-              <>
-                <div className="flex flex-wrap gap-1.5">
-                  {repoTools.tools.slice(0, 12).map((tool) => (
-                    <Badge
-                      asChild
-                      key={tool.toolKey}
-                      variant="outline"
-                      className={confidenceClass(tool.confidence)}
-                      title={`${tool.confidence}% confidence from ${tool.sources.join(', ')}`}
-                    >
-                      <Link href={`/tools/${encodeURIComponent(tool.toolKey)}`}>
-                        {tool.toolName}
-                      </Link>
-                    </Badge>
-                  ))}
-                </div>
-                <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
-                  <Info className="mt-0.5 size-3.5 shrink-0" />
-                  <span>{repoTools.disclaimer}</span>
-                </div>
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">No detected tools yet.</p>
-            )}
-          </div>
-        </div>
-      )}
+          {/* Description */}
+          {repo.description && (
+            <p className="mt-4 leading-relaxed text-muted-foreground">{repo.description}</p>
+          )}
 
-      {/* Similar repos */}
-      {(similarLoading || similar.length > 0) && (
-        <div className="mt-6">
-          <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-            <Sparkles className="size-3.5 text-primary" />
-            Similar in your stars
-          </h2>
-          {similarLoading ? (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-20 rounded-xl" />
+          {/* Topics */}
+          {repo.topics.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {repo.topics.map((topic) => (
+                <Badge key={topic} variant="secondary" className="text-xs font-normal">
+                  {topic}
+                </Badge>
               ))}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {similar.map((s) => {
-                const langColor = s.language ? (languageColors[s.language] ?? '#8b8b8b') : null;
-                const avatar = getAvatarImageAttrs(s.owner.avatar_url, 24);
-                return (
-                  <Link
-                    key={s.id}
-                    href={`/explore/${s.full_name}`}
-                    className="group rounded-xl border bg-card p-3 transition-colors hover:bg-accent/50"
-                  >
-                    <div className="flex items-start gap-2">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={avatar.src}
-                        srcSet={avatar.srcSet}
-                        sizes={avatar.sizes}
-                        alt={s.owner.login}
-                        width={24}
-                        height={24}
-                        className="size-6 shrink-0 rounded-full"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">
-                          <span className="text-muted-foreground">{s.owner.login}/</span>
-                          {s.name}
-                        </p>
-                        {s.description && (
-                          <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                            {s.description}
+          )}
+
+          {/* Stats row */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-1.5">
+              <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+              <span className="font-medium text-foreground">
+                {formatStarCount(repo.stargazers_count)}
+              </span>
+              <span>stars</span>
+            </div>
+            {repo.language && (
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-block size-2.5 rounded-full"
+                  style={{ backgroundColor: langColor ?? undefined }}
+                />
+                <span>{repo.language}</span>
+              </div>
+            )}
+            {repo.archived && (
+              <div className="flex items-center gap-1.5">
+                <Archive className="size-3.5" />
+                <span>Archived</span>
+              </div>
+            )}
+            {repo.repo_updated_at && (
+              <div className="flex items-center gap-1.5">
+                <GitFork className="size-3.5" />
+                <span>Updated {timeAgo(repo.repo_updated_at)}</span>
+              </div>
+            )}
+            {repo.repo_created_at && (
+              <div className="flex items-center gap-1.5">
+                <Calendar className="size-3.5" />
+                <span>Created {formatDate(repo.repo_created_at)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {(starHistory || (repoTools?.tools.length ?? 0) > 0) && (
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            <div className="rounded-xl border bg-card p-4">
+              <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <TrendingUp className="size-3.5 text-primary" />
+                Star history
+              </h2>
+              {starHistory ? (
+                <MiniStarHistory history={starHistory} />
+              ) : (
+                <p className="text-sm text-muted-foreground">No snapshots available yet.</p>
+              )}
+            </div>
+
+            <div className="rounded-xl border bg-card p-4">
+              <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+                <Wrench className="size-3.5 text-primary" />
+                Detected tools
+              </h2>
+              {repoTools?.tools.length ? (
+                <>
+                  <div className="flex flex-wrap gap-1.5">
+                    {repoTools.tools.slice(0, 12).map((tool) => (
+                      <Badge
+                        asChild
+                        key={tool.toolKey}
+                        variant="outline"
+                        className={confidenceClass(tool.confidence)}
+                        title={`${tool.confidence}% confidence from ${tool.sources.join(', ')}`}
+                      >
+                        <Link href={`/tools/${encodeURIComponent(tool.toolKey)}`}>
+                          {tool.toolName}
+                        </Link>
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+                    <Info className="mt-0.5 size-3.5 shrink-0" />
+                    <span>{repoTools.disclaimer}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="text-sm text-muted-foreground">No detected tools yet.</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Similar repos */}
+        {(similarLoading || similar.length > 0) && (
+          <div className="mt-6">
+            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+              <Sparkles className="size-3.5 text-primary" />
+              Similar projects
+            </h2>
+            {similarLoading ? (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-20 rounded-xl" />
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {similar.map((s) => {
+                  const langColor = s.language ? (languageColors[s.language] ?? '#8b8b8b') : null;
+                  const avatar = getAvatarImageAttrs(s.owner.avatar_url, 24);
+                  return (
+                    <Link
+                      key={s.id}
+                      href={`/explore/${s.full_name}`}
+                      className="group rounded-xl border bg-card p-3 transition-colors hover:bg-accent/50"
+                    >
+                      <div className="flex items-start gap-2">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={avatar.src}
+                          srcSet={avatar.srcSet}
+                          sizes={avatar.sizes}
+                          alt={s.owner.login}
+                          width={24}
+                          height={24}
+                          className="size-6 shrink-0 rounded-full"
+                          loading="lazy"
+                          decoding="async"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            <span className="text-muted-foreground">{s.owner.login}/</span>
+                            {s.name}
                           </p>
-                        )}
-                        <div className="mt-1.5 flex items-center gap-2.5 text-[11px] text-muted-foreground">
-                          {s.language && (
-                            <span className="flex items-center gap-1">
-                              <span
-                                className="inline-block size-2 rounded-full"
-                                style={{ backgroundColor: langColor ?? undefined }}
-                              />
-                              {s.language}
-                            </span>
+                          {s.description && (
+                            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                              {s.description}
+                            </p>
                           )}
-                          <span className="flex items-center gap-0.5">
-                            <Star className="size-3 fill-current" />
-                            {formatStarCount(s.stargazers_count)}
-                          </span>
-                          <span className="ml-auto tabular-nums">
-                            {Math.round(s.similarity * 100)}%
-                          </span>
+                          <div className="mt-1.5 flex items-center gap-2.5 text-[11px] text-muted-foreground">
+                            {s.language && (
+                              <span className="flex items-center gap-1">
+                                <span
+                                  className="inline-block size-2 rounded-full"
+                                  style={{ backgroundColor: langColor ?? undefined }}
+                                />
+                                {s.language}
+                              </span>
+                            )}
+                            <span className="flex items-center gap-0.5">
+                              <Star className="size-3 fill-current" />
+                              {formatStarCount(s.stargazers_count)}
+                            </span>
+                            <span className="ml-auto tabular-nums">
+                              {Math.round(s.similarity * 100)}%
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Comments section */}
-      <div className="mt-6">
-        <h2 className="mb-3 text-sm font-semibold text-foreground">
-          Discussion
-          {commentCount > 0 && (
-            <span className="ml-2 font-normal text-muted-foreground">({commentCount})</span>
-          )}
-        </h2>
-
-        {/* Comment input at top */}
-        <div className="mb-4">
-          {isAuthenticated ? (
-            <form onSubmit={handleSubmitComment} className="space-y-2">
-              <textarea
-                value={commentBody}
-                onChange={(e) => setCommentBody(e.target.value)}
-                placeholder="Share your thoughts about this repo..."
-                maxLength={2000}
-                rows={3}
-                className="w-full resize-none rounded-xl border bg-card px-3 py-2.5 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{commentBody.length}/2000</span>
-                <Button type="submit" size="sm" disabled={!commentBody.trim() || submitting}>
-                  {submitting ? 'Posting...' : 'Post comment'}
-                </Button>
+                    </Link>
+                  );
+                })}
               </div>
-            </form>
-          ) : (
-            <div className="rounded-xl border bg-card p-4 text-center text-sm text-muted-foreground">
-              <Link
-                href="/"
-                className="font-medium text-foreground underline-offset-2 hover:underline"
-              >
-                Sign in
-              </Link>{' '}
-              to join the discussion.
-            </div>
-          )}
-        </div>
-
-        {comments.length === 0 ? (
-          <div className="rounded-xl border bg-card p-8 text-center">
-            <MessageSquare className="mx-auto mb-2 size-8 text-muted-foreground/40" />
-            <p className="text-sm font-medium">No comments yet</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Be the first to share your thoughts!
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {comments.map((comment) => {
-              const commentAvatar = comment.user.avatar_url
-                ? getAvatarImageAttrs(comment.user.avatar_url, 28)
-                : null;
-              const isVoting = votingId === comment.id;
-              return (
-                <div key={comment.id} className="rounded-xl border bg-card p-4">
-                  <div className="flex items-center gap-2">
-                    {comment.user.avatar_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={commentAvatar!.src}
-                        srcSet={commentAvatar!.srcSet}
-                        sizes={commentAvatar!.sizes}
-                        alt={comment.user.username}
-                        width={28}
-                        height={28}
-                        className="size-7 rounded-full"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="flex size-7 items-center justify-center rounded-full bg-muted text-xs font-medium">
-                        {comment.user.username[0]?.toUpperCase()}
-                      </div>
-                    )}
-                    <span className="text-sm font-medium">{comment.user.username}</span>
-                    <span className="text-xs text-muted-foreground">
-                      {timeAgo(comment.created_at)}
-                    </span>
-                  </div>
-                  <p className="mt-2.5 text-sm leading-relaxed">{comment.body}</p>
-                  {/* Vote buttons */}
-                  <div className="mt-3 flex items-center gap-1 border-t pt-3">
-                    <button
-                      onClick={() => handleVote(comment.id, 1)}
-                      disabled={!isAuthenticated || isVoting}
-                      className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:cursor-default ${
-                        comment.userVote === 1
-                          ? 'bg-green-500/10 text-green-600 dark:text-green-400'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50'
-                      }`}
-                    >
-                      <ThumbsUp className="size-3.5" />
-                      <span>{comment.upvotes}</span>
-                    </button>
-                    <button
-                      onClick={() => handleVote(comment.id, -1)}
-                      disabled={!isAuthenticated || isVoting}
-                      className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors disabled:cursor-default ${
-                        comment.userVote === -1
-                          ? 'bg-red-500/10 text-red-600 dark:text-red-400'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50'
-                      }`}
-                    >
-                      <ThumbsDown className="size-3.5" />
-                      <span>{comment.downvotes}</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            )}
           </div>
         )}
       </div>
-    </div>
+    </main>
   );
 }

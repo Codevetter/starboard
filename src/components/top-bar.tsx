@@ -10,6 +10,7 @@ import {
   Loader2,
   LogOut,
   Menu,
+  Info,
   PanelLeft,
   RefreshCw,
   Search,
@@ -55,6 +56,7 @@ interface TopBarProps {
   onViewModeChange?: (mode: 'grid' | 'list') => void;
   onMenuClick?: () => void;
   repoCount?: number;
+  repoCountDescription?: string;
   hasActiveFilters?: boolean;
   onClearFilters?: () => void;
   syncing?: boolean;
@@ -73,6 +75,7 @@ export function TopBar({
   onViewModeChange,
   onMenuClick,
   repoCount,
+  repoCountDescription,
   hasActiveFilters,
   onClearFilters,
   syncing,
@@ -99,7 +102,7 @@ export function TopBar({
       label: 'Tools',
       icon: Wrench,
       active: isTools,
-      visible: status === 'authenticated',
+      visible: true,
     },
     {
       href: '/stars',
@@ -189,11 +192,29 @@ export function TopBar({
         })}
       </div>
 
-      {typeof repoCount === 'number' && (
-        <span className="hidden shrink-0 text-sm text-muted-foreground lg:inline">
-          {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
-        </span>
-      )}
+      {typeof repoCount === 'number' &&
+        (repoCountDescription ? (
+          <button
+            type="button"
+            aria-label={`${repoCount} ${repoCount === 1 ? 'repository' : 'repositories'}; how Discover selects repositories`}
+            aria-describedby="repository-count-explanation"
+            className="group relative hidden shrink-0 items-center gap-1 text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:text-foreground lg:inline-flex"
+          >
+            {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
+            <Info className="size-3.5" aria-hidden="true" />
+            <span
+              id="repository-count-explanation"
+              role="tooltip"
+              className="pointer-events-none absolute right-0 top-full z-50 mt-2 w-72 rounded-md border bg-popover p-3 text-left text-xs leading-relaxed text-popover-foreground opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              {repoCountDescription}
+            </span>
+          </button>
+        ) : (
+          <span className="hidden shrink-0 text-sm text-muted-foreground lg:inline">
+            {repoCount} {repoCount === 1 ? 'repo' : 'repos'}
+          </span>
+        ))}
 
       {onSync && (
         <Button

@@ -34,11 +34,12 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ repoId: string }> }
 ) {
-  const session = await auth();
-  if (!session?.user?.githubId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  let userId: string | null = null;
+  try {
+    userId = (await auth())?.user?.githubId ?? null;
+  } catch {
+    // Global similarity is public. Only the explicit user scope fails closed.
   }
-  const userId = session.user.githubId;
 
   const { repoId: rawId } = await params;
   const repoId = parseInt(rawId, 10);
@@ -49,6 +50,9 @@ export async function GET(
   const limitParam = request.nextUrl.searchParams.get('limit');
   const limit = Math.min(Math.max(parseInt(limitParam || '', 10) || DEFAULT_LIMIT, 1), 30);
   const scope = request.nextUrl.searchParams.get('scope') || 'global'; // "user" | "global"
+  if (scope === 'user' && !userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   try {
     // 1. Confirm the relational vector metadata exists and load lightweight
@@ -104,7 +108,7 @@ export async function GET(
                FROM user_repos ur
                JOIN repos r ON r.id = ur.repo_id
                WHERE ur.user_id = ? AND r.id IN (${placeholders})`;
-        return db.execute({ sql, args: scope === 'global' ? chunk : [userId, ...chunk] });
+        return db.execute({ sql, args: scope === 'global' ? chunk : [userId!, ...chunk] });
       })
     );
     const hydratedRows = hydratedResults.flatMap((result) => result.rows);

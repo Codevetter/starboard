@@ -31,7 +31,8 @@ history and remains empty when insufficient samples exist.
 ```text
 public GitHub URL or owner/repository
   → normalize and check the local catalog
-  → resolve one public GitHub repository on a catalog miss
+  → require the existing GitHub session token on a catalog miss
+  → resolve one public GitHub repository with authenticated quota
   → public preview: no user-owned write
   → authenticated connection only after explicit confirmation
   → upsert shared repos row

@@ -32,13 +32,13 @@ installation, alerts, reports, digest email, and stack generation.
 
 **Local dev:** `pnpm install && cp .env.example .env.local && pnpm dev` → http://localhost:3000
 
-**Key checks:** `pnpm test:coverage` · `pnpm build` · `pnpm build:cf` (Cloudflare path)
+**Key checks:** `pnpm test:coverage` · `pnpm test:e2e` · `pnpm build:cf` (Cloudflare path)
 
 ```
 GitHub OAuth (NextAuth)
         │
         ▼
-Star sync + public project connection ──► D1 (users, repos, user_repos, user_projects, lists, comments, votes)
+Star sync + public project connection ──► D1 (users, repos, user_repos, user_projects, lists)
         │
         ├── Full-text + facet search (GET /api/stars)
         ├── Semantic search: knowledgebase Worker; lexical-only when shared RAG is unavailable
@@ -71,6 +71,15 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
+
+- **2026-08-09 (core discovery hardening, local)** — Stabilized aborted filter
+  requests, added hybrid public Discover relevance with lexical fallback,
+  tightened peer/tool evidence thresholds, protected uncataloged previews with
+  the user's GitHub token, paginated Tool Intelligence evidence, moved
+  repository intelligence into the shared shell, and retired its discussion
+  controls while retaining legacy data. The production-accurate Playwright
+  suite now covers the Astro landing and core public journeys at desktop and
+  mobile widths. This work is locally testable and not yet released.
 
 - **2026-08-09 (shared lint baseline)** — Adopted the Fleet Ultracite baseline
   for core TypeScript, React, Next.js, and Vitest code. Explicit compatibility
@@ -177,7 +186,7 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Phase | Milestone |
 |-------|-----------|
 | Foundation | GitHub OAuth (NextAuth v5), OpenNext Cloudflare deploy, core dashboard with sync, tags, collections, full-text search, virtual scroll |
-| Repo intelligence | Repo detail (`/explore`), comments/votes, public shared lists, legal/marketing shell |
+| Repo intelligence | Shared-shell repository detail (`/explore`), similar projects, tool evidence, public shared lists, legal/marketing shell |
 | Semantic search | knowledgebase Worker integration for relevance search; README-backed sync ingest; local embeddings retained for non-RAG Starboard features |
 | Connected projects | Shipped public GitHub project connections, public preview, GitHub picker, and evidence-based repository and tool recommendations |
 | Discovery & tools | Public Discover, daily bounded seed/enrich/embed with manual dispatch, stored growth sorting, and Tool Intelligence |
@@ -212,7 +221,9 @@ provenance. The workflow is free and has no billing or entitlement gate.
 - GitHub star-list ingestion via HTML scraping where no official API exists.
 - Main dashboard: smart categories, custom colored tags, named collections, full-text search, language/category/tag/collection filters, sort (recently starred, most stars, recently updated, A-Z), grid/list toggle, virtual scroll for 1000+ repos.
 - URL-shareable filter/sort state through nuqs.
-- Repo detail (`/explore`): comments, votes, likes, similar repos, list assignment, tag picker.
+- Repo detail (`/explore`): public similar repositories, detected-tool evidence,
+  and stored star history in the shared application shell. Legacy discussion
+  data is retained but has no active product controls.
 - Public shared lists at `/lists/[slug]` with SSR and `list.json` export route.
 - Legal/marketing shell: about, privacy, terms, sitemap, robots, OG image, security.txt, humans.txt, PWA manifest.
 
@@ -225,9 +236,9 @@ provenance. The workflow is free and has no billing or entitlement gate.
   credentials in GitHub.
 
 ### Connected projects and public preview
-- Guests can preview a public GitHub repository without sign-in or a user-data
-  write, then carry the normalized repository through sign-in for explicit
-  connection.
+- Guests can preview a cataloged public GitHub repository without sign-in or a
+  user-data write. Uncataloged lookups require the existing GitHub session token
+  and preserve the repository through sign-in for explicit connection.
 - Authenticated users can connect and disconnect public GitHub repositories
   by URL or an on-demand public-repository picker without a broader OAuth scope.
 - `user_projects` isolates project connections per user while reusing shared
@@ -238,13 +249,15 @@ provenance. The workflow is free and has no billing or entitlement gate.
 
 ### Discovery and intelligence surfaces
 - Public Discover page and `/api/discover` for the seeded popular repository
-  corpus; authentication adds saved state and collection controls but is not
-  required to browse, search, sort, filter, paginate, or open repo details.
+  corpus; relevance search fuses bounded semantic and lexical candidates and
+  falls back honestly to lexical search. Authentication adds saved state and
+  collection controls but is not required to browse, search, sort, filter,
+  paginate, or open repo details.
 - Discover supports paginated 30-day growth ordering and detected-tool facets from indexed local snapshot/tool tables.
 - Daily bounded GitHub Actions seed/enrich popular repos in D1 and embed through
   native Worker bindings; manual dispatch remains available for operator checks.
 - Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`, `/api/growth`, Discover growth sorting, and repo-detail mini history from stored `repo_star_snapshots`.
-- Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.
+- Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Repository evidence is server-filtered and paginated in 48-item pages. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.
 - SaaS Maker feedback widget integrated; product analytics run directly through PostHog.
 - First-run UX, sample prioritized stars board, semantic search, GitHub
   permission trust note, and public discovery paths remain.
@@ -253,7 +266,9 @@ provenance. The workflow is free and has no billing or entitlement gate.
 
 - Shared Ultracite lint baseline with a clean 206-file check.
 - Checked-in `.env.example` documents required local variables without secrets.
-- Vitest unit tests with v8 coverage thresholds (80% lines/functions/statements, 70% branches) on `github-projects`, `project-recommendations`, `search`, and `starboard-rag-documents`; Playwright e2e path documented in README.
+- Vitest unit tests with v8 coverage thresholds (80% lines/functions/statements,
+  70% branches) on selected core logic; production-accurate Playwright journeys
+  cover the Astro landing and public app at desktop and mobile widths.
 - Pre-push lint hook.
 - TypeScript config and Astro landing tooling made self-contained for green Cloudflare builds.
 

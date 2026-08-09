@@ -16,7 +16,7 @@ import { Input } from '@/components/ui/input';
 import { trackRecommendationSetViewed, type RecommendationRetrievalMode } from '@/lib/analytics';
 import type { ProjectIntelligenceResult } from '@/lib/project-intelligence';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
-import { jsonFetcher } from '@/lib/swr-fetcher';
+import { FetchHttpError, jsonFetcher } from '@/lib/swr-fetcher';
 
 interface PreviewResponse extends ProjectIntelligenceResult {
   project: ProjectRecommendationRepo;
@@ -62,6 +62,9 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
     ? `/projects?repository=${encodeURIComponent(data.project.fullName)}`
     : '/projects';
   const loginHref = `/login?callbackUrl=${encodeURIComponent(connectCallback)}`;
+  const previewLoginHref = `/login?callbackUrl=${encodeURIComponent(
+    `/project-preview?repository=${encodeURIComponent(initialRepository)}`
+  )}`;
 
   return (
     <main className="min-h-screen bg-background">
@@ -136,7 +139,8 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
             </div>
             <h2 className="mt-5 text-xl font-semibold">Start with a repository you know</h2>
             <p className="mt-2 max-w-md text-sm text-muted-foreground">
-              Paste a public project to compare it with Starboard's catalog before signing in.
+              Cataloged projects preview immediately. For a new repository, sign in so Starboard can
+              use your GitHub session without spending a shared anonymous quota.
             </p>
           </section>
         )}
@@ -159,6 +163,11 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
             <p className="mt-1 text-sm text-destructive">
               {error instanceof Error ? error.message : 'Try another public GitHub repository.'}
             </p>
+            {error instanceof FetchHttpError && error.status === 401 && (
+              <Button asChild className="mt-4" size="sm">
+                <Link href={previewLoginHref}>Sign in to preview</Link>
+              </Button>
+            )}
           </section>
         )}
 

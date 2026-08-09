@@ -67,14 +67,14 @@ export function SyncAnimation() {
         <p className="mt-1 text-sm text-muted-foreground">This only takes a moment</p>
       </div>
 
-      {/* Bouncing dots */}
+      {/* Progress dots */}
       <div className="flex gap-1.5">
         {[0, 1, 2].map((i) => (
           <span
             key={i}
             className="size-1.5 rounded-full bg-primary/60"
             style={{
-              animation: 'bounce 1.2s ease-in-out infinite',
+              animation: 'progressPulse 1.2s ease-in-out infinite',
               animationDelay: `${i * 0.2}s`,
             }}
           />
@@ -90,9 +90,9 @@ export function SyncAnimation() {
           from { opacity: 0; transform: translateY(6px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes bounce {
-          0%, 100% { transform: translateY(0); opacity: 0.5; }
-          50%       { transform: translateY(-6px); opacity: 1; }
+        @keyframes progressPulse {
+          0%, 100% { opacity: 0.35; }
+          50%       { opacity: 1; }
         }
       `}</style>
     </div>

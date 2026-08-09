@@ -12,9 +12,10 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { useMemo, useState } from 'react';
-import useSWR from 'swr';
+import { useEffect, useMemo, useState } from 'react';
+import useSWRInfinite from 'swr/infinite';
 
+import { TopBar } from '@/components/top-bar';
 import { jsonFetcher } from '@/lib/swr-fetcher';
 
 import { Badge } from '@/components/ui/badge';
@@ -55,9 +56,11 @@ interface ToolReposResponse {
   disclaimer: string;
   tool: ToolSummary;
   repos: ToolRepo[];
+  page: { offset: number; limit: number; hasMore: boolean };
 }
 
 const fetcher = jsonFetcher;
+const PAGE_SIZE = 48;
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
@@ -82,32 +85,64 @@ export default function ToolDetailPage() {
   const [scope, setScope] = useState<ToolScope>('discover');
   const [minConfidence, setMinConfidence] = useState(0);
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const toolKey = Array.isArray(params.toolKey) ? params.toolKey[0] : params.toolKey;
   const decodedToolKey = decodeURIComponent(toolKey ?? '');
-  const apiUrl = `/api/tools?scope=${scope}&min_confidence=${minConfidence}&min_stars=10000&tool=${encodeURIComponent(decodedToolKey)}&limit=500`;
-  const { data, error, isLoading, isValidating } = useSWR<ToolReposResponse>(apiUrl, fetcher, {
-    keepPreviousData: true,
-    revalidateOnFocus: false,
-  });
-  const isInitialLoading = isLoading && !data;
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedQuery(query.trim()), 200);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+
+  const {
+    data: pages,
+    error,
+    isLoading,
+    isValidating,
+    size,
+    setSize,
+  } = useSWRInfinite<ToolReposResponse>(
+    (pageIndex, previousPage) => {
+      if (previousPage && !previousPage.page.hasMore) return null;
+      const search = new URLSearchParams({
+        scope,
+        min_confidence: String(minConfidence),
+        min_stars: '10000',
+        tool: decodedToolKey,
+        limit: String(PAGE_SIZE),
+        offset: String(pageIndex * PAGE_SIZE),
+      });
+      if (debouncedQuery) search.set('q', debouncedQuery);
+      return `/api/tools?${search.toString()}`;
+    },
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const isInitialLoading = isLoading && !pages;
 
   const repos = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return data?.repos ?? [];
-    return (data?.repos ?? []).filter(
-      (repo) =>
-        repo.full_name.toLowerCase().includes(q) ||
-        repo.description?.toLowerCase().includes(q) ||
-        repo.language?.toLowerCase().includes(q)
+    const seen = new Set<number>();
+    return (pages ?? []).flatMap((page) =>
+      page.repos.filter((repo) => {
+        if (seen.has(repo.id)) return false;
+        seen.add(repo.id);
+        return true;
+      })
     );
-  }, [data?.repos, query]);
+  }, [pages]);
 
   const isAuthenticated = status === 'authenticated';
-  const tool = data?.tool;
+  const tool = pages?.[0]?.tool;
+  const hasMore = pages?.at(-1)?.page.hasMore ?? false;
+  const isLoadingMore = isValidating && Boolean(pages) && size > (pages?.length ?? 0);
 
   return (
-    <main className="min-h-screen bg-background">
-      <header className="border-b bg-background px-4 py-4 md:px-6">
+    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <TopBar
+        title="Tool Intelligence"
+        description="Inspect tools and the repository evidence behind each detection."
+      />
+
+      <section className="space-y-4 p-4 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 space-y-3">
             <Button asChild variant="ghost" size="sm" className="-ml-2">
@@ -122,9 +157,16 @@ export default function ToolDetailPage() {
                   {tool?.toolName ?? decodedToolKey}
                 </h1>
                 {tool && (
-                  <Badge variant="outline" className={confidenceClass(tool.avgConfidence)}>
-                    {confidenceLabel(tool.avgConfidence)}
-                  </Badge>
+                  <>
+                    <Badge variant="outline" className={confidenceClass(tool.avgConfidence)}>
+                      {confidenceLabel(tool.avgConfidence)}
+                    </Badge>
+                    <Badge variant="secondary">{tool.category}</Badge>
+                    <Badge variant="secondary">
+                      {formatNumber(tool.repoCount)}{' '}
+                      {tool.repoCount === 1 ? 'repository' : 'repositories'}
+                    </Badge>
+                  </>
                 )}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -142,47 +184,11 @@ export default function ToolDetailPage() {
             </Button>
           )}
         </div>
-      </header>
-
-      <section className="space-y-4 p-4 md:p-6">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">
-              {isInitialLoading ? (
-                <span className="block h-8 w-16 animate-pulse rounded bg-muted" />
-              ) : (
-                formatNumber(tool?.repoCount ?? 0)
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">matching repositories</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">
-              {isInitialLoading ? (
-                <span className="block h-8 w-16 animate-pulse rounded bg-muted" />
-              ) : (
-                `${tool?.avgConfidence ?? 0}%`
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">average confidence</div>
-          </div>
-          <div className="rounded-lg border bg-card p-4">
-            <div className="text-2xl font-semibold">
-              {isInitialLoading ? (
-                <span className="block h-8 w-20 animate-pulse rounded bg-muted" />
-              ) : (
-                (tool?.category ?? 'tool')
-              )}
-            </div>
-            <div className="text-sm text-muted-foreground">category</div>
-          </div>
-        </div>
-
         <div className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
           <div className="flex items-start gap-2">
             <Info className="mt-0.5 size-4 shrink-0" />
             <p>
-              {data?.disclaimer ??
+              {pages?.[0]?.disclaimer ??
                 'Loading evidence-based tool intelligence from repository manifests and metadata.'}
             </p>
           </div>
@@ -195,10 +201,21 @@ export default function ToolDetailPage() {
                 key={value}
                 variant={scope === value ? 'default' : 'outline'}
                 size="sm"
-                disabled={value === 'user' && !isAuthenticated}
+                disabled={!isAuthenticated && value !== 'discover'}
+                title={
+                  value === 'discover'
+                    ? 'Public repositories with at least 10,000 stars'
+                    : value === 'user'
+                      ? 'Repositories in your library'
+                      : 'Popular repositories and your library'
+                }
                 onClick={() => setScope(value)}
               >
-                {value === 'discover' ? '10k+ corpus' : value === 'user' ? 'My library' : 'All'}
+                {value === 'discover'
+                  ? 'Popular repos'
+                  : value === 'user'
+                    ? 'My library'
+                    : 'Combined'}
               </Button>
             ))}
           </div>
@@ -209,6 +226,7 @@ export default function ToolDetailPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Filter repositories..."
+                aria-label="Filter repositories with this tool"
                 className="pl-9"
               />
             </div>
@@ -224,8 +242,15 @@ export default function ToolDetailPage() {
           </div>
         </div>
 
-        {isValidating && data && (
+        {isValidating && pages && !isLoadingMore && (
           <div className="text-sm text-muted-foreground">Refreshing tool repositories...</div>
+        )}
+
+        {!isInitialLoading && !error && tool && (
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Showing {repos.length.toLocaleString()} of {tool.repoCount.toLocaleString()} matching
+            repositories.
+          </p>
         )}
 
         {error && (
@@ -290,6 +315,26 @@ export default function ToolDetailPage() {
                 </CardContent>
               </Card>
             ))}
+          </div>
+        )}
+
+        {!isInitialLoading && !error && repos.length === 0 && (
+          <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+            No repositories match this scope and filter.
+          </p>
+        )}
+
+        {!error && hasMore && (
+          <div className="flex justify-center border-t pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isLoadingMore}
+              onClick={() => setSize((current) => current + 1)}
+            >
+              {isLoadingMore && <Loader2 className="size-4 animate-spin" />}
+              {isLoadingMore ? 'Loading more…' : `Load ${PAGE_SIZE} more`}
+            </Button>
           </div>
         )}
       </section>

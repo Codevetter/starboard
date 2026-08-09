@@ -7,7 +7,11 @@ in [jobs.md](jobs.md); this page covers the push/PR and deploy pipelines.
 
 - **Triggers:** push to `main`/`master`; PRs against `main`/`master`.
 - **Steps:** checkout → pnpm setup → Node 22 → `pnpm install --frozen-lockfile`
-  → `pnpm lint` → `pnpm test:coverage` → `pnpm build`.
+  → `pnpm lint` → `pnpm test:coverage` → `pnpm build:e2e` → Chromium install
+  → `pnpm test:e2e`. `build:e2e` creates the OpenNext and Astro-overlaid
+  artifact without Cloudflare cache population or operator credentials. CI
+  previews that artifact so the browser suite verifies the landing and app
+  together.
 - **Permissions:** default.
 
 ## Deploy (`.github/workflows/deploy.yml`)

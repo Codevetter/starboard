@@ -4,9 +4,7 @@
 
 Define how developers connect public GitHub repositories as durable project
 context for project-aware repository and tool discovery.
-
 ## Requirements
-
 ### Requirement: Connect a public GitHub project
 
 Starboard SHALL allow an authenticated user to connect a public GitHub
@@ -88,3 +86,32 @@ entitlement checks.
 - **WHEN** an authenticated user connects a supported public repository
 - **THEN** the complete project-intelligence workflow is available without a
   checkout, plan selection, usage credit, or premium lock
+
+### Requirement: Choose a public repository from GitHub
+
+Starboard SHALL let an authenticated user load and select public repositories
+available through the existing GitHub token while retaining manual URL entry.
+
+#### Scenario: User opens the repository picker
+
+- **WHEN** a signed-in user asks to choose from GitHub
+- **THEN** Starboard fetches a bounded list of public repositories using the
+  existing OAuth token and does not request a broader scope
+
+#### Scenario: Picker is unavailable
+
+- **WHEN** GitHub cannot return the repository list
+- **THEN** Starboard keeps manual public URL entry usable and shows a recovery
+  message for the picker
+
+### Requirement: Privacy-safe project activation measurement
+
+Starboard SHALL measure the project-connection and recommendation activation
+funnel without emitting repository names, repository identifiers, query text,
+or GitHub access tokens.
+
+#### Scenario: Project is connected
+
+- **WHEN** a signed-in user successfully connects a project
+- **THEN** Starboard records the connection source as picker or manual entry
+  without recording repository identity

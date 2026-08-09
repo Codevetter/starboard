@@ -1,8 +1,6 @@
-import type { InStatement } from '@/db/client';
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
-import { auth } from '@/lib/auth';
 
 import { resolveRepoId } from '../resolve';
 
@@ -111,27 +109,6 @@ export async function GET(
 
     const row = repoResult.rows[0];
 
-    const session = await auth();
-    const userId = session?.user?.githubId ?? null;
-
-    const countQueries: InStatement[] = [
-      { sql: 'SELECT COUNT(*) as count FROM likes WHERE repo_id = ?', args: [repoId] },
-      { sql: 'SELECT COUNT(*) as count FROM comments WHERE repo_id = ?', args: [repoId] },
-    ];
-
-    if (userId) {
-      countQueries.push({
-        sql: 'SELECT 1 as liked FROM likes WHERE user_id = ? AND repo_id = ?',
-        args: [userId, repoId],
-      });
-    }
-
-    const batchResults = await db.batch(countQueries);
-
-    const likeCount = batchResults[0].rows[0].count as number;
-    const commentCount = batchResults[1].rows[0].count as number;
-    const userLiked = userId ? batchResults[2].rows.length > 0 : false;
-
     return NextResponse.json({
       repo: {
         id: row.id as number,
@@ -148,9 +125,6 @@ export async function GET(
         repo_created_at: row.repo_created_at as string | null,
         repo_updated_at: row.repo_updated_at as string | null,
       },
-      likeCount,
-      commentCount,
-      userLiked,
     });
   } catch (error) {
     console.error('Failed to fetch repo detail:', error);

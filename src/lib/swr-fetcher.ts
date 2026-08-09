@@ -7,8 +7,8 @@ export class FetchHttpError extends Error {
   readonly status: number;
   readonly retryAfterMs: number | null;
 
-  constructor(status: number, retryAfterMs: number | null = null) {
-    super(String(status));
+  constructor(status: number, retryAfterMs: number | null = null, message = String(status)) {
+    super(message);
     this.name = 'FetchHttpError';
     this.status = status;
     this.retryAfterMs = retryAfterMs;
@@ -32,9 +32,12 @@ function parseRetryAfterMs(header: string | null): number | null {
 export async function jsonFetcher<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);
   if (!response.ok) {
+    const payload = (await response.json().catch(() => null)) as { error?: unknown } | null;
+    const message = typeof payload?.error === 'string' ? payload.error : String(response.status);
     throw new FetchHttpError(
       response.status,
-      parseRetryAfterMs(response.headers.get('Retry-After'))
+      parseRetryAfterMs(response.headers.get('Retry-After')),
+      message
     );
   }
   return response.json() as Promise<T>;

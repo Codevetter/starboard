@@ -25,6 +25,17 @@ recommended tool only from normalized detections on those ranked peers.
 - **THEN** Starboard recommends those tools with the exact peer repositories
   and detection confidence that support the recommendation
 
+#### Scenario: Only primary language overlaps
+
+- **WHEN** a candidate shares only the connected project's primary language
+- **THEN** Starboard does not admit it as a grounded similar project
+
+#### Scenario: Tool evidence is weak or metadata-only
+
+- **WHEN** a peer detection is repository language metadata, below the grounded
+  confidence floor, or supported by only one peer
+- **THEN** Starboard does not present it as a tool to evaluate
+
 #### Scenario: Tool is already used by the connected project
 
 - **WHEN** a peer repository contains a tool already detected in the connected
@@ -66,3 +77,14 @@ not useful without sending repository identity or free-form text to analytics.
 - **WHEN** a user selects useful or not useful
 - **THEN** Starboard records only recommendation kind, sentiment, rank bucket,
   retrieval mode, and aggregate evidence buckets
+
+### Requirement: Tool evidence collections remain bounded
+
+Tool Intelligence SHALL paginate repository evidence and SHALL apply repository
+filtering before pagination.
+
+#### Scenario: A tool appears in hundreds of repositories
+
+- **WHEN** a user opens that tool's detail page
+- **THEN** Starboard renders one bounded page and offers an explicit way to load
+  more without placing the full collection in the DOM

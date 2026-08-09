@@ -12,7 +12,8 @@ describe('project-first activation wiring', () => {
 
     expect(landing).toContain('action="/project-preview"');
     expect(landing).toContain('name="repository"');
-    expect(landing).toContain('No sign-in to preview');
+    expect(landing).toContain('Catalog matches preview without sign-in');
+    expect(landing).toContain('uncataloged repositories use your signed-in GitHub session');
     expect(landing).not.toContain('Library · this week');
     expect(landing).not.toContain('>Hot<');
     expect(landing).not.toContain('>Watch<');
@@ -39,6 +40,27 @@ describe('project-first activation wiring', () => {
     expect(appShell).toContain('flex h-svh flex-col');
     expect(topBar).toContain('aria-label="Open product navigation"');
     expect(topBar).toContain('className="size-11 shrink-0 sm:hidden"');
+  });
+
+  it('reuses the shared shell and navigation across discovery surfaces', () => {
+    const discover = source('src/app/discover/discover-client.tsx');
+    const discoverLayout = source('src/app/discover/layout.tsx');
+    const tools = source('src/app/tools/page.tsx');
+    const toolDetail = source('src/app/tools/[toolKey]/page.tsx');
+    const toolsLayout = source('src/app/tools/layout.tsx');
+    const topBar = source('src/components/top-bar.tsx');
+
+    expect(discoverLayout).toContain('<AppShell>');
+    expect(toolsLayout).toContain('<AppShell>');
+    expect(tools).toContain('<TopBar');
+    expect(toolDetail).toContain('<TopBar');
+    expect(tools).not.toContain('<header className=');
+    expect(toolDetail).not.toContain('<header className=');
+    expect(discover).toContain('repoCountDescription=');
+    expect(topBar).toContain('role="tooltip"');
+    expect(topBar).toContain('aria-describedby="repository-count-explanation"');
+    expect(topBar).toContain("label: 'Tools'");
+    expect(topBar).toContain('visible: true');
   });
 
   it('carries a successful preview through sign-in without auto-connecting it', () => {

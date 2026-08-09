@@ -4,7 +4,7 @@ Project-aware GitHub repository discovery and tool intelligence.
 
 ## Public without sign-in
 
-- Preview a public GitHub project without creating an account or saving data
+- Preview a cataloged public GitHub project without creating an account or saving data
 - Browse and search the seeded Discover corpus
 - Inspect detected tool and framework intelligence
 - Read the product history, scope, privacy policy, and terms

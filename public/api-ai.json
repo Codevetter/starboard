@@ -30,7 +30,7 @@
       "url": "https://starboard.codevetter.com/project-preview",
       "md": "https://starboard.codevetter.com/project-preview.md",
       "kind": "static",
-      "description": "Try project-aware recommendations before sign-in without saving data"
+      "description": "Preview cataloged recommendations before sign-in without saving data; uncataloged lookups require GitHub sign-in"
     },
     {
       "id": "tools",

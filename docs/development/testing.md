@@ -34,8 +34,19 @@ pnpm test:coverage     # vitest run --coverage
 ## End-to-end (Playwright)
 
 - **Runner:** Playwright. Config in `playwright.config.ts`. Tests in `e2e/`.
-- `pnpm test:e2e` — desktop project.
-- `pnpm test:e2e:mobile` — mobile project.
+- `pnpm test:e2e` — runs `build:e2e` locally to produce a credential-free
+  OpenNext artifact, overlays the real Astro landing, then exercises landing
+  and mocked public-product journeys at desktop and mobile widths. CI builds
+  that artifact once before starting Playwright.
+- Playwright starts the artifact with `wrangler.e2e.jsonc`, a local-only
+  binding set and applies migrations to its disposable local D1 before the
+  preview starts. The config omits Cloudflare AI, Vectorize, and service
+  bindings, so the suite needs no operator credentials and cannot call those
+  production resources.
+- Covered journeys: public project CTA, Discover search stability, bounded Tool
+  Intelligence pagination, the shared repository-intelligence shell, and the
+  uncataloged-preview sign-in boundary.
+- `pnpm test:e2e:mobile` — the mobile Next.js application journeys only.
 
 ## Smoke checks
 
@@ -47,7 +58,7 @@ pnpm test:coverage     # vitest run --coverage
 ## CI
 
 - `.github/workflows/ci.yml` — push/PR: `pnpm install --frozen-lockfile` →
-  `lint` → `test:coverage` → `build`.
+  `lint` → `test:coverage` → `build:e2e` → Chromium install → `test:e2e`.
 - `.github/workflows/weekly.yml` — Mondays 09:00 UTC: lint, typecheck, test,
   build (catches drift that doesn't surface on push CI).
 - `.github/workflows/docs.yml` — push/PR on docs-touching paths: runs

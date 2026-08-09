@@ -1,16 +1,13 @@
 /**
- * Playwright config — desktop + mobile-viewport projects.
- *
- * The `mobile` project uses the iPhone 13 device descriptor (390px wide — the
- * fleet Wave 4 mobile target) so mobile-layout regressions are caught in CI
- * alongside the `desktop` baseline.
- *
- * Run only the mobile project:  pnpm exec playwright test --project=mobile
- *
- * NOTE: `@playwright/test` is not yet a dependency. Install it before running:
- *   pnpm add -D @playwright/test && pnpm exec playwright install --with-deps
+ * Browser coverage for both production surfaces:
+ * - the Astro landing page that is overlaid at `/` during `build:cf`
+ * - the Next.js application shell and public product journeys
  */
 import { defineConfig, devices } from '@playwright/test';
+
+const appURL = 'http://127.0.0.1:8787';
+const browserPreview =
+  'pnpm exec wrangler d1 migrations apply starboard-e2e --local --config wrangler.e2e.jsonc && pnpm exec wrangler dev --config wrangler.e2e.jsonc --port 8787 --var AUTH_SECRET:starboard-browser-test-secret-at-least-32-characters --var AUTH_GITHUB_ID:browser-test-client --var AUTH_GITHUB_SECRET:browser-test-secret';
 
 export default defineConfig({
   testDir: './e2e',
@@ -18,20 +15,33 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   reporter: 'list',
-  use: {
-    baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
-  },
+  use: { trace: 'on-first-retry' },
   webServer: {
-    command: 'pnpm dev',
-    url: 'http://localhost:3000',
+    command: process.env.CI ? browserPreview : `pnpm build:e2e && ${browserPreview}`,
+    url: appURL,
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 240_000,
   },
   projects: [
-    // Desktop baseline.
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
-    // Mobile-viewport project — iPhone 13 is 390px wide, the mobile target.
-    { name: 'mobile', use: { ...devices['iPhone 13'] } },
+    {
+      name: 'desktop',
+      testMatch: /public-app\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: appURL },
+    },
+    {
+      name: 'mobile',
+      testMatch: /public-app\.spec\.ts/,
+      use: { ...devices['iPhone 13'], baseURL: appURL, browserName: 'chromium' },
+    },
+    {
+      name: 'landing-desktop',
+      testMatch: /landing-mobile\.spec\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: appURL },
+    },
+    {
+      name: 'landing-mobile',
+      testMatch: /landing-mobile\.spec\.ts/,
+      use: { ...devices['iPhone 13'], baseURL: appURL, browserName: 'chromium' },
+    },
   ],
 });
