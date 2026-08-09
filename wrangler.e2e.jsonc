@@ -1,0 +1,29 @@
+// Local-only bindings for production-shaped Playwright coverage.
+// This file deliberately omits remote AI, Vectorize, and service bindings so
+// CI never needs Cloudflare operator credentials to start the built Worker.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "starboard-e2e",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-04-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": ".open-next/assets"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "starboard-e2e",
+      "database_id": "00000000-0000-0000-0000-000000000001",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_APP_NAME": "starboard",
+    "AUTH_URL": "http://127.0.0.1:8787",
+    "NEXTAUTH_URL": "http://127.0.0.1:8787",
+    "WRITE_FREEZE": "false",
+    "STARBOARD_RAG_INDEX_ID": ""
+  }
+}

@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const appURL = 'http://127.0.0.1:8787';
 const browserPreview =
-  'pnpm exec opennextjs-cloudflare preview --var AUTH_SECRET:starboard-browser-test-secret-at-least-32-characters --var AUTH_GITHUB_ID:browser-test-client --var AUTH_GITHUB_SECRET:browser-test-secret';
+  'pnpm exec wrangler d1 migrations apply starboard-e2e --local --config wrangler.e2e.jsonc && pnpm exec wrangler dev --config wrangler.e2e.jsonc --port 8787 --var AUTH_SECRET:starboard-browser-test-secret-at-least-32-characters --var AUTH_GITHUB_ID:browser-test-client --var AUTH_GITHUB_SECRET:browser-test-secret';
 
 export default defineConfig({
   testDir: './e2e',
