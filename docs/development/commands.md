@@ -21,7 +21,7 @@ Source of truth: `scripts` in `package.json`. This page annotates intent; run
 
 | Command | Purpose |
 | --- | --- |
-| `pnpm cf:build` | `next build --webpack` + inline critical CSS + `opennextjs-cloudflare build --skipNextBuild` + `populateCache local` + landing-astro build + overlay |
+| `pnpm cf:build` | clean generated build output + `next build --webpack` + inline critical CSS + `opennextjs-cloudflare build --skipNextBuild` + `populateCache local` + landing-astro build + overlay |
 | `pnpm build:cf` | Alias for `cf:build` |
 | `pnpm build:e2e` | Credential-free OpenNext build plus Astro landing overlay for browser tests |
 | `pnpm preview:cf` | `build:cf` + `opennextjs-cloudflare preview` |

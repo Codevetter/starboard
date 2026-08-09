@@ -9,8 +9,10 @@ import { PostHogProvider } from 'posthog-js/react';
 import { useEffect } from 'react';
 import { SWRConfig } from 'swr';
 
+import { initApiTiming } from '@/lib/api-timing';
 import { installBrowserMonitoring } from '@/lib/foundry-monitoring';
 import { swrErrorRetry } from '@/lib/swr-fetcher';
+import { initVitals } from '@/lib/vitals';
 
 export function Providers({
   children,
@@ -21,7 +23,10 @@ export function Providers({
   session?: Session | null;
 }) {
   useEffect(() => {
-    return installBrowserMonitoring();
+    const uninstallBrowserMonitoring = installBrowserMonitoring();
+    initVitals();
+    initApiTiming();
+    return uninstallBrowserMonitoring;
   }, []);
 
   return (
