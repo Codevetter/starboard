@@ -77,4 +77,5 @@ cache.bin
 
 # Local agent logs / scratch
 .agent-logs/
+.codevetter/
 *.agent.log

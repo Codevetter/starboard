@@ -83,7 +83,12 @@ const MIN_GROUNDED_TOOL_SUPPORT = 2;
 const COMPETING_TOOL_CATEGORIES = new Set(['framework', 'package-manager']);
 
 function normalizedSet(values: Array<string | null | undefined>): Set<string> {
-  return new Set(values.map((value) => value?.trim().toLowerCase()).filter(Boolean) as string[]);
+  const result = new Set<string>();
+  for (const value of values) {
+    const normalized = value?.trim().toLowerCase();
+    if (normalized) result.add(normalized);
+  }
+  return result;
 }
 
 function meaningfulTokens(...values: Array<string | null | undefined>): Set<string> {
@@ -96,8 +101,14 @@ function meaningfulTokens(...values: Array<string | null | undefined>): Set<stri
   );
 }
 
-function intersection<T>(left: Set<T>, right: Set<T>): T[] {
-  return [...left].filter((value) => right.has(value));
+function intersection<T>(left: Set<T>, right: Set<T>, limit = Number.POSITIVE_INFINITY): T[] {
+  const result: T[] = [];
+  for (const value of left) {
+    if (!right.has(value)) continue;
+    result.push(value);
+    if (result.length >= limit) break;
+  }
+  return result;
 }
 
 function recommendToolsFromPeers(
@@ -164,6 +175,7 @@ export function rankProjectRecommendations(
   const projectTopics = normalizedSet(project.topics);
   const projectToolKeys = normalizedSet(project.tools.map((tool) => tool.key));
   const projectToolCategories = normalizedSet(project.tools.map((tool) => tool.category));
+  const projectLanguage = project.language?.toLowerCase() ?? null;
   const projectTokens = meaningfulTokens(
     project.name,
     project.description,
@@ -172,82 +184,94 @@ export function rankProjectRecommendations(
     ...(project.aiKeywords ?? [])
   );
 
-  const scored = candidates
-    .filter((candidate) => candidate.id !== project.id && !candidate.archived)
-    .map((candidate) => {
-      let score = 0;
-      let specificScore = 0;
-      const evidence: string[] = [];
+  let hasSpecificMatches = false;
+  const scored: Array<ProjectRecommendation & { specificScore: number }> = [];
+  for (const candidate of candidates) {
+    if (candidate.id === project.id || candidate.archived) continue;
 
-      if (
-        project.language &&
-        candidate.language &&
-        project.language.toLowerCase() === candidate.language.toLowerCase()
-      ) {
-        score += 6;
-        evidence.push(`Same primary language: ${project.language}`);
+    let score = 0;
+    let specificScore = 0;
+    const evidence: string[] = [];
+
+    if (
+      projectLanguage &&
+      candidate.language &&
+      projectLanguage === candidate.language.toLowerCase()
+    ) {
+      score += 6;
+      evidence.push(`Same primary language: ${project.language}`);
+    }
+
+    const topicMatches = intersection(projectTopics, normalizedSet(candidate.topics), 3);
+    if (topicMatches.length > 0) {
+      const value = topicMatches.length * 12;
+      score += value;
+      specificScore += value;
+      evidence.push(`Shared topics: ${topicMatches.join(', ')}`);
+    }
+
+    const candidateToolKeys = new Set<string>();
+    const candidateToolCategories = new Set<string>();
+    const candidateToolNames = new Map<string, string>();
+    for (const tool of candidate.tools) {
+      const key = tool.key.trim().toLowerCase();
+      const category = tool.category.trim().toLowerCase();
+      if (key) {
+        candidateToolKeys.add(key);
+        if (!candidateToolNames.has(key)) candidateToolNames.set(key, tool.name);
       }
+      if (category) candidateToolCategories.add(category);
+    }
+    const toolMatches = intersection(projectToolKeys, candidateToolKeys, 2);
+    if (toolMatches.length > 0) {
+      const value = toolMatches.length * 14;
+      score += value;
+      specificScore += value;
+      const names = toolMatches.map((key) => candidateToolNames.get(key) ?? key);
+      evidence.push(`Shared tools: ${names.join(', ')}`);
+    }
 
-      const topicMatches = intersection(projectTopics, normalizedSet(candidate.topics)).slice(0, 3);
-      if (topicMatches.length > 0) {
-        const value = topicMatches.length * 12;
-        score += value;
-        specificScore += value;
-        evidence.push(`Shared topics: ${topicMatches.join(', ')}`);
+    const categoryMatches = intersection(projectToolCategories, candidateToolCategories)
+      .filter((category) => !toolMatches.includes(category))
+      .slice(0, 2);
+    if (categoryMatches.length > 0) {
+      const value = categoryMatches.length * 6;
+      score += value;
+      specificScore += value;
+      evidence.push(`Related tool areas: ${categoryMatches.join(', ')}`);
+    }
+
+    const tokenMatches = intersection(
+      projectTokens,
+      meaningfulTokens(
+        candidate.name,
+        candidate.description,
+        candidate.aiSummary,
+        candidate.aiCategory,
+        ...(candidate.aiKeywords ?? [])
+      ),
+      6
+    );
+    if (tokenMatches.length > 0) {
+      const value = tokenMatches.length * 3;
+      score += value;
+      specificScore += value;
+      evidence.push(`Related context: ${tokenMatches.join(', ')}`);
+    }
+
+    const scoredCandidate = { ...candidate, score, specificScore, evidence };
+    if (specificScore >= MIN_SPECIFIC_PEER_SCORE) {
+      if (!hasSpecificMatches) {
+        scored.length = 0;
+        hasSpecificMatches = true;
       }
+      scored.push(scoredCandidate);
+    } else if (!hasSpecificMatches) {
+      scored.push(scoredCandidate);
+    }
+  }
 
-      const candidateToolKeys = normalizedSet(candidate.tools.map((tool) => tool.key));
-      const toolMatches = intersection(projectToolKeys, candidateToolKeys).slice(0, 2);
-      if (toolMatches.length > 0) {
-        const value = toolMatches.length * 14;
-        score += value;
-        specificScore += value;
-        const names = toolMatches.map(
-          (key) => candidate.tools.find((tool) => tool.key.toLowerCase() === key)!.name
-        );
-        evidence.push(`Shared tools: ${names.join(', ')}`);
-      }
-
-      const categoryMatches = intersection(
-        projectToolCategories,
-        normalizedSet(candidate.tools.map((tool) => tool.category))
-      )
-        .filter((category) => !toolMatches.includes(category))
-        .slice(0, 2);
-      if (categoryMatches.length > 0) {
-        const value = categoryMatches.length * 6;
-        score += value;
-        specificScore += value;
-        evidence.push(`Related tool areas: ${categoryMatches.join(', ')}`);
-      }
-
-      const tokenMatches = intersection(
-        projectTokens,
-        meaningfulTokens(
-          candidate.name,
-          candidate.description,
-          candidate.aiSummary,
-          candidate.aiCategory,
-          ...(candidate.aiKeywords ?? [])
-        )
-      ).slice(0, 6);
-      if (tokenMatches.length > 0) {
-        const value = tokenMatches.length * 3;
-        score += value;
-        specificScore += value;
-        evidence.push(`Related context: ${tokenMatches.join(', ')}`);
-      }
-
-      return { ...candidate, score, specificScore, evidence };
-    });
-
-  const hasSpecificMatches = scored.some(
-    (candidate) => candidate.specificScore >= MIN_SPECIFIC_PEER_SCORE
-  );
-  const eligible = hasSpecificMatches
-    ? scored.filter((candidate) => candidate.specificScore >= MIN_SPECIFIC_PEER_SCORE)
-    : scored;
-  const similarProjects = eligible
+  const similarProjects = scored
     .sort(
       (a, b) =>
         b.score - a.score ||
