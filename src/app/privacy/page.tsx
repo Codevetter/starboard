@@ -12,14 +12,18 @@ export default function PrivacyPage() {
         ← Starboard
       </Link>
       <h1 className="mt-3 text-3xl font-bold tracking-tight">Privacy</h1>
-      <p className="mt-4 text-xs text-muted-foreground">Last updated: 2026-05-15.</p>
+      <p className="mt-4 text-xs text-muted-foreground">Last updated: 2026-08-09.</p>
 
       <h2 className="mt-8 text-base font-semibold">What we store</h2>
       <ul className="mt-2 list-disc space-y-1 pl-5">
         <li>Your GitHub OAuth identity when you sign in.</li>
         <li>The list of repos you&apos;ve starred + any saved-but-not-starred repos.</li>
-        <li>Tags, lists, notes, and likes you create.</li>
+        <li>Your connected public projects, tags, lists, notes, and saved state.</li>
+        <li>
+          Legacy likes, comments, and comment votes created before those controls were removed.
+        </li>
         <li>Generated embeddings of starred repos for semantic search.</li>
+        <li>Identity-free product events and Web Vitals used to improve reliability.</li>
       </ul>
 
       <h2 className="mt-8 text-base font-semibold">What we don&apos;t</h2>
@@ -27,8 +31,8 @@ export default function PrivacyPage() {
         <li>
           No private-repo content. We only ever read the starred-repo list, which is already public.
         </li>
-        <li>No third-party tracking pixels or marketing tags.</li>
-        <li>No sharing of star data with anyone.</li>
+        <li>No advertising profiles or sale of your repository data.</li>
+        <li>No repository names or search text in recommendation analytics.</li>
       </ul>
 
       <h2 className="mt-8 text-base font-semibold">Deletion</h2>

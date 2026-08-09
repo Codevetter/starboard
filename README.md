@@ -30,8 +30,9 @@ matches, and keeps personal stars searchable with tags and collections.
 
 ## Features
 
-- **Public Project Preview** — paste a public GitHub repository and inspect a
-  read-only recommendation sample before sign-in
+- **Public Project Preview** — inspect a read-only recommendation sample for a
+  cataloged repository before sign-in; uncataloged lookups use the user's
+  existing GitHub session
 - **GitHub OAuth** — Sign in and sync your starred repos
 - **Smart Categories** — Auto-categorize repos (AI/ML, Frontend, DevOps, etc.)
 - **Custom Tags** — Create and assign colored tags to repos

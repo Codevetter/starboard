@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 
 import type { Facets, SortOption, UserRepo } from '@/hooks/use-starred-repos';
+import { replaceAbortableJsonRequest } from '@/lib/abortable-fetch';
 
 const sortMap: Record<SortOption, string> = {
   relevance: 'relevance',
@@ -75,19 +76,14 @@ export function useDiscoverRepos(
   const prevFilterKey = useRef(filterKey(opts));
   const searchAbortRef = useRef<AbortController | null>(null);
   const loadMoreAbortRef = useRef<AbortController | null>(null);
+  const currentFilterKey = filterKey(opts);
 
   const url = buildDiscoverUrl(opts, 0);
   const hasMatchingInitialData = initial?.data != null && initial.url === url;
   const { data, error, isLoading, isValidating, mutate } = useSWR<DiscoverResponse>(
     url,
-    (url: string) => {
-      const controller = new AbortController();
-      searchAbortRef.current = controller;
-      return fetch(url, { signal: controller.signal }).then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json();
-      });
-    },
+    (requestUrl: string) =>
+      replaceAbortableJsonRequest<DiscoverResponse>(searchAbortRef, requestUrl),
     {
       revalidateOnFocus: false,
       revalidateOnMount: !hasMatchingInitialData,
@@ -102,14 +98,20 @@ export function useDiscoverRepos(
   );
 
   useEffect(() => {
-    const currentKey = filterKey(opts);
-    if (currentKey !== prevFilterKey.current) {
-      prevFilterKey.current = currentKey;
-      searchAbortRef.current?.abort();
+    if (currentFilterKey !== prevFilterKey.current) {
+      prevFilterKey.current = currentFilterKey;
       loadMoreAbortRef.current?.abort();
       setLoadedRepos([]);
     }
-  }, [opts]);
+  }, [currentFilterKey]);
+
+  useEffect(
+    () => () => {
+      searchAbortRef.current?.abort();
+      loadMoreAbortRef.current?.abort();
+    },
+    []
+  );
 
   const firstPageRepos = data?.repos ?? [];
   const allRepos = [...firstPageRepos, ...loadedRepos];

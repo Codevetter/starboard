@@ -5,9 +5,10 @@ reasons, see [../architecture/decisions/](../architecture/decisions/).
 
 ## Project-aware discovery
 
-- Guests can preview a public GitHub repository before sign-in. Cataloged
-  repositories use stored evidence; uncataloged repositories use one public
-  GitHub metadata lookup. Preview creates no user-owned row.
+- Guests can preview a cataloged public GitHub repository before sign-in using
+  stored evidence. An uncataloged lookup requires the user's existing GitHub
+  session token so anonymous traffic cannot exhaust a shared quota. Preview
+  creates no user-owned row in either case.
 - Authenticated users can connect a public GitHub repository by URL or
   `owner/repository`, or choose from a bounded on-demand list of public GitHub
   repositories, without broadening the current OAuth scope.
@@ -27,10 +28,13 @@ reasons, see [../architecture/decisions/](../architecture/decisions/).
 
 ## Public discovery and tool intelligence
 
-- Discover is public and supports search, pagination, language facets, detected
-  tool facets, and stored 30-day growth ordering.
+- Discover is public and supports hybrid semantic-plus-lexical relevance
+  search with lexical fallback, pagination, language facets, detected-tool
+  facets, and stored 30-day growth ordering.
 - Tool Intelligence aggregates normalized `repo_tools` records across the
   seeded corpus and, for authenticated users, the personal library.
+- Tool evidence is paginated in bounded 48-repository pages and filtered on the
+  server, avoiding a 500-card initial render.
 - Tool detections preserve category, confidence, and source evidence. The UI
   states that detection is evidence-based but not guaranteed complete.
 - Repository detail pages include tool evidence, similar repositories, and
@@ -59,8 +63,9 @@ reasons, see [../architecture/decisions/](../architecture/decisions/).
 - Daily and manually dispatched seed, metadata-enrichment, tool-enrichment, and
   embedding jobs with explicit per-run bounds.
 - Additive ordered D1 migrations; raw SQL with no ORM.
-- Vitest unit/integration coverage, Playwright path, Biome checks, docs
-  validation, and OpenNext Cloudflare builds.
+- Selective core-logic Vitest coverage, Playwright journeys against the actual
+  Astro-overlaid Cloudflare preview, Biome checks, docs validation, and
+  OpenNext Cloudflare builds.
 
 ## Deliberately removed
 

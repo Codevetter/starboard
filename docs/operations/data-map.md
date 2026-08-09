@@ -32,7 +32,7 @@ retirement requires separate approval.
 | D1 `user_repos` (starred/saved state) | irreplaceable-user | GitHub sync via `/api/stars/sync` | Re-sync from GitHub starred list (ETag + HTML scrape) | ~seconds per user | 2026-08-02 |
 | D1 `user_projects` | irreplaceable-user | Project connection UI/API | Reconnect public GitHub repositories manually | ~seconds per user | 2026-08-08 |
 | D1 `user_lists`, `user_repo_lists` | irreplaceable-user | User UI actions | Not reconstructable — user-curated collections | n/a — export required | 2026-08-02 |
-| D1 `comments`, `likes`, `comment_votes` | irreplaceable-user | User UI actions | Not reconstructable — user-generated content | n/a — export required | 2026-08-02 |
+| D1 `comments`, `likes`, `comment_votes` | historical inactive user storage | Removed discussion UI; legacy user actions | Not reconstructable — retained for export until a separately approved retention migration | n/a — export required | 2026-08-09 |
 | D1 `repo_embeddings` hashes + Vectorize `starboard-repos` values | derived | Worker binding embedding jobs | Re-embed from `repos` + `repo_ai_metadata` text via Workers AI | ~minutes (Workers AI quota) | 2026-08-02 |
 | D1 `repo_ai_metadata` | derived | `scripts/enrich-repos.ts` (free-ai gateway) | Re-enrich from `repos` metadata via AI | ~minutes per batch | 2026-08-02 |
 | D1 `repo_tools` | derived | `scripts/enrich-tools.ts` | Re-detect from GH tree/manifest/SBOM | ~minutes per batch | 2026-08-02 |

@@ -66,11 +66,13 @@ not depend on Workers AI availability.
 
 The static landing submits a GET form to `/project-preview`. The Next.js preview
 surface calls a public GET API with the normalized public repository value.
-Resolution checks the local catalog first; only a cache miss calls GitHub's
-single-repository endpoint, with bounded caching and no token for guests. The
-response never writes `user_projects` or other user-owned tables. The connect
-CTA signs in and returns to `/projects?repository=...`, where the manual form is
-prefilled for an explicit final connection.
+Resolution checks the local catalog first. Catalog hits remain public. A cache
+miss no longer calls GitHub anonymously from the shared Worker egress path: an
+authenticated session token may resolve the repository, while a guest receives
+a sign-in handoff that preserves the repository value. The response never
+writes `user_projects` or other user-owned tables. The connect CTA signs in and
+returns to `/projects?repository=...`, where the manual form is prefilled for an
+explicit final connection.
 
 Alternative: connect automatically after OAuth. Rejected because the user
 should still see and confirm the durable write boundary.
@@ -104,11 +106,11 @@ dashboard.
 - **Workers AI or Vectorize is temporarily unavailable** → Continue through FTS
   and language candidates, report the retrieval mode, and never turn the error
   into a failed project connection.
-- **Unauthenticated GitHub quota is exhausted or preview is abused** → Resolve
-  cataloged repositories without GitHub, cache successful public resolution,
-  make exactly one repository request on a miss, and return a retryable state.
-  A broader edge rate limiter is explicitly outside this change because it
-  previously affected unrelated product requests.
+- **Unauthenticated GitHub quota is exhausted or preview is abused** → Never
+  spend shared anonymous GitHub quota on a guest request. Resolve cataloged
+  repositories locally and require the existing minimal GitHub session for an
+  uncataloged lookup. A broader edge rate limiter remains outside this change
+  because it previously affected unrelated product requests.
 - **Minimal OAuth token returns fewer repositories than expected** → Present the
   picker as a convenience, label it public-only, and keep manual URL entry
   primary and fully functional.
@@ -127,3 +129,33 @@ dashboard.
    and responsive visual review before release.
 4. Roll back by reverting this change; it adds no schema, dependency, OAuth
    scope, secret, or production binding migration.
+
+## Hardening decisions after production audit
+
+### 7. Search requests own only their request lifetime
+
+The SWR fetcher aborts the previous request before installing a new controller.
+Filter effects reset pagination but never abort the request that SWR just
+started. Discover fuses bounded Vectorize matches with FTS matches and degrades
+to lexical results when Workers AI or Vectorize is unavailable.
+
+### 8. Recommendation evidence has an admission floor
+
+Primary-language equality remains contextual evidence but cannot admit a peer
+by itself. A peer needs a meaningful shared topic, exact tool, tool-area, or
+multiple contextual signals. Tool additions exclude language metadata and
+low-confidence detections, and need corroboration from at least two admitted
+peers.
+
+### 9. Large evidence collections paginate at the API boundary
+
+Tool detail requests use a small bounded page with offset metadata and an
+explicit Load more action. Filtering is server-side so pagination does not make
+search incomplete. The DOM therefore grows only when the user asks for more.
+
+### 10. Core product routes share one shell
+
+Repository detail uses `AppShell` and `TopBar`, exposes a real main landmark and
+page heading, and returns guests to Discover. The discussion UI is removed so
+the surface focuses on repository evidence, similar projects, and detected
+tools; existing database records are preserved.

@@ -116,7 +116,9 @@ function DiscoverContent({
   const [searchQuery, setSearchQuery] = useQueryState('q', parseAsString.withDefault(''));
   const [sortBy, setSortBy] = useQueryState(
     'sort',
-    parseAsStringLiteral(sortOptions).withDefault('most-stars')
+    parseAsStringLiteral(sortOptions).withDefault(
+      initialUrl.includes('q=') ? 'relevance' : 'most-stars'
+    )
   );
   const [selectedLanguages, setSelectedLanguages] = useQueryState(
     'lang',
@@ -216,6 +218,17 @@ function DiscoverContent({
     setSelectedListId(null);
   }, [setSearchQuery, setSelectedLanguages, setSelectedTools, setSelectedListId]);
 
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      const wasEmpty = searchQuery.trim().length === 0;
+      const isEmpty = value.trim().length === 0;
+      setSearchQuery(value);
+      if (wasEmpty && !isEmpty && sortBy === 'most-stars') setSortBy('relevance');
+      if (!wasEmpty && isEmpty && sortBy === 'relevance') setSortBy('most-stars');
+    },
+    [searchQuery, setSearchQuery, setSortBy, sortBy]
+  );
+
   const handleLanguageToggle = useCallback(
     (language: string) => {
       setSelectedLanguages((prev) =>
@@ -293,7 +306,7 @@ function DiscoverContent({
     <>
       <TopBar
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={handleSearchChange}
         sortBy={sortBy}
         onSortChange={(sort) => {
           if (sort !== 'recently-starred') setSortBy(sort);
@@ -303,6 +316,7 @@ function DiscoverContent({
         onViewModeChange={setViewMode}
         onMenuClick={() => setSidebarOpen(true)}
         repoCount={total}
+        repoCountDescription="This count shows repositories matching your current search and filters. Discover starts with public GitHub repositories at 5,000+ stars, added and refreshed by a bounded daily job."
         hasActiveFilters={hasActiveFilters}
         onClearFilters={clearFilters}
       />

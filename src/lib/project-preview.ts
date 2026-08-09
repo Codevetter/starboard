@@ -11,6 +11,7 @@ import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
 export type ProjectPreviewResolution =
   | { status: 'invalid' }
   | { status: 'unavailable' }
+  | { status: 'auth-required' }
   | { status: 'resolved'; source: 'catalog' | 'github'; project: ProjectRecommendationRepo };
 
 export interface ProjectPreviewDependencies {
@@ -44,7 +45,10 @@ function externalProject(project: PublicGitHubProject): ProjectRecommendationRep
 export function createProjectPreviewResolver(
   dependencies: ProjectPreviewDependencies = defaultDependencies
 ) {
-  return async function resolveProjectPreview(input: string): Promise<ProjectPreviewResolution> {
+  return async function resolveProjectPreview(
+    input: string,
+    accessToken?: string
+  ): Promise<ProjectPreviewResolution> {
     const slug = parseGitHubProjectInput(input);
     if (!slug) return { status: 'invalid' };
 
@@ -85,7 +89,9 @@ export function createProjectPreviewResolver(
       };
     }
 
-    const project = await dependencies.fetchProject(slug);
+    if (!accessToken) return { status: 'auth-required' };
+
+    const project = await dependencies.fetchProject(slug, accessToken);
     return project
       ? { status: 'resolved', source: 'github', project: externalProject(project) }
       : { status: 'unavailable' };

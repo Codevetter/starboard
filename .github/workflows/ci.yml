@@ -26,4 +26,8 @@ jobs:
 
       - run: pnpm test:coverage
 
-      - run: pnpm build
+      - run: pnpm build:e2e
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm test:e2e

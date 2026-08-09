@@ -1,10 +1,9 @@
-## Purpose
+# public-project-preview Specification
 
+## Purpose
 Let a visitor test Starboard's project-aware discovery with public repository
 context before creating an account or persisting a project connection.
-
-## ADDED Requirements
-
+## Requirements
 ### Requirement: Preview a public GitHub project before sign-in
 
 Starboard SHALL accept a public GitHub URL or `owner/repository` from an
@@ -20,8 +19,14 @@ preview without creating user-owned data.
 #### Scenario: Uncataloged public repository
 
 - **WHEN** a guest previews a valid public repository not yet in the catalog
-- **THEN** Starboard resolves its public GitHub metadata and shows the best
-  available explained preview without persisting a project connection
+- **THEN** Starboard asks for the existing minimal GitHub sign-in, preserves the
+  repository value, and performs no anonymous GitHub API lookup
+
+#### Scenario: Signed-in uncataloged public repository
+
+- **WHEN** a signed-in user previews a public repository not yet in the catalog
+- **THEN** Starboard resolves it with the user's existing GitHub token and shows
+  the best available explained preview without persisting a project connection
 
 #### Scenario: Invalid or unavailable repository
 
@@ -55,3 +60,4 @@ cannot trigger bulk GitHub or unbounded catalog operations.
 - **WHEN** semantic retrieval or GitHub resolution is temporarily unavailable
 - **THEN** Starboard either uses available catalog evidence or returns a clear
   retry state without fabricating recommendations
+

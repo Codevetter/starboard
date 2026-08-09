@@ -27,4 +27,17 @@
 
 - [x] 5.1 Update current product, status, architecture, route, and analytics documentation; remove remaining shipped-state and digest-era inconsistencies.
 - [x] 5.2 Run targeted tests, typecheck, lint, docs checks, strict OpenSpec validation, and the production Cloudflare build.
-- [ ] 5.3 Complete preserve-lane responsive review at 390, 768, and 1440 pixels, critique, polish, audit, detector review, and the design receipt.
+- [x] 5.3 Complete preserve-lane responsive review at 390, 768, and 1440 pixels, critique, polish, audit, detector review, and the design receipt.
+
+## 6. Production-audit hardening
+
+- [x] 6.1 Fix Discover and Library request cancellation and add a regression guard for stable filter changes.
+- [x] 6.2 Fuse bounded semantic and lexical candidates for public Discover with an honest lexical fallback.
+- [x] 6.3 Require meaningful peer evidence, exclude language and weak detections, and require corroboration for grounded tool recommendations.
+- [x] 6.4 Keep catalog previews public while requiring the existing GitHub session token for uncataloged lookups; preserve the post-login repository handoff.
+- [x] 6.5 Add bounded API pagination and server-side filtering to Tool Intelligence repository evidence.
+- [x] 6.6 Move repository detail into the shared shell, repair landmarks/headings/back navigation, and remove the peripheral discussion UI without deleting stored data.
+- [x] 6.7 Prevent the signed-out Projects workspace flash and repair Web Vitals CSP/version observability.
+- [x] 6.8 Expand Playwright coverage to the actual Astro landing and mocked core public journeys at desktop and mobile widths.
+- [x] 6.9 Remove strict-Knip findings and the non-compliant bounce easing advisory.
+- [x] 6.10 Run targeted tests after each lane, then full lint, typecheck, coverage, E2E, docs, strict Knip, Cloudflare build, diff validation, and production-profile browser review.

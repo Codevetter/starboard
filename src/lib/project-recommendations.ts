@@ -77,6 +77,11 @@ const GENERIC_TOKENS = new Set([
   'with',
 ]);
 
+const MIN_SPECIFIC_PEER_SCORE = 12;
+const MIN_GROUNDED_TOOL_CONFIDENCE = 65;
+const MIN_GROUNDED_TOOL_SUPPORT = 2;
+const COMPETING_TOOL_CATEGORIES = new Set(['framework', 'package-manager']);
+
 function normalizedSet(values: Array<string | null | undefined>): Set<string> {
   return new Set(values.map((value) => value?.trim().toLowerCase()).filter(Boolean) as string[]);
 }
@@ -104,12 +109,22 @@ function recommendToolsFromPeers(
   if (fallback) return [];
 
   const existingToolKeys = normalizedSet(project.tools.map((tool) => tool.key));
+  const existingToolCategories = normalizedSet(project.tools.map((tool) => tool.category));
   const recommendations = new Map<string, GroundedToolRecommendation>();
 
   for (const peer of peers) {
     for (const tool of peer.tools) {
       const key = tool.key.trim().toLowerCase();
-      if (!key || existingToolKeys.has(key)) continue;
+      const category = tool.category.trim().toLowerCase();
+      if (
+        !key ||
+        existingToolKeys.has(key) ||
+        category === 'language' ||
+        tool.confidence < MIN_GROUNDED_TOOL_CONFIDENCE ||
+        (COMPETING_TOOL_CATEGORIES.has(category) && existingToolCategories.has(category))
+      ) {
+        continue;
+      }
 
       const current = recommendations.get(key) ?? {
         key: tool.key,
@@ -134,6 +149,7 @@ function recommendToolsFromPeers(
   }
 
   return [...recommendations.values()]
+    .filter((tool) => tool.supportCount >= MIN_GROUNDED_TOOL_SUPPORT)
     .sort(
       (a, b) => b.supportCount - a.supportCount || b.score - a.score || a.name.localeCompare(b.name)
     )
@@ -160,6 +176,7 @@ export function rankProjectRecommendations(
     .filter((candidate) => candidate.id !== project.id && !candidate.archived)
     .map((candidate) => {
       let score = 0;
+      let specificScore = 0;
       const evidence: string[] = [];
 
       if (
@@ -167,20 +184,24 @@ export function rankProjectRecommendations(
         candidate.language &&
         project.language.toLowerCase() === candidate.language.toLowerCase()
       ) {
-        score += 20;
+        score += 6;
         evidence.push(`Same primary language: ${project.language}`);
       }
 
       const topicMatches = intersection(projectTopics, normalizedSet(candidate.topics)).slice(0, 3);
       if (topicMatches.length > 0) {
-        score += topicMatches.length * 12;
+        const value = topicMatches.length * 12;
+        score += value;
+        specificScore += value;
         evidence.push(`Shared topics: ${topicMatches.join(', ')}`);
       }
 
       const candidateToolKeys = normalizedSet(candidate.tools.map((tool) => tool.key));
       const toolMatches = intersection(projectToolKeys, candidateToolKeys).slice(0, 2);
       if (toolMatches.length > 0) {
-        score += toolMatches.length * 14;
+        const value = toolMatches.length * 14;
+        score += value;
+        specificScore += value;
         const names = toolMatches.map(
           (key) => candidate.tools.find((tool) => tool.key.toLowerCase() === key)!.name
         );
@@ -194,7 +215,9 @@ export function rankProjectRecommendations(
         .filter((category) => !toolMatches.includes(category))
         .slice(0, 2);
       if (categoryMatches.length > 0) {
-        score += categoryMatches.length * 6;
+        const value = categoryMatches.length * 6;
+        score += value;
+        specificScore += value;
         evidence.push(`Related tool areas: ${categoryMatches.join(', ')}`);
       }
 
@@ -209,15 +232,21 @@ export function rankProjectRecommendations(
         )
       ).slice(0, 6);
       if (tokenMatches.length > 0) {
-        score += tokenMatches.length * 3;
+        const value = tokenMatches.length * 3;
+        score += value;
+        specificScore += value;
         evidence.push(`Related context: ${tokenMatches.join(', ')}`);
       }
 
-      return { ...candidate, score, evidence };
+      return { ...candidate, score, specificScore, evidence };
     });
 
-  const hasSpecificMatches = scored.some((candidate) => candidate.score > 0);
-  const eligible = hasSpecificMatches ? scored.filter((candidate) => candidate.score > 0) : scored;
+  const hasSpecificMatches = scored.some(
+    (candidate) => candidate.specificScore >= MIN_SPECIFIC_PEER_SCORE
+  );
+  const eligible = hasSpecificMatches
+    ? scored.filter((candidate) => candidate.specificScore >= MIN_SPECIFIC_PEER_SCORE)
+    : scored;
   const similarProjects = eligible
     .sort(
       (a, b) =>

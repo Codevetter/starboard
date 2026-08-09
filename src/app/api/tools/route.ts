@@ -20,6 +20,10 @@ function parseScope(value: string | null): ToolScope {
   return value === 'user' || value === 'all' ? value : 'discover';
 }
 
+function likePattern(value: string): string {
+  return `%${value.toLowerCase().replace(/[\\%_]/g, '\\$&')}%`;
+}
+
 function scopeClause(scope: ToolScope, userId: string | null, minStars: number) {
   if (scope === 'user') {
     if (!userId) return null;
@@ -66,8 +70,14 @@ export async function GET(request: NextRequest) {
     100
   );
   const minStars = Math.max(parseInt(params.get('min_stars') || '10000', 10) || 10000, 0);
-  const limit = Math.min(Math.max(parseInt(params.get('limit') || '80', 10) || 80, 1), 500);
   const tool = params.get('tool')?.trim() || null;
+  const limitCeiling = tool ? 100 : 500;
+  const limit = Math.min(
+    Math.max(parseInt(params.get('limit') || '80', 10) || 80, 1),
+    limitCeiling
+  );
+  const offset = Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0);
+  const query = params.get('q')?.trim().slice(0, 120) || null;
   const scopeSql = scopeClause(scope, session?.user?.githubId ?? null, minStars);
 
   if (!scopeSql) {
@@ -75,6 +85,14 @@ export async function GET(request: NextRequest) {
   }
 
   if (tool) {
+    const querySql = query
+      ? `AND (
+           LOWER(r.full_name) LIKE ? ESCAPE '\\'
+           OR LOWER(COALESCE(r.description, '')) LIKE ? ESCAPE '\\'
+           OR LOWER(COALESCE(r.language, '')) LIKE ? ESCAPE '\\'
+         )`
+      : '';
+    const queryArgs = query ? Array(3).fill(likePattern(query)) : [];
     const summary = await db.execute({
       sql: `SELECT rt.tool_key,
                    rt.tool_name,
@@ -89,8 +107,9 @@ export async function GET(request: NextRequest) {
               AND rt.confidence >= ?
               AND rt.category != 'language'
               AND ${scopeSql.where}
+              ${querySql}
             GROUP BY rt.tool_key, rt.tool_name, rt.category`,
-      args: [...scopeSql.joinArgs, tool, minConfidence, ...scopeSql.whereArgs],
+      args: [...scopeSql.joinArgs, tool, minConfidence, ...scopeSql.whereArgs, ...queryArgs],
     });
     const summaryRow = summary.rows[0];
     const definition = getToolDefinition(tool);
@@ -120,10 +139,20 @@ export async function GET(request: NextRequest) {
               AND rt.confidence >= ?
               AND rt.category != 'language'
               AND ${scopeSql.where}
+              ${querySql}
             ORDER BY rt.confidence DESC, r.stargazers_count DESC
-            LIMIT ?`,
-      args: [...scopeSql.joinArgs, tool, minConfidence, ...scopeSql.whereArgs, limit],
+            LIMIT ? OFFSET ?`,
+      args: [
+        ...scopeSql.joinArgs,
+        tool,
+        minConfidence,
+        ...scopeSql.whereArgs,
+        ...queryArgs,
+        limit,
+        offset,
+      ],
     });
+    const repoCount = (summaryRow?.repo_count as number | undefined) ?? 0;
 
     return json({
       scope,
@@ -135,7 +164,7 @@ export async function GET(request: NextRequest) {
         toolName: (summaryRow?.tool_name as string | undefined) ?? definition?.name ?? tool,
         category: (summaryRow?.category as string | undefined) ?? definition?.category ?? 'library',
         url: getToolUrl((summaryRow?.tool_key as string | undefined) ?? definition?.key ?? tool),
-        repoCount: (summaryRow?.repo_count as number | undefined) ?? 0,
+        repoCount,
         avgConfidence: summaryRow ? Math.round(summaryRow.avg_confidence as number) : 0,
         maxConfidence: (summaryRow?.max_confidence as number | undefined) ?? 0,
       },
@@ -169,6 +198,11 @@ export async function GET(request: NextRequest) {
           sources: JSON.parse((row.sources as string) || '[]') as string[],
         },
       })),
+      page: {
+        offset,
+        limit,
+        hasMore: offset + result.rows.length < repoCount,
+      },
     });
   }
 

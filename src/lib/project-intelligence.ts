@@ -28,7 +28,7 @@ export type ProjectRetrievalMode =
   | 'structured'
   | 'fallback';
 
-export interface ProjectRetrievalSummary {
+interface ProjectRetrievalSummary {
   mode: ProjectRetrievalMode;
   candidateCount: number;
   semanticCandidates: number;

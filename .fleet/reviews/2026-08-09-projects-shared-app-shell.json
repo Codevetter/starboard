@@ -1,0 +1,59 @@
+{
+  "$schema": "fleet.design-review.v1",
+  "version": 1,
+  "project": "starboard",
+  "target": "projects shared app shell",
+  "mode": "preserve",
+  "register": "product",
+  "context": {
+    "product": "PRODUCT.md",
+    "design": "src/app/globals.css"
+  },
+  "direction": {
+    "references": [],
+    "probes": [],
+    "selected": "existing-design",
+    "approval": "not-required",
+    "before": ".fleet/evidence/projects-shell/before-1440.png"
+  },
+  "evidence": {
+    "screenshots": [
+      {
+        "width": 390,
+        "path": ".fleet/evidence/projects-shell/after-390.png"
+      },
+      {
+        "width": 768,
+        "path": ".fleet/evidence/projects-shell/after-768.png"
+      },
+      {
+        "width": 1440,
+        "path": ".fleet/evidence/projects-shell/after-1440.png"
+      }
+    ],
+    "projectCheck": {
+      "command": "pnpm build",
+      "status": "pass"
+    },
+    "critique": {
+      "score": 32,
+      "maximum": 40
+    },
+    "audit": {
+      "score": 18,
+      "maximum": 20
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": []
+    }
+  },
+  "ownerFeedback": {
+    "decision": "keep",
+    "note": "Owner approved the shared-shell Projects correction on 2026-08-09."
+  }
+}

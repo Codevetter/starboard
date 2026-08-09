@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
+import { replaceAbortableJsonRequest } from '@/lib/abortable-fetch';
+
 export type SortOption =
   | 'relevance'
   | 'recently-starred'
@@ -104,19 +106,13 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
   const prevFilterKey = useRef(filterKey(opts));
   const searchAbortRef = useRef<AbortController | null>(null);
   const loadMoreAbortRef = useRef<AbortController | null>(null);
+  const currentFilterKey = filterKey(opts);
 
   // First page via SWR
   const url = buildStarsUrl(opts, 0);
   const { data, error, isLoading, isValidating, mutate } = useSWR<StarsResponse>(
     url,
-    (url: string) => {
-      const controller = new AbortController();
-      searchAbortRef.current = controller;
-      return fetch(url, { signal: controller.signal }).then((r) => {
-        if (!r.ok) throw new Error(`${r.status}`);
-        return r.json();
-      });
-    },
+    (requestUrl: string) => replaceAbortableJsonRequest<StarsResponse>(searchAbortRef, requestUrl),
     {
       revalidateOnFocus: false,
       dedupingInterval: 60000 * 5,
@@ -131,14 +127,20 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
 
   // Abort stale requests and reset pagination when filters change
   useEffect(() => {
-    const currentKey = filterKey(opts);
-    if (currentKey !== prevFilterKey.current) {
-      prevFilterKey.current = currentKey;
-      searchAbortRef.current?.abort();
+    if (currentFilterKey !== prevFilterKey.current) {
+      prevFilterKey.current = currentFilterKey;
       loadMoreAbortRef.current?.abort();
       setLoadedRepos([]);
     }
-  }, [opts]);
+  }, [currentFilterKey]);
+
+  useEffect(
+    () => () => {
+      searchAbortRef.current?.abort();
+      loadMoreAbortRef.current?.abort();
+    },
+    []
+  );
 
   const firstPageRepos = data?.repos ?? [];
   const allRepos = [...firstPageRepos, ...loadedRepos];

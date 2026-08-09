@@ -2,7 +2,7 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "starboard",
-  "target": "projects shared app shell",
+  "target": "core discovery hardening and shared repository shell",
   "mode": "preserve",
   "register": "product",
   "context": {
@@ -14,29 +14,29 @@
     "probes": [],
     "selected": "existing-design",
     "approval": "not-required",
-    "before": ".fleet/evidence/projects-shell/before-1440.png"
+    "before": ".fleet/evidence/core-discovery-hardening/before-1440.png"
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": ".fleet/evidence/projects-shell/after-390.png"
+        "path": ".fleet/evidence/core-discovery-hardening/after-390.png"
       },
       {
         "width": 768,
-        "path": ".fleet/evidence/projects-shell/after-768.png"
+        "path": ".fleet/evidence/core-discovery-hardening/after-768.png"
       },
       {
         "width": 1440,
-        "path": ".fleet/evidence/projects-shell/after-1440.png"
+        "path": ".fleet/evidence/core-discovery-hardening/after-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "pnpm build",
+      "command": "pnpm build:cf",
       "status": "pass"
     },
     "critique": {
-      "score": 32,
+      "score": 35,
       "maximum": 40
     },
     "audit": {
@@ -53,7 +53,7 @@
     }
   },
   "ownerFeedback": {
-    "decision": "keep",
-    "note": "Owner approved the shared-shell Projects correction on 2026-08-09."
+    "decision": "delegated",
+    "note": "Owner delegated the final implementation and testability judgment by asking to fix the full audited surface before their own test pass."
   }
 }

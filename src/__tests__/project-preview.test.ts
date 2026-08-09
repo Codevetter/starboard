@@ -49,7 +49,16 @@ describe('public project preview resolution', () => {
     expect(fetchProject).not.toHaveBeenCalled();
   });
 
-  it('resolves one public GitHub repository on a catalog miss without persisting it', async () => {
+  it('requires authentication before an uncataloged GitHub request', async () => {
+    const execute = vi.fn().mockResolvedValue(result([]));
+    const fetchProject = vi.fn();
+    const resolve = createProjectPreviewResolver({ database: { execute }, fetchProject });
+
+    await expect(resolve('acme/sdk')).resolves.toEqual({ status: 'auth-required' });
+    expect(fetchProject).not.toHaveBeenCalled();
+  });
+
+  it('resolves one public GitHub repository with the existing session token', async () => {
     const execute = vi.fn().mockResolvedValue(result([]));
     const fetchProject = vi.fn().mockResolvedValue({
       id: 2,
@@ -68,12 +77,15 @@ describe('public project preview resolution', () => {
     });
     const resolve = createProjectPreviewResolver({ database: { execute }, fetchProject });
 
-    await expect(resolve('acme/sdk')).resolves.toMatchObject({
+    await expect(resolve('acme/sdk', 'github-token')).resolves.toMatchObject({
       status: 'resolved',
       source: 'github',
       project: { id: 2, fullName: 'acme/sdk', tools: [] },
     });
     expect(execute).toHaveBeenCalledTimes(1);
-    expect(fetchProject).toHaveBeenCalledTimes(1);
+    expect(fetchProject).toHaveBeenCalledWith(
+      { owner: 'acme', repo: 'sdk', fullName: 'acme/sdk' },
+      'github-token'
+    );
   });
 });

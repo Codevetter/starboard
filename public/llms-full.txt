@@ -10,7 +10,7 @@ Project-aware GitHub repository discovery and tool intelligence.
 
 ## Public without sign-in
 
-- Preview a public GitHub project without creating an account or saving data
+- Preview a cataloged public GitHub project without creating an account or saving data
 - Browse and search the seeded Discover corpus
 - Inspect detected tool and framework intelligence
 - Read the product history, scope, privacy policy, and terms
@@ -30,7 +30,7 @@ Project-aware GitHub repository discovery and tool intelligence.
 ## Product links
 
 - Home: https://starboard.codevetter.com/ — Product
-- Project Preview: https://starboard.codevetter.com/project-preview — Try project-aware recommendations before sign-in
+- Project Preview: https://starboard.codevetter.com/project-preview — Preview cataloged recommendations before sign-in; new lookups require GitHub sign-in
 - Discover: https://starboard.codevetter.com/discover — Browse and search the seeded public repository corpus
 - Tools: https://starboard.codevetter.com/tools — Detected tool and framework intelligence
 - Changelog: https://starboard.codevetter.com/changelog — Verified product history

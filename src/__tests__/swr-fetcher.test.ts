@@ -21,12 +21,14 @@ describe('jsonFetcher', () => {
         ok: false,
         status: 429,
         headers: { get: (name: string) => (name === 'Retry-After' ? '3' : null) },
+        json: async () => ({ error: 'Try again shortly.' }),
       })
     );
     await expect(jsonFetcher('/x')).rejects.toMatchObject({
       name: 'FetchHttpError',
       status: 429,
       retryAfterMs: 3000,
+      message: 'Try again shortly.',
     });
   });
 });

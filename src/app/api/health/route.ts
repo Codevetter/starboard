@@ -1,6 +1,22 @@
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
+
+interface WorkerVersionMetadata {
+  id?: string;
+  tag?: string;
+  timestamp?: string;
+}
+
+function workerVersionMetadata(): WorkerVersionMetadata | null {
+  try {
+    const { env } = getCloudflareContext();
+    return (env as { CF_VERSION_METADATA?: WorkerVersionMetadata }).CF_VERSION_METADATA ?? null;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Public health endpoint for the Starboard Cloudflare Worker.
@@ -38,7 +54,13 @@ export async function GET() {
     console.error('Starboard search health probe failed', err);
   }
 
-  const revision = process.env.CF_PAGES_COMMIT_SHA || process.env.NEXT_PUBLIC_REVISION || 'unknown';
+  const version = workerVersionMetadata();
+  const revision =
+    process.env.CF_PAGES_COMMIT_SHA ||
+    process.env.NEXT_PUBLIC_REVISION ||
+    version?.tag ||
+    version?.id ||
+    'unknown';
 
   const ragConfigured = Boolean(process.env.RAG_SERVICE_KEY && process.env.STARBOARD_RAG_INDEX_ID);
 
@@ -48,7 +70,7 @@ export async function GET() {
       build: {
         name: 'starboard',
         revision,
-        branch: process.env.CF_PAGES_BRANCH ?? 'unknown',
+        branch: process.env.CF_PAGES_BRANCH ?? (version ? 'worker' : 'unknown'),
       },
       live: true,
       revision,

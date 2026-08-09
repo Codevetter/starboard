@@ -3,9 +3,13 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
-import { ftsSearchQuery } from '@/lib/search';
+import { generateEmbeddings } from '@/lib/embeddings';
+import { repoVectors } from '@/lib/repo-vectors';
+import { expandedSearchQuery, ftsSearchQuery, rrfFuse } from '@/lib/search';
 
 const MIN_STARS_FLOOR = 5000;
+const SEMANTIC_TOP_K = 100;
+const SEMANTIC_DISTANCE_MAX = 0.7;
 // Index-friendly eligibility filter. The previous form
 //   (r.stargazers_count >= ? OR EXISTS (SELECT 1 FROM user_repos ...))
 // forced SQLite to evaluate a correlated subquery against user_repos for
@@ -51,7 +55,7 @@ export async function GET(request: NextRequest) {
       .map((value) => value.trim().toLowerCase())
       .filter((value) => /^[a-z0-9][a-z0-9-]{0,63}$/.test(value)) || [];
   const listId = params.get('list_id');
-  const sort = params.get('sort') || 'stars';
+  const sort = params.get('sort') || (q ? 'relevance' : 'stars');
   const limit = Math.min(Math.max(parseInt(params.get('limit') || '50', 10) || 50, 1), 200);
   const offset = Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0);
 
@@ -61,8 +65,8 @@ export async function GET(request: NextRequest) {
   let rankedRepoIds: number[] | null = null;
   if (q) {
     const lexicalQuery = ftsSearchQuery(q);
-    const lexIds = lexicalQuery
-      ? await db
+    const lexIdsPromise = lexicalQuery
+      ? db
           .execute({
             sql: `SELECT r.id,
                        MIN(rank) AS best_rank
@@ -85,12 +89,29 @@ export async function GET(request: NextRequest) {
             args: [lexicalQuery, lexicalQuery, MIN_STARS_FLOOR],
           })
           .then((result) => result.rows.map((r) => r.id as number))
-      : [];
+      : Promise.resolve([] as number[]);
 
-    if (lexIds.length > 0) {
-      rankedRepoIds = lexIds;
+    const semanticIdsPromise = (async () => {
+      try {
+        const [embedding] = await generateEmbeddings([expandedSearchQuery(q)]);
+        if (!embedding) return [];
+        const matches = await repoVectors().query(embedding, SEMANTIC_TOP_K);
+        return matches
+          .filter((match) => match.distance <= SEMANTIC_DISTANCE_MAX)
+          .map((match) => match.repoId);
+      } catch (error) {
+        console.warn('Discover semantic retrieval unavailable; using lexical search', error);
+        return [];
+      }
+    })();
+
+    const [lexIds, semanticIds] = await Promise.all([lexIdsPromise, semanticIdsPromise]);
+    const searchIds = rrfFuse([semanticIds, lexIds]);
+
+    if (searchIds.length > 0) {
+      rankedRepoIds = searchIds;
       whereClauses.push('r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))');
-      whereArgs.push(JSON.stringify(lexIds));
+      whereArgs.push(JSON.stringify(searchIds));
     } else {
       whereClauses.push('0 = 1');
     }

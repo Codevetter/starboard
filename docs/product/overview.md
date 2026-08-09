@@ -7,8 +7,10 @@ developer's public GitHub projects to a seeded open-source repository catalog,
 then explains which repositories and tools may fit the work being built.
 Similar repositories form the grounding layer: tool recommendations come only
 from normalized detections on those peers and name their repository sources.
-Guests can preview this value with a public repository before sign-in; a durable
-project connection remains an explicit authenticated action.
+Guests can preview this value for repositories already in the public catalog.
+An uncataloged repository lookup uses the user's existing authenticated GitHub
+session rather than a shared anonymous quota. A durable project connection
+remains a separate explicit action.
 
 The product also keeps a personal starred-repository library with search,
 lists, tags, saved state, and notes. Discover and Tool Intelligence remain
