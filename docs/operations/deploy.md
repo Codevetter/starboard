@@ -26,9 +26,9 @@ The deploy workflow purges only `starboard.codevetter.com` after a successful
 Worker deployment. It does not purge the rest of `codevetter.com`. An emergency
 purge can be run independently through the **Purge Starboard Cache** workflow.
 Use a repository secret named `CLOUDFLARE_CACHE_PURGE_TOKEN` with only the
-`Zone.Cache Purge` permission for the `codevetter.com` zone. Until that dedicated
-secret is configured, the workflows fall back to the existing deploy token; the
-purge step will fail closed if that token lacks cache-purge permission.
+`Zone.Cache Purge` permission for the `codevetter.com` zone. The purge step
+fails closed when that dedicated secret is missing or invalid; the broader
+Worker/D1 deploy token is never reused for cache purging.
 
 The Worker `main` is `worker.mjs`; built assets in `.open-next/assets` are
 served via the `ASSETS` binding. `wrangler.jsonc` configures:
