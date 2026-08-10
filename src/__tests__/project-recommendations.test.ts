@@ -248,6 +248,35 @@ describe('rankProjectRecommendations', () => {
     expect(tools[0].sources).toHaveLength(2);
   });
 
+  it('normalizes blank tool metadata and falls back to the tool key for a missing name', () => {
+    const project = repo({
+      id: 1,
+      fullName: 'acme/app',
+      topics: ['testing'],
+      tools: [
+        { key: 'vitest', name: 'Vitest', category: 'testing', confidence: 98 },
+        { key: ' ', name: 'Blank', category: ' ', confidence: 98 },
+      ],
+    });
+    const peer = repo({
+      id: 2,
+      fullName: 'oss/peer',
+      topics: ['testing'],
+      tools: [
+        {
+          key: 'vitest',
+          name: undefined as unknown as string,
+          category: '',
+          confidence: 98,
+        },
+      ],
+    });
+
+    const [match] = rankProjectRecommendations(project, [peer]).similarProjects;
+
+    expect(match.evidence).toContain('Shared tools: vitest');
+  });
+
   it('does not recommend a competing framework when the project already uses one', () => {
     const project = repo({
       id: 1,
