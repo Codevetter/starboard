@@ -24,6 +24,7 @@ export async function GET(
   { params }: { params: Promise<{ repoId: string }> }
 ) {
   const { repoId: rawId } = await params;
+  const catalogOnly = request.nextUrl.searchParams.get('catalogOnly') === '1';
 
   // Support two modes:
   // 1. Numeric ID: /api/repos/12345
@@ -54,6 +55,14 @@ export async function GET(
       sql: 'SELECT * FROM repos WHERE id = ?',
       args: [repoId],
     });
+
+    // Catalog-only callers must never turn a read into a cache mutation.
+    if (repoResult.rows.length === 0 && catalogOnly) {
+      return NextResponse.json(
+        { error: 'Repository not found in public catalog' },
+        { status: 404 }
+      );
+    }
 
     // If not cached locally, fetch from GitHub and upsert
     if (repoResult.rows.length === 0) {
