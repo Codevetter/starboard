@@ -20,11 +20,11 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - uses: astral-sh/setup-uv@v7
+
       - run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
-
-      - run: pnpm test:coverage
+      - run: pnpm quality
 
       - run: pnpm build:e2e
 
