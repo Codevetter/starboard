@@ -33,6 +33,13 @@ interface ToolRecommendationSource {
   confidence: number;
 }
 
+interface ScoredProjectCandidate {
+  candidate: ProjectRecommendationRepo;
+  score: number;
+  specificScore: number;
+  evidence: string[];
+}
+
 export interface GroundedToolRecommendation {
   key: string;
   name: string;
@@ -111,6 +118,61 @@ function intersection<T>(left: Set<T>, right: Set<T>, limit = Number.POSITIVE_IN
   return result;
 }
 
+function compareScoredCandidates(a: ScoredProjectCandidate, b: ScoredProjectCandidate): number {
+  return (
+    b.score - a.score ||
+    b.candidate.stargazersCount - a.candidate.stargazersCount ||
+    a.candidate.fullName.localeCompare(b.candidate.fullName)
+  );
+}
+
+function retainBoundedCandidate(
+  ranked: ScoredProjectCandidate[],
+  candidate: ScoredProjectCandidate,
+  limit: number
+): void {
+  if (ranked.length < limit) {
+    ranked.push(candidate);
+    for (let index = ranked.length - 1; index > 0; ) {
+      const parent = Math.floor((index - 1) / 2);
+      if (compareScoredCandidates(ranked[index], ranked[parent]) <= 0) break;
+      [ranked[index], ranked[parent]] = [ranked[parent], ranked[index]];
+      index = parent;
+    }
+    return;
+  }
+  if (compareScoredCandidates(candidate, ranked[0]) >= 0) return;
+  ranked[0] = candidate;
+  for (let index = 0; ; ) {
+    const left = index * 2 + 1;
+    if (left >= ranked.length) break;
+    const right = left + 1;
+    let worst = left;
+    if (right < ranked.length && compareScoredCandidates(ranked[right], ranked[left]) > 0) {
+      worst = right;
+    }
+    if (compareScoredCandidates(ranked[worst], ranked[index]) <= 0) break;
+    [ranked[index], ranked[worst]] = [ranked[worst], ranked[index]];
+    index = worst;
+  }
+}
+
+function canRetainCandidate(
+  ranked: ScoredProjectCandidate[],
+  candidate: ProjectRecommendationRepo,
+  score: number,
+  limit: number
+): boolean {
+  if (ranked.length < limit) return true;
+  return (
+    score > ranked[0].score ||
+    (score === ranked[0].score &&
+      (candidate.stargazersCount > ranked[0].candidate.stargazersCount ||
+        (candidate.stargazersCount === ranked[0].candidate.stargazersCount &&
+          candidate.fullName.localeCompare(ranked[0].candidate.fullName) < 0)))
+  );
+}
+
 function recommendToolsFromPeers(
   project: ProjectRecommendationRepo,
   peers: ProjectRecommendation[],
@@ -183,15 +245,17 @@ export function rankProjectRecommendations(
     project.aiCategory,
     ...(project.aiKeywords ?? [])
   );
+  const resultLimit = Math.max(1, Math.min(limit, 50));
 
   let hasSpecificMatches = false;
-  const scored: Array<ProjectRecommendation & { specificScore: number }> = [];
+  const specificCandidates: ScoredProjectCandidate[] = [];
+  const fallbackCandidates: ScoredProjectCandidate[] = [];
   for (const candidate of candidates) {
     if (candidate.id === project.id || candidate.archived) continue;
 
     let score = 0;
     let specificScore = 0;
-    const evidence: string[] = [];
+    let languageMatch = false;
 
     if (
       projectLanguage &&
@@ -199,7 +263,7 @@ export function rankProjectRecommendations(
       projectLanguage === candidate.language.toLowerCase()
     ) {
       score += 6;
-      evidence.push(`Same primary language: ${project.language}`);
+      languageMatch = true;
     }
 
     const topicMatches = intersection(projectTopics, normalizedSet(candidate.topics), 3);
@@ -207,18 +271,15 @@ export function rankProjectRecommendations(
       const value = topicMatches.length * 12;
       score += value;
       specificScore += value;
-      evidence.push(`Shared topics: ${topicMatches.join(', ')}`);
     }
 
     const candidateToolKeys = new Set<string>();
     const candidateToolCategories = new Set<string>();
-    const candidateToolNames = new Map<string, string>();
     for (const tool of candidate.tools) {
       const key = tool.key.trim().toLowerCase();
       const category = tool.category.trim().toLowerCase();
       if (key) {
         candidateToolKeys.add(key);
-        if (!candidateToolNames.has(key)) candidateToolNames.set(key, tool.name);
       }
       if (category) candidateToolCategories.add(category);
     }
@@ -227,8 +288,6 @@ export function rankProjectRecommendations(
       const value = toolMatches.length * 14;
       score += value;
       specificScore += value;
-      const names = toolMatches.map((key) => candidateToolNames.get(key) ?? key);
-      evidence.push(`Shared tools: ${names.join(', ')}`);
     }
 
     const categoryMatches = intersection(projectToolCategories, candidateToolCategories)
@@ -238,7 +297,6 @@ export function rankProjectRecommendations(
       const value = categoryMatches.length * 6;
       score += value;
       specificScore += value;
-      evidence.push(`Related tool areas: ${categoryMatches.join(', ')}`);
     }
 
     const tokenMatches = intersection(
@@ -256,34 +314,44 @@ export function rankProjectRecommendations(
       const value = tokenMatches.length * 3;
       score += value;
       specificScore += value;
-      evidence.push(`Related context: ${tokenMatches.join(', ')}`);
     }
 
-    const scoredCandidate = { ...candidate, score, specificScore, evidence };
+    let target: ScoredProjectCandidate[] | null = null;
     if (specificScore >= MIN_SPECIFIC_PEER_SCORE) {
       if (!hasSpecificMatches) {
-        scored.length = 0;
+        fallbackCandidates.length = 0;
         hasSpecificMatches = true;
       }
-      scored.push(scoredCandidate);
+      target = specificCandidates;
     } else if (!hasSpecificMatches) {
-      scored.push(scoredCandidate);
+      target = fallbackCandidates;
     }
+    if (!target || !canRetainCandidate(target, candidate, score, resultLimit)) continue;
+
+    const evidence: string[] = [];
+    if (languageMatch) evidence.push(`Same primary language: ${project.language}`);
+    if (topicMatches.length > 0) evidence.push(`Shared topics: ${topicMatches.join(', ')}`);
+    if (toolMatches.length > 0) {
+      const names = toolMatches.map(
+        (key) => candidate.tools.find((tool) => tool.key.trim().toLowerCase() === key)?.name ?? key
+      );
+      evidence.push(`Shared tools: ${names.join(', ')}`);
+    }
+    if (categoryMatches.length > 0) {
+      evidence.push(`Related tool areas: ${categoryMatches.join(', ')}`);
+    }
+    if (tokenMatches.length > 0) evidence.push(`Related context: ${tokenMatches.join(', ')}`);
+    retainBoundedCandidate(target, { candidate, score, specificScore, evidence }, resultLimit);
   }
 
-  const similarProjects = scored
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        b.stargazersCount - a.stargazersCount ||
-        a.fullName.localeCompare(b.fullName)
-    )
-    .slice(0, Math.max(1, Math.min(limit, 50)))
-    .map((candidate) =>
-      hasSpecificMatches
-        ? candidate
-        : { ...candidate, evidence: ['Broad discovery fallback from the public catalog'] }
-    );
+  const similarProjects = (hasSpecificMatches ? specificCandidates : fallbackCandidates)
+    .sort(compareScoredCandidates)
+    .map(({ candidate, score, specificScore, evidence }) => {
+      const recommendation = { ...candidate, score, specificScore, evidence };
+      return hasSpecificMatches
+        ? recommendation
+        : { ...recommendation, evidence: ['Broad discovery fallback from the public catalog'] };
+    });
 
   return {
     similarProjects,
