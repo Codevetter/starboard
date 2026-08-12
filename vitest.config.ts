@@ -9,20 +9,14 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['json', 'text-summary'],
-      // Selective thresholds on core logic modules with dedicated unit tests,
-      // following the swe-interview-prep fleet model. UI/config/DB-integration
-      // files are excluded — they are covered by e2e or integration suites.
-      include: [
-        'src/lib/github-projects.ts',
-        'src/lib/project-recommendations.ts',
-        'src/lib/search.ts',
-        'src/lib/starboard-rag-documents.ts',
-      ],
+      // Keep the complete production library and database denominator visible.
+      // UI and route behavior remains covered by the Playwright suite.
+      include: ['src/lib/**/*.{ts,tsx}', 'src/db/**/*.{ts,tsx}'],
       thresholds: {
-        lines: 100,
-        functions: 100,
-        statements: 100,
-        branches: 100,
+        lines: 61,
+        functions: 64,
+        statements: 60,
+        branches: 53,
       },
       exclude: [
         'node_modules',
@@ -32,7 +26,6 @@ export default defineConfig({
         '**/*.d.ts',
         '**/*.config.*',
         '**/test/**',
-        'src/db/**',
         'src/app/**',
         'src/components/**',
         'src/hooks/**',
