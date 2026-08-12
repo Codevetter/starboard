@@ -47,6 +47,7 @@
     "lightningcss",
     "tsx",
     "knip",
+    "jscpd",
     "blume",
     "@blume/*",
     "astro",

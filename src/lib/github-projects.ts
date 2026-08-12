@@ -44,7 +44,7 @@ export class GitHubProjectApiError extends Error {
   }
 }
 
-export class GitHubProjectPaginationError extends Error {
+class GitHubProjectPaginationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'GitHubProjectPaginationError';
