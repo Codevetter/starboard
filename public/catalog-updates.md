@@ -11,7 +11,7 @@ Recently cataloged popular repositories in the shared Discover corpus (typically
 
 ## Refresh cadence
 
-Catalogue growth comes from the bounded daily `seed-popular` GitHub Action; manual dispatch remains available for operator checks. Personal stars update when a user syncs and remain separate from this public popular pool.
+Catalogue growth comes from a complete weekly, additions-only `seed-popular` GitHub Action; manual dispatch remains available for operator checks. Personal stars update when a user syncs and remain separate from this public popular pool.
 
 ## Related
 

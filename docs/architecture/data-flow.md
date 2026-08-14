@@ -15,16 +15,19 @@ filtered by `session.user.githubId`.
 ## Public discovery
 
 ```text
-daily or manually dispatched seed-popular job
-  → GitHub Search metadata
-  → repos + star snapshots in D1
+weekly or manually dispatched seed-popular job
+  → complete, creation-date-partitioned GitHub Search identity set
+  → diff against all stored D1 repository IDs
+  → fetch details and insert source-only additions + initial snapshots
   → bounded embedding and tool-enrichment jobs
   → Vectorize + repo_tools
   → public Discover and Tool Intelligence
 ```
 
-Discover requests do not synchronously call GitHub. Growth uses stored snapshot
-history and remains empty when insufficient samples exist.
+Discover requests do not synchronously call GitHub. The weekly catalog job is
+additions-only: it does not delete or refresh existing repository rows. Growth
+uses snapshots captured at ingest or user sync and remains empty when
+insufficient samples exist.
 
 ## Connected projects
 

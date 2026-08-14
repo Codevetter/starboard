@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-08-09
+Last updated: 2026-08-13
 
 ## Why/What
 
@@ -28,7 +28,7 @@ installation, alerts, reports, digest email, and stack generation.
 | Client state | SWR (data), nuqs (URL-backed filters/sort) |
 | AI / search | Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5` (768d); optional `knowledgebase` Worker via service binding |
 | Deploy | Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
-| CI | GitHub Actions — push CI + manual SHA-tagged deploy + daily bounded seed/enrich/embed |
+| CI | GitHub Actions — push CI + manual SHA-tagged deploy + weekly complete additions-only seed/enrich/embed |
 
 **Local dev:** `pnpm install && cp .env.example .env.local && pnpm dev` → http://localhost:3000
 
@@ -66,11 +66,20 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`; `AI_GATEWAY_API_KEY` for authenticated operator jobs; `RAG_SERVICE_KEY` for relevance RAG. Any legacy unused `TURSO_*` bindings are separate credential-cleanup work. |
 | Embedding model | `@cf/baai/bge-base-en-v1.5` — change model, dimension, and replacement Vectorize index together |
 | Project connections | Additive `0003_user_projects.sql`; remote migration requires explicit approval before application rollout |
-| Data refresh jobs | Daily bounded `seed-popular` at 03:00 UTC plus manual seed/enrich/embed dispatches |
+| Data refresh jobs | Weekly complete additions-only `seed-popular` at Sunday 03:17 UTC plus manual seed/enrich/embed dispatches |
 | Deploy | `pnpm deploy:cf` or manual `deploy.yml` dispatch; both attach the full Git SHA |
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
+
+- **2026-08-13 (weekly catalog reconciliation implemented locally)** — Replaced
+  the multi-day popular-repository cursor walk with one complete weekly GitHub
+  identity reconciliation. Immutable creation-date partitions fit in single
+  Search responses, all stored D1 IDs are read once, and only source-only
+  additions are fetched and inserted. Incomplete or unstable source evidence
+  and deltas above 100 fail before writes; deletion and existing-row refresh
+  remain out of scope. Focused reconciliation, D1 regression, and refresh
+  evidence tests pass; production activation awaits normal review and push.
 
 - **2026-08-09 (discovery entry and cache isolation complete locally)** — Made
   Discover the default generic sign-in destination, removed the 100-repository
@@ -199,7 +208,7 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Repo intelligence | Shared-shell repository detail (`/explore`), similar projects, tool evidence, public shared lists, legal/marketing shell |
 | Semantic search | knowledgebase Worker integration for relevance search; README-backed sync ingest; local embeddings retained for non-RAG Starboard features |
 | Connected projects | Shipped public GitHub project connections, public preview, GitHub picker, and evidence-based repository and tool recommendations |
-| Discovery & tools | Public Discover, daily bounded seed/enrich/embed with manual dispatch, stored growth sorting, and Tool Intelligence |
+| Discovery & tools | Public Discover, weekly complete additions-only seed/enrich/embed with manual dispatch, stored growth sorting where snapshot history exists, and Tool Intelligence |
 | Removed 2026-08-08 | Fleet project catalog, Alerts, Reports, Stack Builder, standalone Radar, weekly digest |
 | Ops hardening (2026-06-20) | `.env.example`, Vitest + Playwright path, pre-push lint, self-contained TypeScript/Astro landing for green CF builds |
 
@@ -264,8 +273,9 @@ provenance. The workflow is free and has no billing or entitlement gate.
   collection controls but is not required to browse, search, sort, filter,
   paginate, or open repo details.
 - Discover supports paginated 30-day growth ordering and detected-tool facets from indexed local snapshot/tool tables.
-- Daily bounded GitHub Actions seed/enrich popular repos in D1 and embed through
-  native Worker bindings; manual dispatch remains available for operator checks.
+- Weekly complete, additions-only GitHub Actions reconciliation inserts missing
+  popular repos in D1 and embeds through native Worker bindings; manual dispatch
+  remains available for operator checks.
 - Star history and fastest-grower APIs/surfaces: `/api/repos/[repoId]/star-history`, `/api/growth`, Discover growth sorting, and repo-detail mini history from stored `repo_star_snapshots`.
 - Tool Intelligence: additive `repo_tools` index, `/api/tools`, `/api/repos/[repoId]/tools`, `/tools`, and `pnpm db:enrich-tools` for bounded SBOM/tree/manifest-based detection with source/confidence labels. Repository evidence is server-filtered and paginated in 48-item pages. Accuracy disclaimer is shown in-product because manifest/SBOM evidence is stronger than README/topic/metadata inference and C/C++ monorepos vary.
 - SaaS Maker feedback widget integrated; product analytics run directly through PostHog.

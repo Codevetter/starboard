@@ -41,7 +41,7 @@ The `--webpack` flag remains the verified OpenNext production build path.
 | `pnpm db:convert-turso-vectors` | Validate/convert extracted 768-d vectors to Vectorize NDJSON |
 | `pnpm db:snapshot-turso-logical starboard` | Produce a row-free deterministic Turso digest for final cutover reconciliation |
 | `pnpm db:enrich-repos` | `tsx scripts/enrich-repos.ts` — AI metadata enrichment |
-| `pnpm db:seed-popular` | `tsx scripts/seed-popular.ts` — cold-seed popular repos (≥5k stars) |
+| `pnpm db:seed-popular` | `tsx scripts/seed-popular.ts` — fully reconcile and add missing popular repos (≥5k stars) |
 | `pnpm db:enrich-tools` | `tsx scripts/enrich-tools.ts` — SBOM/tree/manifest tool detection |
 
 ## Testing

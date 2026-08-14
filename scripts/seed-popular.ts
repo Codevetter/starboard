@@ -1,18 +1,21 @@
 /**
- * Daily seed/refresh of popular GitHub repos into our `repos` + `repo_embeddings` tables.
+ * Weekly additions-only reconciliation of popular GitHub repositories.
  *
  * Each run:
- *   1. Walk a bounded slice of GH search across `stars >= MIN_STARS_FLOOR`.
- *      Only changed repos are updated, so unchanged rows do not fire the FTS
- *      maintenance trigger. Cursor resumes between runs and resets after a
- *      complete corpus pass.
- *   2. In direct/local mode, embed up to SEED_DAILY_LIMIT pending repos. The
+ *   1. Enumerate the complete GitHub `stars >= MIN_STARS_FLOOR` identity set
+ *      through non-overlapping creation-date partitions that each fit in one
+ *      Search response.
+ *   2. Read every stored D1 repository ID once, diff both sets in memory, and
+ *      fail before writes if additions exceed SEED_MAX_ADDITIONS.
+ *   3. Fetch details and insert only genuinely new repositories. Existing rows
+ *      are never updated and stored-only rows are never deleted.
+ *   4. In direct/local mode, embed up to SEED_DAILY_LIMIT pending repos. The
  *      GitHub workflow delegates this step to the deployed Worker so Workers AI,
  *      Vectorize, and D1 are reached through native bindings.
  *
- * GH metadata walking is free under quota (~120 calls / 5000-per-hour). Bottleneck is
- * the daily embed budget (CF Workers AI). After ~12 catch-up days the pool is fully
- * embedded; subsequent runs pick up only newly-eligible repos and metadata drift.
+ * GitHub Search calls are paced below the authenticated 30 requests/minute
+ * bucket. A normal reconciliation makes roughly 250 calls, below the workflow
+ * GITHUB_TOKEN allowance of 1000 requests/hour per repository.
  *
  * Required env:
  *   CLOUDFLARE_ACCOUNT_ID
@@ -23,9 +26,9 @@
  *   GITHUB_TOKEN          — fine-grained PAT, public_repo:read
  * Optional env:
  *   SEED_DAILY_LIMIT      — embeddings per run, default 1000
- *   SEED_METADATA_PAGE_LIMIT — GitHub search pages per run, default 10 (hard cap 25)
+ *   SEED_MAX_ADDITIONS    — abort-before-write bound, default 100
+ *   SEED_MIN_SOURCE_REPOS — reject suspiciously small source sets, default 5000
  *   MIN_STARS_FLOOR       — minimum stars to seed, default 5000
- *   STAR_THRESHOLDS       — comma-separated digest thresholds, default 5000,10000,20000,50000,100000
  *   SEED_EMBED_MODE       — `worker` delegates embeddings to the bound Worker endpoint
  */
 
@@ -34,23 +37,33 @@ import { createD1RestClientFromEnv } from '../src/db/rest-client';
 
 import { isRetryableDbError } from '../src/lib/db-retry';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../src/lib/embeddings';
+import {
+  enumeratePopularCatalog,
+  GITHUB_SEARCH_PAGE_SIZE,
+  planCatalogReconciliation,
+  type CatalogSearchResult,
+} from '../src/lib/popular-catalog-reconciliation';
 import { recordStep } from '../src/lib/refresh-manifest';
 import { createVectorizeRestWriterFromEnv } from '../src/lib/repo-vectors-rest';
 
 const DAILY_LIMIT = parseInt(process.env.SEED_DAILY_LIMIT || '1000', 10);
-const REQUESTED_METADATA_PAGE_LIMIT = parseInt(process.env.SEED_METADATA_PAGE_LIMIT || '10', 10);
-const METADATA_PAGE_LIMIT = Math.min(Math.max(REQUESTED_METADATA_PAGE_LIMIT || 0, 1), 25);
 const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
-const STAR_THRESHOLDS = (process.env.STAR_THRESHOLDS || '5000,10000,20000,50000,100000')
-  .split(',')
-  .map((value) => parseInt(value.trim(), 10))
-  .filter((value) => Number.isFinite(value) && value >= MIN_STARS_FLOOR)
-  .sort((a, b) => a - b);
-const PER_PAGE = 100;
-const MAX_PAGES_PER_BUCKET = 10; // GH search caps at 1000 results
+const MAX_ADDITIONS_HARD_LIMIT = 100;
+const MAX_ADDITIONS = parseInt(process.env.SEED_MAX_ADDITIONS || '100', 10);
+const MIN_SOURCE_REPOS = parseInt(process.env.SEED_MIN_SOURCE_REPOS || '5000', 10);
 const BATCH_SIZE = 50;
 const DB_MAX_ATTEMPTS = 4;
 const DB_RETRY_BASE_MS = 1_000;
+const GITHUB_SEARCH_DELAY_MS = 2_100;
+
+if (!Number.isInteger(MAX_ADDITIONS) || MAX_ADDITIONS < 0) {
+  throw new Error(`SEED_MAX_ADDITIONS must be a non-negative integer; received ${MAX_ADDITIONS}`);
+}
+if (MAX_ADDITIONS > MAX_ADDITIONS_HARD_LIMIT) {
+  throw new Error(
+    `SEED_MAX_ADDITIONS ${MAX_ADDITIONS} exceeds hard safety limit ${MAX_ADDITIONS_HARD_LIMIT}`
+  );
+}
 
 interface GhRepo {
   id: number;
@@ -69,22 +82,8 @@ interface GhRepo {
 
 interface GhSearchResponse {
   total_count: number;
+  incomplete_results: boolean;
   items: GhRepo[];
-}
-
-interface StoredRepo {
-  id: number;
-  name: string;
-  full_name: string;
-  owner_login: string;
-  owner_avatar: string;
-  html_url: string;
-  description: string | null;
-  language: string | null;
-  stargazers_count: number;
-  archived: number;
-  topics: string;
-  repo_updated_at: string | null;
 }
 
 async function withDbRetry<T>(label: string, fn: () => Promise<T>): Promise<T> {
@@ -110,100 +109,31 @@ function batchDb(db: Client, stmts: InStatement[]) {
   return withDbRetry('batch', () => db.batch(stmts));
 }
 
-async function loadStoredRepos(db: Client, repoIds: number[]): Promise<Map<number, StoredRepo>> {
-  if (repoIds.length === 0) return new Map();
-
-  const result = await executeDb(db, {
-    sql: `SELECT id,
-                 name,
-                 full_name,
-                 owner_login,
-                 owner_avatar,
-                 html_url,
-                 description,
-                 language,
-                 stargazers_count,
-                 archived,
-                 topics,
-                 repo_updated_at
-          FROM repos
-          WHERE id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
-    args: [JSON.stringify(repoIds)],
-  });
-
-  return new Map(
-    result.rows.map((row) => [
-      row.id as number,
-      {
-        id: row.id as number,
-        name: row.name as string,
-        full_name: row.full_name as string,
-        owner_login: row.owner_login as string,
-        owner_avatar: row.owner_avatar as string,
-        html_url: row.html_url as string,
-        description: row.description as string | null,
-        language: row.language as string | null,
-        stargazers_count: row.stargazers_count as number,
-        archived: row.archived as number,
-        topics: row.topics as string,
-        repo_updated_at: row.repo_updated_at as string | null,
-      },
-    ])
-  );
+async function loadStoredRepoIds(db: Client): Promise<Set<number>> {
+  const result = await executeDb(db, 'SELECT id FROM repos');
+  return new Set(result.rows.map((row) => row.id as number));
 }
 
-function storedRepoDiffers(stored: StoredRepo | undefined, repo: GhRepo): boolean {
-  if (!stored) return true;
+let lastGitHubSearchAt = 0;
 
-  return (
-    stored.name !== repo.name ||
-    stored.full_name !== repo.full_name ||
-    stored.owner_login !== repo.owner.login ||
-    stored.owner_avatar !== repo.owner.avatar_url ||
-    stored.html_url !== repo.html_url ||
-    stored.description !== repo.description ||
-    stored.language !== repo.language ||
-    stored.stargazers_count !== repo.stargazers_count ||
-    stored.archived !== (repo.archived ? 1 : 0) ||
-    stored.topics !== JSON.stringify(repo.topics ?? []) ||
-    stored.repo_updated_at !== repo.updated_at
-  );
-}
-
-function buildThresholdEventStatements(
-  repos: GhRepo[],
-  previousStarCounts: Map<number, number>
-): InStatement[] {
-  const stmts: InStatement[] = [];
-
-  for (const repo of repos) {
-    const previousStars = previousStarCounts.get(repo.id);
-
-    for (const threshold of STAR_THRESHOLDS) {
-      const crossed =
-        previousStars === undefined
-          ? threshold === MIN_STARS_FLOOR && repo.stargazers_count >= threshold
-          : previousStars < threshold && repo.stargazers_count >= threshold;
-
-      if (!crossed) continue;
-
-      stmts.push({
-        sql: `INSERT OR IGNORE INTO repo_threshold_events
-              (repo_id, threshold, previous_stars, current_stars)
-              VALUES (?, ?, ?, ?)`,
-        args: [repo.id, threshold, previousStars ?? null, repo.stargazers_count],
-      });
-    }
+async function paceGitHubSearch(): Promise<void> {
+  const sinceLastSearch = Date.now() - lastGitHubSearchAt;
+  if (lastGitHubSearchAt > 0 && sinceLastSearch < GITHUB_SEARCH_DELAY_MS) {
+    await new Promise((resolve) => setTimeout(resolve, GITHUB_SEARCH_DELAY_MS - sinceLastSearch));
   }
-
-  return stmts;
+  lastGitHubSearchAt = Date.now();
 }
 
-async function ghSearch(q: string, page: number, token: string): Promise<GhSearchResponse> {
-  const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=${PER_PAGE}&page=${page}`;
+async function githubJson<T>(
+  url: string,
+  token: string,
+  label: string,
+  beforeAttempt?: () => Promise<void>
+): Promise<T> {
   const maxAttempts = 4;
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    await beforeAttempt?.();
     let res: Response;
     try {
       res = await fetch(url, {
@@ -217,106 +147,109 @@ async function ghSearch(q: string, page: number, token: string): Promise<GhSearc
     } catch (error) {
       lastError = error;
       const waitMs = 2 ** (attempt - 1) * 1000;
-      console.warn(`GitHub search request failed. Retrying in ${waitMs / 1000}s...`);
+      console.warn(`${label} request failed. Retrying in ${waitMs / 1000}s...`);
       await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
 
     if (res.status >= 500 && attempt < maxAttempts) {
       const waitMs = 2 ** (attempt - 1) * 1000;
-      console.warn(`GitHub search returned ${res.status}. Retrying in ${waitMs / 1000}s...`);
+      console.warn(`${label} returned ${res.status}. Retrying in ${waitMs / 1000}s...`);
       await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
 
-    if (res.status === 403 || res.status === 429) {
+    if ((res.status === 403 || res.status === 429) && attempt < maxAttempts) {
+      const retryAfter = res.headers.get('retry-after');
       const reset = res.headers.get('x-ratelimit-reset');
-      const waitMs = reset ? parseInt(reset, 10) * 1000 - Date.now() : 60_000;
-      console.warn(`Rate limited. Sleeping ${Math.round(waitMs / 1000)}s...`);
-      await new Promise((r) => setTimeout(r, Math.max(waitMs, 1000)));
-      return ghSearch(q, page, token);
+      const requestedWaitMs = retryAfter
+        ? parseInt(retryAfter, 10) * 1000
+        : reset
+          ? parseInt(reset, 10) * 1000 - Date.now()
+          : 60_000;
+      const waitMs = Math.min(Math.max(requestedWaitMs, 1_000), 60_000);
+      console.warn(`${label} rate limited. Sleeping ${Math.round(waitMs / 1000)}s...`);
+      await new Promise((r) => setTimeout(r, waitMs));
+      continue;
     }
     if (!res.ok) {
-      throw new Error(`GH search failed: ${res.status} ${await res.text()}`);
+      throw new Error(`${label} failed: ${res.status} ${await res.text()}`);
     }
     return res.json();
   }
-  throw new Error(`GH search request failed after ${maxAttempts} attempts: ${String(lastError)}`);
+  throw new Error(`${label} failed after ${maxAttempts} attempts: ${String(lastError)}`);
 }
 
-async function upsertRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
+async function ghSearch(q: string, token: string): Promise<CatalogSearchResult> {
+  const url = `https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&sort=stars&order=desc&per_page=${GITHUB_SEARCH_PAGE_SIZE}&page=1`;
+  const result = await githubJson<GhSearchResponse>(url, token, 'GitHub search', paceGitHubSearch);
+  return {
+    totalCount: result.total_count,
+    incomplete: result.incomplete_results,
+    repos: result.items.map((repo) => ({ id: repo.id, fullName: repo.full_name })),
+  };
+}
+
+function ghRepo(fullName: string, token: string): Promise<GhRepo> {
+  const url = `https://api.github.com/repos/${encodeURIComponent(fullName).replace('%2F', '/')}`;
+  return githubJson<GhRepo>(url, token, `GitHub repository ${fullName}`);
+}
+
+async function insertNewRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
   if (repos.length === 0) return [];
-  const storedRepos = await loadStoredRepos(
-    db,
-    repos.map((repo) => repo.id)
-  );
-  const changedRepos = repos.filter((repo) => storedRepoDiffers(storedRepos.get(repo.id), repo));
-  if (changedRepos.length === 0) return [];
+  const insertedIds: number[] = [];
 
-  const previousStarCounts = new Map(
-    changedRepos.flatMap((repo) => {
-      const stored = storedRepos.get(repo.id);
-      return stored ? [[repo.id, stored.stargazers_count] as const] : [];
-    })
-  );
-  const stmts: InStatement[] = changedRepos.map((r) => ({
-    sql: `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url,
-            description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            name = excluded.name,
-            full_name = excluded.full_name,
-            owner_login = excluded.owner_login,
-            owner_avatar = excluded.owner_avatar,
-            html_url = excluded.html_url,
-            description = excluded.description,
-            language = excluded.language,
-            stargazers_count = excluded.stargazers_count,
-            archived = excluded.archived,
-            topics = excluded.topics,
-            repo_updated_at = excluded.repo_updated_at
-          WHERE repos.name IS NOT excluded.name
-             OR repos.full_name IS NOT excluded.full_name
-             OR repos.owner_login IS NOT excluded.owner_login
-             OR repos.owner_avatar IS NOT excluded.owner_avatar
-             OR repos.html_url IS NOT excluded.html_url
-             OR repos.description IS NOT excluded.description
-             OR repos.language IS NOT excluded.language
-             OR repos.stargazers_count IS NOT excluded.stargazers_count
-             OR repos.archived IS NOT excluded.archived
-             OR repos.topics IS NOT excluded.topics
-             OR repos.repo_updated_at IS NOT excluded.repo_updated_at`,
-    args: [
-      r.id,
-      r.name,
-      r.full_name,
-      r.owner.login,
-      r.owner.avatar_url,
-      r.html_url,
-      r.description,
-      r.language,
-      r.stargazers_count,
-      r.archived ? 1 : 0,
-      JSON.stringify(r.topics ?? []),
-      r.created_at,
-      r.updated_at,
-    ],
-  }));
-  const snapshotStmts: InStatement[] = changedRepos
-    .filter(
-      (repo) =>
-        !storedRepos.has(repo.id) ||
-        storedRepos.get(repo.id)!.stargazers_count !== repo.stargazers_count
-    )
-    .map((repo) => ({
-      sql: `INSERT OR IGNORE INTO repo_star_snapshots (repo_id, stargazers_count)
-            VALUES (?, ?)`,
-      args: [repo.id, repo.stargazers_count],
-    }));
-  const thresholdEventStmts = buildThresholdEventStatements(changedRepos, previousStarCounts);
+  for (let offset = 0; offset < repos.length; offset += BATCH_SIZE) {
+    const batch = repos.slice(offset, offset + BATCH_SIZE);
+    const insertResults = await batchDb(
+      db,
+      batch.map((repo) => ({
+        sql: `INSERT OR IGNORE INTO repos
+              (id, name, full_name, owner_login, owner_avatar, html_url,
+               description, language, stargazers_count, archived, topics,
+               repo_created_at, repo_updated_at, cataloged_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        args: [
+          repo.id,
+          repo.name,
+          repo.full_name,
+          repo.owner.login,
+          repo.owner.avatar_url,
+          repo.html_url,
+          repo.description,
+          repo.language,
+          repo.stargazers_count,
+          repo.archived ? 1 : 0,
+          JSON.stringify(repo.topics ?? []),
+          repo.created_at,
+          repo.updated_at,
+        ],
+      }))
+    );
+    const inserted = batch.filter((_, index) => (insertResults[index]?.rowsAffected ?? 0) > 0);
+    insertedIds.push(...inserted.map((repo) => repo.id));
 
-  await batchDb(db, [...stmts, ...snapshotStmts, ...thresholdEventStmts]);
-  return changedRepos.map((r) => r.id);
+    if (inserted.length > 0) {
+      await batchDb(
+        db,
+        inserted.flatMap((repo): InStatement[] => [
+          {
+            sql: `INSERT OR IGNORE INTO repo_star_snapshots (repo_id, stargazers_count)
+                  VALUES (?, ?)`,
+            args: [repo.id, repo.stargazers_count],
+          },
+          {
+            sql: `INSERT OR IGNORE INTO repo_threshold_events
+                  (repo_id, threshold, previous_stars, current_stars)
+                  VALUES (?, ?, NULL, ?)`,
+            args: [repo.id, MIN_STARS_FLOOR, repo.stargazers_count],
+          },
+        ])
+      );
+    }
+  }
+
+  return insertedIds;
 }
 
 async function embedPending(db: Client, limit: number): Promise<number> {
@@ -391,91 +324,13 @@ function isEmbeddingAuthError(err: unknown): boolean {
   return /Embedding API error 401|invalid_api_key|Unauthorized/i.test(err.message);
 }
 
-async function loadCursor(db: Client) {
-  const r = await executeDb(db, 'SELECT * FROM seed_cursor WHERE id = 1');
-  if (r.rows.length === 0) {
-    await executeDb(db, 'INSERT INTO seed_cursor (id) VALUES (1)');
-    return { next_max_stars: 999999999, next_page: 1 };
-  }
-  return {
-    next_max_stars: r.rows[0]!.next_max_stars as number,
-    next_page: r.rows[0]!.next_page as number,
-  };
-}
-
-async function saveCursor(db: Client, next_max_stars: number, next_page: number) {
-  await executeDb(db, {
-    sql: `UPDATE seed_cursor
-          SET next_max_stars = ?, next_page = ?, updated_at = datetime('now')
-          WHERE id = 1`,
-    args: [next_max_stars, next_page],
-  });
-}
-
-/**
- * Walk GH search from `cursor.next_max_stars` down to MIN_STARS_FLOOR. Persists cursor
- * between pages so a crash mid-run resumes cleanly. When the walk completes (we've gone
- * below the floor), reset cursor for the next pass — that's how new repos crossing
- * threshold get discovered on subsequent runs.
- */
-async function walkAndUpsert(db: Client, ghToken: string): Promise<number> {
-  const cursor = await loadCursor(db);
-  console.info(`[walk] resume cursor: max_stars=${cursor.next_max_stars} page=${cursor.next_page}`);
-
-  let max_stars = cursor.next_max_stars;
-  let page = cursor.next_page;
-  let lowestSeenInBucket = max_stars;
-  let upsertedThisRun = 0;
-  let pagesProcessed = 0;
-
-  while (max_stars >= MIN_STARS_FLOOR && pagesProcessed < METADATA_PAGE_LIMIT) {
-    const q = `stars:${MIN_STARS_FLOOR}..${max_stars}`;
-    console.info(`[walk] q="${q}" page=${page}`);
-    const result = await ghSearch(q, page, ghToken);
-    pagesProcessed += 1;
-
-    if (result.items.length === 0) {
-      if (page === 1) break;
-      const newMax = lowestSeenInBucket - 1;
-      if (newMax < MIN_STARS_FLOOR || newMax === max_stars) break;
-      max_stars = newMax;
-      page = 1;
-      lowestSeenInBucket = newMax;
-      await saveCursor(db, max_stars, page);
-      continue;
-    }
-
-    upsertedThisRun += (await upsertRepos(db, result.items)).length;
-    const minStarsInPage = result.items[result.items.length - 1].stargazers_count;
-    lowestSeenInBucket = Math.min(lowestSeenInBucket, minStarsInPage);
-    page++;
-
-    if (page > MAX_PAGES_PER_BUCKET) {
-      max_stars = lowestSeenInBucket - 1;
-      page = 1;
-      lowestSeenInBucket = max_stars;
-    }
-
-    await saveCursor(db, max_stars, page);
-    // GH search caps authenticated users at 30 req/min (1 per 2.0s).
-    // 2100ms keeps us safely under without idling too much.
-    await new Promise((r) => setTimeout(r, 2100));
-  }
-
-  if (pagesProcessed >= METADATA_PAGE_LIMIT && max_stars >= MIN_STARS_FLOOR) {
-    console.info(
-      `[walk] paused after bounded ${pagesProcessed}-page run. upserted ${upsertedThisRun} repo rows; cursor preserved at max_stars=${max_stars} page=${page}.`
-    );
-    return upsertedThisRun;
-  }
-
-  // Walk complete. Reset cursor so the next run rediscovers from the top —
-  // catches new ≥5k repos and refreshes star counts on existing rows.
-  await saveCursor(db, 999999999, 1);
-  console.info(
-    `[walk] complete after ${pagesProcessed} pages. upserted ${upsertedThisRun} repo rows. cursor reset.`
-  );
-  return upsertedThisRun;
+interface ReconciliationResult {
+  sourceCount: number;
+  storedCount: number;
+  plannedAdditions: number;
+  insertedAdditions: number;
+  storedOnlyCount: number;
+  leafPartitions: number;
 }
 
 async function main() {
@@ -484,25 +339,51 @@ async function main() {
 
   const db = createD1RestClientFromEnv();
 
-  const upserted = await walkAndUpsert(db, ghToken);
+  let reconciliation: ReconciliationResult;
+  try {
+    reconciliation = await reconcileCatalog(db, ghToken);
+  } catch (error) {
+    const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    recordStep({
+      step: 'seed_reconciliation',
+      sourceWatermark: null,
+      bounds: {
+        min_stars_floor: MIN_STARS_FLOOR,
+        min_source_repos: MIN_SOURCE_REPOS,
+        max_additions: MAX_ADDITIONS,
+      },
+      timeoutS: 60 * 60,
+      idempotency:
+        'Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted',
+      outputCount: 0,
+      expectedMinOutput: 0,
+      error: message,
+    });
+    throw error;
+  }
 
-  // A zero-row walk is a verified no-op only because walkAndUpsert returns
-  // after successfully querying GitHub and preserving/resetting its cursor.
   recordStep({
-    step: 'seed_walk',
-    sourceWatermark: `cursor_after_walk`,
+    step: 'seed_reconciliation',
+    sourceWatermark: `github_unique_ids:${reconciliation.sourceCount}`,
     bounds: {
-      metadata_page_limit: METADATA_PAGE_LIMIT,
       min_stars_floor: MIN_STARS_FLOOR,
-      max_pages_per_bucket: MAX_PAGES_PER_BUCKET,
+      min_source_repos: MIN_SOURCE_REPOS,
+      max_additions: MAX_ADDITIONS,
+      source_count: reconciliation.sourceCount,
+      stored_count: reconciliation.storedCount,
+      planned_additions: reconciliation.plannedAdditions,
+      stored_only_count: reconciliation.storedOnlyCount,
+      leaf_partitions: reconciliation.leafPartitions,
     },
     timeoutS: 60 * 60,
     idempotency:
-      'Stored-row comparison skips unchanged repos; changed repos use INSERT … ON CONFLICT(id) DO UPDATE; snapshots are written only for star-count changes',
-    outputCount: upserted,
+      'Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted',
+    outputCount: reconciliation.insertedAdditions,
     expectedMinOutput: 0,
     verifiedNoopReason:
-      upserted === 0 ? 'GitHub search walk completed and cursor state was preserved' : undefined,
+      reconciliation.insertedAdditions === 0
+        ? `Complete GitHub catalog reconciled at ${reconciliation.sourceCount} unique IDs with no additions`
+        : undefined,
   });
 
   console.info(`[embed] generating up to ${DAILY_LIMIT} embeddings`);
@@ -595,6 +476,55 @@ async function main() {
     throw new Error('Refresh quality verification failed: searchable pool evidence is missing');
   }
 }
+
+const reconcileCatalog = async (db: Client, ghToken: string): Promise<ReconciliationResult> => {
+  console.info(`[reconcile] enumerating complete GitHub catalog at ≥${MIN_STARS_FLOOR} stars`);
+  const source = await enumeratePopularCatalog((query) => ghSearch(query, ghToken), {
+    minStars: MIN_STARS_FLOOR,
+    minExpectedRepos: MIN_SOURCE_REPOS,
+  });
+  const storedIds = await loadStoredRepoIds(db);
+  const plan = planCatalogReconciliation(source.repos, storedIds, MAX_ADDITIONS);
+
+  console.info(
+    `[reconcile] source=${source.sourceCount} stored=${storedIds.size} ` +
+      `additions=${plan.additions.length} stored_only=${plan.storedOnlyCount} ` +
+      `leaf_partitions=${source.leafPartitions}`
+  );
+
+  // Resolve every source-only repository before the first write. A removed,
+  // renamed, or newly ineligible repository therefore fails closed instead of
+  // leaving a partial reconciliation.
+  const additionDetails: GhRepo[] = [];
+  for (const identity of plan.additions) {
+    const repo = await ghRepo(identity.fullName, ghToken);
+    if (repo.id !== identity.id) {
+      throw new Error(
+        `GitHub repository identity changed for ${identity.fullName}: ${identity.id} -> ${repo.id}`
+      );
+    }
+    if (repo.stargazers_count < MIN_STARS_FLOOR) {
+      throw new Error(
+        `GitHub repository ${repo.full_name} fell below ${MIN_STARS_FLOOR} stars during reconciliation`
+      );
+    }
+    additionDetails.push(repo);
+  }
+
+  const insertedIds = await insertNewRepos(db, additionDetails);
+  console.info(
+    `[reconcile] inserted ${insertedIds.length}/${plan.additions.length} planned additions`
+  );
+
+  return {
+    sourceCount: source.sourceCount,
+    storedCount: storedIds.size,
+    plannedAdditions: plan.additions.length,
+    insertedAdditions: insertedIds.length,
+    storedOnlyCount: plan.storedOnlyCount,
+    leafPartitions: source.leafPartitions,
+  };
+};
 
 main().catch((err) => {
   console.error('Seed run failed:', err);

@@ -36,7 +36,7 @@ pnpm test:e2e          # playwright
 pnpm lint              # biome check .
 pnpm db:migrate        # apply migrations/* to isolated local D1
 pnpm db:migrate:remote # validate config + apply migrations/* to remote D1 (approval required)
-pnpm db:seed-popular   # cold-seed popular repos (≥5k stars) — used by daily GH Action
+pnpm db:seed-popular   # reconcile missing popular repos (≥5k stars) — weekly GH Action
 pnpm db:seed-embeddings# backfill repo_embeddings
 pnpm docs:check        # validate docs/ links + structure
 pnpm docs:dev          # blume dev (local docs site; requires pnpm add -D blume)

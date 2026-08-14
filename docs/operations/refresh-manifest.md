@@ -25,14 +25,14 @@ cross-run latest-watermark/unresolved-failure view.
 ```json
 {
   "runs": {
-    "seed_walk": {
-      "step": "seed_walk",
-      "source_watermark": "cursor_after_walk",
-      "bounds": {"metadata_page_limit": 120, "min_stars_floor": 5000, "max_pages_per_bucket": 10},
+    "seed_reconciliation": {
+      "step": "seed_reconciliation",
+      "source_watermark": "github_unique_ids:12351",
+      "bounds": {"min_stars_floor": 5000, "min_source_repos": 5000, "max_additions": 100, "source_count": 12351, "stored_count": 14500, "planned_additions": 42, "stored_only_count": 2191, "leaf_partitions": 128},
       "timeout_s": 3600,
-      "idempotency": "INSERT … ON CONFLICT(id) DO UPDATE for repos; INSERT OR IGNORE for repo_star_snapshots and repo_threshold_events",
+      "idempotency": "Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted",
       "retries": {"maxAttempts": 4, "backoffBaseMs": 1000, "used": 0},
-      "output_count": 312,
+      "output_count": 42,
       "evidence_status": "produced",
       "quality_signal": {"expected_min_output": 0, "verified_noop_reason": null},
       "quality_failed": false,
@@ -56,9 +56,10 @@ its evidence is `missing`. Missing or below-minimum evidence is marked
 catches the "green job writes empty/poor output" failure mode that an exit
 code alone would miss.
 
-For `seed-popular`, `expected_min_output` is `0` on `seed_walk` and
-`seed_embed`, but zero is accepted only after their upstream query completes
-and supplies the recorded verified-no-op reason. `seed_pool_coverage` requires
+For `seed-popular`, `expected_min_output` is `0` on `seed_reconciliation` and
+`seed_embed`, but zero is accepted only after complete source verification or a
+completed pending-embedding query supplies a verified-no-op reason.
+`seed_pool_coverage` requires
 at least one embedded repo, so an all-zero run fails. Embedding authentication
 failure is recorded as `failed` and also fails the job.
 
@@ -71,7 +72,7 @@ unreadable or malformed prior evidence fails instead of being overwritten.
 
 | Step | Source | Idempotency | Expected min output |
 | --- | --- | --- | --- |
-| `seed_walk` | GitHub Search (≥`MIN_STARS_FLOOR`) | `repos` upsert + `INSERT OR IGNORE` snapshots/events | 0 (catch-up runs are legitimate) |
+| `seed_reconciliation` | Complete GitHub Search identity set (≥`MIN_STARS_FLOOR`) + all stored D1 IDs | In-memory diff + addition-only `INSERT OR IGNORE`; no updates/deletes | 0 (a verified complete no-addition run is legitimate) |
 | `seed_embed` | Workers AI / free-ai gateway | `repo_embeddings` upsert keyed by `text_hash` | 0 (verified no-pending-work only; auth failure fails the job) |
 | `seed_pool_coverage` | D1 aggregate | read-only | 1 |
 
