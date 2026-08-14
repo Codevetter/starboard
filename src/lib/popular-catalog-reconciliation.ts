@@ -1,7 +1,7 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export const GITHUB_SEARCH_PAGE_SIZE = 100;
-export const GITHUB_REPOSITORY_EPOCH = '2007-01-01';
+const GITHUB_REPOSITORY_EPOCH = '2007-01-01';
 
 export interface CatalogRepoIdentity {
   id: number;
@@ -56,15 +56,11 @@ function validateSearchResult(result: CatalogSearchResult, label: string): void 
   }
 }
 
-export function popularCatalogQuery(minStars: number): string {
+function popularCatalogQuery(minStars: number): string {
   return `stars:>=${minStars}`;
 }
 
-export function popularCatalogDateQuery(
-  minStars: number,
-  startDate: string,
-  endDate: string
-): string {
+function popularCatalogDateQuery(minStars: number, startDate: string, endDate: string): string {
   return `${popularCatalogQuery(minStars)} created:${startDate}..${endDate}`;
 }
 
