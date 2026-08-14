@@ -333,55 +333,6 @@ interface ReconciliationResult {
   leafPartitions: number;
 }
 
-async function reconcileCatalog(db: Client, ghToken: string): Promise<ReconciliationResult> {
-  console.info(`[reconcile] enumerating complete GitHub catalog at ≥${MIN_STARS_FLOOR} stars`);
-  const source = await enumeratePopularCatalog((query) => ghSearch(query, ghToken), {
-    minStars: MIN_STARS_FLOOR,
-    minExpectedRepos: MIN_SOURCE_REPOS,
-  });
-  const storedIds = await loadStoredRepoIds(db);
-  const plan = planCatalogReconciliation(source.repos, storedIds, MAX_ADDITIONS);
-
-  console.info(
-    `[reconcile] source=${source.sourceCount} stored=${storedIds.size} ` +
-      `additions=${plan.additions.length} stored_only=${plan.storedOnlyCount} ` +
-      `leaf_partitions=${source.leafPartitions}`
-  );
-
-  // Resolve every source-only repository before the first write. A removed,
-  // renamed, or newly ineligible repository therefore fails closed instead of
-  // leaving a partial reconciliation.
-  const additionDetails: GhRepo[] = [];
-  for (const identity of plan.additions) {
-    const repo = await ghRepo(identity.fullName, ghToken);
-    if (repo.id !== identity.id) {
-      throw new Error(
-        `GitHub repository identity changed for ${identity.fullName}: ${identity.id} -> ${repo.id}`
-      );
-    }
-    if (repo.stargazers_count < MIN_STARS_FLOOR) {
-      throw new Error(
-        `GitHub repository ${repo.full_name} fell below ${MIN_STARS_FLOOR} stars during reconciliation`
-      );
-    }
-    additionDetails.push(repo);
-  }
-
-  const insertedIds = await insertNewRepos(db, additionDetails);
-  console.info(
-    `[reconcile] inserted ${insertedIds.length}/${plan.additions.length} planned additions`
-  );
-
-  return {
-    sourceCount: source.sourceCount,
-    storedCount: storedIds.size,
-    plannedAdditions: plan.additions.length,
-    insertedAdditions: insertedIds.length,
-    storedOnlyCount: plan.storedOnlyCount,
-    leafPartitions: source.leafPartitions,
-  };
-}
-
 async function main() {
   const ghToken = process.env.GITHUB_TOKEN;
   if (!ghToken) throw new Error('GITHUB_TOKEN required');
@@ -525,6 +476,55 @@ async function main() {
     throw new Error('Refresh quality verification failed: searchable pool evidence is missing');
   }
 }
+
+const reconcileCatalog = async (db: Client, ghToken: string): Promise<ReconciliationResult> => {
+  console.info(`[reconcile] enumerating complete GitHub catalog at ≥${MIN_STARS_FLOOR} stars`);
+  const source = await enumeratePopularCatalog((query) => ghSearch(query, ghToken), {
+    minStars: MIN_STARS_FLOOR,
+    minExpectedRepos: MIN_SOURCE_REPOS,
+  });
+  const storedIds = await loadStoredRepoIds(db);
+  const plan = planCatalogReconciliation(source.repos, storedIds, MAX_ADDITIONS);
+
+  console.info(
+    `[reconcile] source=${source.sourceCount} stored=${storedIds.size} ` +
+      `additions=${plan.additions.length} stored_only=${plan.storedOnlyCount} ` +
+      `leaf_partitions=${source.leafPartitions}`
+  );
+
+  // Resolve every source-only repository before the first write. A removed,
+  // renamed, or newly ineligible repository therefore fails closed instead of
+  // leaving a partial reconciliation.
+  const additionDetails: GhRepo[] = [];
+  for (const identity of plan.additions) {
+    const repo = await ghRepo(identity.fullName, ghToken);
+    if (repo.id !== identity.id) {
+      throw new Error(
+        `GitHub repository identity changed for ${identity.fullName}: ${identity.id} -> ${repo.id}`
+      );
+    }
+    if (repo.stargazers_count < MIN_STARS_FLOOR) {
+      throw new Error(
+        `GitHub repository ${repo.full_name} fell below ${MIN_STARS_FLOOR} stars during reconciliation`
+      );
+    }
+    additionDetails.push(repo);
+  }
+
+  const insertedIds = await insertNewRepos(db, additionDetails);
+  console.info(
+    `[reconcile] inserted ${insertedIds.length}/${plan.additions.length} planned additions`
+  );
+
+  return {
+    sourceCount: source.sourceCount,
+    storedCount: storedIds.size,
+    plannedAdditions: plan.additions.length,
+    insertedAdditions: insertedIds.length,
+    storedOnlyCount: plan.storedOnlyCount,
+    leafPartitions: source.leafPartitions,
+  };
+};
 
 main().catch((err) => {
   console.error('Seed run failed:', err);
