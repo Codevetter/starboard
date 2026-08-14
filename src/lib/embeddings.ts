@@ -185,6 +185,34 @@ function parseStringList(value: string | string[] | null | undefined): string[] 
   }
 }
 
+/**
+ * Build embedding text + hash from a D1 repo row. Consolidates the identical
+ * row-to-text mapping used by the embed-pending route, seed-embeddings, and
+ * seed-popular jobs. The row is `Record<string, unknown>` because D1 returns
+ * untyped rows; casts happen once inside the helper.
+ */
+export function buildEmbeddingFromRow(row: Record<string, unknown>): {
+  text: string;
+  hash: string;
+} {
+  const text = buildRepoEmbeddingText({
+    full_name: row.full_name as string,
+    description: row.description as string | null,
+    language: row.language as string | null,
+    topics: row.topics as string,
+    ai: row.summary
+      ? {
+          summary: row.summary as string,
+          category: row.category as string,
+          subcategories: row.subcategories as string,
+          use_cases: row.use_cases as string,
+          keywords: row.keywords as string,
+        }
+      : null,
+  });
+  return { text, hash: textHash(text) };
+}
+
 /** Simple hash to detect when repo text changes. */
 export function textHash(text: string): string {
   let h = 0;

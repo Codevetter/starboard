@@ -1,6 +1,6 @@
 import type { InStatement } from './client';
 import { createD1RestClientFromEnv } from './rest-client';
-import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../lib/embeddings';
+import { buildEmbeddingFromRow, generateEmbeddings } from '../lib/embeddings';
 import { createVectorizeRestWriterFromEnv } from '../lib/repo-vectors-rest';
 
 const BATCH_SIZE = 50;
@@ -44,22 +44,7 @@ async function seed() {
 
   const toEmbed: { id: number; text: string; hash: string }[] = [];
   for (const row of repos.rows) {
-    const text = buildRepoEmbeddingText({
-      full_name: row.full_name as string,
-      description: row.description as string | null,
-      language: row.language as string | null,
-      topics: row.topics as string,
-      ai: row.summary
-        ? {
-            summary: row.summary as string,
-            category: row.category as string,
-            subcategories: row.subcategories as string,
-            use_cases: row.use_cases as string,
-            keywords: row.keywords as string,
-          }
-        : null,
-    });
-    const hash = textHash(text);
+    const { text, hash } = buildEmbeddingFromRow(row);
     if (existingHashes.get(row.id as number) !== hash) {
       toEmbed.push({ id: row.id as number, text, hash });
     }

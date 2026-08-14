@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { ErrorActions } from '@/components/error-actions';
 import { captureError } from '@/lib/foundry-monitoring';
 
 export default function DiscoverError({
@@ -23,18 +24,7 @@ export default function DiscoverError({
         <p className="text-sm opacity-70 mb-6">
           Something went wrong while loading the discover feed — try again.
         </p>
-        <div className="flex gap-3 justify-center">
-          <button onClick={reset} className="px-4 py-2 rounded border hover:opacity-80">
-            Try again
-          </button>
-          <button
-            onClick={() => window.location.replace('/')}
-            className="px-4 py-2 rounded border hover:opacity-80"
-          >
-            Home
-          </button>
-        </div>
-        {error.digest ? <p className="mt-6 text-xs opacity-40">Reference: {error.digest}</p> : null}
+        <ErrorActions error={error} reset={reset} />
       </div>
     </div>
   );

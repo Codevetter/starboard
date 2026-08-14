@@ -1,6 +1,6 @@
 import { db } from '@/db';
 
-interface GitHubRepoResponse {
+export interface GitHubRepoResponse {
   id: number;
   name: string;
   full_name: string;
@@ -13,6 +13,42 @@ interface GitHubRepoResponse {
   topics?: string[];
   created_at: string;
   updated_at: string;
+}
+
+const REPO_UPSERT_SQL = `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url,
+            description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            name = excluded.name, full_name = excluded.full_name,
+            owner_login = excluded.owner_login, owner_avatar = excluded.owner_avatar,
+            html_url = excluded.html_url, description = excluded.description,
+            language = excluded.language, stargazers_count = excluded.stargazers_count,
+            archived = excluded.archived, topics = excluded.topics, repo_created_at = excluded.repo_created_at,
+            repo_updated_at = excluded.repo_updated_at`;
+
+/**
+ * Upsert a GitHub repo row into D1. Shared by resolveRepoId and the
+ * [repoId] GET route so the INSERT/ON CONFLICT shape stays in one place.
+ */
+export async function upsertRepoFromGitHub(gh: GitHubRepoResponse): Promise<void> {
+  await db.execute({
+    sql: REPO_UPSERT_SQL,
+    args: [
+      gh.id,
+      gh.name,
+      gh.full_name,
+      gh.owner.login,
+      gh.owner.avatar_url,
+      gh.html_url,
+      gh.description ?? null,
+      gh.language ?? null,
+      gh.stargazers_count,
+      gh.archived ? 1 : 0,
+      JSON.stringify(gh.topics ?? []),
+      gh.created_at,
+      gh.updated_at,
+    ],
+  });
 }
 
 /**
@@ -42,33 +78,7 @@ export async function resolveRepoId(owner: string, repo: string): Promise<number
 
   const gh = (await ghRes.json()) as GitHubRepoResponse;
 
-  await db.execute({
-    sql: `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url,
-            description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          ON CONFLICT(id) DO UPDATE SET
-            name = excluded.name, full_name = excluded.full_name,
-            owner_login = excluded.owner_login, owner_avatar = excluded.owner_avatar,
-            html_url = excluded.html_url, description = excluded.description,
-            language = excluded.language, stargazers_count = excluded.stargazers_count,
-            archived = excluded.archived, topics = excluded.topics, repo_created_at = excluded.repo_created_at,
-            repo_updated_at = excluded.repo_updated_at`,
-    args: [
-      gh.id,
-      gh.name,
-      gh.full_name,
-      gh.owner.login,
-      gh.owner.avatar_url,
-      gh.html_url,
-      gh.description ?? null,
-      gh.language ?? null,
-      gh.stargazers_count,
-      gh.archived ? 1 : 0,
-      JSON.stringify(gh.topics ?? []),
-      gh.created_at,
-      gh.updated_at,
-    ],
-  });
+  await upsertRepoFromGitHub(gh);
 
   return gh.id as number;
 }
