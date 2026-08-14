@@ -2,6 +2,7 @@
 import '@/styles/landing.css';
 import '@fontsource-variable/geist';
 import '@fontsource-variable/geist-mono';
+import { canonicalPath } from '@/lib/canonical';
 
 interface Props {
   title: string;
@@ -11,7 +12,7 @@ interface Props {
 const { title, description } = Astro.props;
 
 const SITE_URL = 'https://starboard.codevetter.com';
-const canonicalUrl = new URL(Astro.url.pathname, SITE_URL).href;
+const canonicalUrl = new URL(canonicalPath(Astro.url.pathname), SITE_URL).href;
 // OG image lives on the Next.js Worker at /opengraph-image (Next file
 // convention → dynamic JSX → PNG). The single-Worker overlay keeps that
 // route on the OpenNext side, so this URL still resolves.

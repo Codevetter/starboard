@@ -1,4 +1,13 @@
+import type { Metadata } from 'next';
+
 import { ProjectPreviewWorkspace } from '@/components/project-preview-workspace';
+import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
+
+export const metadata: Metadata = {
+  title: 'Preview a GitHub project',
+  description: 'Inspect a public GitHub project and find grounded tool recommendations.',
+  alternates: { canonical: PUBLIC_CANONICALS.projectPreview },
+};
 
 export default async function ProjectPreviewPage({
   searchParams,

@@ -1,8 +1,16 @@
 import { NextRequest } from 'next/server';
+import type { Metadata } from 'next';
 
 import { GET as getDiscoverRepos } from '@/app/api/discover/route';
 import DiscoverClient from '@/app/discover/discover-client';
 import type { DiscoverResponse } from '@/hooks/use-discover-repos';
+import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
+
+export const metadata: Metadata = {
+  title: 'Discover open-source projects',
+  description: 'Search and compare public GitHub projects and the tools they use.',
+  alternates: { canonical: PUBLIC_CANONICALS.discover },
+};
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 

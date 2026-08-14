@@ -1,8 +1,11 @@
 import Link from 'next/link';
 
+import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
+
 export const metadata = {
   title: 'Terms — Starboard',
   description: 'Use of Starboard is provided as-is. We only read your public GitHub stars.',
+  alternates: { canonical: PUBLIC_CANONICALS.terms },
 };
 
 export default function TermsPage() {
