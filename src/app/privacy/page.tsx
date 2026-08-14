@@ -1,8 +1,11 @@
 import Link from 'next/link';
 
+import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
+
 export const metadata = {
   title: 'Privacy — Starboard',
   description: 'What Starboard stores and what it never collects.',
+  alternates: { canonical: PUBLIC_CANONICALS.privacy },
 };
 
 export default function PrivacyPage() {
