@@ -1,11 +1,13 @@
 import Link from 'next/link';
 
+import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
+
 export const metadata = {
   title: 'How to Organize and Semantically Search GitHub Stars | Starboard',
   description:
     'Use GitHub lists first, then learn when hybrid lexical and semantic search, tags, collections, and maintenance signals help organize a large star library.',
   alternates: {
-    canonical: '/about',
+    canonical: PUBLIC_CANONICALS.about,
   },
 };
 

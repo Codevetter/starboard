@@ -3,6 +3,11 @@ import { redirect } from 'next/navigation';
 
 import { SignInButton } from '@/components/sign-in-button';
 import { auth } from '@/lib/auth';
+import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
+
+export const metadata = {
+  alternates: { canonical: PUBLIC_CANONICALS.home },
+};
 
 /**
  * Authenticated users go to the product. Anonymous production `/` is the Astro
