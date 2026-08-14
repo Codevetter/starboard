@@ -42,22 +42,25 @@ describe('db row-read regression guards', () => {
     expect(schemaSql).not.toMatch(/INSERT INTO (\w+)\(\1\)\s*VALUES\('rebuild'\)/);
   });
 
-  it('seed-popular skips unchanged repo updates and snapshots', () => {
-    expect(seedPopularTs).toContain('storedRepoDiffers');
-    expect(seedPopularTs).toMatch(
-      /const changedRepos = repos\.filter\(\(repo\) => storedRepoDiffers\(storedRepos\.get\(repo\.id\), repo\)\)/
-    );
-    expect(seedPopularTs).toContain('WHERE repos.name IS NOT excluded.name');
-    expect(seedPopularTs).toMatch(/const snapshotStmts:[\s\S]*changedRepos[\s\S]*stargazers_count/);
+  it('seed-popular reads IDs once and writes additions without updating existing repos', () => {
+    expect(seedPopularTs).toContain("executeDb(db, 'SELECT id FROM repos')");
+    expect(seedPopularTs).toContain('planCatalogReconciliation');
+    expect(seedPopularTs).toContain('INSERT OR IGNORE INTO repos');
+    expect(seedPopularTs).not.toContain('stargazers_count = excluded.stargazers_count');
+    expect(seedPopularTs).not.toContain('DELETE FROM repos');
+    expect(seedPopularTs).not.toContain('UPDATE seed_cursor');
   });
 
-  it('daily seed runs stay scheduled and operationally bounded', () => {
-    expect(seedWorkflow).toContain("cron: '0 3 * * *'");
+  it('weekly full reconciliation stays scheduled and operationally bounded', () => {
+    expect(seedWorkflow).toContain("cron: '17 3 * * 0'");
     expect(seedWorkflow).toContain('timeout-minutes: 60');
     expect(seedWorkflow).toContain('cancel-in-progress: false');
-    expect(seedWorkflow).toContain("SEED_METADATA_PAGE_LIMIT: '10'");
-    expect(seedPopularTs).toContain("process.env.SEED_METADATA_PAGE_LIMIT || '10'");
-    expect(seedPopularTs).toContain(', 25);');
+    expect(seedWorkflow).toContain("github.event.inputs.max_additions || '100'");
+    expect(seedWorkflow).toContain("SEED_MIN_SOURCE_REPOS: '5000'");
+    expect(seedPopularTs).toContain("process.env.SEED_MAX_ADDITIONS || '100'");
+    expect(seedPopularTs).toContain('const MAX_ADDITIONS_HARD_LIMIT = 100');
+    expect(seedPopularTs).toContain('exceeds hard safety limit');
+    expect(seedPopularTs).toContain("process.env.SEED_MIN_SOURCE_REPOS || '5000'");
   });
 
   it('no Turso-backed workflow remains', () => {

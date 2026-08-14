@@ -6,18 +6,21 @@ annotates intent, inputs, and dependencies.
 
 ## seed-popular (`.github/workflows/seed-popular.yml`)
 
-- **Schedule:** daily at 03:00 UTC and manual `workflow_dispatch`. Automation
-  was restored after the D1 cutover removed the prior Turso row-read allowance;
-  the bounded walk and unchanged-row protections remain in force.
-- **Inputs:** `daily_limit` (default 1000), `tool_enrich_limit` (default 250).
+- **Schedule:** Sundays at 03:17 UTC and manual `workflow_dispatch`. The
+  non-top-of-hour minute reduces GitHub Actions scheduling contention.
+- **Inputs:** `daily_limit` (embedding limit, default 1000),
+  `tool_enrich_limit` (default 250), and `max_additions` (default 100).
 - **Concurrency:** shared group `starboard-embedding`, `cancel-in-progress:
   false`, so seed and standalone backfill cannot duplicate embedding work.
 - **Timeout:** 60 minutes.
 - **Steps:**
   1. `pnpm db:migrate:remote` (approval-gated D1 migrations).
-  2. `pnpm db:seed-popular` (`scripts/seed-popular.ts`) — GitHub Search for
-     repos ≥ `MIN_STARS_FLOOR=5000`, with a resumable cursor in `seed_cursor`.
-     Uses `${{ github.token }}` deliberately so a stale PAT cannot break seeding.
+  2. `pnpm db:seed-popular` (`scripts/seed-popular.ts`) — completely enumerate
+     GitHub Search repos ≥ `MIN_STARS_FLOOR=5000` through non-overlapping
+     creation-date partitions that each fit one response; compare the resulting
+     IDs with one `SELECT id FROM repos`; fetch details and insert only IDs absent
+     from D1. Uses `${{ github.token }}` deliberately so a stale PAT cannot break
+     reconciliation.
   3. Authenticated Worker operator request — Workers AI embeddings → Vectorize
      binding, with drift hashes written through the D1 binding.
   4. `pnpm db:enrich-tools` (`scripts/enrich-tools.ts`) — SBOM/tree/manifest
@@ -26,9 +29,24 @@ annotates intent, inputs, and dependencies.
 - **Credentials:** scoped D1 `CLOUDFLARE_API_TOKEN`, non-secret
   account/database variables, and the existing AI gateway key as the Worker
   operator bearer. GitHub does not receive Vectorize API access.
-- **Safety controls:** metadata walks default to 10 GitHub Search pages and
-  hard-cap at 25; unchanged repos do not update or fire FTS maintenance;
-  snapshots are written only when star counts change.
+- **Completeness controls:** any `incomplete_results`, duplicate identity,
+  truncated date partition, source-count drift, or unique-ID mismatch fails the
+  run before D1 writes. Root source counts are checked before and after the walk.
+- **D1 budget controls:** the job reads all stored IDs once (currently roughly
+  15,000 rows, about 0.3% of Cloudflare's 5 million free daily row-read
+  allowance), then applies `SEED_MAX_ADDITIONS` before detail fetches or writes.
+  The scheduled default is 100 additions against the 100,000 free daily
+  row-write allowance, and code rejects manual values above 100 before GitHub or
+  D1 access. Existing rows are not updated, stored-only rows are not deleted,
+  and new rows are inserted in batches of 50. The existing embedding and tool
+  enrichment steps remain bounded at 1,000 and 250 repositories respectively;
+  because unchanged hashes are skipped, a normal weekly run processes only new
+  or independently changed rows. See Cloudflare's
+  [current D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/).
+- **GitHub budget controls:** Search requests are sequential and paced at 2.1
+  seconds, below the authenticated 30 requests/minute Search bucket. Complete
+  enumeration is expected to use roughly 250 requests, below the workflow
+  token's 1,000 requests/hour per-repository allowance.
 
 ## embed-pending (`.github/workflows/embed-pending.yml`)
 

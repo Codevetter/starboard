@@ -6,7 +6,6 @@ const files = [
   'src/app/api/discover/route.ts',
   'src/app/api/stars/route.ts',
   'src/app/api/stars/sync/route.ts',
-  'scripts/seed-popular.ts',
 ];
 
 describe('D1 bound-parameter regression guards', () => {

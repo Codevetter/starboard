@@ -28,7 +28,7 @@ retirement requires separate approval.
 | Store | Class | Owner | Reconstruction | Expected cost | Last verified |
 | --- | --- | --- | --- | --- | --- |
 | D1 `users` | irreplaceable-user | NextAuth GitHub OAuth | Not reconstructable — GitHub is the source of identity, but user records (email, created_at) must be exported | n/a — export required | 2026-08-02 |
-| D1 `repos` (popular ≥5k seeded) | authoritative-source | `scripts/seed-popular.ts` | Re-walk GitHub Search ≥`MIN_STARS_FLOOR` | ~hours (rate-limited, resumable cursor) | 2026-08-02 |
+| D1 `repos` (popular ≥5k seeded) | authoritative-source | `scripts/seed-popular.ts` | Fully reconcile creation-date-partitioned GitHub Search ≥`MIN_STARS_FLOOR`; insert source-only IDs | ~15–30 minutes | 2026-08-13 |
 | D1 `user_repos` (starred/saved state) | irreplaceable-user | GitHub sync via `/api/stars/sync` | Re-sync from GitHub starred list (ETag + HTML scrape) | ~seconds per user | 2026-08-02 |
 | D1 `user_projects` | irreplaceable-user | Project connection UI/API | Reconnect public GitHub repositories manually | ~seconds per user | 2026-08-08 |
 | D1 `user_lists`, `user_repo_lists` | irreplaceable-user | User UI actions | Not reconstructable — user-curated collections | n/a — export required | 2026-08-02 |
@@ -36,8 +36,8 @@ retirement requires separate approval.
 | D1 `repo_embeddings` hashes + Vectorize `starboard-repos` values | derived | Worker binding embedding jobs | Re-embed from `repos` + `repo_ai_metadata` text via Workers AI | ~minutes (Workers AI quota) | 2026-08-02 |
 | D1 `repo_ai_metadata` | derived | `scripts/enrich-repos.ts` (free-ai gateway) | Re-enrich from `repos` metadata via AI | ~minutes per batch | 2026-08-02 |
 | D1 `repo_tools` | derived | `scripts/enrich-tools.ts` | Re-detect from GH tree/manifest/SBOM | ~minutes per batch | 2026-08-02 |
-| D1 `repo_star_snapshots`, `repo_threshold_events` | derived | `seed-popular.ts` snapshot inserts | Re-derive from `repos` star counts over time | rebuilt on each seed run | 2026-08-02 |
-| D1 `seed_cursor` | derived (walk state) | `seed-popular.ts` | Reset to defaults; walk restarts from top | seconds | 2026-08-02 |
+| D1 `repo_star_snapshots`, `repo_threshold_events` | derived | Seed and user-sync snapshot inserts | Re-derive initial samples from `repos`; historical series requires repeated user sync | additions only during weekly reconciliation | 2026-08-13 |
+| D1 `seed_cursor` | legacy derived state (inactive) | No active writer | Safe to ignore; retained to avoid a destructive migration | n/a | 2026-08-13 |
 | D1 `insight_reports`, `user_alert_preferences` | historical inactive storage | Removed product features | Retained to avoid a destructive migration; no active writers | n/a | 2026-08-08 |
 | Cloudflare Worker `starboard` (deployed bundle) | cache | `pnpm deploy:cf` or manual deploy workflow | Rebuild + redeploy | ~minutes | 2026-07-18 |
 | knowledgebase Worker RAG index (`STARBOARD_RAG_INDEX_ID`) | derived (RAG index of user repos) | `src/lib/knowledgebase.ts` ingest | Re-ingest from `repos` + README text per user | ~seconds per user | 2026-07-18 |
@@ -67,10 +67,11 @@ window.
 ### Full popular-pool rebuild (bounded)
 
 `pnpm db:migrate:remote` → scheduled or manual `seed-popular` workflow
-(resumable cursor walk of GitHub Search ≥5k stars plus bound Worker embedding backfill) →
-`pnpm db:enrich-tools` (tool detection). Total runtime
-is bounded by `SEED_METADATA_PAGE_LIMIT` (default 10, hard cap 25 pages/run)
-and the workflow's `daily_limit` input (default 1000 embeddings/run). See
+(complete one-response date partitions of GitHub Search ≥5k stars, D1 ID diff,
+source-only inserts, and bounded Worker embedding backfill) →
+`pnpm db:enrich-tools` (tool detection). The pre-write
+`SEED_MAX_ADDITIONS` bound defaults to 100 in the workflow, and `daily_limit`
+defaults to 1000 embeddings per run. See
 [`jobs.md`](jobs.md) §seed-popular.
 
 ### Embedding dimension drift
@@ -92,15 +93,15 @@ Each scheduled or dispatched `seed-popular` GitHub Action records a structured
 manifest at `data/refresh-manifest.json` and copies it to the existing GitHub
 Actions run summary before the ephemeral runner is discarded. The manifest includes:
 
-- `source_watermark` — GitHub Search cursor (`next_max_stars`/`next_page`)
-  and run timestamp
-- `bounds` — `METADATA_PAGE_LIMIT`, `DAILY_LIMIT`, `MIN_STARS_FLOOR`
+- `source_watermark` — verified GitHub unique-ID count
+- `bounds` — source/stored/addition/stored-only counts,
+  `SEED_MAX_ADDITIONS`, `SEED_MIN_SOURCE_REPOS`, and `MIN_STARS_FLOOR`
 - `timeout` — workflow `timeout-minutes: 60`
-- `idempotency` — `INSERT … ON CONFLICT(id) DO UPDATE` for `repos`;
-  `INSERT OR IGNORE` for `repo_star_snapshots` and `repo_threshold_events`
+- `idempotency` — in-memory source/stored ID diff plus `INSERT OR IGNORE` for
+  additions; no existing-row update or stored-only deletion
 - `retries` — `withDbRetry` (4 attempts, exponential backoff) for D1;
   `ghSearch` (4 attempts + rate-limit sleep) for GitHub
-- `output_counts` — `upsertedThisRun`, `embedded`, pool totals
+- `output_counts` — inserted additions, embedded additions, and pool totals
 - `quality_signal` — non-zero output check + pool coverage ratio
 - `freshness` — run wall-clock + delta from prior success
 - `failure_state` — unresolved failure state within that run's manifest

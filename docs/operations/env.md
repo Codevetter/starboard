@@ -47,6 +47,12 @@ The `seed-popular` workflow deliberately uses `${{ github.token }}` for GitHub
 Search (not a long-lived PAT) so a stale PAT cannot break a scheduled or manual
 seed run with 401 Bad credentials.
 
+The scheduled reconciliation sets `MIN_STARS_FLOOR=5000`,
+`SEED_MIN_SOURCE_REPOS=5000`, and `SEED_MAX_ADDITIONS=100`. The last value is a
+pre-write Cloudflare budget circuit breaker and is exposed as an explicit
+manual-dispatch input that can lower the bound. Values above the code-level hard
+limit of 100 are rejected before GitHub or D1 access.
+
 ## Public keys
 
 `NEXT_PUBLIC_SAASMAKER_API_KEY` is a public key (expected to be visible in
