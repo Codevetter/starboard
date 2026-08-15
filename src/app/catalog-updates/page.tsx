@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { db } from '@/db';
 import { getAvatarImageAttrs } from '@/lib/avatar';
+import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
 import {
   CATALOG_UPDATES_DEFAULT_LIMIT,
   formatCatalogDate,
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   description:
     'Recently added popular repositories in the shared Starboard Discover corpus — catalogue ingestion history, not the product changelog.',
   alternates: {
-    canonical: '/catalog-updates',
+    canonical: PUBLIC_CANONICALS.catalogUpdates,
   },
 };
 
