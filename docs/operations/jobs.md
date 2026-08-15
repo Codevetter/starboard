@@ -48,6 +48,15 @@ annotates intent, inputs, and dependencies.
   enumeration is expected to use roughly 250 requests, below the workflow
   token's 1,000 requests/hour per-repository allowance.
 
+- **Failure visibility:** a follow-on `alert` job runs after every *scheduled*
+  seed and keeps exactly one open tracking issue labelled
+  `scheduled-job-failure`. A failed run opens that issue (or comments on the
+  existing one) with a link to the failing run; the next successful scheduled
+  run closes it. Manual `workflow_dispatch` runs are skipped because an operator
+  is already watching, and cancelled or skipped runs neither open nor close the
+  issue. The `alert` job holds the only `issues: write` grant in the workflow;
+  `seed` itself stays `contents: read`.
+
 ## embed-pending (`.github/workflows/embed-pending.yml`)
 
 - **Schedule:** `workflow_dispatch` only (manual).

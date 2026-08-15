@@ -112,3 +112,69 @@ jobs:
           TOOL_ENRICH_LIMIT: ${{ github.event.inputs.tool_enrich_limit || '250' }}
           TOOL_ENRICH_HARD_LIMIT: '750'
           TOOL_MIN_STARS: '10000'
+
+  # A scheduled run has no human watching it, so a failure is otherwise only
+  # visible in Actions history or a notification email. Keep one open tracking
+  # issue that reflects the current health of the scheduled seed.
+  alert:
+    needs: seed
+    # Cancelled and skipped runs are not health signals, so they neither open
+    # nor close the tracking issue.
+    if: >-
+      always() && github.event_name == 'schedule'
+      && (needs.seed.result == 'success' || needs.seed.result == 'failure')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      ALERT_LABEL: scheduled-job-failure
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      SEED_RESULT: ${{ needs.seed.result }}
+    steps:
+      - name: Ensure the alert label exists
+        run: |
+          gh label create "$ALERT_LABEL" \
+            --color B60205 \
+            --description 'A scheduled workflow run failed' >/dev/null 2>&1 || true
+
+      - name: Reconcile the scheduled-seed health issue
+        run: |
+          set -euo pipefail
+          open_issue="$(gh issue list --label "$ALERT_LABEL" --state open \
+            --limit 1 --json number --jq '.[0].number // empty')"
+
+          if [[ "$SEED_RESULT" == 'success' ]]; then
+            if [[ -n "$open_issue" ]]; then
+              gh issue close "$open_issue" \
+                --comment "Scheduled seed recovered: [run]($RUN_URL) completed successfully."
+              echo "Closed alert #$open_issue after recovery."
+            else
+              echo 'Scheduled seed succeeded; no open alert to close.'
+            fi
+            exit 0
+          fi
+
+          body="The scheduled \`Seed popular repos\` run finished with result \`$SEED_RESULT\`.
+
+          - Failing run: $RUN_URL
+          - Job steps: migrations → \`db:seed-popular\` → Worker embedding → \`db:enrich-tools\`
+
+          This issue closes automatically when the next scheduled run succeeds."
+
+          if [[ -n "$open_issue" ]]; then
+            gh issue comment "$open_issue" --body "$body"
+            echo "Commented on existing alert #$open_issue."
+          else
+            created="$(gh issue create \
+              --title 'Scheduled seed run failed' \
+              --label "$ALERT_LABEL" \
+              --body "$body")"
+            echo "Opened alert $created."
+            # Assignment is best-effort: an alert must never be lost because the
+            # owner handle is not assignable from this token.
+            gh issue edit "$created" --add-assignee sarthakagrawal927 >/dev/null 2>&1 || true
+          fi
