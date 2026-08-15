@@ -2,7 +2,7 @@ import type { InStatement } from '@/db/client';
 import { NextResponse } from 'next/server';
 
 import { db } from '@/db';
-import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
+import { buildEmbeddingFromRow, generateEmbeddings } from '@/lib/embeddings';
 import { hasValidOperatorToken } from '@/lib/operator-auth';
 import { repoVectors } from '@/lib/repo-vectors';
 
@@ -77,22 +77,7 @@ export async function POST(request: Request) {
 
   const pending: { id: number; text: string; hash: string }[] = [];
   for (const row of repos.rows) {
-    const text = buildRepoEmbeddingText({
-      full_name: row.full_name as string,
-      description: row.description as string | null,
-      language: row.language as string | null,
-      topics: row.topics as string,
-      ai: row.summary
-        ? {
-            summary: row.summary as string,
-            category: row.category as string,
-            subcategories: row.subcategories as string,
-            use_cases: row.use_cases as string,
-            keywords: row.keywords as string,
-          }
-        : null,
-    });
-    const hash = textHash(text);
+    const { text, hash } = buildEmbeddingFromRow(row);
     if (row.text_hash !== hash) {
       pending.push({ id: row.id as number, text, hash });
     }

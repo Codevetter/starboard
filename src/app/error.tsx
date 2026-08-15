@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { ErrorActions } from '@/components/error-actions';
 import { captureError } from '@/lib/foundry-monitoring';
 
 export default function Error({
@@ -25,18 +26,7 @@ export default function Error({
           An unexpected error occurred on our end. Your data is safe — try again, and if it keeps
           happening, come back in a few minutes.
         </p>
-        <div className="flex gap-3 justify-center">
-          <button onClick={reset} className="px-4 py-2 rounded border hover:opacity-80">
-            Try again
-          </button>
-          <button
-            onClick={() => window.location.replace('/')}
-            className="px-4 py-2 rounded border hover:opacity-80"
-          >
-            Home
-          </button>
-        </div>
-        {error.digest ? <p className="mt-6 text-xs opacity-40">Reference: {error.digest}</p> : null}
+        <ErrorActions error={error} reset={reset} />
       </div>
     </div>
   );

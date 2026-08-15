@@ -36,7 +36,7 @@ import type { DbClient as Client, InStatement } from '../src/db/client';
 import { createD1RestClientFromEnv } from '../src/db/rest-client';
 
 import { isRetryableDbError } from '../src/lib/db-retry';
-import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '../src/lib/embeddings';
+import { buildEmbeddingFromRow, generateEmbeddings } from '../src/lib/embeddings';
 import {
   enumeratePopularCatalog,
   GITHUB_SEARCH_PAGE_SIZE,
@@ -277,22 +277,7 @@ async function embedPending(db: Client, limit: number): Promise<number> {
 
   const toEmbed: { id: number; text: string; hash: string }[] = [];
   for (const row of pending.rows) {
-    const text = buildRepoEmbeddingText({
-      full_name: row.full_name as string,
-      description: row.description as string | null,
-      language: row.language as string | null,
-      topics: row.topics as string,
-      ai: row.summary
-        ? {
-            summary: row.summary as string,
-            category: row.category as string,
-            subcategories: row.subcategories as string,
-            use_cases: row.use_cases as string,
-            keywords: row.keywords as string,
-          }
-        : null,
-    });
-    const hash = textHash(text);
+    const { text, hash } = buildEmbeddingFromRow(row);
     if (row.text_hash !== hash) {
       toEmbed.push({ id: row.id as number, text, hash });
     }
