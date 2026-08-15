@@ -1,10 +1,10 @@
 /**
  * Owner-facing analytics — the shared fleet funnel plus narrow product events.
  *
- * Every project in the fleet emits these four funnel events — `signup`,
- * `activated`, `core_action`, `returned` — so a single PostHog project can
- * build one cross-fleet funnel (signup -> activated -> core_action) and a
- * D1/D7 retention insight, with no custom dashboard.
+ * Every project in the fleet emits these five funnel events — `signup`,
+ * `activated`, `core_action`, `returned`, `page_view` — so a single PostHog
+ * project can build one cross-fleet funnel (signup -> activated -> core_action)
+ * and a D1/D7 retention insight, with no custom dashboard.
  *
  * Every event carries `project_id: "starboard"`. Browser events use
  * `posthog-js`; server-triggered events post directly to the PostHog capture
@@ -51,6 +51,8 @@ interface AnalyticsEventMap {
   core_action: { project_id: typeof PROJECT; action: CoreAction };
   /** A return session by a user with prior activity. */
   returned: { project_id: typeof PROJECT };
+  /** A page view, tracked manually on mount and route changes. */
+  page_view: { project_id: typeof PROJECT };
   /** A project was durably connected without including its identity. */
   project_connected: {
     project_id: typeof PROJECT;
@@ -162,6 +164,11 @@ export function trackCoreAction(action: CoreAction, distinctId?: string): void {
 /** Fire on session start for a user who has prior activity. */
 export function trackReturned(): void {
   emit('returned', {});
+}
+
+/** Fire on mount and on every route change. PostHog's own $pageview is disabled. */
+export function trackPageView(): void {
+  emit('page_view', {});
 }
 
 export function trackProjectConnected(source: ProjectConnectionSource, distinctId?: string): void {
