@@ -72,6 +72,14 @@ provenance. The workflow is free and has no billing or entitlement gate.
 
 ## Timeline
 
+- **2026-08-15 (scheduled seed failures are visible)** — The weekly seed is the
+  only cron-driven workflow, and a failed run previously left no signal outside
+  Actions history. Scheduled runs now reconcile one open tracking issue labelled
+  `scheduled-job-failure`: a failure opens or updates it with the failing run
+  link, and the next successful scheduled run closes it. The Turso-era row-read
+  circuit breaker no longer applies — D1 is authoritative, and the six most
+  recent scheduled seed runs completed successfully.
+
 - **2026-08-13 (weekly catalog reconciliation implemented locally)** — Replaced
   the multi-day popular-repository cursor walk with one complete weekly GitHub
   identity reconciliation. Immutable creation-date partitions fit in single
@@ -290,6 +298,8 @@ provenance. The workflow is free and has no billing or entitlement gate.
   70% branches) on selected core logic; production-accurate Playwright journeys
   cover the Astro landing and public app at desktop and mobile widths.
 - Pre-push lint hook.
+- Scheduled seed runs self-report health through a single auto-opened and
+  auto-closed `scheduled-job-failure` tracking issue.
 - TypeScript config and Astro landing tooling made self-contained for green Cloudflare builds.
 
 ## Work queue
