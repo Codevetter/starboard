@@ -26,6 +26,27 @@ reasons, see [../architecture/decisions/](../architecture/decisions/).
 - Recommendation views, inspections, and useful/not-useful feedback emit only
   categorical buckets; repository identity and query text are excluded.
 
+## Need-driven project intelligence
+
+- Extracts 5–10 evidence-backed needs per project, returning fewer when
+  evidence is insufficient. Needs are cached by project fingerprint and reused
+  when the fingerprint is unchanged.
+- Searches the full eligible catalog independently per need using Vectorize,
+  FTS, and structured lanes with hard candidate bounds. Candidate pools are
+  cached by normalized need signature for cross-project reuse.
+- Classifies each candidate into one of five buckets: adopt/integrate,
+  reference implementation, architectural pattern, competing product, or
+  unsuitable/negative example — with confidence, evidence, and provenance.
+- Persists deterministic draft reports grouped by need with version, catalog
+  generation, and incremental rerun support. Degraded runs preserve the latest
+  successful report.
+- Exposes a provider-neutral external review ingestion contract so Fleet
+  automation can submit one bounded Devin review per changed project.
+  Starboard contains no Devin credentials and never requires Devin to serve
+  recommendations.
+- See [../architecture/need-driven-intelligence.md](../architecture/need-driven-intelligence.md)
+  for the pipeline design, API endpoints, and database schema.
+
 ## Public discovery and tool intelligence
 
 - Discover is public and supports hybrid semantic-plus-lexical relevance

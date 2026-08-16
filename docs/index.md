@@ -46,6 +46,7 @@ docs/
   architecture/
     overview.md                 # Next.js + OpenNext + D1 + Vectorize shape
     data-flow.md                # sync, search, recommendation lifecycles
+    need-driven-intelligence.md # need-driven project intelligence pipeline
     decisions/                  # ADRs (one file per decision)
       index.md
       0001-deploy-vercel-to-cloudflare-workers.md

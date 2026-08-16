@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-08-13
+Last updated: 2026-08-17
 
 ## Why/What
 
@@ -71,6 +71,21 @@ provenance. The workflow is free and has no billing or entitlement gate.
 | Smoke | `pnpm test` + `pnpm build`; for search/DB changes also `pnpm db:migrate` and `pnpm build:cf` |
 
 ## Timeline
+
+- **2026-08-17 (need-driven project intelligence implemented locally)** —
+  Added the deterministic need-driven recommendation pipeline: D1 schema for
+  capability cards, project fingerprints, needs, candidate pools, draft
+  reports, reviewed reports, and external review requests (migration
+  `0004_need_driven_intelligence.sql`); rule-based need extraction with
+  fingerprint caching; per-need full-catalog retrieval using Vectorize, FTS,
+  and structured lanes with hard bounds; five-bucket candidate classification
+  with confidence and provenance; draft report persistence with incremental
+  reruns and cached candidate pools; a provider-neutral external review
+  ingestion contract with idempotency; and API endpoints for reading reports,
+  running the pipeline, and ingesting reviews. Starboard contains no Devin
+  credentials and never requires Devin to serve recommendations. Tests,
+  typecheck, lint, docs check, and the Cloudflare build pass. Production
+  activation awaits normal review and push.
 
 - **2026-08-15 (scheduled seed failures are visible)** — The weekly seed is the
   only cron-driven workflow, and a failed run previously left no signal outside
@@ -273,6 +288,24 @@ provenance. The workflow is free and has no billing or entitlement gate.
 - Bounded Vectorize, full-catalog FTS, and language candidates feed deterministic
   recommendations that explain language, topic, metadata, and tool matches;
   sparse context is labeled as broad discovery.
+
+### Need-driven project intelligence
+- Extracts 5–10 evidence-backed needs per project from metadata, tools, AI
+  metadata, and topics; returns fewer when evidence is insufficient. Needs are
+  cached by project fingerprint and reused when the fingerprint is unchanged.
+- Searches the full eligible catalog independently per need using Vectorize,
+  FTS, and structured lanes with hard candidate bounds. Candidate pools are
+  cached by normalized need signature for cross-project reuse.
+- Classifies each candidate into one of five buckets (adopt/integrate,
+  reference implementation, architectural pattern, competing product,
+  unsuitable/negative example) with confidence, evidence, and provenance.
+- Persists deterministic draft reports grouped by need with version, catalog
+  generation, and incremental rerun support. Degraded runs preserve the latest
+  successful report.
+- Exposes a provider-neutral external review ingestion contract so Fleet
+  automation can submit one bounded Devin review per changed project.
+  Starboard contains no Devin credentials and never requires Devin to serve
+  recommendations. Read endpoints never trigger external-agent spend.
 
 ### Discovery and intelligence surfaces
 - Public Discover page and `/api/discover` for the seeded popular repository

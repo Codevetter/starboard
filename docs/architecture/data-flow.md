@@ -59,3 +59,25 @@ candidate lane, then fuse it with full-catalog lexical and structured lanes.
 Deterministic visible evidence remains the final ranker so every reason can be
 explained. When semantic retrieval is unavailable, lexical and structured lanes
 remain usable; an all-lanes-empty state becomes an explicit broad fallback.
+
+## Need-driven project intelligence
+
+```text
+connected project
+  → fingerprint (metadata, tools, AI metadata, topics)
+  → need extraction (5–10 evidence-backed needs, cached by fingerprint)
+  → per-need retrieval (Vectorize + FTS + structured, cached by signature)
+  → candidate classification (5 buckets, confidence, provenance)
+  → draft report persistence (versioned, incremental reruns)
+  → optional external review ingestion (provider-neutral, idempotent)
+```
+
+The need-driven pipeline extends project recommendations from a flat ranked
+list to a need-grouped intelligence report. Each need is searched
+independently across the full eligible catalog. Candidate pools are cached by
+normalized need signature for cross-project reuse. Draft reports are
+versioned with `is_latest` flags; degraded runs preserve the latest successful
+report. External review ingestion is provider-neutral — Fleet automation owns
+Devin credentials and session lifecycle, Starboard only ingests structured
+results. See
+[need-driven-intelligence.md](need-driven-intelligence.md) for details.
