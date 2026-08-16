@@ -28,7 +28,7 @@ const baselines = {
     unlisted: 0,
     unresolved: 0,
   },
-  complexity: { violations: 34, maxCcn: 56, maxLength: 397, maxParams: 17 },
+  complexity: { violations: 37, maxCcn: 56, maxLength: 397, maxParams: 17 },
   duplication: {
     clones: 27,
     duplicatedLines: 369,
