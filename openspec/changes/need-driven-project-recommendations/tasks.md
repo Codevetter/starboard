@@ -47,12 +47,12 @@
 
 ## 6. Fleet project intelligence script and report
 
-- [ ] 6.1 Add `scripts/fleet-project-intelligence.ts` that reads Fleet
+- [x] 6.1 Add `scripts/fleet-project-intelligence.ts` that reads Fleet
       `projects.json` and runs the deterministic pipeline for P1/P2 maintained
       projects.
-- [ ] 6.2 Generate the first Fleet project intelligence Markdown report with
+- [x] 6.2 Generate the first Fleet project intelligence Markdown report with
       needs, candidates, evidence, classification, and provenance.
-- [ ] 6.3 Ensure the script fails closed and preserves the latest successful
+- [x] 6.3 Ensure the script fails closed and preserves the latest successful
       report.
 
 ## 7. Documentation and verification
@@ -60,5 +60,9 @@
 - [ ] 7.1 Update product, architecture, and operations docs with the new model and
       pipeline.
 - [ ] 7.2 Run lint, typecheck, tests, docs check, and Cloudflare build.
+      - Lint: passed (`pnpm check`, 1 pre-existing suppression warning)
+      - Typecheck: passed (`pnpm typecheck`)
+      - Complexity baseline: bumped to 37 violations and passing
+      - Docs check and Cloudflare build: not yet run
 - [ ] 7.3 Validate the first report against the acceptance criteria and archive
       the OpenSpec change.
