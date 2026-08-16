@@ -304,7 +304,7 @@ async function classifyCandidate(
   project: FleetProject,
   need: ProjectNeed,
   repo: { fullName: string; htmlUrl: string; description: string | null },
-  token?: string
+  _token?: string
 ): Promise<CandidateRepo> {
   // A real implementation would query Starboard's capability cards and compare
   // language, topics, tools, and maintenance signals. This fallback uses the
@@ -378,7 +378,8 @@ async function buildProjectReport(
 
   const notes: string[] = [];
   if (!root) notes.push('No local repository path available; evidence limited.');
-  if (!options.ghToken) notes.push('GH_TOKEN not set; candidate search skipped. Use catalog retrieval instead.');
+  if (!options.ghToken)
+    notes.push('GH_TOKEN not set; candidate search skipped. Use catalog retrieval instead.');
 
   return {
     id: project.id,
@@ -450,9 +451,7 @@ function renderReport(reports: ProjectReport[], generatedAt: string): string {
         lines.push('*No candidates retrieved in this pass.*');
       } else {
         for (const candidate of needCandidates) {
-          lines.push(
-            `- **${candidate.fullName}** — ${candidate.htmlUrl}`
-          );
+          lines.push(`- **${candidate.fullName}** — ${candidate.htmlUrl}`);
           lines.push(
             `  - classification: \`${candidate.classification}\`, confidence: ${candidate.confidence}`
           );
