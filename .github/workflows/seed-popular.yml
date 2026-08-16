@@ -15,9 +15,9 @@ on:
         required: false
         default: '250'
       max_additions:
-        description: 'Abort-before-write repository addition bound (0-100)'
+        description: 'Abort-before-write repository addition bound (0-200)'
         required: false
-        default: '100'
+        default: '200'
 
 concurrency:
   group: starboard-embedding
