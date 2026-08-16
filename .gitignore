@@ -18,6 +18,9 @@
 /data/*.db-wal
 /data/*.db-shm
 
+# generated reports from local scripts
+/reports/
+
 # operator-local refresh-lifecycle + experiment manifest state
 # (written by seed-popular GitHub Action / operator runs; not for git)
 /data/refresh-manifest.json
