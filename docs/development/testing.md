@@ -4,6 +4,9 @@
 
 - **Runner:** Vitest 4 with v8 coverage. Config in `vitest.config.ts`.
 - **Location:** `src/__tests__/` (one file per module under test).
+- Route tests (`stars-api`, `project-recommendations-api`, `similar-repos-api`)
+  cover auth, empty-result fallbacks, and parameterized SQL at the HTTP
+  boundary — ranking helpers stay in their own lib tests.
 - **Coverage thresholds:** 80% lines/functions/statements, 70% branches on core
   logic modules (`github-projects`, `project-recommendations`, `search`, and
   `starboard-rag-documents`).
