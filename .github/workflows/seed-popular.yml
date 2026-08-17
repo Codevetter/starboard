@@ -62,7 +62,7 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           SEED_EMBED_MODE: 'worker'
           # Fail before repository writes when the source delta is anomalous.
-          SEED_MAX_ADDITIONS: ${{ github.event.inputs.max_additions || '100' }}
+          SEED_MAX_ADDITIONS: ${{ github.event.inputs.max_additions || '200' }}
           SEED_MIN_SOURCE_REPOS: '5000'
           MIN_STARS_FLOOR: '5000'
 

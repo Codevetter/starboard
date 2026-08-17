@@ -55,10 +55,10 @@ describe('db row-read regression guards', () => {
     expect(seedWorkflow).toContain("cron: '17 3 * * 0'");
     expect(seedWorkflow).toContain('timeout-minutes: 60');
     expect(seedWorkflow).toContain('cancel-in-progress: false');
-    expect(seedWorkflow).toContain("github.event.inputs.max_additions || '100'");
+    expect(seedWorkflow).toContain("github.event.inputs.max_additions || '200'");
     expect(seedWorkflow).toContain("SEED_MIN_SOURCE_REPOS: '5000'");
-    expect(seedPopularTs).toContain("process.env.SEED_MAX_ADDITIONS || '100'");
-    expect(seedPopularTs).toContain('const MAX_ADDITIONS_HARD_LIMIT = 100');
+    expect(seedPopularTs).toContain("process.env.SEED_MAX_ADDITIONS || '200'");
+    expect(seedPopularTs).toContain('const MAX_ADDITIONS_HARD_LIMIT = 300');
     expect(seedPopularTs).toContain('exceeds hard safety limit');
     expect(seedPopularTs).toContain("process.env.SEED_MIN_SOURCE_REPOS || '5000'");
   });

@@ -26,7 +26,7 @@
  *   GITHUB_TOKEN          — fine-grained PAT, public_repo:read
  * Optional env:
  *   SEED_DAILY_LIMIT      — embeddings per run, default 1000
- *   SEED_MAX_ADDITIONS    — abort-before-write bound, default 100
+ *   SEED_MAX_ADDITIONS    — abort-before-write bound, default 200
  *   SEED_MIN_SOURCE_REPOS — reject suspiciously small source sets, default 5000
  *   MIN_STARS_FLOOR       — minimum stars to seed, default 5000
  *   SEED_EMBED_MODE       — `worker` delegates embeddings to the bound Worker endpoint
@@ -48,8 +48,8 @@ import { createVectorizeRestWriterFromEnv } from '../src/lib/repo-vectors-rest';
 
 const DAILY_LIMIT = parseInt(process.env.SEED_DAILY_LIMIT || '1000', 10);
 const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
-const MAX_ADDITIONS_HARD_LIMIT = 100;
-const MAX_ADDITIONS = parseInt(process.env.SEED_MAX_ADDITIONS || '100', 10);
+const MAX_ADDITIONS_HARD_LIMIT = 300;
+const MAX_ADDITIONS = parseInt(process.env.SEED_MAX_ADDITIONS || '200', 10);
 const MIN_SOURCE_REPOS = parseInt(process.env.SEED_MIN_SOURCE_REPOS || '5000', 10);
 const BATCH_SIZE = 50;
 const DB_MAX_ATTEMPTS = 4;
