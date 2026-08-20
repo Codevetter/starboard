@@ -63,7 +63,7 @@ docs/
     commands.md                 # pnpm scripts and what they do
     conventions.md              # code style, formatting, pre-push hook
     testing.md                  # vitest + playwright + project recommendation tests
-    openspec.md                 # spec-driven change workflow
+    openspec.md                 # GitHub-Issue spec workflow
   operations/
     deploy.md                   # Cloudflare Workers deploy + secrets
     env.md                      # environment variables and validation
@@ -121,8 +121,8 @@ docs/
 - [`PROJECT_STATUS.md`](../PROJECT_STATUS.md) — deeper product status (fleet
   tooling reads this filename).
 - [`README.md`](../README.md) — product readme for humans landing in the repo.
-- [`openspec/`](../openspec/) — spec-driven change workflow tooling and
-  archived change proposals. See
+- [GitHub Issues](https://github.com/Codevetter/starboard/issues) — operational
+  work and non-trivial feature specs. See
   [development/openspec.md](development/openspec.md).
 - [`public/`](../public/) — runtime agent-indexing surfaces (`llms.txt`,
   `index.md`, `api-ai.json`, `robots.txt`, `sitemap.xml`) served by the Worker.

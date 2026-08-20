@@ -87,14 +87,15 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
 - **[docs/product/](docs/product/)** — purpose, features, surfaces.
 - **[docs/architecture/](docs/architecture/)** — overview, data flow, ADRs.
 - **[docs/development/](docs/development/)** — setup, commands, conventions,
-  testing, OpenSpec.
+  testing, and the GitHub-Issue spec workflow.
 - **[docs/operations/](docs/operations/)** — deploy, env, CI/CD, jobs, runbooks.
 - **[docs/knowledge/](docs/knowledge/)** — current lessons, external references,
   failed approaches.
 - **[docs/archive/](docs/archive/)** — historical records (pre-split ADRs,
   plans, retros, security audit, OSS evaluation).
-- **[openspec/](openspec/)** — spec-driven change workflow tooling and archived
-  change proposals. See [docs/development/openspec.md](docs/development/openspec.md).
+- **[GitHub Issues](https://github.com/Codevetter/starboard/issues)** —
+  proposals, design notes, requirements, and task checklists for non-trivial
+  changes. See [docs/development/openspec.md](docs/development/openspec.md).
 - **[public/](public/)** — runtime agent-indexing surfaces (`llms.txt`,
   `index.md`, `api-ai.json`, `robots.txt`, `sitemap.xml`). See
   [docs/product/surfaces.md](docs/product/surfaces.md).
@@ -132,7 +133,6 @@ src/
 docs/                     # Canonical documentation (source of truth)
 scripts/                  # seed-popular, enrich-repos, enrich-tools, check-docs, ...
 landing-astro/            # Astro landing page (overlaid into OpenNext assets during build:cf)
-openspec/                 # spec-driven change workflow tooling + archived changes
 public/                   # Agent-indexing surfaces (llms.txt, index.md, api-ai.json, robots.txt, sitemap.xml)
 wrangler.jsonc            # Worker config: ASSETS + AI + DB + REPO_VECTORS + RAG_SERVICE
 worker.mjs / agent-edge.mjs         # OpenNext-generated (do not hand-edit)
@@ -146,7 +146,7 @@ Detailed file map: [docs/architecture/overview.md](docs/architecture/overview.md
 
 ### Adding Tasks
 
-- Track Starboard work in this repository's GitHub issues or OpenSpec changes.
+- Track Starboard work in this repository's GitHub Issues.
 - Keep cross-project infrastructure work in Fleet Workspace, not SaaS Maker.
 
 ### Using SaaS Maker
