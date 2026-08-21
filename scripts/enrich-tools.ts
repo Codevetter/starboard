@@ -221,14 +221,17 @@ async function fetchManifestFiles(
   return files;
 }
 
-async function saveTools(
-  db: Client,
-  repo: PendingRepo,
-  tools: ToolDetection[],
-  sourceHash: string,
-  status: string,
-  error: string | null = null
-) {
+interface SaveToolsParams {
+  db: Client;
+  repo: PendingRepo;
+  tools: ToolDetection[];
+  sourceHash: string;
+  status: string;
+  error?: string | null;
+}
+
+async function saveTools(params: SaveToolsParams) {
+  const { db, repo, tools, sourceHash, status, error = null } = params;
   const statements: InStatement[] = [
     { sql: 'DELETE FROM repo_tools WHERE repo_id = ?', args: [repo.id] },
     {
@@ -282,7 +285,7 @@ async function enrichRepo(db: Client, repo: PendingRepo) {
   const manifestTools = files.flatMap((file) => detectToolsFromManifest(file.path, file.content));
   const tools = mergeToolDetections([...sbomTools, ...manifestTools, ...signalTools]);
 
-  await saveTools(db, repo, tools, baseHash, 'ok');
+  await saveTools({ db, repo, tools, sourceHash: baseHash, status: 'ok' });
   console.info(
     `[tools] ${repo.full_name}: ${tools.length} tools from ${files.length} files (${repo.stargazers_count} stars)`
   );
@@ -307,7 +310,14 @@ async function main() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[tools] ${repo.full_name} failed: ${message}`);
-      await saveTools(db, repo, [], repoSourceHash(repo), 'error', message.slice(0, 500));
+      await saveTools({
+        db,
+        repo,
+        tools: [],
+        sourceHash: repoSourceHash(repo),
+        status: 'error',
+        error: message.slice(0, 500),
+      });
     }
   }
 }

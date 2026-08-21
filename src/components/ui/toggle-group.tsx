@@ -17,17 +17,13 @@ const ToggleGroupContext = React.createContext<
   spacing: 0,
 });
 
-function ToggleGroup({
-  className,
-  variant,
-  size,
-  spacing = 0,
-  children,
-  ...props
-}: React.ComponentProps<typeof ToggleGroupPrimitive.Root> &
+type ToggleGroupProps = React.ComponentProps<typeof ToggleGroupPrimitive.Root> &
   VariantProps<typeof toggleVariants> & {
     spacing?: number;
-  }) {
+  };
+
+function ToggleGroup(props: ToggleGroupProps) {
+  const { className, variant, size, spacing = 0, children, ...rest } = props;
   return (
     <ToggleGroupPrimitive.Root
       data-slot="toggle-group"
@@ -39,7 +35,7 @@ function ToggleGroup({
         'group/toggle-group flex w-fit items-center gap-[--spacing(var(--gap))] rounded-md data-[spacing=default]:data-[variant=outline]:shadow-xs',
         className
       )}
-      {...props}
+      {...rest}
     >
       <ToggleGroupContext.Provider value={{ variant, size, spacing }}>
         {children}
@@ -48,13 +44,11 @@ function ToggleGroup({
   );
 }
 
-function ToggleGroupItem({
-  className,
-  children,
-  variant,
-  size,
-  ...props
-}: React.ComponentProps<typeof ToggleGroupPrimitive.Item> & VariantProps<typeof toggleVariants>) {
+type ToggleGroupItemProps = React.ComponentProps<typeof ToggleGroupPrimitive.Item> &
+  VariantProps<typeof toggleVariants>;
+
+function ToggleGroupItem(props: ToggleGroupItemProps) {
+  const { className, children, variant, size, ...rest } = props;
   const context = React.useContext(ToggleGroupContext);
 
   return (
@@ -72,7 +66,7 @@ function ToggleGroupItem({
         'data-[spacing=0]:rounded-none data-[spacing=0]:shadow-none data-[spacing=0]:first:rounded-l-md data-[spacing=0]:last:rounded-r-md data-[spacing=0]:data-[variant=outline]:border-l-0 data-[spacing=0]:data-[variant=outline]:first:border-l',
         className
       )}
-      {...props}
+      {...rest}
     >
       {children}
     </ToggleGroupPrimitive.Item>

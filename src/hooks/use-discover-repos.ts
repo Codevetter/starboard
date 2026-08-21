@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import useSWR from 'swr';
 
 import type { Facets, SortOption, UserRepo } from '@/hooks/use-starred-repos';
@@ -15,8 +15,14 @@ const sortMap: Record<SortOption, string> = {
   'name-az': 'name',
 };
 
+interface DiscoverToolFacet {
+  key: string;
+  name: string;
+  count: number;
+}
+
 interface DiscoverFacets extends Facets {
-  tools: Array<{ key: string; name: string; count: number }>;
+  tools: DiscoverToolFacet[];
 }
 
 export interface DiscoverResponse {
@@ -42,19 +48,28 @@ const EMPTY_FACETS: DiscoverFacets = {
   tools: [],
 };
 
+function appendParam(
+  params: URLSearchParams,
+  key: string,
+  value: string | false | undefined
+): void {
+  if (value) params.set(key, value);
+}
+
 function buildDiscoverUrl(opts: UseDiscoverReposOptions, offset: number): string {
   const params = new URLSearchParams();
-  if (opts.q) params.set('q', opts.q);
-  if (opts.language?.length) params.set('language', opts.language.join(','));
+  appendParam(params, 'q', opts.q);
+  appendParam(params, 'language', opts.language?.length ? opts.language.join(',') : undefined);
   if (opts.listId != null) params.set('list_id', String(opts.listId));
-  if (opts.tools?.length) params.set('tool', opts.tools.join(','));
+  appendParam(params, 'tool', opts.tools?.length ? opts.tools.join(',') : undefined);
   const apiSort = sortMap[opts.sort ?? 'most-stars'];
-  if (apiSort !== 'stars') params.set('sort', apiSort);
+  appendParam(params, 'sort', apiSort !== 'stars' ? apiSort : undefined);
   const limit = opts.limit ?? 50;
-  if (limit !== 50) params.set('limit', String(limit));
-  if (offset > 0) params.set('offset', String(offset));
+  appendParam(params, 'limit', limit !== 50 ? String(limit) : undefined);
+  appendParam(params, 'offset', offset > 0 ? String(offset) : undefined);
   const qs = params.toString();
-  return `/discover/data${qs ? `?${qs}` : ''}`;
+  const query = qs ? `?${qs}` : '';
+  return `/discover/data${query}`;
 }
 
 function filterKey(opts: UseDiscoverReposOptions): string {
@@ -84,17 +99,7 @@ export function useDiscoverRepos(
     url,
     (requestUrl: string) =>
       replaceAbortableJsonRequest<DiscoverResponse>(searchAbortRef, requestUrl),
-    {
-      revalidateOnFocus: false,
-      revalidateOnMount: !hasMatchingInitialData,
-      dedupingInterval: 60000 * 5,
-      keepPreviousData: true,
-      fallbackData: hasMatchingInitialData ? (initial.data ?? undefined) : undefined,
-      shouldRetryOnError: false,
-      onError: (err) => {
-        if (err?.name === 'AbortError') return;
-      },
-    }
+    discoverSwrOptions(searchAbortRef, hasMatchingInitialData, initial)
   );
 
   useEffect(() => {
@@ -120,15 +125,9 @@ export function useDiscoverRepos(
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
-    loadMoreAbortRef.current?.abort();
-    loadMoreAbortRef.current = new AbortController();
-    const nextOffset = allRepos.length;
     setLoadingMore(true);
     try {
-      const nextUrl = buildDiscoverUrl(opts, nextOffset);
-      const res = await fetch(nextUrl, { signal: loadMoreAbortRef.current.signal });
-      if (!res.ok) throw new Error(`${res.status}`);
-      const page: DiscoverResponse = await res.json();
+      const page = await fetchDiscoverPage(opts, allRepos.length, loadMoreAbortRef);
       setLoadedRepos((prev) => [...prev, ...page.repos]);
     } catch (error) {
       if ((error as Error).name === 'AbortError') return;
@@ -151,4 +150,35 @@ export function useDiscoverRepos(
     loadMore,
     mutate,
   };
+}
+
+function discoverSwrOptions(
+  _searchAbortRef: RefObject<AbortController | null>,
+  hasMatchingInitialData: boolean,
+  initial?: { data: DiscoverResponse | null; url: string }
+) {
+  return {
+    revalidateOnFocus: false,
+    revalidateOnMount: !hasMatchingInitialData,
+    dedupingInterval: 60000 * 5,
+    keepPreviousData: true,
+    fallbackData: hasMatchingInitialData ? (initial?.data ?? undefined) : undefined,
+    shouldRetryOnError: false,
+    onError: (err: Error) => {
+      if (err?.name === 'AbortError') return;
+    },
+  };
+}
+
+async function fetchDiscoverPage(
+  opts: UseDiscoverReposOptions,
+  offset: number,
+  abortRef: RefObject<AbortController | null>
+): Promise<DiscoverResponse> {
+  abortRef.current?.abort();
+  abortRef.current = new AbortController();
+  const nextUrl = buildDiscoverUrl(opts, offset);
+  const res = await fetch(nextUrl, { signal: abortRef.current.signal });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return (await res.json()) as DiscoverResponse;
 }

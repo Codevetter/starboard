@@ -134,6 +134,122 @@ function repoPath(project: FleetProject, fleetRoot: string): string | null {
  * product needs from Fleet project metadata. A future pass can call an LLM
  * for richer extraction while still validating against evidence.
  */
+interface NeedDefinition {
+  keywords: string[];
+  title: string;
+  currentState: string;
+  desiredOutcome: string;
+  evidence: string;
+  searchIntents: string[];
+  priority: 'high' | 'medium' | 'low';
+}
+
+const NEED_DEFINITIONS: NeedDefinition[] = [
+  {
+    keywords: ['ai ', 'llm', 'model'],
+    title: 'Local or cost-efficient inference runtime',
+    currentState: 'Project depends on remote or expensive inference',
+    desiredOutcome:
+      'Run models locally, at the edge, or through a managed gateway with predictable cost',
+    evidence: 'Product description mentions AI/LLM/model capabilities',
+    searchIntents: ['local LLM inference engine', 'edge AI runtime', 'MLX llama.cpp'],
+    priority: 'high',
+  },
+  {
+    keywords: ['cloudflare', 'worker', 'd1', 'pages'],
+    title: 'Serverless edge persistence and compute primitives',
+    currentState:
+      'Uses Cloudflare Workers/Pages/D1/KV/R2 but may lack reusable patterns for migrations, bindings, or local dev',
+    desiredOutcome:
+      'Adopt proven patterns for D1 migrations, wrangler config, and Worker observability',
+    evidence: 'Deployment stack references Cloudflare Workers/Pages/D1',
+    searchIntents: [
+      'Cloudflare D1 migration patterns',
+      'wrangler best practices',
+      'edge Worker observability',
+    ],
+    priority: 'high',
+  },
+  {
+    keywords: ['mac', 'swift', 'apple'],
+    title: 'Native macOS app packaging and distribution',
+    currentState:
+      'Native app build exists but distribution, notarization, or auto-update may be manual',
+    desiredOutcome: 'Automate signed builds, notarization, and Sparkle/Updater release pipeline',
+    evidence: 'Product is a macOS/Swift app',
+    searchIntents: [
+      'macOS app notarization github actions',
+      'Sparkle auto update swift',
+      'Tauri updater',
+    ],
+    priority: 'medium',
+  },
+  {
+    keywords: ['embed', 'vector', 'semantic'],
+    title: 'Embedding and semantic retrieval pipeline',
+    currentState: 'Needs vector search or semantic matching',
+    desiredOutcome:
+      'Use a stable embedding model, vector store, and reranking strategy with versioning',
+    evidence: 'Evidence of embeddings, vector search, or semantic retrieval',
+    searchIntents: [
+      'open source embedding model',
+      'local vector database',
+      'semantic search reranking',
+    ],
+    priority: 'high',
+  },
+  {
+    keywords: ['test', 'eval', 'benchmark'],
+    title: 'Reproducible evaluation and benchmark harness',
+    currentState: 'Evaluations are ad-hoc or not automated',
+    desiredOutcome: 'Run deterministic benchmarks with regression detection and fixture versioning',
+    evidence: 'README or status mentions tests, evals, or benchmarks',
+    searchIntents: [
+      'open source benchmark harness',
+      'regression testing tools',
+      'deterministic eval framework',
+    ],
+    priority: 'medium',
+  },
+  {
+    keywords: ['auth', 'oauth', 'sign-in'],
+    title: 'Authentication and session management',
+    currentState: 'Has sign-in flow but may need OAuth providers, session isolation, or RBAC',
+    desiredOutcome: 'Use a maintained auth library with minimal scope and secure session handling',
+    evidence: 'Auth, OAuth, or sign-in mentioned in evidence',
+    searchIntents: [
+      'next auth v5 github oauth',
+      'oauth2 pkce library',
+      'session management patterns',
+    ],
+    priority: 'medium',
+  },
+  {
+    keywords: ['landing', 'marketing', 'seo'],
+    title: 'Marketing site and content publishing pipeline',
+    currentState:
+      'Landing/marketing content is hand-maintained or not integrated with the product build',
+    desiredOutcome:
+      'Adopt a static-site generator with automated sitemap, OG images, and publishing checks',
+    evidence: 'Product has a landing page or marketing surface',
+    searchIntents: [
+      'Astro static site generator',
+      'marketing site automation',
+      'SEO sitemap generator',
+    ],
+    priority: 'low',
+  },
+];
+
+interface NeedInput {
+  title: string;
+  currentState: string;
+  desiredOutcome: string;
+  evidence: string[];
+  searchIntents: string[];
+  priority: 'high' | 'medium' | 'low';
+}
+
 function extractNeeds(
   project: FleetProject,
   readme: string | null,
@@ -143,116 +259,36 @@ function extractNeeds(
   const description = project.public?.description ?? '';
   const needs: ProjectNeed[] = [];
 
-  const addNeed = (
-    title: string,
-    currentState: string,
-    desiredOutcome: string,
-    evidence: string[],
-    searchIntents: string[],
-    priority: 'high' | 'medium' | 'low'
-  ): void => {
+  const addNeed = (input: NeedInput): void => {
     needs.push({
       id: `${project.id}-${needs.length + 1}`,
-      title,
-      currentState,
-      desiredOutcome,
-      evidence,
-      searchIntents,
-      priority,
+      ...input,
     });
   };
 
-  if (source.includes('ai ') || source.includes('llm') || source.includes('model')) {
-    addNeed(
-      'Local or cost-efficient inference runtime',
-      'Project depends on remote or expensive inference',
-      'Run models locally, at the edge, or through a managed gateway with predictable cost',
-      [description || 'Product description mentions AI/LLM/model capabilities'],
-      ['local LLM inference engine', 'edge AI runtime', 'MLX llama.cpp'],
-      'high'
-    );
-  }
-
-  if (
-    source.includes('cloudflare') ||
-    source.includes('worker') ||
-    source.includes('d1') ||
-    source.includes('pages')
-  ) {
-    addNeed(
-      'Serverless edge persistence and compute primitives',
-      'Uses Cloudflare Workers/Pages/D1/KV/R2 but may lack reusable patterns for migrations, bindings, or local dev',
-      'Adopt proven patterns for D1 migrations, wrangler config, and Worker observability',
-      ['Deployment stack references Cloudflare Workers/Pages/D1'],
-      ['Cloudflare D1 migration patterns', 'wrangler best practices', 'edge Worker observability'],
-      'high'
-    );
-  }
-
-  if (source.includes('mac') || source.includes('swift') || source.includes('apple')) {
-    addNeed(
-      'Native macOS app packaging and distribution',
-      'Native app build exists but distribution, notarization, or auto-update may be manual',
-      'Automate signed builds, notarization, and Sparkle/Updater release pipeline',
-      ['Product is a macOS/Swift app'],
-      ['macOS app notarization github actions', 'Sparkle auto update swift', 'Tauri updater'],
-      'medium'
-    );
-  }
-
-  if (source.includes('embed') || source.includes('vector') || source.includes('semantic')) {
-    addNeed(
-      'Embedding and semantic retrieval pipeline',
-      'Needs vector search or semantic matching',
-      'Use a stable embedding model, vector store, and reranking strategy with versioning',
-      ['Evidence of embeddings, vector search, or semantic retrieval'],
-      ['open source embedding model', 'local vector database', 'semantic search reranking'],
-      'high'
-    );
-  }
-
-  if (source.includes('test') || source.includes('eval') || source.includes('benchmark')) {
-    addNeed(
-      'Reproducible evaluation and benchmark harness',
-      'Evaluations are ad-hoc or not automated',
-      'Run deterministic benchmarks with regression detection and fixture versioning',
-      ['README or status mentions tests, evals, or benchmarks'],
-      ['open source benchmark harness', 'regression testing tools', 'deterministic eval framework'],
-      'medium'
-    );
-  }
-
-  if (source.includes('auth') || source.includes('oauth') || source.includes('sign-in')) {
-    addNeed(
-      'Authentication and session management',
-      'Has sign-in flow but may need OAuth providers, session isolation, or RBAC',
-      'Use a maintained auth library with minimal scope and secure session handling',
-      ['Auth, OAuth, or sign-in mentioned in evidence'],
-      ['next auth v5 github oauth', 'oauth2 pkce library', 'session management patterns'],
-      'medium'
-    );
-  }
-
-  if (source.includes('landing') || source.includes('marketing') || source.includes('seo')) {
-    addNeed(
-      'Marketing site and content publishing pipeline',
-      'Landing/marketing content is hand-maintained or not integrated with the product build',
-      'Adopt a static-site generator with automated sitemap, OG images, and publishing checks',
-      ['Product has a landing page or marketing surface'],
-      ['Astro static site generator', 'marketing site automation', 'SEO sitemap generator'],
-      'low'
-    );
+  for (const def of NEED_DEFINITIONS) {
+    if (def.keywords.some((kw) => source.includes(kw))) {
+      addNeed({
+        title: def.title,
+        currentState: def.currentState,
+        desiredOutcome: def.desiredOutcome,
+        evidence: [description || def.evidence],
+        searchIntents: def.searchIntents,
+        priority: def.priority,
+      });
+    }
   }
 
   if (needs.length === 0) {
-    addNeed(
-      'Project health and dependency maintenance',
-      'No specific needs were extracted from available evidence',
-      'Keep dependencies current, remove dead code, and monitor security advisories',
-      ['Limited evidence available for targeted need extraction'],
-      ['dependency health tool', 'dead code detector', 'security audit automation'],
-      'low'
-    );
+    addNeed({
+      title: 'Project health and dependency maintenance',
+      currentState: 'No specific needs were extracted from available evidence',
+      desiredOutcome:
+        'Keep dependencies current, remove dead code, and monitor security advisories',
+      evidence: ['Limited evidence available for targeted need extraction'],
+      searchIntents: ['dependency health tool', 'dead code detector', 'security audit automation'],
+      priority: 'low',
+    });
   }
 
   return needs.slice(0, 10);
@@ -300,20 +336,31 @@ async function searchGitHub(
   }));
 }
 
+interface CandidateSearchRepo {
+  fullName: string;
+  htmlUrl: string;
+  description: string | null;
+}
+
+const WHITESPACE_RE = /\s+/;
+
+function hasKeywordOverlap(searchIntents: string[], desc: string): boolean {
+  return searchIntents.some((intent) =>
+    intent.split(WHITESPACE_RE).some((word) => desc.includes(word) && word.length > 3)
+  );
+}
+
 async function classifyCandidate(
   project: FleetProject,
   need: ProjectNeed,
-  repo: { fullName: string; htmlUrl: string; description: string | null },
+  repo: CandidateSearchRepo,
   _token?: string
 ): Promise<CandidateRepo> {
   // A real implementation would query Starboard's capability cards and compare
   // language, topics, tools, and maintenance signals. This fallback uses the
   // repository description and need title for a conservative classification.
   const desc = (repo.description ?? '').toLowerCase();
-  const needText = `${need.title} ${need.searchIntents.join(' ')}`.toLowerCase();
-  const overlap = need.searchIntents.some((intent) =>
-    intent.split(/\s+/).some((word) => desc.includes(word) && word.length > 3)
-  );
+  const overlap = hasKeywordOverlap(need.searchIntents, desc);
 
   let classification: CandidateRepo['classification'] = 'reference_implementation';
   if (desc.includes(project.name.toLowerCase()) || desc.includes(project.id.toLowerCase())) {
@@ -393,6 +440,77 @@ async function buildProjectReport(
   };
 }
 
+function renderNeed(need: ProjectNeed, candidates: CandidateRepo[]): string[] {
+  const lines: string[] = [
+    `### ${need.title}`,
+    '',
+    `**Current state:** ${need.currentState}`,
+    `**Desired outcome:** ${need.desiredOutcome}`,
+    `**Priority:** ${need.priority}`,
+    '',
+    '**Evidence:**',
+  ];
+  for (const evidence of need.evidence) {
+    lines.push(`- ${evidence}`);
+  }
+  lines.push('');
+  lines.push(`*Search intents:* ${need.searchIntents.join('; ')}`);
+  lines.push('');
+
+  if (candidates.length === 0) {
+    lines.push('*No candidates retrieved in this pass.*');
+  } else {
+    for (const candidate of candidates) {
+      lines.push(`- **${candidate.fullName}** — ${candidate.htmlUrl}`);
+      lines.push(
+        `  - classification: \`${candidate.classification}\`, confidence: ${candidate.confidence}`
+      );
+      if (candidate.description) {
+        lines.push(`  - ${candidate.description}`);
+      }
+      for (const evidence of candidate.evidence) {
+        lines.push(`  - ${evidence}`);
+      }
+    }
+  }
+  lines.push('');
+  return lines;
+}
+
+function renderProjectReport(report: ProjectReport): string[] {
+  const lines: string[] = [
+    `## ${report.name} (${report.priority})`,
+    '',
+    `**Fingerprint:** \`${report.fingerprint.slice(0, 16)}\``,
+    '',
+    '**Evidence sources:**',
+  ];
+  for (const source of report.evidenceSources) {
+    lines.push(`- ${source}`);
+  }
+  lines.push('');
+
+  if (report.needs.length === 0) {
+    lines.push('No needs extracted from available evidence.');
+    lines.push('');
+    return lines;
+  }
+
+  for (const need of report.needs) {
+    const needCandidates = report.candidates.get(need.id) ?? [];
+    lines.push(...renderNeed(need, needCandidates));
+  }
+
+  if (report.notes.length > 0) {
+    lines.push('**Notes:**');
+    for (const note of report.notes) {
+      lines.push(`- ${note}`);
+    }
+    lines.push('');
+  }
+  return lines;
+}
+
 function renderReport(reports: ProjectReport[], generatedAt: string): string {
   const lines: string[] = [
     '# Fleet Project Intelligence Report',
@@ -415,64 +533,7 @@ function renderReport(reports: ProjectReport[], generatedAt: string): string {
   lines.push('');
 
   for (const report of reports) {
-    lines.push(`## ${report.name} (${report.priority})`);
-    lines.push('');
-    lines.push(`**Fingerprint:** \`${report.fingerprint.slice(0, 16)}\``);
-    lines.push('');
-    lines.push('**Evidence sources:**');
-    for (const source of report.evidenceSources) {
-      lines.push(`- ${source}`);
-    }
-    lines.push('');
-
-    if (report.needs.length === 0) {
-      lines.push('No needs extracted from available evidence.');
-      lines.push('');
-      continue;
-    }
-
-    for (const need of report.needs) {
-      lines.push(`### ${need.title}`);
-      lines.push('');
-      lines.push(`**Current state:** ${need.currentState}`);
-      lines.push(`**Desired outcome:** ${need.desiredOutcome}`);
-      lines.push(`**Priority:** ${need.priority}`);
-      lines.push('');
-      lines.push('**Evidence:**');
-      for (const evidence of need.evidence) {
-        lines.push(`- ${evidence}`);
-      }
-      lines.push('');
-      lines.push(`*Search intents:* ${need.searchIntents.join('; ')}`);
-      lines.push('');
-
-      const needCandidates = report.candidates.get(need.id) ?? [];
-      if (needCandidates.length === 0) {
-        lines.push('*No candidates retrieved in this pass.*');
-      } else {
-        for (const candidate of needCandidates) {
-          lines.push(`- **${candidate.fullName}** — ${candidate.htmlUrl}`);
-          lines.push(
-            `  - classification: \`${candidate.classification}\`, confidence: ${candidate.confidence}`
-          );
-          if (candidate.description) {
-            lines.push(`  - ${candidate.description}`);
-          }
-          for (const evidence of candidate.evidence) {
-            lines.push(`  - ${evidence}`);
-          }
-        }
-      }
-      lines.push('');
-    }
-
-    if (report.notes.length > 0) {
-      lines.push('**Notes:**');
-      for (const note of report.notes) {
-        lines.push(`- ${note}`);
-      }
-      lines.push('');
-    }
+    lines.push(...renderProjectReport(report));
   }
 
   lines.push('---');

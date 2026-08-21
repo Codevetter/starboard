@@ -70,6 +70,123 @@ export default function ToolsPage() {
   return <ToolsContent isAuthenticated={status === 'authenticated'} />;
 }
 
+function ToolCard({ tool }: { tool: ToolSummary }) {
+  return (
+    <Link
+      key={tool.toolKey}
+      href={`/tools/${encodeURIComponent(tool.toolKey)}`}
+      className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate font-medium group-hover:underline">{tool.toolName}</div>
+          <div className="mt-1 text-xs text-muted-foreground">{tool.category}</div>
+        </div>
+        <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
+      </div>
+      <div className="mt-4 flex items-end justify-between gap-3">
+        <div>
+          <div className="text-2xl font-semibold">{formatNumber(tool.repoCount)}</div>
+          <div className="text-xs text-muted-foreground">repositories</div>
+        </div>
+        <Badge variant="outline" className={confidenceClass(tool.avgConfidence)}>
+          {confidenceLabel(tool.avgConfidence)}
+        </Badge>
+      </div>
+      <div className="mt-3 flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
+        <span>{tool.avgConfidence}% avg confidence</span>
+        <span>View evidence</span>
+      </div>
+    </Link>
+  );
+}
+
+function ToolGrid({
+  tools,
+  isInitialLoading,
+}: {
+  tools: ToolSummary[];
+  isInitialLoading: boolean;
+}) {
+  return (
+    <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      {isInitialLoading
+        ? Array.from({ length: 12 }).map((_, index) => (
+            <Card
+              key={index}
+              className="h-40 animate-pulse rounded-lg bg-muted/40 py-4 shadow-none"
+            />
+          ))
+        : tools.map((tool) => <ToolCard key={tool.toolKey} tool={tool} />)}
+    </section>
+  );
+}
+
+function filterTools(tools: ToolSummary[], query: string): ToolSummary[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return tools;
+  return tools.filter(
+    (tool) =>
+      tool.toolName.toLowerCase().includes(q) ||
+      tool.toolKey.toLowerCase().includes(q) ||
+      tool.category.toLowerCase().includes(q)
+  );
+}
+
+interface ToolScopeProps {
+  scope: ToolScope;
+  minStars: number;
+  isAuthenticated: boolean;
+  onScopeChange: (scope: ToolScope) => void;
+}
+
+interface ToolQueryProps {
+  query: string;
+  onQueryChange: (value: string) => void;
+  minConfidence: number;
+  onToggleConfidence: () => void;
+}
+
+function ToolFiltersBar({
+  scopeProps,
+  queryProps,
+}: {
+  scopeProps: ToolScopeProps;
+  queryProps: ToolQueryProps;
+}) {
+  return (
+    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <ToolScopeSelector
+        scope={scopeProps.scope}
+        minStars={scopeProps.minStars}
+        isAuthenticated={scopeProps.isAuthenticated}
+        onScopeChange={scopeProps.onScopeChange}
+      />
+      <div className="flex flex-col gap-2 sm:flex-row lg:min-w-[520px]">
+        <div className="relative min-w-0 flex-1">
+          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={queryProps.query}
+            onChange={(event) => queryProps.onQueryChange(event.target.value)}
+            placeholder="Filter tools..."
+            aria-label="Filter detected tools"
+            className="pl-9"
+          />
+        </div>
+        <Button
+          variant={queryProps.minConfidence >= 90 ? 'default' : 'outline'}
+          size="sm"
+          className="gap-2"
+          onClick={queryProps.onToggleConfidence}
+        >
+          <ShieldCheck className="size-4" />
+          High confidence
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [scope, setScope] = useState<ToolScope>('discover');
   const [minConfidence, setMinConfidence] = useState(0);
@@ -81,16 +198,7 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
   });
   const isInitialLoading = isLoading && !data;
 
-  const tools = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return data?.tools ?? [];
-    return (data?.tools ?? []).filter(
-      (tool) =>
-        tool.toolName.toLowerCase().includes(q) ||
-        tool.toolKey.toLowerCase().includes(q) ||
-        tool.category.toLowerCase().includes(q)
-    );
-  }, [data?.tools, query]);
+  const tools = useMemo(() => filterTools(data?.tools ?? [], query), [data?.tools, query]);
 
   return (
     <main className="min-h-0 flex-1 overflow-y-auto bg-background">
@@ -102,35 +210,20 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
       <section className="space-y-4 p-4 md:p-6">
         <ToolIntelligenceGuide disclaimer={data?.disclaimer} />
 
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <ToolScopeSelector
-            scope={scope}
-            minStars={data?.minStars ?? 10_000}
-            isAuthenticated={isAuthenticated}
-            onScopeChange={setScope}
-          />
-          <div className="flex flex-col gap-2 sm:flex-row lg:min-w-[520px]">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Filter tools..."
-                aria-label="Filter detected tools"
-                className="pl-9"
-              />
-            </div>
-            <Button
-              variant={minConfidence >= 90 ? 'default' : 'outline'}
-              size="sm"
-              className="gap-2"
-              onClick={() => setMinConfidence((value) => (value >= 90 ? 0 : 90))}
-            >
-              <ShieldCheck className="size-4" />
-              High confidence
-            </Button>
-          </div>
-        </div>
+        <ToolFiltersBar
+          scopeProps={{
+            scope,
+            minStars: data?.minStars ?? 10_000,
+            isAuthenticated,
+            onScopeChange: setScope,
+          }}
+          queryProps={{
+            query,
+            onQueryChange: setQuery,
+            minConfidence,
+            onToggleConfidence: () => setMinConfidence((value) => (value >= 90 ? 0 : 90)),
+          }}
+        />
 
         {isValidating && data && (
           <div className="text-sm text-muted-foreground">Refreshing tool intelligence...</div>
@@ -149,45 +242,7 @@ function ToolsContent({ isAuthenticated }: { isAuthenticated: boolean }) {
           </div>
         )}
 
-        <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {isInitialLoading
-            ? Array.from({ length: 12 }).map((_, index) => (
-                <Card
-                  key={index}
-                  className="h-40 animate-pulse rounded-lg bg-muted/40 py-4 shadow-none"
-                />
-              ))
-            : tools.map((tool) => (
-                <Link
-                  key={tool.toolKey}
-                  href={`/tools/${encodeURIComponent(tool.toolKey)}`}
-                  className="group rounded-lg border bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/50"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="truncate font-medium group-hover:underline">
-                        {tool.toolName}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{tool.category}</div>
-                    </div>
-                    <ArrowUpRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground" />
-                  </div>
-                  <div className="mt-4 flex items-end justify-between gap-3">
-                    <div>
-                      <div className="text-2xl font-semibold">{formatNumber(tool.repoCount)}</div>
-                      <div className="text-xs text-muted-foreground">repositories</div>
-                    </div>
-                    <Badge variant="outline" className={confidenceClass(tool.avgConfidence)}>
-                      {confidenceLabel(tool.avgConfidence)}
-                    </Badge>
-                  </div>
-                  <div className="mt-3 flex items-center justify-between gap-3 border-t pt-3 text-xs text-muted-foreground">
-                    <span>{tool.avgConfidence}% avg confidence</span>
-                    <span>View evidence</span>
-                  </div>
-                </Link>
-              ))}
-        </section>
+        <ToolGrid tools={tools} isInitialLoading={isInitialLoading} />
 
         {!isInitialLoading && !error && tools.length === 0 && (
           <p className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">

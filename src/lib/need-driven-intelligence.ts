@@ -329,6 +329,30 @@ function rowToMetadata(row: Record<string, unknown>): RepoMetadataRow {
   };
 }
 
+function adoptionTypeFor(archived: number, stars: number): CapabilityCard['adoptionType'] {
+  if (archived) return 'archived';
+  if (stars >= 50_000) return 'widely-adopted';
+  if (stars >= 10_000) return 'established';
+  if (stars >= 1000) return 'emerging';
+  return 'niche';
+}
+
+function buildCapabilities(
+  aiCategory: string | null,
+  aiKeywords: string[],
+  topics: string[]
+): string[] {
+  const capabilities: string[] = [];
+  if (aiCategory) capabilities.push(aiCategory);
+  for (const kw of aiKeywords.slice(0, 8)) {
+    if (!capabilities.includes(kw)) capabilities.push(kw);
+  }
+  for (const topic of topics.slice(0, 6)) {
+    if (!capabilities.includes(topic)) capabilities.push(topic);
+  }
+  return capabilities.slice(0, 12);
+}
+
 function buildCapabilityCard(meta: RepoMetadataRow): CapabilityCard {
   const topics = parseStringArray(meta.topics);
   const aiKeywords = parseStringArray(meta.ai_keywords);
@@ -350,33 +374,14 @@ function buildCapabilityCard(meta: RepoMetadataRow): CapabilityCard {
   );
   const purpose = purposeParts[0]?.trim() ?? meta.full_name;
 
-  const capabilities: string[] = [];
-  if (meta.ai_category) capabilities.push(meta.ai_category);
-  for (const kw of aiKeywords.slice(0, 8)) {
-    if (!capabilities.includes(kw)) capabilities.push(kw);
-  }
-  for (const topic of topics.slice(0, 6)) {
-    if (!capabilities.includes(topic)) capabilities.push(topic);
-  }
-
-  const adoptionType = meta.archived
-    ? 'archived'
-    : meta.stargazers_count >= 50_000
-      ? 'widely-adopted'
-      : meta.stargazers_count >= 10_000
-        ? 'established'
-        : meta.stargazers_count >= 1000
-          ? 'emerging'
-          : 'niche';
-
   return {
     repoId: meta.id,
     sourceFingerprint,
     purpose,
-    capabilities: capabilities.slice(0, 12),
+    capabilities: buildCapabilities(meta.ai_category, aiKeywords, topics),
     language: meta.language,
     tools,
-    adoptionType,
+    adoptionType: adoptionTypeFor(meta.archived, meta.stargazers_count),
     maintenance: {
       archived: Boolean(meta.archived),
       stargazersCount: meta.stargazers_count,
@@ -1468,6 +1473,132 @@ const defaultDependencies: NeedDrivenIntelligenceDependencies = {
   embed: generateEmbeddings,
 };
 
+async function resolveNeeds(
+  project: ProjectRecommendationRepo,
+  fingerprint: string,
+  storedFingerprint: string | null,
+  deps: NeedDrivenIntelligenceDependencies
+): Promise<ProjectNeed[]> {
+  let needs = extractNeeds(project);
+  const merged = mergeNeeds(needs);
+  const { retained } = rejectUnsupportedNeeds(merged);
+  needs = retained;
+
+  if (storedFingerprint !== fingerprint) {
+    await persistNeeds(project.id, fingerprint, needs, deps);
+    return needs;
+  }
+
+  const cachedNeeds = await deps.database.execute({
+    sql: 'SELECT need_id, title, current_state, desired_outcome, priority, constraints, evidence, search_intents, signature FROM project_needs WHERE repo_id = ? AND fingerprint = ?',
+    args: [project.id, fingerprint],
+  });
+  if (cachedNeeds.rows.length > 0) {
+    return cachedNeeds.rows.map((row) => ({
+      id: String(row.need_id),
+      title: String(row.title),
+      currentState: String(row.current_state),
+      desiredOutcome: String(row.desired_outcome),
+      priority: row.priority as NeedPriority,
+      constraints: parseStringArray(row.constraints),
+      evidence: parseStringArray(row.evidence),
+      searchIntents: parseStringArray(row.search_intents),
+      signature: String(row.signature),
+    }));
+  }
+  await persistNeeds(project.id, fingerprint, needs, deps);
+  return needs;
+}
+
+interface CandidateRetrievalResult {
+  candidateIds: number[];
+  mode: ProjectRetrievalMode;
+  cached: boolean;
+  degradation: boolean;
+}
+
+interface RetrieveCandidatesParams {
+  need: ProjectNeed;
+  project: ProjectRecommendationRepo;
+  projectConstraintsHash: string;
+  catalogGeneration: string;
+  deps: NeedDrivenIntelligenceDependencies;
+}
+
+async function retrieveCandidatesForNeed(
+  params: RetrieveCandidatesParams
+): Promise<CandidateRetrievalResult> {
+  const { need, project, projectConstraintsHash, catalogGeneration, deps } = params;
+  const cached = await loadCachedCandidatePool(
+    need,
+    projectConstraintsHash,
+    catalogGeneration,
+    deps
+  );
+  if (cached) {
+    return { candidateIds: cached, mode: 'hybrid', cached: true, degradation: false };
+  }
+
+  const [semanticResult, lexicalResult, structuredResult] = await Promise.allSettled([
+    semanticCandidatesForNeed(need, deps.embed, deps.vectorStore()),
+    lexicalCandidatesForNeed(need, deps.database),
+    structuredCandidatesForNeed(need, project, deps.database),
+  ]);
+  const semanticIds = semanticResult.status === 'fulfilled' ? semanticResult.value : [];
+  const lexicalIds = lexicalResult.status === 'fulfilled' ? lexicalResult.value : [];
+  const structuredIds = structuredResult.status === 'fulfilled' ? structuredResult.value : [];
+
+  const degradation = semanticResult.status === 'rejected' || lexicalResult.status === 'rejected';
+
+  const fused = rrfFuse([semanticIds, lexicalIds, structuredIds]).slice(0, HYDRATION_LIMIT);
+  const mode = retrievalMode(
+    semanticIds.length,
+    lexicalIds.length,
+    structuredIds.length,
+    fused.length === 0
+  );
+
+  if (fused.length > 0) {
+    await storeCandidatePool(need, projectConstraintsHash, catalogGeneration, fused, deps);
+  }
+
+  return { candidateIds: fused, mode, cached: false, degradation };
+}
+
+interface ClassifyAndRankParams {
+  project: ProjectRecommendationRepo;
+  need: ProjectNeed;
+  candidateIds: number[];
+  deps: NeedDrivenIntelligenceDependencies;
+  candidatesPerNeed: number;
+}
+
+async function classifyAndRank(params: ClassifyAndRankParams): Promise<NeedCandidate[]> {
+  const { project, need, candidateIds, deps, candidatesPerNeed } = params;
+  const candidates = await hydrateCandidates(candidateIds, project.id, deps.database);
+  return candidates
+    .map((repo) => {
+      const result = classifyCandidate(project, need, repo);
+      return {
+        repoId: repo.id,
+        fullName: repo.fullName,
+        htmlUrl: repo.htmlUrl,
+        description: repo.description,
+        language: repo.language,
+        stargazersCount: repo.stargazersCount,
+        archived: repo.archived,
+        topics: repo.topics,
+        tools: repo.tools,
+        classification: result.classification,
+        confidence: result.confidence,
+        evidence: result.evidence,
+        score: result.score,
+      };
+    })
+    .sort((a, b) => b.score - a.score)
+    .slice(0, candidatesPerNeed);
+}
+
 export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenceDependencies) {
   return async function runNeedDrivenIntelligence(
     project: ProjectRecommendationRepo,
@@ -1483,35 +1614,12 @@ export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenc
     const storedFingerprint = await loadStoredFingerprint(project.id, dependencies);
 
     // Stage 3: Need extraction (with caching)
-    let needs = extractNeeds(project);
-    const merged = mergeNeeds(needs);
-    const { retained } = rejectUnsupportedNeeds(merged);
-    needs = retained;
-
-    // Check if needs are cached and fingerprint unchanged
-    if (storedFingerprint === fingerprint.fingerprint) {
-      const cachedNeeds = await dependencies.database.execute({
-        sql: 'SELECT need_id, title, current_state, desired_outcome, priority, constraints, evidence, search_intents, signature FROM project_needs WHERE repo_id = ? AND fingerprint = ?',
-        args: [project.id, fingerprint.fingerprint],
-      });
-      if (cachedNeeds.rows.length > 0) {
-        needs = cachedNeeds.rows.map((row) => ({
-          id: String(row.need_id),
-          title: String(row.title),
-          currentState: String(row.current_state),
-          desiredOutcome: String(row.desired_outcome),
-          priority: row.priority as NeedPriority,
-          constraints: parseStringArray(row.constraints),
-          evidence: parseStringArray(row.evidence),
-          searchIntents: parseStringArray(row.search_intents),
-          signature: String(row.signature),
-        }));
-      } else {
-        await persistNeeds(project.id, fingerprint.fingerprint, needs, dependencies);
-      }
-    } else {
-      await persistNeeds(project.id, fingerprint.fingerprint, needs, dependencies);
-    }
+    const needs = await resolveNeeds(
+      project,
+      fingerprint.fingerprint,
+      storedFingerprint,
+      dependencies
+    );
 
     // Stage 4+5: Per-need retrieval and classification
     const needReports: NeedReport[] = [];
@@ -1527,81 +1635,30 @@ export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenc
     for (const need of needs) {
       if (totalCandidates >= maxTotalCandidates) break;
 
-      // Check cached candidate pool
-      let candidateIds = await loadCachedCandidatePool(
+      const retrieval = await retrieveCandidatesForNeed({
         need,
+        project,
         projectConstraintsHash,
         catalogGeneration,
-        dependencies
-      );
+        deps: dependencies,
+      });
+      if (retrieval.cached) provenance.push(`cached-pool:${need.id}`);
+      if (retrieval.degradation) hasDegradation = true;
 
-      let mode: ProjectRetrievalMode;
-      if (candidateIds) {
-        mode = 'hybrid';
-        provenance.push(`cached-pool:${need.id}`);
-      } else {
-        const [semanticResult, lexicalResult, structuredResult] = await Promise.allSettled([
-          semanticCandidatesForNeed(need, dependencies.embed, dependencies.vectorStore()),
-          lexicalCandidatesForNeed(need, dependencies.database),
-          structuredCandidatesForNeed(need, project, dependencies.database),
-        ]);
-        const semanticIds = semanticResult.status === 'fulfilled' ? semanticResult.value : [];
-        const lexicalIds = lexicalResult.status === 'fulfilled' ? lexicalResult.value : [];
-        const structuredIds = structuredResult.status === 'fulfilled' ? structuredResult.value : [];
-
-        if (semanticResult.status === 'rejected') hasDegradation = true;
-        if (lexicalResult.status === 'rejected') hasDegradation = true;
-
-        const fused = rrfFuse([semanticIds, lexicalIds, structuredIds]).slice(0, HYDRATION_LIMIT);
-        candidateIds = fused;
-        mode = retrievalMode(
-          semanticIds.length,
-          lexicalIds.length,
-          structuredIds.length,
-          fused.length === 0
-        );
-
-        if (fused.length > 0) {
-          await storeCandidatePool(
-            need,
-            projectConstraintsHash,
-            catalogGeneration,
-            fused,
-            dependencies
-          );
-        }
-      }
-
-      // Hydrate and classify
-      const hydrated = await hydrateCandidates(candidateIds, project.id, dependencies.database);
-      const classified: NeedCandidate[] = hydrated
-        .map((repo) => {
-          const result = classifyCandidate(project, need, repo);
-          return {
-            repoId: repo.id,
-            fullName: repo.fullName,
-            htmlUrl: repo.htmlUrl,
-            description: repo.description,
-            language: repo.language,
-            stargazersCount: repo.stargazersCount,
-            archived: repo.archived,
-            topics: repo.topics,
-            tools: repo.tools,
-            classification: result.classification,
-            confidence: result.confidence,
-            evidence: result.evidence,
-            score: result.score,
-          };
-        })
-        .sort((a, b) => b.score - a.score)
-        .slice(0, candidatesPerNeed);
+      const classified = await classifyAndRank({
+        project,
+        need,
+        candidateIds: retrieval.candidateIds,
+        deps: dependencies,
+        candidatesPerNeed,
+      });
 
       for (const c of classified) {
         allCandidateIds.add(c.repoId);
       }
       totalCandidates += classified.length;
 
-      needReports.push({ need, candidates: classified, retrievalMode: mode });
+      needReports.push({ need, candidates: classified, retrievalMode: retrieval.mode });
     }
 
     // Stage 1: Refresh capability cards for all candidates

@@ -16,16 +16,17 @@ interface ActiveFilterChipsProps {
   onClearAll: () => void;
 }
 
-export function ActiveFilterChips({
-  searchQuery,
-  onClearSearch,
-  selectedLanguages,
-  onRemoveLanguage,
-  selectedListId,
-  lists,
-  onClearList,
-  onClearAll,
-}: ActiveFilterChipsProps) {
+export function ActiveFilterChips(props: ActiveFilterChipsProps) {
+  const {
+    searchQuery,
+    onClearSearch,
+    selectedLanguages,
+    onRemoveLanguage,
+    selectedListId,
+    lists,
+    onClearList,
+    onClearAll,
+  } = props;
   const trimmedQuery = searchQuery.trim();
   const selectedList = selectedListId != null ? lists.find((l) => l.id === selectedListId) : null;
   const totalChips = (trimmedQuery ? 1 : 0) + selectedLanguages.length + (selectedList ? 1 : 0);
@@ -69,17 +70,15 @@ export function ActiveFilterChips({
   );
 }
 
-function Chip({
-  prefix,
-  label,
-  onRemove,
-  dotColor,
-}: {
+interface ChipProps {
   prefix?: string;
   label: string;
   onRemove: () => void;
   dotColor?: string;
-}) {
+}
+
+function Chip(props: ChipProps) {
+  const { prefix, label, onRemove, dotColor } = props;
   return (
     <span className="inline-flex h-6 items-center gap-1 rounded-full border bg-secondary/60 pl-2 pr-1 text-xs text-foreground">
       {dotColor && (

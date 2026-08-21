@@ -318,15 +318,36 @@ interface ReconciliationResult {
   leafPartitions: number;
 }
 
-async function main() {
-  const ghToken = process.env.GITHUB_TOKEN;
-  if (!ghToken) throw new Error('GITHUB_TOKEN required');
-
-  const db = createD1RestClientFromEnv();
-
-  let reconciliation: ReconciliationResult;
+async function runReconciliation(
+  db: ReturnType<typeof createD1RestClientFromEnv>,
+  ghToken: string
+): Promise<ReconciliationResult> {
   try {
-    reconciliation = await reconcileCatalog(db, ghToken);
+    const reconciliation = await reconcileCatalog(db, ghToken);
+    recordStep({
+      step: 'seed_reconciliation',
+      sourceWatermark: `github_unique_ids:${reconciliation.sourceCount}`,
+      bounds: {
+        min_stars_floor: MIN_STARS_FLOOR,
+        min_source_repos: MIN_SOURCE_REPOS,
+        max_additions: MAX_ADDITIONS,
+        source_count: reconciliation.sourceCount,
+        stored_count: reconciliation.storedCount,
+        planned_additions: reconciliation.plannedAdditions,
+        stored_only_count: reconciliation.storedOnlyCount,
+        leaf_partitions: reconciliation.leafPartitions,
+      },
+      timeoutS: 60 * 60,
+      idempotency:
+        'Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted',
+      outputCount: reconciliation.insertedAdditions,
+      expectedMinOutput: 0,
+      verifiedNoopReason:
+        reconciliation.insertedAdditions === 0
+          ? `Complete GitHub catalog reconciled at ${reconciliation.sourceCount} unique IDs with no additions`
+          : undefined,
+    });
+    return reconciliation;
   } catch (error) {
     const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
     recordStep({
@@ -346,31 +367,9 @@ async function main() {
     });
     throw error;
   }
+}
 
-  recordStep({
-    step: 'seed_reconciliation',
-    sourceWatermark: `github_unique_ids:${reconciliation.sourceCount}`,
-    bounds: {
-      min_stars_floor: MIN_STARS_FLOOR,
-      min_source_repos: MIN_SOURCE_REPOS,
-      max_additions: MAX_ADDITIONS,
-      source_count: reconciliation.sourceCount,
-      stored_count: reconciliation.storedCount,
-      planned_additions: reconciliation.plannedAdditions,
-      stored_only_count: reconciliation.storedOnlyCount,
-      leaf_partitions: reconciliation.leafPartitions,
-    },
-    timeoutS: 60 * 60,
-    idempotency:
-      'Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted',
-    outputCount: reconciliation.insertedAdditions,
-    expectedMinOutput: 0,
-    verifiedNoopReason:
-      reconciliation.insertedAdditions === 0
-        ? `Complete GitHub catalog reconciled at ${reconciliation.sourceCount} unique IDs with no additions`
-        : undefined,
-  });
-
+async function runEmbeddingPhase(db: ReturnType<typeof createD1RestClientFromEnv>): Promise<void> {
   console.info(`[embed] generating up to ${DAILY_LIMIT} embeddings`);
   let embedded = 0;
   let embedError: string | null = null;
@@ -425,7 +424,9 @@ async function main() {
         : undefined,
     error: embedError,
   });
+}
 
+async function verifyPoolCoverage(db: ReturnType<typeof createD1RestClientFromEnv>): Promise<void> {
   const totals = await executeDb(
     db,
     `SELECT
@@ -439,9 +440,6 @@ async function main() {
   const embeddedInPool = t.embedded_in_pool as number;
   console.info(`[done] pool ≥${MIN_STARS_FLOOR} stars: ${embeddedInPool}/${reposInPool} embedded`);
 
-  // A populated searchable pool is the minimum end-to-end evidence. This
-  // prevents an all-zero refresh from exiting green even when individual
-  // bounded steps legitimately had no new work.
   const coverageRecord = recordStep({
     step: 'seed_pool_coverage',
     sourceWatermark: null,
@@ -452,14 +450,20 @@ async function main() {
     expectedMinOutput: 1,
   });
 
-  // Authentication failures are already persisted as degraded refresh evidence
-  // and emitted as a GitHub Actions warning above. The repository refresh is
-  // still useful and complete, so do not turn that successful bounded step into
-  // a red scheduled run. Unexpected embedding failures continue to throw from
-  // the catch block where they are classified.
   if (coverageRecord.quality_failed) {
     throw new Error('Refresh quality verification failed: searchable pool evidence is missing');
   }
+}
+
+async function main() {
+  const ghToken = process.env.GITHUB_TOKEN;
+  if (!ghToken) throw new Error('GITHUB_TOKEN required');
+
+  const db = createD1RestClientFromEnv();
+
+  await runReconciliation(db, ghToken);
+  await runEmbeddingPhase(db);
+  await verifyPoolCoverage(db);
 }
 
 const reconcileCatalog = async (db: Client, ghToken: string): Promise<ReconciliationResult> => {

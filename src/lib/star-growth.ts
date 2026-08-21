@@ -65,6 +65,12 @@ export interface RankedGrowthRepo {
 
 export type GrowthRankMode = 'absolute' | 'percent' | 'per-day';
 
+function growthScore(repo: RankedGrowthRepo, mode: GrowthRankMode): number {
+  if (mode === 'percent') return repo.growth.percentGrowth ?? -1;
+  if (mode === 'per-day') return repo.growth.starsPerDay ?? -1;
+  return repo.growth.starsGained ?? -1;
+}
+
 export function rankGrowthRepos(
   repos: RankedGrowthRepo[],
   mode: GrowthRankMode = 'absolute'
@@ -72,20 +78,7 @@ export function rankGrowthRepos(
   return [...repos]
     .filter((repo) => repo.growth.enoughHistory && (repo.growth.starsGained ?? 0) > 0)
     .sort((a, b) => {
-      const aScore =
-        mode === 'percent'
-          ? (a.growth.percentGrowth ?? -1)
-          : mode === 'per-day'
-            ? (a.growth.starsPerDay ?? -1)
-            : (a.growth.starsGained ?? -1);
-      const bScore =
-        mode === 'percent'
-          ? (b.growth.percentGrowth ?? -1)
-          : mode === 'per-day'
-            ? (b.growth.starsPerDay ?? -1)
-            : (b.growth.starsGained ?? -1);
-
-      if (bScore !== aScore) return bScore - aScore;
-      return b.currentStars - a.currentStars;
+      const diff = growthScore(b, mode) - growthScore(a, mode);
+      return diff !== 0 ? diff : b.currentStars - a.currentStars;
     });
 }

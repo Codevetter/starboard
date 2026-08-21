@@ -1,6 +1,6 @@
 import { buildRepoEmbeddingText } from '@/lib/embeddings';
 
-interface StarboardRagRepo {
+export interface StarboardRagRepo {
   id: number;
   full_name: string;
   description: string | null;

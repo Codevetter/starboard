@@ -93,32 +93,52 @@ export interface RefreshManifestOptions {
   manifestPath?: string;
 }
 
-export function recordStep(
+function computeEvidenceStatus(
   input: RecordStepInput,
-  options: RefreshManifestOptions = {}
-): RefreshStepRecord {
-  const manifestPath = options.manifestPath ?? MANIFEST_PATH;
-  const state = load(manifestPath);
-  const prior = state.runs[input.step];
-  const priorFresh = prior?.freshness.wall_clock ?? null;
-
-  const expectedMin = input.expectedMinOutput ?? 0;
+  expectedMin: number
+): RefreshStepRecord['evidence_status'] {
+  if (input.error) return 'failed';
+  if (input.outputCount >= expectedMin && input.outputCount > 0) return 'produced';
   const verifiedNoop =
-    !input.error &&
-    input.outputCount === 0 &&
-    expectedMin === 0 &&
-    Boolean(input.verifiedNoopReason?.trim());
-  const evidenceStatus: RefreshStepRecord['evidence_status'] = input.error
-    ? 'failed'
-    : input.outputCount >= expectedMin && input.outputCount > 0
-      ? 'produced'
-      : verifiedNoop
-        ? 'verified_noop'
-        : 'missing';
-  const qualityFailed = evidenceStatus === 'missing';
-  const succeeded = evidenceStatus === 'produced' || evidenceStatus === 'verified_noop';
+    input.outputCount === 0 && expectedMin === 0 && Boolean(input.verifiedNoopReason?.trim());
+  return verifiedNoop ? 'verified_noop' : 'missing';
+}
 
-  const record: RefreshStepRecord = {
+function buildLastFailure(
+  input: RecordStepInput,
+  qualityFailed: boolean,
+  state: RefreshManifestState
+): RefreshManifestState['last_failure'] {
+  if (input.error || qualityFailed) {
+    return {
+      step: input.step,
+      at: nowIso(),
+      error: input.error ?? 'quality_failed: output evidence missing or below the declared minimum',
+      unresolved: true,
+    };
+  }
+  if (state.last_failure?.step === input.step) return null;
+  return state.last_failure;
+}
+
+function buildFreshness(succeeded: boolean, priorFresh: string | null) {
+  return {
+    wall_clock: succeeded ? nowIso() : priorFresh,
+    delta_s_from_prior:
+      succeeded && priorFresh ? Math.floor(Date.now() / 1000 - parseIso(priorFresh)) : null,
+  };
+}
+
+function buildStepRecord(
+  input: RecordStepInput,
+  expectedMin: number,
+  evidenceStatus: RefreshStepRecord['evidence_status'],
+  priorFresh: string | null
+): RefreshStepRecord {
+  const verifiedNoop = evidenceStatus === 'verified_noop';
+  const qualityFailed = evidenceStatus === 'missing';
+  const succeeded = evidenceStatus !== 'failed' && evidenceStatus !== 'missing';
+  return {
     step: input.step,
     source_watermark: input.sourceWatermark,
     bounds: input.bounds,
@@ -133,24 +153,26 @@ export function recordStep(
     },
     quality_failed: qualityFailed,
     error: input.error ?? null,
-    freshness: {
-      wall_clock: succeeded ? nowIso() : priorFresh,
-      delta_s_from_prior:
-        succeeded && priorFresh ? Math.floor(Date.now() / 1000 - parseIso(priorFresh)) : null,
-    },
+    freshness: buildFreshness(succeeded, priorFresh),
   };
-  state.runs[input.step] = record;
+}
 
-  if (input.error || qualityFailed) {
-    state.last_failure = {
-      step: input.step,
-      at: nowIso(),
-      error: input.error ?? 'quality_failed: output evidence missing or below the declared minimum',
-      unresolved: true,
-    };
-  } else if (state.last_failure?.step === input.step) {
-    state.last_failure = null;
-  }
+export function recordStep(
+  input: RecordStepInput,
+  options: RefreshManifestOptions = {}
+): RefreshStepRecord {
+  const manifestPath = options.manifestPath ?? MANIFEST_PATH;
+  const state = load(manifestPath);
+  const prior = state.runs[input.step];
+  const priorFresh = prior?.freshness.wall_clock ?? null;
+
+  const expectedMin = input.expectedMinOutput ?? 0;
+  const evidenceStatus = computeEvidenceStatus(input, expectedMin);
+  const qualityFailed = evidenceStatus === 'missing';
+
+  const record = buildStepRecord(input, expectedMin, evidenceStatus, priorFresh);
+  state.runs[input.step] = record;
+  state.last_failure = buildLastFailure(input, qualityFailed, state);
 
   save(state, manifestPath);
   return record;

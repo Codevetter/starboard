@@ -229,6 +229,154 @@ function recommendToolsFromPeers(
     .slice(0, Math.max(1, Math.min(limit, 24)));
 }
 
+interface CandidateScore {
+  score: number;
+  specificScore: number;
+  languageMatch: boolean;
+  topicMatches: string[];
+  toolMatches: string[];
+  categoryMatches: string[];
+  tokenMatches: string[];
+}
+
+interface ScoreCandidateContext {
+  projectTopics: Set<string>;
+  projectToolKeys: Set<string>;
+  projectToolCategories: Set<string>;
+  projectLanguage: string | null;
+  projectTokens: Set<string>;
+}
+
+function extractCandidateTools(candidate: ProjectRecommendationRepo): {
+  keys: Set<string>;
+  categories: Set<string>;
+} {
+  const keys = new Set<string>();
+  const categories = new Set<string>();
+  for (const tool of candidate.tools) {
+    const key = tool.key.trim().toLowerCase();
+    const category = tool.category.trim().toLowerCase();
+    if (key) keys.add(key);
+    if (category) categories.add(category);
+  }
+  return { keys, categories };
+}
+
+function scoreLanguageAndTopics(
+  candidate: ProjectRecommendationRepo,
+  ctx: ScoreCandidateContext
+): { score: number; specificScore: number; languageMatch: boolean; topicMatches: string[] } {
+  let score = 0;
+  let specificScore = 0;
+  let languageMatch = false;
+
+  if (
+    ctx.projectLanguage &&
+    candidate.language &&
+    ctx.projectLanguage === candidate.language.toLowerCase()
+  ) {
+    score += 6;
+    languageMatch = true;
+  }
+
+  const topicMatches = intersection(ctx.projectTopics, normalizedSet(candidate.topics), 3);
+  if (topicMatches.length > 0) {
+    const value = topicMatches.length * 12;
+    score += value;
+    specificScore += value;
+  }
+
+  return { score, specificScore, languageMatch, topicMatches };
+}
+
+function scoreToolsAndCategories(
+  ctx: ScoreCandidateContext,
+  candidateTools: { keys: Set<string>; categories: Set<string> }
+): { score: number; specificScore: number; toolMatches: string[]; categoryMatches: string[] } {
+  let score = 0;
+  let specificScore = 0;
+
+  const toolMatches = intersection(ctx.projectToolKeys, candidateTools.keys, 2);
+  if (toolMatches.length > 0) {
+    const value = toolMatches.length * 14;
+    score += value;
+    specificScore += value;
+  }
+
+  const categoryMatches = intersection(ctx.projectToolCategories, candidateTools.categories)
+    .filter((category) => !toolMatches.includes(category))
+    .slice(0, 2);
+  if (categoryMatches.length > 0) {
+    const value = categoryMatches.length * 6;
+    score += value;
+    specificScore += value;
+  }
+
+  return { score, specificScore, toolMatches, categoryMatches };
+}
+
+function scoreCandidate(
+  _project: ProjectRecommendationRepo,
+  candidate: ProjectRecommendationRepo,
+  ctx: ScoreCandidateContext
+): CandidateScore {
+  const langTopic = scoreLanguageAndTopics(candidate, ctx);
+  const candidateTools = extractCandidateTools(candidate);
+  const toolCat = scoreToolsAndCategories(ctx, candidateTools);
+
+  const tokenMatches = intersection(
+    ctx.projectTokens,
+    meaningfulTokens(
+      candidate.name,
+      candidate.description,
+      candidate.aiSummary,
+      candidate.aiCategory,
+      ...(candidate.aiKeywords ?? [])
+    ),
+    6
+  );
+  let tokenScore = 0;
+  let tokenSpecific = 0;
+  if (tokenMatches.length > 0) {
+    const value = tokenMatches.length * 3;
+    tokenScore = value;
+    tokenSpecific = value;
+  }
+
+  return {
+    score: langTopic.score + toolCat.score + tokenScore,
+    specificScore: langTopic.specificScore + toolCat.specificScore + tokenSpecific,
+    languageMatch: langTopic.languageMatch,
+    topicMatches: langTopic.topicMatches,
+    toolMatches: toolCat.toolMatches,
+    categoryMatches: toolCat.categoryMatches,
+    tokenMatches,
+  };
+}
+
+function buildEvidence(
+  project: ProjectRecommendationRepo,
+  candidate: ProjectRecommendationRepo,
+  scored: CandidateScore
+): string[] {
+  const evidence: string[] = [];
+  if (scored.languageMatch) evidence.push(`Same primary language: ${project.language}`);
+  if (scored.topicMatches.length > 0)
+    evidence.push(`Shared topics: ${scored.topicMatches.join(', ')}`);
+  if (scored.toolMatches.length > 0) {
+    const names = scored.toolMatches.map(
+      (key) => candidate.tools.find((tool) => tool.key.trim().toLowerCase() === key)?.name ?? key
+    );
+    evidence.push(`Shared tools: ${names.join(', ')}`);
+  }
+  if (scored.categoryMatches.length > 0) {
+    evidence.push(`Related tool areas: ${scored.categoryMatches.join(', ')}`);
+  }
+  if (scored.tokenMatches.length > 0)
+    evidence.push(`Related context: ${scored.tokenMatches.join(', ')}`);
+  return evidence;
+}
+
 export function rankProjectRecommendations(
   project: ProjectRecommendationRepo,
   candidates: ProjectRecommendationRepo[],
@@ -253,68 +401,14 @@ export function rankProjectRecommendations(
   for (const candidate of candidates) {
     if (candidate.id === project.id || candidate.archived) continue;
 
-    let score = 0;
-    let specificScore = 0;
-    let languageMatch = false;
-
-    if (
-      projectLanguage &&
-      candidate.language &&
-      projectLanguage === candidate.language.toLowerCase()
-    ) {
-      score += 6;
-      languageMatch = true;
-    }
-
-    const topicMatches = intersection(projectTopics, normalizedSet(candidate.topics), 3);
-    if (topicMatches.length > 0) {
-      const value = topicMatches.length * 12;
-      score += value;
-      specificScore += value;
-    }
-
-    const candidateToolKeys = new Set<string>();
-    const candidateToolCategories = new Set<string>();
-    for (const tool of candidate.tools) {
-      const key = tool.key.trim().toLowerCase();
-      const category = tool.category.trim().toLowerCase();
-      if (key) {
-        candidateToolKeys.add(key);
-      }
-      if (category) candidateToolCategories.add(category);
-    }
-    const toolMatches = intersection(projectToolKeys, candidateToolKeys, 2);
-    if (toolMatches.length > 0) {
-      const value = toolMatches.length * 14;
-      score += value;
-      specificScore += value;
-    }
-
-    const categoryMatches = intersection(projectToolCategories, candidateToolCategories)
-      .filter((category) => !toolMatches.includes(category))
-      .slice(0, 2);
-    if (categoryMatches.length > 0) {
-      const value = categoryMatches.length * 6;
-      score += value;
-      specificScore += value;
-    }
-
-    const tokenMatches = intersection(
+    const scored = scoreCandidate(project, candidate, {
+      projectTopics,
+      projectToolKeys,
+      projectToolCategories,
+      projectLanguage,
       projectTokens,
-      meaningfulTokens(
-        candidate.name,
-        candidate.description,
-        candidate.aiSummary,
-        candidate.aiCategory,
-        ...(candidate.aiKeywords ?? [])
-      ),
-      6
-    );
-    if (tokenMatches.length > 0) {
-      const value = tokenMatches.length * 3;
-      score += value;
-      specificScore += value;
-    }
+    });
+    const { score, specificScore } = scored;
 
     let target: ScoredProjectCandidate[] | null = null;
     if (specificScore >= MIN_SPECIFIC_PEER_SCORE) {
@@ -328,19 +422,7 @@ export function rankProjectRecommendations(
     }
     if (!target || !canRetainCandidate(target, candidate, score, resultLimit)) continue;
 
-    const evidence: string[] = [];
-    if (languageMatch) evidence.push(`Same primary language: ${project.language}`);
-    if (topicMatches.length > 0) evidence.push(`Shared topics: ${topicMatches.join(', ')}`);
-    if (toolMatches.length > 0) {
-      const names = toolMatches.map(
-        (key) => candidate.tools.find((tool) => tool.key.trim().toLowerCase() === key)?.name ?? key
-      );
-      evidence.push(`Shared tools: ${names.join(', ')}`);
-    }
-    if (categoryMatches.length > 0) {
-      evidence.push(`Related tool areas: ${categoryMatches.join(', ')}`);
-    }
-    if (tokenMatches.length > 0) evidence.push(`Related context: ${tokenMatches.join(', ')}`);
+    const evidence = buildEvidence(project, candidate, scored);
     retainBoundedCandidate(target, { candidate, score, specificScore, evidence }, resultLimit);
   }
 

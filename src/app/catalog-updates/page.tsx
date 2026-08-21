@@ -28,6 +28,145 @@ function formatStars(n: number): string {
   return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(n);
 }
 
+function CatalogSummaryCards({
+  summary,
+}: {
+  summary: NonNullable<Awaited<ReturnType<typeof loadCatalogUpdates>>>['summary'];
+}) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      <div className="rounded-xl border bg-card/60 px-4 py-3">
+        <p className="text-2xl font-semibold tabular-nums">
+          {formatStars(summary.totalCatalogRepos)}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          repos ≥ {formatStars(summary.minStarsFloor)} stars
+        </p>
+      </div>
+      <div className="rounded-xl border bg-card/60 px-4 py-3">
+        <p className="text-sm font-medium">
+          {summary.newestCatalogedAt
+            ? formatCatalogDate(summary.newestCatalogedAt.slice(0, 10))
+            : '—'}
+        </p>
+        <p className="text-xs text-muted-foreground">Newest catalogue entry</p>
+      </div>
+      <div className="rounded-xl border bg-card/60 px-4 py-3">
+        <p className="text-sm font-medium">{summary.changesReturned} shown</p>
+        <p className="text-xs text-muted-foreground">Latest ingest slice</p>
+      </div>
+    </div>
+  );
+}
+
+function CatalogEntryRow({
+  entry,
+}: {
+  entry: NonNullable<Awaited<ReturnType<typeof loadCatalogUpdates>>>['changes'][number];
+}) {
+  const avatar = entry.ownerAvatar ? getAvatarImageAttrs(entry.ownerAvatar, 32) : null;
+  return (
+    <li className="flex items-center gap-2 rounded-lg px-1 py-1.5 text-sm hover:bg-muted/40">
+      <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
+        Added
+      </span>
+      {entry.language && (
+        <Badge variant="outline" className="shrink-0 text-[10px]">
+          {entry.language}
+        </Badge>
+      )}
+      {avatar && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={avatar.src}
+          srcSet={avatar.srcSet}
+          alt=""
+          width={16}
+          height={16}
+          className="size-4 shrink-0 rounded-full"
+        />
+      )}
+      <Link
+        href={`/explore/${entry.fullName}`}
+        className="min-w-0 flex-1 truncate font-medium hover:text-primary hover:underline"
+      >
+        {entry.fullName}
+      </Link>
+      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+        ★ {formatStars(entry.stargazersCount)}
+      </span>
+      <Link
+        href={entry.htmlUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="shrink-0 text-muted-foreground hover:text-foreground"
+        aria-label={`Open ${entry.fullName} on GitHub`}
+      >
+        <ArrowUpRight className="size-3.5" />
+      </Link>
+    </li>
+  );
+}
+
+function CatalogChangeGroups({ groups }: { groups: ReturnType<typeof groupCatalogChangesByDate> }) {
+  return (
+    <div className="space-y-4">
+      {groups.map(({ date, entries }) => (
+        <section
+          key={date}
+          className="rounded-xl border bg-card/50 p-4"
+          aria-labelledby={`catalog-day-${date}`}
+        >
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 id={`catalog-day-${date}`} className="text-sm font-semibold">
+              {formatCatalogDate(date)}
+            </h2>
+            <span className="text-xs text-muted-foreground">
+              {entries.length} repo{entries.length === 1 ? '' : 's'}
+            </span>
+          </div>
+          <ul className="space-y-1.5">
+            {entries.map((entry) => (
+              <CatalogEntryRow key={entry.id} entry={entry} />
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function CatalogFooterNav() {
+  return (
+    <nav className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm" aria-label="Related">
+      <Link
+        href="/discover"
+        className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Public discover →
+      </Link>
+      <Link
+        href="/changelog"
+        className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Product changelog →
+      </Link>
+      <a
+        href="/catalog-updates.md"
+        className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        Machine-readable .md ↗
+      </a>
+      <a
+        href="/api/catalog-updates?limit=200"
+        className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        JSON API ↗
+      </a>
+    </nav>
+  );
+}
+
 export default async function CatalogUpdatesPage() {
   let payload: Awaited<ReturnType<typeof loadCatalogUpdates>> | null = null;
   let loadError: string | null = null;
@@ -81,30 +220,7 @@ export default async function CatalogUpdatesPage() {
           </div>
         </div>
 
-        {payload?.summary && (
-          <div className="grid gap-3 sm:grid-cols-3">
-            <div className="rounded-xl border bg-card/60 px-4 py-3">
-              <p className="text-2xl font-semibold tabular-nums">
-                {formatStars(payload.summary.totalCatalogRepos)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                repos ≥ {formatStars(payload.summary.minStarsFloor)} stars
-              </p>
-            </div>
-            <div className="rounded-xl border bg-card/60 px-4 py-3">
-              <p className="text-sm font-medium">
-                {payload.summary.newestCatalogedAt
-                  ? formatCatalogDate(payload.summary.newestCatalogedAt.slice(0, 10))
-                  : '—'}
-              </p>
-              <p className="text-xs text-muted-foreground">Newest catalogue entry</p>
-            </div>
-            <div className="rounded-xl border bg-card/60 px-4 py-3">
-              <p className="text-sm font-medium">{payload.summary.changesReturned} shown</p>
-              <p className="text-xs text-muted-foreground">Latest ingest slice</p>
-            </div>
-          </div>
-        )}
+        {payload?.summary && <CatalogSummaryCards summary={payload.summary} />}
 
         {payload?.summary?.refreshCadence && (
           <p className="text-xs leading-relaxed text-muted-foreground">
@@ -128,103 +244,10 @@ export default async function CatalogUpdatesPage() {
             No catalogue entries yet. Run a seed-popular job to ingest popular repos.
           </p>
         ) : (
-          <div className="space-y-4">
-            {groups.map(({ date, entries }) => (
-              <section
-                key={date}
-                className="rounded-xl border bg-card/50 p-4"
-                aria-labelledby={`catalog-day-${date}`}
-              >
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <h2 id={`catalog-day-${date}`} className="text-sm font-semibold">
-                    {formatCatalogDate(date)}
-                  </h2>
-                  <span className="text-xs text-muted-foreground">
-                    {entries.length} repo{entries.length === 1 ? '' : 's'}
-                  </span>
-                </div>
-                <ul className="space-y-1.5">
-                  {entries.map((entry) => {
-                    const avatar = entry.ownerAvatar
-                      ? getAvatarImageAttrs(entry.ownerAvatar, 32)
-                      : null;
-                    return (
-                      <li
-                        key={entry.id}
-                        className="flex items-center gap-2 rounded-lg px-1 py-1.5 text-sm hover:bg-muted/40"
-                      >
-                        <span className="shrink-0 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-medium text-emerald-400">
-                          Added
-                        </span>
-                        {entry.language && (
-                          <Badge variant="outline" className="shrink-0 text-[10px]">
-                            {entry.language}
-                          </Badge>
-                        )}
-                        {avatar && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={avatar.src}
-                            srcSet={avatar.srcSet}
-                            alt=""
-                            width={16}
-                            height={16}
-                            className="size-4 shrink-0 rounded-full"
-                          />
-                        )}
-                        <Link
-                          href={`/explore/${entry.fullName}`}
-                          className="min-w-0 flex-1 truncate font-medium hover:text-primary hover:underline"
-                        >
-                          {entry.fullName}
-                        </Link>
-                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                          ★ {formatStars(entry.stargazersCount)}
-                        </span>
-                        <Link
-                          href={entry.htmlUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="shrink-0 text-muted-foreground hover:text-foreground"
-                          aria-label={`Open ${entry.fullName} on GitHub`}
-                        >
-                          <ArrowUpRight className="size-3.5" />
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
-          </div>
+          <CatalogChangeGroups groups={groups} />
         )}
 
-        <nav className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-6 text-sm" aria-label="Related">
-          <Link
-            href="/discover"
-            className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Public discover →
-          </Link>
-          <Link
-            href="/changelog"
-            className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Product changelog →
-          </Link>
-          <a
-            href="/catalog-updates.md"
-            className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            Machine-readable .md ↗
-          </a>
-          <a
-            href="/api/catalog-updates?limit=200"
-            className="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            JSON API ↗
-          </a>
-        </nav>
+        <CatalogFooterNav />
       </main>
     </div>
   );

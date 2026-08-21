@@ -73,147 +73,156 @@ interface RepoCardProps {
   onToggleSelect?: (repoId: number, selected: boolean) => void;
 }
 
-export const RepoCard = memo(function RepoCard({
-  repo,
-  lists,
-  onAssignList,
-  onToggleSave,
-  viewMode = 'grid',
-  isSelected = false,
-  onToggleSelect,
-}: RepoCardProps) {
-  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
+interface RepoCardState {
+  repo: UserRepo;
+  lists?: UserList[];
+  onAssignList?: (repoId: number, listId: number, assigned: boolean) => void;
+  onToggleSave?: (repoId: number, saved: boolean) => void;
+  isSelected: boolean;
+  onToggleSelect?: (repoId: number, selected: boolean) => void;
+  langColor: string | null;
+  avatar: React.ReactElement;
+  isSaved: boolean;
+  updatedDate: string | null;
+  collectionIds: number[];
+  saveButton: React.ReactElement | null;
+  cardClassName: string;
+  selectCheckbox: React.ReactElement | null;
+}
 
-  const avatarSize = viewMode === 'list' ? 32 : 24;
-  const avatarImage = getAvatarImageAttrs(repo.owner.avatar_url, avatarSize);
-  const avatar = (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={avatarImage.src}
-      srcSet={avatarImage.srcSet}
-      sizes={avatarImage.sizes}
-      alt={repo.owner.login}
-      width={avatarSize}
-      height={avatarSize}
-      className={viewMode === 'list' ? 'size-8 rounded-full' : 'size-6 rounded-full'}
-      loading="lazy"
-      decoding="async"
-    />
-  );
-  const isSaved = Boolean(repo.is_saved);
-  const updatedDate = formatUpdatedDate(repo.updated_at);
-  const collectionIds = repo.collection_ids ?? [];
-  const saveButton = onToggleSave ? (
-    <button
-      type="button"
-      onClick={() => onToggleSave(repo.id, !isSaved)}
-      className="flex min-h-11 min-w-11 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent-foreground/10 hover:text-foreground md:min-h-0 md:min-w-0 md:p-1"
-      title={isSaved ? 'Remove from library' : 'Save to library'}
-      aria-label={isSaved ? 'Remove from library' : 'Save to library'}
+function ArchivedBadge({ className }: { className?: string }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        'gap-1 text-[10px] font-normal uppercase tracking-normal text-muted-foreground',
+        className
+      )}
     >
-      <Bookmark className={`size-4${isSaved ? ' fill-current text-primary' : ''} md:size-3.5`} />
-    </button>
-  ) : null;
-
-  const cardClassName = cn(
-    'group overflow-hidden rounded-lg border bg-card transition-colors hover:bg-accent/50',
-    isSelected && 'border-primary/60 bg-primary/5 ring-1 ring-primary/20'
+      <Archive className="size-3" />
+      Archived
+    </Badge>
   );
-  const selectCheckbox = onToggleSelect ? (
-    <Checkbox
-      checked={isSelected}
-      onCheckedChange={(checked) => onToggleSelect(repo.id, checked === true)}
-      className="size-4 shrink-0"
-      aria-label={`Select ${repo.full_name}`}
-      onClick={(event) => event.stopPropagation()}
-    />
-  ) : null;
+}
 
-  if (viewMode === 'list') {
-    return (
-      <div
-        className={cn(
-          cardClassName,
-          'grid grid-cols-[auto_auto_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:gap-4 sm:p-3.5',
-          !onToggleSelect && 'grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]'
-        )}
-      >
-        {selectCheckbox && <div className="flex items-start pt-0.5">{selectCheckbox}</div>}
-        <div className="shrink-0">{avatar}</div>
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <Link
-              href={`/explore/${repo.full_name}`}
-              className="truncate font-medium text-foreground hover:underline"
-            >
-              <span className="text-muted-foreground">{repo.owner.login}/</span>
-              {repo.name}
-            </Link>
-            {repo.archived && (
-              <Badge
-                variant="outline"
-                className="hidden shrink-0 gap-1 text-[10px] font-normal uppercase tracking-normal text-muted-foreground sm:inline-flex"
-              >
-                <Archive className="size-3" />
-                Archived
-              </Badge>
-            )}
-          </div>
-          {repo.description && (
-            <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{repo.description}</p>
-          )}
-          <div className="mt-2 flex min-h-5 flex-wrap items-center gap-1.5">
-            {repo.archived && (
-              <Badge
-                variant="outline"
-                className="gap-1 text-[10px] font-normal uppercase tracking-normal text-muted-foreground sm:hidden"
-              >
-                <Archive className="size-3" />
-                Archived
-              </Badge>
-            )}
-            {repo.topics.length > 0 &&
-              repo.topics.slice(0, 4).map((topic) => (
-                <Badge key={topic} variant="secondary" className="text-[10px] font-normal">
-                  {topic}
-                </Badge>
-              ))}
-          </div>
+function TopicBadges({ topics, max = 4 }: { topics: string[]; max?: number }) {
+  if (topics.length === 0) return null;
+  return topics.slice(0, max).map((topic) => (
+    <Badge key={topic} variant="secondary" className="text-[10px] font-normal">
+      {topic}
+    </Badge>
+  ));
+}
+
+interface ListPickerButtonProps {
+  repoId: number;
+  collectionIds: number[];
+  lists: UserList[];
+  onAssignList: (repoId: number, listId: number, assigned: boolean) => void;
+}
+
+function ListPickerButton(props: ListPickerButtonProps) {
+  const { repoId, collectionIds, lists, onAssignList } = props;
+  return (
+    <ListPicker
+      repoId={repoId}
+      currentListIds={collectionIds}
+      lists={lists}
+      onAssign={onAssignList}
+    />
+  );
+}
+
+function RepoCardListView({ state }: { state: RepoCardState }) {
+  const {
+    repo,
+    lists,
+    onAssignList,
+    onToggleSelect,
+    langColor,
+    avatar,
+    updatedDate,
+    collectionIds,
+    saveButton,
+    cardClassName,
+    selectCheckbox,
+  } = state;
+  return (
+    <div
+      className={cn(
+        cardClassName,
+        'grid grid-cols-[auto_auto_minmax(0,1fr)] gap-3 p-3 sm:grid-cols-[auto_auto_minmax(0,1fr)_auto] sm:gap-4 sm:p-3.5',
+        !onToggleSelect && 'grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto]'
+      )}
+    >
+      {selectCheckbox && <div className="flex items-start pt-0.5">{selectCheckbox}</div>}
+      <div className="shrink-0">{avatar}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <Link
+            href={`/explore/${repo.full_name}`}
+            className="truncate font-medium text-foreground hover:underline"
+          >
+            <span className="text-muted-foreground">{repo.owner.login}/</span>
+            {repo.name}
+          </Link>
+          {repo.archived && <ArchivedBadge className="hidden shrink-0 sm:inline-flex" />}
         </div>
-        <div className="col-start-2 flex shrink-0 items-center justify-between gap-2 text-xs text-muted-foreground sm:col-start-auto sm:min-w-64 sm:justify-end sm:gap-3">
-          {repo.language && (
-            <span className="hidden items-center gap-1.5 md:flex">
-              <span
-                className="inline-block size-2.5 rounded-full"
-                style={{ backgroundColor: langColor ?? undefined }}
-              />
-              {repo.language}
-            </span>
-          )}
-          {updatedDate && (
-            <span className="hidden items-center gap-1 lg:flex">
-              <Clock3 className="size-3" />
-              {updatedDate}
-            </span>
-          )}
-          <span className="flex items-center gap-1">
-            <Star className="size-3 fill-current" />
-            {formatStarCount(repo.stargazers_count)}
-          </span>
-          {saveButton}
-          {lists && onAssignList && (
-            <ListPicker
-              repoId={repo.id}
-              currentListIds={collectionIds}
-              lists={lists}
-              onAssign={onAssignList}
-            />
-          )}
+        {repo.description && (
+          <p className="mt-1 line-clamp-1 text-sm text-muted-foreground">{repo.description}</p>
+        )}
+        <div className="mt-2 flex min-h-5 flex-wrap items-center gap-1.5">
+          {repo.archived && <ArchivedBadge className="sm:hidden" />}
+          {repo.topics.length > 0 && <TopicBadges topics={repo.topics} />}
         </div>
       </div>
-    );
-  }
+      <div className="col-start-2 flex shrink-0 items-center justify-between gap-2 text-xs text-muted-foreground sm:col-start-auto sm:min-w-64 sm:justify-end sm:gap-3">
+        {repo.language && (
+          <span className="hidden items-center gap-1.5 md:flex">
+            <span
+              className="inline-block size-2.5 rounded-full"
+              style={{ backgroundColor: langColor ?? undefined }}
+            />
+            {repo.language}
+          </span>
+        )}
+        {updatedDate && (
+          <span className="hidden items-center gap-1 lg:flex">
+            <Clock3 className="size-3" />
+            {updatedDate}
+          </span>
+        )}
+        <span className="flex items-center gap-1">
+          <Star className="size-3 fill-current" />
+          {formatStarCount(repo.stargazers_count)}
+        </span>
+        {saveButton}
+        {lists && onAssignList && (
+          <ListPickerButton
+            repoId={repo.id}
+            collectionIds={collectionIds}
+            lists={lists}
+            onAssignList={onAssignList}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
 
+function RepoCardGridView({ state }: { state: RepoCardState }) {
+  const {
+    repo,
+    lists,
+    onAssignList,
+    langColor,
+    avatar,
+    updatedDate,
+    collectionIds,
+    saveButton,
+    cardClassName,
+    selectCheckbox,
+  } = state;
   return (
     <div className={cn(cardClassName, 'flex min-w-0 flex-col p-3.5 sm:p-4')}>
       <div className="flex min-w-0 items-start gap-2.5">
@@ -228,24 +237,16 @@ export const RepoCard = memo(function RepoCard({
             <span className="text-muted-foreground">{repo.owner.login}/</span>
             {repo.name}
           </Link>
-          {repo.archived && (
-            <Badge
-              variant="outline"
-              className="mt-1 inline-flex gap-1 text-[10px] font-normal uppercase tracking-normal text-muted-foreground"
-            >
-              <Archive className="size-3" />
-              Archived
-            </Badge>
-          )}
+          {repo.archived && <ArchivedBadge className="mt-1 inline-flex" />}
         </div>
         <div className="flex shrink-0 items-center gap-0.5">
           {saveButton}
           {lists && onAssignList && (
-            <ListPicker
+            <ListPickerButton
               repoId={repo.id}
-              currentListIds={collectionIds}
+              collectionIds={collectionIds}
               lists={lists}
-              onAssign={onAssignList}
+              onAssignList={onAssignList}
             />
           )}
         </div>
@@ -297,4 +298,82 @@ export const RepoCard = memo(function RepoCard({
       </div>
     </div>
   );
+}
+
+export const RepoCard = memo(function RepoCard(props: RepoCardProps) {
+  const {
+    repo,
+    lists,
+    onAssignList,
+    onToggleSave,
+    viewMode = 'grid',
+    isSelected = false,
+    onToggleSelect,
+  } = props;
+  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
+
+  const avatarSize = viewMode === 'list' ? 32 : 24;
+  const avatarImage = getAvatarImageAttrs(repo.owner.avatar_url, avatarSize);
+  const avatar = (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={avatarImage.src}
+      srcSet={avatarImage.srcSet}
+      sizes={avatarImage.sizes}
+      alt={repo.owner.login}
+      width={avatarSize}
+      height={avatarSize}
+      className={viewMode === 'list' ? 'size-8 rounded-full' : 'size-6 rounded-full'}
+      loading="lazy"
+      decoding="async"
+    />
+  );
+  const isSaved = Boolean(repo.is_saved);
+  const updatedDate = formatUpdatedDate(repo.updated_at);
+  const collectionIds = repo.collection_ids ?? [];
+  const saveButton = onToggleSave ? (
+    <button
+      type="button"
+      onClick={() => onToggleSave(repo.id, !isSaved)}
+      className="flex min-h-11 min-w-11 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent-foreground/10 hover:text-foreground md:min-h-0 md:min-w-0 md:p-1"
+      title={isSaved ? 'Remove from library' : 'Save to library'}
+      aria-label={isSaved ? 'Remove from library' : 'Save to library'}
+    >
+      <Bookmark className={`size-4${isSaved ? ' fill-current text-primary' : ''} md:size-3.5`} />
+    </button>
+  ) : null;
+
+  const cardClassName = cn(
+    'group overflow-hidden rounded-lg border bg-card transition-colors hover:bg-accent/50',
+    isSelected && 'border-primary/60 bg-primary/5 ring-1 ring-primary/20'
+  );
+  const selectCheckbox = onToggleSelect ? (
+    <Checkbox
+      checked={isSelected}
+      onCheckedChange={(checked) => onToggleSelect(repo.id, checked === true)}
+      className="size-4 shrink-0"
+      aria-label={`Select ${repo.full_name}`}
+      onClick={(event) => event.stopPropagation()}
+    />
+  ) : null;
+
+  const state: RepoCardState = {
+    repo,
+    lists,
+    onAssignList,
+    onToggleSave,
+    isSelected,
+    onToggleSelect,
+    langColor,
+    avatar,
+    isSaved,
+    updatedDate,
+    collectionIds,
+    saveButton,
+    cardClassName,
+    selectCheckbox,
+  };
+
+  if (viewMode === 'list') return <RepoCardListView state={state} />;
+  return <RepoCardGridView state={state} />;
 });

@@ -182,9 +182,10 @@ function makeReplaceSafe(line, table) {
 function addSourceColumns(line, table) {
   const columns = SOURCE_COLUMNS.get(table);
   if (!columns) throw new Error(`Missing source column order for ${table}`);
+  const columnList = columns.map((column) => `"${column}"`).join(', ');
   return line.replace(
     new RegExp(`^INSERT\\s+INTO\\s+["'\\x60]?${table}["'\\x60]?\\s+VALUES`, 'i'),
-    `INSERT INTO "${table}" (${columns.map((column) => `"${column}"`).join(', ')}) VALUES`
+    `INSERT INTO "${table}" (${columnList}) VALUES`
   );
 }
 

@@ -21,11 +21,13 @@ function parseTopics(value: unknown): string[] {
   }
 }
 
+const WORD_SEPARATOR_RE = /[^a-z0-9+#]+/i;
+
 function wordSet(value: string | null | undefined): Set<string> {
   return new Set(
     (value ?? '')
       .toLowerCase()
-      .split(/[^a-z0-9+#]+/i)
+      .split(WORD_SEPARATOR_RE)
       .filter((word) => word.length >= 3)
   );
 }

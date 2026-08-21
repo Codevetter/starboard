@@ -34,6 +34,18 @@ export interface RepoSignalSource {
   readmeText?: string | null;
 }
 
+interface ManifestDetectContext {
+  addKnown: (name: string, confidence: number, source?: string) => void;
+  addDirect: (key: string, confidence: number, source?: string) => void;
+}
+
+type ManifestHandler = (content: string, ctx: ManifestDetectContext) => void;
+
+interface ManifestRoute {
+  test: (lowerPath: string) => boolean;
+  handler: ManifestHandler;
+}
+
 export const TOOL_ACCURACY_DISCLAIMER =
   'Tool detection is evidence-based, not a full runtime audit. Package manifests, lockfiles, and SBOMs are high-confidence; README, topics, and AI metadata are lower-confidence signals. Repository language is metadata, not counted as a tool. Accuracy varies by ecosystem, especially for C/C++ and custom monorepos.';
 
@@ -213,7 +225,7 @@ function normalizeToken(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-function knownTool(value: string): ToolDefinition | null {
+export function knownTool(value: string): ToolDefinition | null {
   const normalized = normalizeToken(value);
   if (definitionsByAlias.has(normalized)) return definitionsByAlias.get(normalized)!;
   const scopedBase = normalized.split('/').pop();
@@ -229,7 +241,7 @@ export function getToolUrl(toolKey: string): string {
   return toolUrls[normalized] ?? `https://github.com/topics/${encodeURIComponent(normalized)}`;
 }
 
-function detection(tool: ToolDefinition, confidence: number, source: string): ToolDetection {
+export function detection(tool: ToolDefinition, confidence: number, source: string): ToolDetection {
   return {
     toolKey: tool.key,
     toolName: tool.name,
@@ -260,6 +272,8 @@ export function mergeToolDetections(detections: ToolDetection[]): ToolDetection[
   });
 }
 
+const COMMA_SPACE_RE = /[,\s]+/;
+
 function parseStringArray(value: string[] | string | null | undefined): string[] {
   if (!value) return [];
   if (Array.isArray(value)) return value;
@@ -270,7 +284,7 @@ function parseStringArray(value: string[] | string | null | undefined): string[]
       : [];
   } catch {
     return value
-      .split(/[,\s]+/)
+      .split(COMMA_SPACE_RE)
       .map((item) => item.trim())
       .filter(Boolean);
   }
@@ -320,173 +334,279 @@ export function detectToolsFromSbomPackageNames(packageNames: string[]): ToolDet
   );
 }
 
+function detectFromPackageJson(content: string, ctx: ManifestDetectContext): void {
+  try {
+    const pkg = JSON.parse(content) as Record<string, Record<string, string> | string>;
+    for (const section of [
+      'dependencies',
+      'devDependencies',
+      'peerDependencies',
+      'optionalDependencies',
+    ]) {
+      const deps = pkg[section];
+      if (deps && typeof deps === 'object') {
+        for (const name of Object.keys(deps)) ctx.addKnown(name, 92);
+      }
+    }
+    const packageManager = typeof pkg.packageManager === 'string' ? pkg.packageManager : '';
+    if (packageManager.startsWith('pnpm')) ctx.addDirect('pnpm', 95);
+    if (packageManager.startsWith('yarn')) ctx.addDirect('yarn', 95);
+    if (packageManager.startsWith('npm')) ctx.addDirect('npm', 95);
+  } catch {
+    // Invalid package.json is ignored; other files may still provide signals.
+  }
+}
+
+const PYPROJECT_DEP_RE = /["']([A-Za-z0-9_.-]+)(?:[<=>~! ].*)?["']/g;
+
+function detectFromPyproject(content: string, ctx: ManifestDetectContext): void {
+  if (/\[tool\.poetry\]/i.test(content)) ctx.addDirect('poetry', 92);
+  if (/\[tool\.uv\]/i.test(content) || /uv_build/i.test(content)) ctx.addDirect('uv', 88);
+  for (const match of content.matchAll(PYPROJECT_DEP_RE)) {
+    ctx.addKnown(match[1]!, 86);
+  }
+}
+
+const REQUIREMENTS_NAME_RE = /^([A-Za-z0-9_.-]+)/;
+
+function detectFromRequirements(content: string, ctx: ManifestDetectContext): void {
+  for (const line of content.split('\n')) {
+    const name = line.trim().match(REQUIREMENTS_NAME_RE)?.[1];
+    if (name) ctx.addKnown(name, 88);
+  }
+}
+
+function detectFromCargo(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('cargo', 98);
+  for (const match of content.matchAll(/(?:^|\n)\s*([A-Za-z0-9_-]+)\s*=/g)) {
+    ctx.addKnown(match[1]!, 88);
+  }
+}
+
+function detectFromGoMod(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('go', 95);
+  for (const match of content.matchAll(/(?:require\s+|\n\s*)([A-Za-z0-9_.~/-]+)/g)) {
+    ctx.addKnown(match[1]!, 88);
+  }
+}
+
+function detectFromPom(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('maven', 96);
+  for (const match of content.matchAll(/<artifactId>([^<]+)<\/artifactId>/g)) {
+    ctx.addKnown(match[1]!, 88);
+  }
+}
+
+const GRADLE_DEP_RE = /["']([A-Za-z0-9_.:-]+)["']/g;
+
+function detectFromGradle(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('gradle', 96);
+  for (const match of content.matchAll(GRADLE_DEP_RE)) ctx.addKnown(match[1]!, 84);
+}
+
+const DOTNET_PKG_REF_RE = /PackageReference Include=["']([^"']+)["']/g;
+
+function detectFromDotnet(content: string, ctx: ManifestDetectContext): void {
+  for (const match of content.matchAll(DOTNET_PKG_REF_RE)) {
+    ctx.addKnown(match[1]!, 90);
+  }
+}
+
+const GEMFILE_GEM_RE = /gem\s+["']([^"']+)["']/g;
+
+function detectFromGemfile(content: string, ctx: ManifestDetectContext): void {
+  for (const match of content.matchAll(GEMFILE_GEM_RE)) ctx.addKnown(match[1]!, 90);
+}
+
+function detectFromComposer(content: string, ctx: ManifestDetectContext): void {
+  try {
+    const composer = JSON.parse(content) as Record<string, Record<string, string>>;
+    for (const section of ['require', 'require-dev']) {
+      for (const name of Object.keys(composer[section] ?? {})) ctx.addKnown(name, 90);
+    }
+  } catch {}
+}
+
+function detectFromPackageSwift(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('swift', 90);
+  for (const match of content.matchAll(/package:\s*"([^"]+)"/g)) ctx.addKnown(match[1]!, 84);
+}
+
+const CMAKE_FIND_PACKAGE_RE = /find_package\s*\(\s*([A-Za-z0-9_+-]+)/gi;
+
+function detectFromCmake(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('cmake', 90);
+  const matches = content.match(CMAKE_FIND_PACKAGE_RE);
+  if (matches) for (const m of matches) ctx.addKnown(m, 78);
+}
+
+const CONAN_REQUIRES_RE = /(?:requires|self\.requires)\s*(?:=|\()\s*["']([^/"']+)/g;
+
+function detectFromConan(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('conan', 95);
+  for (const match of content.matchAll(CONAN_REQUIRES_RE)) {
+    ctx.addKnown(match[1]!, 84);
+  }
+}
+
+interface VcpkgDependency {
+  name?: string;
+}
+
+interface VcpkgManifest {
+  dependencies?: Array<string | VcpkgDependency>;
+}
+
+function detectFromVcpkg(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('vcpkg', 96);
+  try {
+    const vcpkg = JSON.parse(content) as VcpkgManifest;
+    for (const dep of vcpkg.dependencies ?? []) {
+      ctx.addKnown(typeof dep === 'string' ? dep : (dep.name ?? ''), 88);
+    }
+  } catch {}
+}
+
+const MESON_DEP_RE = /dependency\s*\(\s*["']([^"']+)["']/g;
+
+function detectFromMeson(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('meson', 90);
+  for (const match of content.matchAll(MESON_DEP_RE)) {
+    ctx.addKnown(match[1]!, 78);
+  }
+}
+
+function detectFromDocker(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('docker', 90);
+  for (const match of content.matchAll(/FROM\s+([A-Za-z0-9_./-]+)/gi)) ctx.addKnown(match[1]!, 72);
+}
+
+function detectFromGitHubWorkflow(content: string, ctx: ManifestDetectContext): void {
+  ctx.addDirect('github-actions', 88);
+  for (const match of content.matchAll(/uses:\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/g)) {
+    ctx.addKnown(match[1]!, 70);
+  }
+}
+
+const LOCKFILE_NAME_RE = /name\s*=\s*["']([^"']+)["']/g;
+
+function detectFromLockfileNames(content: string, ctx: ManifestDetectContext, key: string): void {
+  ctx.addDirect(key, 98);
+  for (const match of content.matchAll(LOCKFILE_NAME_RE)) ctx.addKnown(match[1]!, 92);
+}
+
+const manifestRoutes: ManifestRoute[] = [
+  { test: (p) => p.endsWith('package.json'), handler: detectFromPackageJson },
+  { test: (p) => p.endsWith('package-lock.json'), handler: (_, ctx) => ctx.addDirect('npm', 98) },
+  { test: (p) => p.endsWith('pnpm-lock.yaml'), handler: (_, ctx) => ctx.addDirect('pnpm', 98) },
+  { test: (p) => p.endsWith('yarn.lock'), handler: (_, ctx) => ctx.addDirect('yarn', 98) },
+  { test: (p) => p.endsWith('pyproject.toml'), handler: detectFromPyproject },
+  { test: (p) => p.endsWith('requirements.txt'), handler: detectFromRequirements },
+  {
+    test: (p) => p.endsWith('uv.lock'),
+    handler: (c, ctx) => detectFromLockfileNames(c, ctx, 'uv'),
+  },
+  {
+    test: (p) => p.endsWith('poetry.lock'),
+    handler: (c, ctx) => detectFromLockfileNames(c, ctx, 'poetry'),
+  },
+  { test: (p) => p.endsWith('cargo.toml') || p.endsWith('cargo.lock'), handler: detectFromCargo },
+  { test: (p) => p.endsWith('go.mod'), handler: detectFromGoMod },
+  { test: (p) => p.endsWith('pom.xml'), handler: detectFromPom },
+  {
+    test: (p) => p.endsWith('build.gradle') || p.endsWith('build.gradle.kts'),
+    handler: detectFromGradle,
+  },
+  { test: (p) => /\.(csproj|fsproj)$/.test(p) || p.endsWith('.sln'), handler: detectFromDotnet },
+  { test: (p) => p.endsWith('gemfile'), handler: detectFromGemfile },
+  { test: (p) => p.endsWith('composer.json'), handler: detectFromComposer },
+  { test: (p) => p.endsWith('package.swift'), handler: detectFromPackageSwift },
+  { test: (p) => p.endsWith('cmakelists.txt'), handler: detectFromCmake },
+  { test: (p) => p.includes('conanfile'), handler: detectFromConan },
+  { test: (p) => p.endsWith('vcpkg.json'), handler: detectFromVcpkg },
+  { test: (p) => p.endsWith('meson.build'), handler: detectFromMeson },
+  {
+    test: (p) => p.endsWith('workspace') || p.endsWith('module.bazel'),
+    handler: (_, ctx) => ctx.addDirect('bazel', 92),
+  },
+  {
+    test: (p) => p.endsWith('dockerfile') || p.endsWith('docker-compose.yml'),
+    handler: detectFromDocker,
+  },
+  {
+    test: (p) => p.includes('.github/workflows/') && /\.ya?ml$/.test(p),
+    handler: detectFromGitHubWorkflow,
+  },
+  {
+    test: (p) => p.endsWith('wrangler.jsonc') || p.endsWith('wrangler.toml'),
+    handler: (_, ctx) => ctx.addDirect('cloudflare-workers', 95),
+  },
+  { test: (p) => p.endsWith('.tf'), handler: (_, ctx) => ctx.addDirect('terraform', 90) },
+];
+
 export function detectToolsFromManifest(path: string, content: string): ToolDetection[] {
   const lowerPath = path.toLowerCase();
   const detections: ToolDetection[] = [];
-  const addKnown = (name: string, confidence: number, source = path) => {
-    const tool = knownTool(name);
-    if (tool) detections.push(detection(tool, confidence, source));
-  };
-  const addDirect = (key: string, confidence: number, source = path) => {
-    const tool = knownTool(key);
-    if (tool) detections.push(detection(tool, confidence, source));
+  const ctx: ManifestDetectContext = {
+    addKnown: (name, confidence, source = path) => {
+      const tool = knownTool(name);
+      if (tool) detections.push(detection(tool, confidence, source));
+    },
+    addDirect: (key, confidence, source = path) => {
+      const tool = knownTool(key);
+      if (tool) detections.push(detection(tool, confidence, source));
+    },
   };
 
-  if (lowerPath.endsWith('package.json')) {
-    try {
-      const pkg = JSON.parse(content) as Record<string, Record<string, string> | string>;
-      for (const section of [
-        'dependencies',
-        'devDependencies',
-        'peerDependencies',
-        'optionalDependencies',
-      ]) {
-        const deps = pkg[section];
-        if (deps && typeof deps === 'object') {
-          for (const name of Object.keys(deps)) addKnown(name, 92);
-        }
-      }
-      const packageManager = typeof pkg.packageManager === 'string' ? pkg.packageManager : '';
-      if (packageManager.startsWith('pnpm')) addDirect('pnpm', 95);
-      if (packageManager.startsWith('yarn')) addDirect('yarn', 95);
-      if (packageManager.startsWith('npm')) addDirect('npm', 95);
-    } catch {
-      // Invalid package.json is ignored; other files may still provide signals.
+  for (const route of manifestRoutes) {
+    if (route.test(lowerPath)) {
+      route.handler(content, ctx);
+      break;
     }
-  } else if (lowerPath.endsWith('package-lock.json')) {
-    addDirect('npm', 98);
-  } else if (lowerPath.endsWith('pnpm-lock.yaml')) {
-    addDirect('pnpm', 98);
-  } else if (lowerPath.endsWith('yarn.lock')) {
-    addDirect('yarn', 98);
-  } else if (lowerPath.endsWith('pyproject.toml')) {
-    if (/\[tool\.poetry\]/i.test(content)) addDirect('poetry', 92);
-    if (/\[tool\.uv\]/i.test(content) || /uv_build/i.test(content)) addDirect('uv', 88);
-    for (const match of content.matchAll(/["']([A-Za-z0-9_.-]+)(?:[<=>~! ].*)?["']/g)) {
-      addKnown(match[1]!, 86);
-    }
-  } else if (lowerPath.endsWith('requirements.txt')) {
-    for (const line of content.split('\n')) {
-      const name = line.trim().match(/^([A-Za-z0-9_.-]+)/)?.[1];
-      if (name) addKnown(name, 88);
-    }
-  } else if (lowerPath.endsWith('uv.lock')) {
-    addDirect('uv', 98);
-    for (const match of content.matchAll(/name\s*=\s*["']([^"']+)["']/g)) addKnown(match[1]!, 92);
-  } else if (lowerPath.endsWith('poetry.lock')) {
-    addDirect('poetry', 98);
-    for (const match of content.matchAll(/name\s*=\s*["']([^"']+)["']/g)) addKnown(match[1]!, 92);
-  } else if (lowerPath.endsWith('cargo.toml') || lowerPath.endsWith('cargo.lock')) {
-    addDirect('cargo', 98);
-    for (const match of content.matchAll(/(?:^|\n)\s*([A-Za-z0-9_-]+)\s*=/g)) {
-      addKnown(match[1]!, 88);
-    }
-  } else if (lowerPath.endsWith('go.mod')) {
-    addDirect('go', 95);
-    for (const match of content.matchAll(/(?:require\s+|\n\s*)([A-Za-z0-9_.~/-]+)/g)) {
-      addKnown(match[1]!, 88);
-    }
-  } else if (lowerPath.endsWith('pom.xml')) {
-    addDirect('maven', 96);
-    for (const match of content.matchAll(/<artifactId>([^<]+)<\/artifactId>/g)) {
-      addKnown(match[1]!, 88);
-    }
-  } else if (lowerPath.endsWith('build.gradle') || lowerPath.endsWith('build.gradle.kts')) {
-    addDirect('gradle', 96);
-    for (const match of content.matchAll(/["']([A-Za-z0-9_.:-]+)["']/g)) addKnown(match[1]!, 84);
-  } else if (/\.(csproj|fsproj)$/.test(lowerPath) || lowerPath.endsWith('.sln')) {
-    for (const match of content.matchAll(/PackageReference Include=["']([^"']+)["']/g)) {
-      addKnown(match[1]!, 90);
-    }
-  } else if (lowerPath.endsWith('gemfile')) {
-    for (const match of content.matchAll(/gem\s+["']([^"']+)["']/g)) addKnown(match[1]!, 90);
-  } else if (lowerPath.endsWith('composer.json')) {
-    try {
-      const composer = JSON.parse(content) as Record<string, Record<string, string>>;
-      for (const section of ['require', 'require-dev']) {
-        for (const name of Object.keys(composer[section] ?? {})) addKnown(name, 90);
-      }
-    } catch {}
-  } else if (lowerPath.endsWith('package.swift')) {
-    addDirect('swift', 90);
-    for (const match of content.matchAll(/package:\s*"([^"]+)"/g)) addKnown(match[1]!, 84);
-  } else if (lowerPath.endsWith('cmakelists.txt')) {
-    addDirect('cmake', 90);
-    for (const match of content.matchAll(/find_package\s*\(\s*([A-Za-z0-9_+-]+)/gi)) {
-      addKnown(match[1]!, 78);
-    }
-  } else if (lowerPath.includes('conanfile')) {
-    addDirect('conan', 95);
-    for (const match of content.matchAll(
-      /(?:requires|self\.requires)\s*(?:=|\()\s*["']([^/"']+)/g
-    )) {
-      addKnown(match[1]!, 84);
-    }
-  } else if (lowerPath.endsWith('vcpkg.json')) {
-    addDirect('vcpkg', 96);
-    try {
-      const vcpkg = JSON.parse(content) as { dependencies?: Array<string | { name?: string }> };
-      for (const dep of vcpkg.dependencies ?? []) {
-        addKnown(typeof dep === 'string' ? dep : (dep.name ?? ''), 88);
-      }
-    } catch {}
-  } else if (lowerPath.endsWith('meson.build')) {
-    addDirect('meson', 90);
-    for (const match of content.matchAll(/dependency\s*\(\s*["']([^"']+)["']/g)) {
-      addKnown(match[1]!, 78);
-    }
-  } else if (lowerPath.endsWith('workspace') || lowerPath.endsWith('module.bazel')) {
-    addDirect('bazel', 92);
-  } else if (lowerPath.endsWith('dockerfile') || lowerPath.endsWith('docker-compose.yml')) {
-    addDirect('docker', 90);
-    for (const match of content.matchAll(/FROM\s+([A-Za-z0-9_./-]+)/gi)) addKnown(match[1]!, 72);
-  } else if (lowerPath.includes('.github/workflows/') && /\.ya?ml$/.test(lowerPath)) {
-    addDirect('github-actions', 88);
-    for (const match of content.matchAll(/uses:\s*([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)/g)) {
-      addKnown(match[1]!, 70);
-    }
-  } else if (lowerPath.endsWith('wrangler.jsonc') || lowerPath.endsWith('wrangler.toml')) {
-    addDirect('cloudflare-workers', 95);
-  } else if (lowerPath.endsWith('.tf')) {
-    addDirect('terraform', 90);
   }
 
   return mergeToolDetections(detections);
 }
 
+const EXCLUDE_DIR_RE = /(^|\/)(node_modules|vendor|dist|build|target|coverage|\.next)\//;
+const DOTNET_PROJECT_RE = /\.(csproj|fsproj|sln)$/;
+const CONANFILE_RE = /(^|\/)conanfile\.(txt|py)$/;
+
+const MANIFEST_SUFFIXES = [
+  'package.json',
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'pyproject.toml',
+  'requirements.txt',
+  'uv.lock',
+  'poetry.lock',
+  'cargo.toml',
+  'cargo.lock',
+  'go.mod',
+  'pom.xml',
+  'build.gradle',
+  'build.gradle.kts',
+  'gemfile',
+  'composer.json',
+  'package.swift',
+  'cmakelists.txt',
+  'vcpkg.json',
+  'meson.build',
+  'workspace',
+  'module.bazel',
+  'dockerfile',
+  'docker-compose.yml',
+  'wrangler.jsonc',
+  'wrangler.toml',
+  '.tf',
+];
+
 export function isPotentialToolManifest(path: string): boolean {
   const lower = path.toLowerCase();
-  if (/(^|\/)(node_modules|vendor|dist|build|target|coverage|\.next)\//.test(lower)) return false;
-  return (
-    lower.endsWith('package.json') ||
-    lower.endsWith('package-lock.json') ||
-    lower.endsWith('pnpm-lock.yaml') ||
-    lower.endsWith('yarn.lock') ||
-    lower.endsWith('pyproject.toml') ||
-    lower.endsWith('requirements.txt') ||
-    lower.endsWith('uv.lock') ||
-    lower.endsWith('poetry.lock') ||
-    lower.endsWith('cargo.toml') ||
-    lower.endsWith('cargo.lock') ||
-    lower.endsWith('go.mod') ||
-    lower.endsWith('pom.xml') ||
-    lower.endsWith('build.gradle') ||
-    lower.endsWith('build.gradle.kts') ||
-    /\.(csproj|fsproj|sln)$/.test(lower) ||
-    lower.endsWith('gemfile') ||
-    lower.endsWith('composer.json') ||
-    lower.endsWith('package.swift') ||
-    lower.endsWith('cmakelists.txt') ||
-    /(^|\/)conanfile\.(txt|py)$/.test(lower) ||
-    lower.endsWith('vcpkg.json') ||
-    lower.endsWith('meson.build') ||
-    lower.endsWith('workspace') ||
-    lower.endsWith('module.bazel') ||
-    lower.endsWith('dockerfile') ||
-    lower.endsWith('docker-compose.yml') ||
-    lower.includes('.github/workflows/') ||
-    lower.endsWith('wrangler.jsonc') ||
-    lower.endsWith('wrangler.toml') ||
-    lower.endsWith('.tf')
-  );
+  if (EXCLUDE_DIR_RE.test(lower)) return false;
+  if (DOTNET_PROJECT_RE.test(lower)) return true;
+  if (CONANFILE_RE.test(lower)) return true;
+  if (lower.includes('.github/workflows/')) return true;
+  return MANIFEST_SUFFIXES.some((suffix) => lower.endsWith(suffix));
 }

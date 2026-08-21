@@ -19,18 +19,68 @@ interface BulkActionBarProps {
   noneSaved: boolean;
 }
 
-export function BulkActionBar({
-  selectedCount,
-  onClear,
-  onSaveAll,
-  onUnsaveAll,
-  onCompare,
-  onAssignToList,
+function ListAssignPopover({
   lists,
+  onAssignToList,
   busy,
-  allSaved,
-  noneSaved,
-}: BulkActionBarProps) {
+}: {
+  lists: UserList[];
+  onAssignToList: (id: number) => void;
+  busy?: boolean;
+}) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5"
+          disabled={busy || lists.length === 0}
+          title={lists.length === 0 ? 'Create a collection first' : 'Add to collection'}
+        >
+          <ListPlus className="size-3.5" />
+          <span className="hidden sm:inline">Add to</span>
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-56 p-1">
+        <p className="mb-1 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Add selection to
+        </p>
+        {lists.map((list) => (
+          <button
+            key={list.id}
+            type="button"
+            onClick={() => onAssignToList(list.id)}
+            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
+          >
+            <span
+              className="inline-block size-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: list.color }}
+            />
+            <span className="flex-1 truncate">{list.name}</span>
+          </button>
+        ))}
+        {lists.length === 0 && (
+          <p className="px-2 py-2 text-xs text-muted-foreground">No collections yet.</p>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function BulkActionBar(props: BulkActionBarProps) {
+  const {
+    selectedCount,
+    onClear,
+    onSaveAll,
+    onUnsaveAll,
+    onCompare,
+    onAssignToList,
+    lists,
+    busy,
+    allSaved,
+    noneSaved,
+  } = props;
   if (selectedCount === 0) return null;
 
   return (
@@ -61,42 +111,7 @@ export function BulkActionBar({
             <span className="hidden sm:inline">Compare</span>
           </Button>
 
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="gap-1.5"
-                disabled={busy || lists.length === 0}
-                title={lists.length === 0 ? 'Create a collection first' : 'Add to collection'}
-              >
-                <ListPlus className="size-3.5" />
-                <span className="hidden sm:inline">Add to</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-1">
-              <p className="mb-1 px-2 py-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Add selection to
-              </p>
-              {lists.map((list) => (
-                <button
-                  key={list.id}
-                  type="button"
-                  onClick={() => onAssignToList(list.id)}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-accent"
-                >
-                  <span
-                    className="inline-block size-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: list.color }}
-                  />
-                  <span className="flex-1 truncate">{list.name}</span>
-                </button>
-              ))}
-              {lists.length === 0 && (
-                <p className="px-2 py-2 text-xs text-muted-foreground">No collections yet.</p>
-              )}
-            </PopoverContent>
-          </Popover>
+          <ListAssignPopover lists={lists} onAssignToList={onAssignToList} busy={busy} />
 
           {!allSaved && (
             <Button

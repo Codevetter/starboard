@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 
 import { replaceAbortableJsonRequest } from '@/lib/abortable-fetch';
@@ -46,9 +46,16 @@ export interface UserRepo {
   star_growth_30d?: number | null;
 }
 
+export interface ListFacet {
+  id: number;
+  name: string;
+  color: string;
+  count: number;
+}
+
 export interface Facets {
   languages: [string, number][];
-  lists: { id: number; name: string; color: string; count: number }[];
+  lists: ListFacet[];
   tags: [string, number][];
 }
 
@@ -75,18 +82,27 @@ export interface UseStarredReposOptions {
   limit?: number;
 }
 
+function appendParam(
+  params: URLSearchParams,
+  key: string,
+  value: string | false | undefined
+): void {
+  if (value) params.set(key, value);
+}
+
 function buildStarsUrl(opts: UseStarredReposOptions, offset: number): string {
   const params = new URLSearchParams();
-  if (opts.q) params.set('q', opts.q);
-  if (opts.language?.length) params.set('language', opts.language.join(','));
+  appendParam(params, 'q', opts.q);
+  appendParam(params, 'language', opts.language?.length ? opts.language.join(',') : undefined);
   if (opts.listId != null) params.set('list_id', String(opts.listId));
   const apiSort = sortMap[opts.sort ?? 'recently-starred'];
-  if (apiSort !== 'starred') params.set('sort', apiSort);
+  appendParam(params, 'sort', apiSort !== 'starred' ? apiSort : undefined);
   const limit = opts.limit ?? 50;
-  if (limit !== 50) params.set('limit', String(limit));
-  if (offset > 0) params.set('offset', String(offset));
+  appendParam(params, 'limit', limit !== 50 ? String(limit) : undefined);
+  appendParam(params, 'offset', offset > 0 ? String(offset) : undefined);
   const qs = params.toString();
-  return `/api/stars${qs ? `?${qs}` : ''}`;
+  const query = qs ? `?${qs}` : '';
+  return `/api/stars${query}`;
 }
 
 // Serialize filter options to a stable key for detecting filter changes
@@ -99,6 +115,42 @@ function filterKey(opts: UseStarredReposOptions): string {
   });
 }
 
+interface SyncHelpers {
+  setSyncing: (v: boolean) => void;
+  setSyncResult: (r: SyncResult | null) => void;
+  setSyncError: (e: string | null) => void;
+  setLoadedRepos: React.Dispatch<React.SetStateAction<UserRepo[]>>;
+  mutate: () => Promise<unknown>;
+  globalMutate: (key: string) => Promise<unknown>;
+}
+
+async function performSync(helpers: SyncHelpers): Promise<SyncResult | null> {
+  helpers.setSyncing(true);
+  helpers.setSyncResult(null);
+  helpers.setSyncError(null);
+  try {
+    const res = await fetch('/api/stars/sync', { method: 'POST' });
+    if (!res.ok) {
+      helpers.setSyncError(syncErrorMessage(res.status));
+      return null;
+    }
+    const result: SyncResult = await res.json();
+    helpers.setSyncResult(result);
+    helpers.setLoadedRepos([]);
+    await Promise.all([helpers.mutate(), helpers.globalMutate('/api/lists')]);
+    fetch('/api/embeddings/generate', { method: 'POST' }).catch(() => {});
+    return result;
+  } catch (err) {
+    console.error('Star sync failed', err);
+    helpers.setSyncError(
+      "Couldn't reach GitHub to sync your stars. Check your connection and try again."
+    );
+    return null;
+  } finally {
+    helpers.setSyncing(false);
+  }
+}
+
 export function useStarredRepos(opts: UseStarredReposOptions = {}) {
   const { mutate: globalMutate } = useSWRConfig();
   const [loadedRepos, setLoadedRepos] = useState<UserRepo[]>([]);
@@ -108,24 +160,13 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
   const loadMoreAbortRef = useRef<AbortController | null>(null);
   const currentFilterKey = filterKey(opts);
 
-  // First page via SWR
   const url = buildStarsUrl(opts, 0);
   const { data, error, isLoading, isValidating, mutate } = useSWR<StarsResponse>(
     url,
     (requestUrl: string) => replaceAbortableJsonRequest<StarsResponse>(searchAbortRef, requestUrl),
-    {
-      revalidateOnFocus: false,
-      dedupingInterval: 60000 * 5,
-      keepPreviousData: true,
-      errorRetryCount: 1,
-      onError: (err) => {
-        // Don't let SWR retry aborted requests
-        if (err?.name === 'AbortError') return;
-      },
-    }
+    starsSwrOptions()
   );
 
-  // Abort stale requests and reset pagination when filters change
   useEffect(() => {
     if (currentFilterKey !== prevFilterKey.current) {
       prevFilterKey.current = currentFilterKey;
@@ -149,15 +190,9 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore) return;
-    loadMoreAbortRef.current?.abort();
-    loadMoreAbortRef.current = new AbortController();
-    const nextOffset = allRepos.length;
     setLoadingMore(true);
     try {
-      const nextUrl = buildStarsUrl(opts, nextOffset);
-      const res = await fetch(nextUrl, { signal: loadMoreAbortRef.current.signal });
-      if (!res.ok) throw new Error(`${res.status}`);
-      const page: StarsResponse = await res.json();
+      const page = await fetchStarsPage(opts, allRepos.length, loadMoreAbortRef);
       setLoadedRepos((prev) => [...prev, ...page.repos]);
     } catch (e) {
       if ((e as Error).name === 'AbortError') return;
@@ -171,39 +206,15 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
   const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
 
-  const sync = async () => {
-    setSyncing(true);
-    setSyncResult(null);
-    setSyncError(null);
-    try {
-      const res = await fetch('/api/stars/sync', { method: 'POST' });
-      if (!res.ok) {
-        // Surface a clear, user-facing message instead of letting an error
-        // body ({ error }) be treated as a successful SyncResult.
-        const message =
-          res.status === 401
-            ? 'Sign in with GitHub again to sync your stars.'
-            : "Couldn't sync your GitHub stars. Try again in a moment.";
-        setSyncError(message);
-        return null;
-      }
-      const result: SyncResult = await res.json();
-      setSyncResult(result);
-      setLoadedRepos([]);
-      await Promise.all([mutate(), globalMutate('/api/lists')]);
-      // Auto-generate embeddings for all repos missing them
-      fetch('/api/embeddings/generate', { method: 'POST' }).catch(() => {});
-      return result;
-    } catch (err) {
-      console.error('Star sync failed', err);
-      setSyncError(
-        "Couldn't reach GitHub to sync your stars. Check your connection and try again."
-      );
-      return null;
-    } finally {
-      setSyncing(false);
-    }
-  };
+  const sync = () =>
+    performSync({
+      setSyncing,
+      setSyncResult,
+      setSyncError,
+      setLoadedRepos,
+      mutate,
+      globalMutate,
+    });
 
   const dismissSyncResult = () => setSyncResult(null);
   const dismissSyncError = () => setSyncError(null);
@@ -226,4 +237,35 @@ export function useStarredRepos(opts: UseStarredReposOptions = {}) {
     dismissSyncError,
     mutate,
   };
+}
+
+function starsSwrOptions() {
+  return {
+    revalidateOnFocus: false,
+    dedupingInterval: 60000 * 5,
+    keepPreviousData: true,
+    errorRetryCount: 1,
+    onError: (err: Error) => {
+      // Don't let SWR retry aborted requests
+      if (err?.name === 'AbortError') return;
+    },
+  };
+}
+
+async function fetchStarsPage(
+  opts: UseStarredReposOptions,
+  offset: number,
+  abortRef: RefObject<AbortController | null>
+): Promise<StarsResponse> {
+  abortRef.current?.abort();
+  abortRef.current = new AbortController();
+  const nextUrl = buildStarsUrl(opts, offset);
+  const res = await fetch(nextUrl, { signal: abortRef.current.signal });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return (await res.json()) as StarsResponse;
+}
+
+function syncErrorMessage(status: number): string {
+  if (status === 401) return 'Sign in with GitHub again to sync your stars.';
+  return "Couldn't sync your GitHub stars. Try again in a moment.";
 }

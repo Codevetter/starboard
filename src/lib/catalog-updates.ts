@@ -65,18 +65,30 @@ export function formatCatalogDate(dateStr: string): string {
   });
 }
 
+function str(value: unknown): string {
+  return typeof value === 'string' ? value : '';
+}
+
+function nullableStr(value: unknown): string | null {
+  return typeof value === 'string' ? value : null;
+}
+
+function num(value: unknown): number {
+  return Number(value) || 0;
+}
+
 function mapChangeRow(row: Record<string, unknown>): CatalogChangeEntry {
   return {
-    date: String(row.catalog_date ?? ''),
+    date: str(row.catalog_date),
     id: Number(row.id),
-    fullName: String(row.full_name ?? ''),
-    name: String(row.name ?? ''),
-    description: (row.description as string | null) ?? null,
-    language: (row.language as string | null) ?? null,
-    stargazersCount: Number(row.stargazers_count ?? 0) || 0,
-    ownerLogin: String(row.owner_login ?? ''),
-    ownerAvatar: String(row.owner_avatar ?? ''),
-    htmlUrl: String(row.html_url ?? ''),
+    fullName: str(row.full_name),
+    name: str(row.name),
+    description: nullableStr(row.description),
+    language: nullableStr(row.language),
+    stargazersCount: num(row.stargazers_count),
+    ownerLogin: str(row.owner_login),
+    ownerAvatar: str(row.owner_avatar),
+    htmlUrl: str(row.html_url),
   };
 }
 

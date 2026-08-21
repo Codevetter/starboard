@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { trackActivated, trackCoreAction } from '@/lib/analytics';
 import { auth } from '@/lib/auth';
-import { fetchAllStarredRepos } from '@/lib/github';
+import { fetchAllStarredRepos, type StarredRepo } from '@/lib/github';
 import {
   fetchPublicStarListRepoNames,
   fetchPublicStarLists,
@@ -26,6 +26,121 @@ interface GitHubListSyncResult {
   importedLists: string[];
   assignedRepos: number;
   changed: boolean;
+}
+
+function buildRepoUpsertStatements(freshRepos: StarredRepo[]): InStatement[] {
+  const statements: InStatement[] = [];
+  for (const repo of freshRepos) {
+    statements.push({
+      sql: `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url, description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name = excluded.name,
+              full_name = excluded.full_name,
+              owner_login = excluded.owner_login,
+              owner_avatar = excluded.owner_avatar,
+              html_url = excluded.html_url,
+              description = excluded.description,
+              language = excluded.language,
+              stargazers_count = excluded.stargazers_count,
+              archived = excluded.archived,
+              topics = excluded.topics,
+              repo_updated_at = excluded.repo_updated_at`,
+      args: [
+        repo.id,
+        repo.name,
+        repo.full_name,
+        repo.owner.login,
+        repo.owner.avatar_url,
+        repo.html_url,
+        repo.description,
+        repo.language,
+        repo.stargazers_count,
+        repo.archived ? 1 : 0,
+        JSON.stringify(repo.topics),
+        repo.created_at,
+        repo.updated_at,
+      ],
+    });
+    statements.push({
+      sql: `INSERT INTO repo_star_snapshots (repo_id, stargazers_count)
+            VALUES (?, ?)
+            ON CONFLICT(repo_id, captured_at) DO UPDATE SET
+              stargazers_count = excluded.stargazers_count`,
+      args: [repo.id, repo.stargazers_count],
+    });
+  }
+  return statements;
+}
+
+function buildUserRepoStatements(
+  userId: string,
+  added: Array<{ id: number }>,
+  removedIds: number[]
+): InStatement[] {
+  const statements: InStatement[] = [];
+  for (const repo of added) {
+    statements.push({
+      sql: `INSERT INTO user_repos (user_id, repo_id, is_starred, starred_at)
+            VALUES (?, ?, 1, datetime('now'))
+            ON CONFLICT(user_id, repo_id) DO UPDATE SET
+              is_starred = 1,
+              starred_at = COALESCE(user_repos.starred_at, datetime('now'))`,
+      args: [userId, repo.id],
+    });
+  }
+  for (const repoId of removedIds) {
+    statements.push({
+      sql: `UPDATE user_repos
+            SET is_starred = 0, starred_at = NULL
+            WHERE user_id = ? AND repo_id = ?`,
+      args: [userId, repoId],
+    });
+  }
+  return statements;
+}
+
+async function fetchRemovedRepos(
+  removedIds: number[]
+): Promise<{ id: number; full_name: string; description: string | null }[]> {
+  if (removedIds.length === 0) return [];
+  const removedResult = await db.execute({
+    sql: `SELECT id, full_name, description
+          FROM repos
+          WHERE id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
+    args: [JSON.stringify(removedIds)],
+  });
+  return removedResult.rows.map((r) => ({
+    id: r.id as number,
+    full_name: r.full_name as string,
+    description: r.description as string | null,
+  }));
+}
+
+async function ingestAddedRepos(
+  accessToken: string,
+  userId: string,
+  added: StarredRepo[]
+): Promise<{ ragIngested: number; ragReadmesFetched: number }> {
+  if (added.length === 0) return { ragIngested: 0, ragReadmesFetched: 0 };
+  const readmeRepos = selectSyncReadmeRepos(added);
+  const readmesPromise = fetchRepoReadmes(accessToken, readmeRepos, {
+    onError: (repo, error) => {
+      console.warn(`README fetch skipped for ${repo.full_name}:`, error);
+    },
+  });
+  try {
+    const readmes = await readmesPromise;
+    const ragIngested = await ingestStarboardRagDocuments(
+      added.map((repo) =>
+        buildStarboardRagDocument(userId, repo as never, readmes.get(repo.full_name))
+      )
+    );
+    return { ragIngested, ragReadmesFetched: readmes.size };
+  } catch (error) {
+    console.warn('knowledgebase ingest failed:', error);
+    return { ragIngested: 0, ragReadmesFetched: 0 };
+  }
 }
 
 export async function POST() {
@@ -69,74 +184,12 @@ export async function POST() {
     const added = freshRepos.filter((r) => !existingIds.has(r.id));
     const removedIds = [...existingIds].filter((id) => !freshIds.has(id));
 
-    const statements: InStatement[] = [];
-
-    for (const repo of freshRepos) {
-      statements.push({
-        sql: `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url, description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-              ON CONFLICT(id) DO UPDATE SET
-                name = excluded.name,
-                full_name = excluded.full_name,
-                owner_login = excluded.owner_login,
-                owner_avatar = excluded.owner_avatar,
-                html_url = excluded.html_url,
-                description = excluded.description,
-                language = excluded.language,
-                stargazers_count = excluded.stargazers_count,
-                archived = excluded.archived,
-                topics = excluded.topics,
-                repo_updated_at = excluded.repo_updated_at`,
-        args: [
-          repo.id,
-          repo.name,
-          repo.full_name,
-          repo.owner.login,
-          repo.owner.avatar_url,
-          repo.html_url,
-          repo.description,
-          repo.language,
-          repo.stargazers_count,
-          repo.archived ? 1 : 0,
-          JSON.stringify(repo.topics),
-          repo.created_at,
-          repo.updated_at,
-        ],
-      });
-      statements.push({
-        sql: `INSERT INTO repo_star_snapshots (repo_id, stargazers_count)
-              VALUES (?, ?)
-              ON CONFLICT(repo_id, captured_at) DO UPDATE SET
-                stargazers_count = excluded.stargazers_count`,
-        args: [repo.id, repo.stargazers_count],
-      });
-    }
-
-    for (const repo of added) {
-      statements.push({
-        sql: `INSERT INTO user_repos (user_id, repo_id, is_starred, starred_at)
-              VALUES (?, ?, 1, datetime('now'))
-              ON CONFLICT(user_id, repo_id) DO UPDATE SET
-                is_starred = 1,
-                starred_at = COALESCE(user_repos.starred_at, datetime('now'))`,
-        args: [userId, repo.id],
-      });
-    }
-
-    for (const repoId of removedIds) {
-      statements.push({
-        sql: `UPDATE user_repos
-              SET is_starred = 0, starred_at = NULL
-              WHERE user_id = ? AND repo_id = ?`,
-        args: [userId, repoId],
-      });
-    }
-
+    const statements = [
+      ...buildRepoUpsertStatements(freshRepos),
+      ...buildUserRepoStatements(userId, added, removedIds),
+    ];
     await db.batch(statements);
 
-    // Owner-facing analytics — a completed sync is the core action.
-    // If the user had no starred repos before this sync, this is their
-    // first real value: fire `activated` once.
     trackCoreAction('repos_synced', userId);
     if (existingIds.size === 0 && freshRepos.length > 0) {
       trackActivated(userId);
@@ -146,41 +199,12 @@ export async function POST() {
       ? await syncGitHubLists(userId, username, buildRepoIdByFullName(freshRepos))
       : emptyGitHubListSync();
 
-    let removedRepos: { id: number; full_name: string; description: string | null }[] = [];
-    if (removedIds.length > 0) {
-      const removedResult = await db.execute({
-        sql: `SELECT id, full_name, description
-              FROM repos
-              WHERE id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
-        args: [JSON.stringify(removedIds)],
-      });
-      removedRepos = removedResult.rows.map((r) => ({
-        id: r.id as number,
-        full_name: r.full_name as string,
-        description: r.description as string | null,
-      }));
-    }
-
-    let ragIngested = 0;
-    let ragReadmesFetched = 0;
-    if (added.length > 0) {
-      const readmeRepos = selectSyncReadmeRepos(added);
-      const readmesPromise = fetchRepoReadmes(session.accessToken, readmeRepos, {
-        onError: (repo, error) => {
-          console.warn(`README fetch skipped for ${repo.full_name}:`, error);
-        },
-      });
-
-      try {
-        const readmes = await readmesPromise;
-        ragReadmesFetched = readmes.size;
-        ragIngested = await ingestStarboardRagDocuments(
-          added.map((repo) => buildStarboardRagDocument(userId, repo, readmes.get(repo.full_name)))
-        );
-      } catch (error) {
-        console.warn('knowledgebase ingest failed:', error);
-      }
-    }
+    const removedRepos = await fetchRemovedRepos(removedIds);
+    const { ragIngested, ragReadmesFetched } = await ingestAddedRepos(
+      session.accessToken,
+      userId,
+      added
+    );
 
     return NextResponse.json({
       added: added.map((r) => ({ id: r.id, full_name: r.full_name, description: r.description })),
@@ -206,6 +230,146 @@ async function getGitHubUsername(userId: string): Promise<string | null> {
 
   const username = result.rows[0]?.username;
   return typeof username === 'string' && username.trim().length > 0 ? username : null;
+}
+
+async function cleanupBogusLists(
+  userId: string,
+  existingLists: Array<{ id: number; name: string; repoCount: number }>
+): Promise<number[]> {
+  const bogusSortListIds = existingLists
+    .filter((list) => list.repoCount === 0 && isBogusImportedSortList(list.name))
+    .map((list) => list.id);
+
+  if (bogusSortListIds.length > 0) {
+    await db.execute({
+      sql: `DELETE FROM user_lists
+            WHERE user_id = ?
+              AND id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
+      args: [userId, JSON.stringify(bogusSortListIds)],
+    });
+  }
+  return bogusSortListIds;
+}
+
+async function syncListDefinitions(
+  userId: string,
+  githubLists: GitHubStarList[],
+  activeExistingLists: Array<{
+    id: number;
+    name: string;
+    description: string | null;
+    position: number;
+  }>,
+  nextPositionStart: number
+): Promise<{
+  githubListIds: Map<string, number>;
+  importedLists: string[];
+  changed: boolean;
+  nextPosition: number;
+}> {
+  const importedLists: string[] = [];
+  const matchedExistingIds = new Set<number>();
+  const githubListIds = new Map<string, number>();
+  let changed = false;
+  let nextPosition = nextPositionStart;
+
+  for (const list of githubLists) {
+    const existingMatch = activeExistingLists.find(
+      (candidate) =>
+        !matchedExistingIds.has(candidate.id) && matchesGitHubList(candidate.name, list)
+    );
+
+    if (existingMatch) {
+      matchedExistingIds.add(existingMatch.id);
+      githubListIds.set(list.slug, existingMatch.id);
+
+      if (
+        existingMatch.name !== list.name ||
+        normalizeNullableText(existingMatch.description) !== normalizeNullableText(list.description)
+      ) {
+        await db.execute({
+          sql: 'UPDATE user_lists SET name = ?, description = ? WHERE id = ? AND user_id = ?',
+          args: [list.name, list.description, existingMatch.id, userId],
+        });
+        importedLists.push(list.name);
+        changed = true;
+      }
+      continue;
+    }
+
+    const insertResult = await db.execute({
+      sql: 'INSERT INTO user_lists (user_id, name, color, icon, position, description) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
+      args: [userId, list.name, '#6366f1', null, nextPosition, list.description],
+    });
+    const listId = insertResult.rows[0]?.id as number | undefined;
+    if (typeof listId === 'number') {
+      githubListIds.set(list.slug, listId);
+    }
+    importedLists.push(list.name);
+    nextPosition++;
+    changed = true;
+  }
+
+  return { githubListIds, importedLists, changed, nextPosition };
+}
+
+async function syncListAssignments(
+  userId: string,
+  githubLists: GitHubStarList[],
+  githubListIds: Map<string, number>,
+  repoIdByFullName: Map<string, number>
+): Promise<{ assignedRepos: number; changed: boolean }> {
+  const importedListIds = [...githubListIds.values()];
+  if (importedListIds.length === 0) {
+    return { assignedRepos: 0, changed: false };
+  }
+
+  const desiredAssignments = new Set<string>();
+  const desiredRepoIds = new Set<number>();
+
+  for (const list of githubLists) {
+    const listId = githubListIds.get(list.slug);
+    if (!listId) continue;
+
+    const repoFullNames = await fetchPublicStarListRepoNames(list.href);
+    for (const fullName of repoFullNames) {
+      const repoId = repoIdByFullName.get(normalizeRepoFullName(fullName));
+      if (!repoId) continue;
+      desiredAssignments.add(assignmentKey(repoId, listId));
+      desiredRepoIds.add(repoId);
+    }
+  }
+
+  const currentAssignmentsResult = await db.execute({
+    sql: `SELECT url.repo_id, url.list_id
+          FROM user_repo_lists url
+          JOIN user_repos ur ON ur.user_id = url.user_id AND ur.repo_id = url.repo_id AND ur.is_starred = 1
+          WHERE url.user_id = ?
+            AND url.list_id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
+    args: [userId, JSON.stringify(importedListIds)],
+  });
+  const currentAssignments = new Set(
+    currentAssignmentsResult.rows.map((row) =>
+      assignmentKey(row.repo_id as number, row.list_id as number)
+    )
+  );
+
+  const missingAssignments = [...desiredAssignments].filter(
+    (assignment) => !currentAssignments.has(assignment)
+  );
+
+  if (missingAssignments.length > 0) {
+    const assignmentStatements: InStatement[] = missingAssignments.map((value) => {
+      const [repoId, listId] = value.split(':').map(Number);
+      return {
+        sql: 'INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id) VALUES (?, ?, ?)',
+        args: [userId, repoId, listId],
+      } as InStatement;
+    });
+    await db.batch(assignmentStatements);
+  }
+
+  return { assignedRepos: desiredRepoIds.size, changed: missingAssignments.length > 0 };
 }
 
 async function syncGitHubLists(
@@ -234,134 +398,36 @@ async function syncGitHubLists(
       repoCount: row.repo_count as number,
     }));
 
-    let changed = false;
-
-    const bogusSortListIds = existingLists
-      .filter((list) => list.repoCount === 0 && isBogusImportedSortList(list.name))
-      .map((list) => list.id);
-
-    if (bogusSortListIds.length > 0) {
-      await db.execute({
-        sql: `DELETE FROM user_lists
-              WHERE user_id = ?
-                AND id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
-        args: [userId, JSON.stringify(bogusSortListIds)],
-      });
-      changed = true;
-    }
+    const bogusSortListIds = await cleanupBogusLists(userId, existingLists);
+    let changed = bogusSortListIds.length > 0;
 
     if (githubLists.length === 0) {
       return { importedLists: [], assignedRepos: 0, changed };
     }
 
     const activeExistingLists = existingLists.filter((list) => !bogusSortListIds.includes(list.id));
-    let nextPosition =
+    const nextPositionStart =
       activeExistingLists.reduce((max, list) => Math.max(max, list.position), -1) + 1;
 
-    const importedLists: string[] = [];
-    const matchedExistingIds = new Set<number>();
-    const githubListIds = new Map<string, number>();
-
-    for (const list of githubLists) {
-      const existingMatch = activeExistingLists.find(
-        (candidate) =>
-          !matchedExistingIds.has(candidate.id) && matchesGitHubList(candidate.name, list)
-      );
-
-      if (existingMatch) {
-        matchedExistingIds.add(existingMatch.id);
-        githubListIds.set(list.slug, existingMatch.id);
-
-        if (
-          existingMatch.name !== list.name ||
-          normalizeNullableText(existingMatch.description) !==
-            normalizeNullableText(list.description)
-        ) {
-          await db.execute({
-            sql: 'UPDATE user_lists SET name = ?, description = ? WHERE id = ? AND user_id = ?',
-            args: [list.name, list.description, existingMatch.id, userId],
-          });
-          importedLists.push(list.name);
-          changed = true;
-        }
-
-        continue;
-      }
-
-      const insertResult = await db.execute({
-        sql: 'INSERT INTO user_lists (user_id, name, color, icon, position, description) VALUES (?, ?, ?, ?, ?, ?) RETURNING id',
-        args: [userId, list.name, '#6366f1', null, nextPosition, list.description],
-      });
-      const listId = insertResult.rows[0]?.id as number | undefined;
-      if (typeof listId === 'number') {
-        githubListIds.set(list.slug, listId);
-      }
-      importedLists.push(list.name);
-      nextPosition++;
-      changed = true;
-    }
-
-    const importedListIds = [...githubListIds.values()];
-    if (importedListIds.length === 0) {
-      return { importedLists, assignedRepos: 0, changed };
-    }
-
-    const desiredAssignments = new Set<string>();
-    const desiredRepoIds = new Set<number>();
-
-    for (const list of githubLists) {
-      const listId = githubListIds.get(list.slug);
-      if (!listId) {
-        continue;
-      }
-
-      const repoFullNames = await fetchPublicStarListRepoNames(list.href);
-      for (const fullName of repoFullNames) {
-        const repoId = repoIdByFullName.get(normalizeRepoFullName(fullName));
-        if (!repoId) {
-          continue;
-        }
-
-        desiredAssignments.add(assignmentKey(repoId, listId));
-        desiredRepoIds.add(repoId);
-      }
-    }
-
-    const currentAssignmentsResult = await db.execute({
-      sql: `SELECT url.repo_id, url.list_id
-            FROM user_repo_lists url
-            JOIN user_repos ur ON ur.user_id = url.user_id AND ur.repo_id = url.repo_id AND ur.is_starred = 1
-            WHERE url.user_id = ?
-              AND url.list_id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
-      args: [userId, JSON.stringify(importedListIds)],
-    });
-    const currentAssignments = new Set(
-      currentAssignmentsResult.rows.map((row) =>
-        assignmentKey(row.repo_id as number, row.list_id as number)
-      )
+    const defSync = await syncListDefinitions(
+      userId,
+      githubLists,
+      activeExistingLists,
+      nextPositionStart
     );
+    changed = changed || defSync.changed;
 
-    const missingAssignments = new Set(
-      [...desiredAssignments].filter((assignment) => !currentAssignments.has(assignment))
+    const assignSync = await syncListAssignments(
+      userId,
+      githubLists,
+      defSync.githubListIds,
+      repoIdByFullName
     );
-
-    if (missingAssignments.size > 0) {
-      changed = true;
-
-      const assignmentStatements: InStatement[] = [];
-      for (const value of missingAssignments) {
-        const [repoId, listId] = value.split(':').map(Number);
-        assignmentStatements.push({
-          sql: 'INSERT OR IGNORE INTO user_repo_lists (user_id, repo_id, list_id) VALUES (?, ?, ?)',
-          args: [userId, repoId, listId],
-        });
-      }
-      await db.batch(assignmentStatements);
-    }
+    changed = changed || assignSync.changed;
 
     return {
-      importedLists,
-      assignedRepos: desiredRepoIds.size,
+      importedLists: defSync.importedLists,
+      assignedRepos: assignSync.assignedRepos,
       changed,
     };
   } catch (error) {

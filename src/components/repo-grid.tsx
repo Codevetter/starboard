@@ -10,12 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { UserList } from '@/hooks/use-lists';
 import type { UserRepo } from '@/hooks/use-starred-repos';
 
-function widthToColumns(width: number): number {
-  if (width >= 1280) return 4;
-  if (width >= 900) return 3;
-  if (width >= 640) return 2;
-  return 1;
-}
+type ViewMode = 'grid' | 'list';
+type ListSummary = UserList;
 
 interface RepoGridProps {
   repos: UserRepo[];
@@ -34,6 +30,17 @@ interface RepoGridProps {
   selectedRepoIds?: Set<number>;
   onToggleSelect?: (repoId: number, selected: boolean) => void;
   selectionActive?: boolean;
+}
+
+const WIDTH_BREAKPOINTS = [
+  [1280, 4],
+  [900, 3],
+  [640, 2],
+  [0, 1],
+] as const;
+
+function widthToColumns(width: number): number {
+  return WIDTH_BREAKPOINTS.find(([minWidth]) => width >= minWidth)?.[1] ?? 1;
 }
 
 function SkeletonCard({ viewMode }: { viewMode: 'grid' | 'list' }) {
@@ -76,28 +83,197 @@ function SkeletonCard({ viewMode }: { viewMode: 'grid' | 'list' }) {
   );
 }
 
-export function RepoGrid({
-  repos,
-  viewMode,
-  isLoading,
-  isPending,
-  isValidating,
-  lists,
-  onAssignList,
-  onToggleSave,
+function RepoGridLoading({ viewMode }: { viewMode: ViewMode }) {
+  return (
+    <div
+      className={
+        viewMode === 'grid'
+          ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+          : 'flex flex-col gap-2'
+      }
+    >
+      {Array.from({ length: 8 }).map((_, i) => (
+        <SkeletonCard key={i} viewMode={viewMode} />
+      ))}
+    </div>
+  );
+}
+
+function RepoGridEmpty({
   hasActiveFilters,
   onClearFilters,
-  hasMore,
-  loadingMore,
-  onLoadMore,
-  selectedRepoIds,
-  onToggleSelect,
-  selectionActive = false,
-}: RepoGridProps) {
+}: {
+  hasActiveFilters: boolean;
+  onClearFilters: (() => void) | undefined;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      <Inbox className="mb-4 size-12 text-muted-foreground/50" />
+      <h3 className="text-lg font-medium text-foreground">No repos match your filters</h3>
+      <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+        Try adjusting your search or filter criteria to find what you are looking for.
+      </p>
+      {hasActiveFilters && onClearFilters && (
+        <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}>
+          <RotateCcw className="size-3.5" />
+          Reset all filters
+        </Button>
+      )}
+    </div>
+  );
+}
+
+interface RepoGridVirtualRowProps {
+  virtualRow: ReturnType<ReturnType<typeof useVirtualizer>['getVirtualItems']>[number];
+  rows: UserRepo[][];
+  viewMode: ViewMode;
+  columns: number;
+  lists: ListSummary[] | undefined;
+  onAssignList: ((repoId: number, listId: number, assigned: boolean) => void) | undefined;
+  onToggleSave: ((repoId: number, saved: boolean) => void) | undefined;
+  selectedRepoIds: Set<number> | undefined;
+  onToggleSelect: ((repoId: number, selected: boolean) => void) | undefined;
+}
+
+function RepoGridVirtualRow(props: RepoGridVirtualRowProps) {
+  const {
+    virtualRow,
+    rows,
+    viewMode,
+    columns,
+    lists,
+    onAssignList,
+    onToggleSave,
+    selectedRepoIds,
+    onToggleSelect,
+  } = props;
+  const rowRepos = rows[virtualRow.index];
+  return (
+    <div
+      key={virtualRow.key}
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: `${virtualRow.size}px`,
+        transform: `translateY(${virtualRow.start}px)`,
+        ...(viewMode === 'grid'
+          ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
+          : {}),
+      }}
+      className={viewMode === 'grid' ? 'grid gap-3 px-0 pb-3' : 'pb-2'}
+    >
+      {rowRepos.map((repo) => (
+        <RepoCard
+          key={repo.id}
+          repo={repo}
+          viewMode={viewMode}
+          lists={lists}
+          onAssignList={onAssignList}
+          onToggleSave={onToggleSave}
+          isSelected={selectedRepoIds?.has(repo.id) ?? false}
+          onToggleSelect={onToggleSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+function useInfiniteScroll(
+  parentRef: React.RefObject<HTMLDivElement | null>,
+  onLoadMore: (() => void) | undefined,
+  hasMore: boolean | undefined,
+  loadingMore: boolean | undefined
+) {
+  useEffect(() => {
+    const el = parentRef.current;
+    if (!el || !onLoadMore || !hasMore || loadingMore) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = el;
+      if (scrollHeight - scrollTop - clientHeight < 500) {
+        onLoadMore();
+      }
+    };
+
+    el.addEventListener('scroll', handleScroll, { passive: true });
+    return () => el.removeEventListener('scroll', handleScroll);
+  }, [parentRef, onLoadMore, hasMore, loadingMore]);
+}
+
+interface RepoGridVirtualListProps {
+  virtualizer: ReturnType<typeof useVirtualizer>;
+  rows: UserRepo[][];
+  viewMode: ViewMode;
+  columns: number;
+  lists: ListSummary[] | undefined;
+  onAssignList: ((repoId: number, listId: number, assigned: boolean) => void) | undefined;
+  onToggleSave: ((repoId: number, saved: boolean) => void) | undefined;
+  selectedRepoIds: Set<number> | undefined;
+  onToggleSelect: ((repoId: number, selected: boolean) => void) | undefined;
+}
+
+function RepoGridVirtualList(props: RepoGridVirtualListProps) {
+  const {
+    virtualizer,
+    rows,
+    viewMode,
+    columns,
+    lists,
+    onAssignList,
+    onToggleSave,
+    selectedRepoIds,
+    onToggleSelect,
+  } = props;
+  return (
+    <div
+      style={{
+        height: `${virtualizer.getTotalSize()}px`,
+        width: '100%',
+        position: 'relative',
+      }}
+    >
+      {virtualizer.getVirtualItems().map((virtualRow) => (
+        <RepoGridVirtualRow
+          key={virtualRow.key}
+          virtualRow={virtualRow}
+          rows={rows}
+          viewMode={viewMode}
+          columns={columns}
+          lists={lists}
+          onAssignList={onAssignList}
+          onToggleSave={onToggleSave}
+          selectedRepoIds={selectedRepoIds}
+          onToggleSelect={onToggleSelect}
+        />
+      ))}
+    </div>
+  );
+}
+
+export function RepoGrid(props: RepoGridProps) {
+  const {
+    repos,
+    viewMode,
+    isLoading,
+    isPending,
+    isValidating,
+    lists,
+    onAssignList,
+    onToggleSave,
+    hasActiveFilters,
+    onClearFilters,
+    hasMore,
+    loadingMore,
+    onLoadMore,
+    selectedRepoIds,
+    onToggleSelect,
+    selectionActive = false,
+  } = props;
   const parentRef = useRef<HTMLDivElement>(null);
   const [columns, setColumns] = useState(1);
 
-  // Track container width to compute responsive column count
   useEffect(() => {
     if (viewMode !== 'grid') {
       setColumns(1);
@@ -133,55 +309,11 @@ export function RepoGrid({
   });
   const showPending = Boolean(isPending || isValidating);
 
-  // Infinite scroll: load more when scrolled near bottom
-  useEffect(() => {
-    const el = parentRef.current;
-    if (!el || !onLoadMore || !hasMore || loadingMore) return;
+  useInfiniteScroll(parentRef, onLoadMore, hasMore, loadingMore);
 
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      if (scrollHeight - scrollTop - clientHeight < 500) {
-        onLoadMore();
-      }
-    };
-
-    el.addEventListener('scroll', handleScroll, { passive: true });
-    return () => el.removeEventListener('scroll', handleScroll);
-  }, [onLoadMore, hasMore, loadingMore]);
-
-  if (isLoading) {
-    return (
-      <div
-        className={
-          viewMode === 'grid'
-            ? 'grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
-            : 'flex flex-col gap-2'
-        }
-      >
-        {Array.from({ length: 8 }).map((_, i) => (
-          <SkeletonCard key={i} viewMode={viewMode} />
-        ))}
-      </div>
-    );
-  }
-
-  if (repos.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-20 text-center">
-        <Inbox className="mb-4 size-12 text-muted-foreground/50" />
-        <h3 className="text-lg font-medium text-foreground">No repos match your filters</h3>
-        <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-          Try adjusting your search or filter criteria to find what you are looking for.
-        </p>
-        {hasActiveFilters && onClearFilters && (
-          <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}>
-            <RotateCcw className="size-3.5" />
-            Reset all filters
-          </Button>
-        )}
-      </div>
-    );
-  }
+  if (isLoading) return <RepoGridLoading viewMode={viewMode} />;
+  if (repos.length === 0)
+    return <RepoGridEmpty hasActiveFilters={hasActiveFilters} onClearFilters={onClearFilters} />;
 
   return (
     <div className="relative">
@@ -194,47 +326,17 @@ export function RepoGrid({
         ref={parentRef}
         className={`h-[calc(100svh-65px)] overflow-auto transition-opacity duration-100${showPending ? ' opacity-75' : ''}${selectionActive ? ' pb-24' : ''}`}
       >
-        <div
-          style={{
-            height: `${virtualizer.getTotalSize()}px`,
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const rowRepos = rows[virtualRow.index];
-            return (
-              <div
-                key={virtualRow.key}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: `${virtualRow.size}px`,
-                  transform: `translateY(${virtualRow.start}px)`,
-                  ...(viewMode === 'grid'
-                    ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
-                    : {}),
-                }}
-                className={viewMode === 'grid' ? 'grid gap-3 px-0 pb-3' : 'pb-2'}
-              >
-                {rowRepos.map((repo) => (
-                  <RepoCard
-                    key={repo.id}
-                    repo={repo}
-                    viewMode={viewMode}
-                    lists={lists}
-                    onAssignList={onAssignList}
-                    onToggleSave={onToggleSave}
-                    isSelected={selectedRepoIds?.has(repo.id) ?? false}
-                    onToggleSelect={onToggleSelect}
-                  />
-                ))}
-              </div>
-            );
-          })}
-        </div>
+        <RepoGridVirtualList
+          virtualizer={virtualizer}
+          rows={rows}
+          viewMode={viewMode}
+          columns={columns}
+          lists={lists}
+          onAssignList={onAssignList}
+          onToggleSave={onToggleSave}
+          selectedRepoIds={selectedRepoIds}
+          onToggleSelect={onToggleSelect}
+        />
         {loadingMore && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />

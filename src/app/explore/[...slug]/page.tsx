@@ -97,13 +97,20 @@ interface RepoToolsResponse {
   tools: RepoTool[];
 }
 
+interface StarHistoryPoint {
+  stargazersCount: number;
+  capturedAt: string;
+}
+
+interface StarHistoryGrowth {
+  starsGained: number | null;
+  percentGrowth: number | null;
+  enoughHistory: boolean;
+}
+
 interface StarHistoryResponse {
-  points: Array<{ stargazersCount: number; capturedAt: string }>;
-  growth: {
-    starsGained: number | null;
-    percentGrowth: number | null;
-    enoughHistory: boolean;
-  };
+  points: StarHistoryPoint[];
+  growth: StarHistoryGrowth;
 }
 
 function confidenceClass(value: number): string {
@@ -200,17 +207,304 @@ function PageSkeleton() {
   );
 }
 
-export default function RepoDetailPage() {
-  const params = useParams();
-  const slugParts = params.slug as string[];
-  const repoSlug = slugParts?.length === 2 ? `${slugParts[0]}/${slugParts[1]}` : '';
-  const { status } = useSession();
-  const isAuthenticated = status === 'authenticated';
+interface SimilarRepoItem {
+  id: number;
+  name: string;
+  full_name: string;
+  owner: { login: string; avatar_url: string };
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  similarity: number;
+}
 
+interface RepoHeaderCardProps {
+  repo: NonNullable<ReturnType<typeof useRepoDetail>['repo']>;
+  isAuthenticated: boolean;
+}
+
+function RepoHeaderCard({ repo, isAuthenticated }: RepoHeaderCardProps) {
+  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
+  const ownerAvatar = getAvatarImageAttrs(repo.owner_avatar, 40);
+  const backHref = isAuthenticated ? '/stars' : '/discover';
+  const backLabel = isAuthenticated ? 'Back to Library' : 'Back to Discover';
+
+  return (
+    <>
+      <Link
+        href={backHref}
+        className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="size-4" />
+        {backLabel}
+      </Link>
+
+      <div className="rounded-xl border bg-card p-6">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={ownerAvatar.src}
+              srcSet={ownerAvatar.srcSet}
+              sizes={ownerAvatar.sizes}
+              alt={repo.owner_login}
+              width={40}
+              height={40}
+              className="size-10 shrink-0 rounded-full"
+              loading="eager"
+              decoding="async"
+              fetchPriority="high"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-xs text-muted-foreground">{repo.owner_login}</p>
+              <h1 className="truncate text-base font-semibold">{repo.name}</h1>
+            </div>
+          </div>
+
+          <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <ExternalLink className="size-3.5" />
+              View on GitHub
+            </Button>
+          </a>
+        </div>
+
+        {repo.description && (
+          <p className="mt-4 leading-relaxed text-muted-foreground">{repo.description}</p>
+        )}
+
+        {repo.topics.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {repo.topics.map((topic) => (
+              <Badge key={topic} variant="secondary" className="text-xs font-normal">
+                {topic}
+              </Badge>
+            ))}
+          </div>
+        )}
+
+        <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
+            <span className="font-medium text-foreground">
+              {formatStarCount(repo.stargazers_count)}
+            </span>
+            <span>stars</span>
+          </div>
+          {repo.language && (
+            <div className="flex items-center gap-1.5">
+              <span
+                className="inline-block size-2.5 rounded-full"
+                style={{ backgroundColor: langColor ?? undefined }}
+              />
+              <span>{repo.language}</span>
+            </div>
+          )}
+          {repo.archived && (
+            <div className="flex items-center gap-1.5">
+              <Archive className="size-3.5" />
+              <span>Archived</span>
+            </div>
+          )}
+          {repo.repo_updated_at && (
+            <div className="flex items-center gap-1.5">
+              <GitFork className="size-3.5" />
+              <span>Updated {timeAgo(repo.repo_updated_at)}</span>
+            </div>
+          )}
+          {repo.repo_created_at && (
+            <div className="flex items-center gap-1.5">
+              <Calendar className="size-3.5" />
+              <span>Created {formatDate(repo.repo_created_at)}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+interface RepoSecondaryDataProps {
+  starHistory: StarHistoryResponse | undefined;
+  repoTools: RepoToolsResponse | undefined;
+}
+
+function RepoSecondaryData({ starHistory, repoTools }: RepoSecondaryDataProps) {
+  if (!starHistory && (repoTools?.tools.length ?? 0) === 0) return null;
+  return (
+    <div className="mt-6 grid gap-3 md:grid-cols-2">
+      <div className="rounded-xl border bg-card p-4">
+        <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <TrendingUp className="size-3.5 text-primary" />
+          Star history
+        </h2>
+        {starHistory ? (
+          <MiniStarHistory history={starHistory} />
+        ) : (
+          <p className="text-sm text-muted-foreground">No snapshots available yet.</p>
+        )}
+      </div>
+
+      <div className="rounded-xl border bg-card p-4">
+        <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+          <Wrench className="size-3.5 text-primary" />
+          Detected tools
+        </h2>
+        {repoTools?.tools.length ? (
+          <>
+            <div className="flex flex-wrap gap-1.5">
+              {repoTools.tools.slice(0, 12).map((tool) => (
+                <Badge
+                  asChild
+                  key={tool.toolKey}
+                  variant="outline"
+                  className={confidenceClass(tool.confidence)}
+                  title={`${tool.confidence}% confidence from ${tool.sources.join(', ')}`}
+                >
+                  <Link href={`/tools/${encodeURIComponent(tool.toolKey)}`}>{tool.toolName}</Link>
+                </Badge>
+              ))}
+            </div>
+            <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
+              <Info className="mt-0.5 size-3.5 shrink-0" />
+              <span>{repoTools.disclaimer}</span>
+            </div>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">No detected tools yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface SimilarRepoCardProps {
+  repo: SimilarRepoItem;
+}
+
+function SimilarRepoCard({ repo }: SimilarRepoCardProps) {
+  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
+  const avatar = getAvatarImageAttrs(repo.owner.avatar_url, 24);
+  return (
+    <Link
+      key={repo.id}
+      href={`/explore/${repo.full_name}`}
+      className="group rounded-xl border bg-card p-3 transition-colors hover:bg-accent/50"
+    >
+      <div className="flex items-start gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={avatar.src}
+          srcSet={avatar.srcSet}
+          sizes={avatar.sizes}
+          alt={repo.owner.login}
+          width={24}
+          height={24}
+          className="size-6 shrink-0 rounded-full"
+          loading="lazy"
+          decoding="async"
+        />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium">
+            <span className="text-muted-foreground">{repo.owner.login}/</span>
+            {repo.name}
+          </p>
+          {repo.description && (
+            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{repo.description}</p>
+          )}
+          <div className="mt-1.5 flex items-center gap-2.5 text-[11px] text-muted-foreground">
+            {repo.language && (
+              <span className="flex items-center gap-1">
+                <span
+                  className="inline-block size-2 rounded-full"
+                  style={{ backgroundColor: langColor ?? undefined }}
+                />
+                {repo.language}
+              </span>
+            )}
+            <span className="flex items-center gap-0.5">
+              <Star className="size-3 fill-current" />
+              {formatStarCount(repo.stargazers_count)}
+            </span>
+            <span className="ml-auto tabular-nums">{Math.round(repo.similarity * 100)}%</span>
+          </div>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+interface SimilarReposSectionProps {
+  similar: SimilarRepoItem[];
+  similarLoading: boolean;
+}
+
+function SimilarReposSection({ similar, similarLoading }: SimilarReposSectionProps) {
+  if (!similarLoading && similar.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
+        <Sparkles className="size-3.5 text-primary" />
+        Similar projects
+      </h2>
+      {similarLoading ? (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-20 rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {similar.map((s) => (
+            <SimilarRepoCard key={s.id} repo={s} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ErrorState({ error }: { error: Error | undefined }) {
+  return (
+    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <TopBar
+        title="Repository Intelligence"
+        description="Inspect repository evidence and related projects."
+      />
+      <div className="mx-auto max-w-3xl p-4 md:p-6">
+        <Link
+          href="/stars"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </Link>
+        <div className="rounded-xl border bg-card p-8 text-center">
+          <p className="text-muted-foreground">
+            {error ? 'Failed to load repository.' : 'Repository not found.'}
+          </p>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function InvalidSlugState() {
+  return (
+    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
+      <TopBar
+        title="Repository Intelligence"
+        description="Inspect repository evidence and related projects."
+      />
+      <div className="mx-auto max-w-3xl p-4 md:p-6">
+        <p className="text-muted-foreground">Invalid repository path. Use /explore/owner/repo</p>
+      </div>
+    </main>
+  );
+}
+
+function useRepoPageData(repoSlug: string) {
   const { repo, isLoading, error } = useRepoDetail(repoSlug);
-
-  // Stagger secondary requests after the main repo payload so a single page
-  // open does not fire 4 concurrent /api/* calls (Cloudflare edge 429s).
   const [secondaryReady, setSecondaryReady] = useState(false);
   useEffect(() => {
     if (!repo?.id) {
@@ -233,51 +527,22 @@ export default function RepoDetailPage() {
     { revalidateOnFocus: false, dedupingInterval: 60_000 }
   );
 
-  if (!repoSlug) {
-    return (
-      <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-        <TopBar
-          title="Repository Intelligence"
-          description="Inspect repository evidence and related projects."
-        />
-        <div className="mx-auto max-w-3xl p-4 md:p-6">
-          <p className="text-muted-foreground">Invalid repository path. Use /explore/owner/repo</p>
-        </div>
-      </main>
-    );
-  }
+  return { repo, isLoading, error, similar, similarLoading, starHistory, repoTools };
+}
 
+export default function RepoDetailPage() {
+  const params = useParams();
+  const slugParts = params.slug as string[];
+  const repoSlug = slugParts?.length === 2 ? `${slugParts[0]}/${slugParts[1]}` : '';
+  const { status } = useSession();
+  const isAuthenticated = status === 'authenticated';
+
+  const { repo, isLoading, error, similar, similarLoading, starHistory, repoTools } =
+    useRepoPageData(repoSlug);
+
+  if (!repoSlug) return <InvalidSlugState />;
   if (isLoading) return <PageSkeleton />;
-
-  if (error || !repo) {
-    return (
-      <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-        <TopBar
-          title="Repository Intelligence"
-          description="Inspect repository evidence and related projects."
-        />
-        <div className="mx-auto max-w-3xl p-4 md:p-6">
-          <Link
-            href="/stars"
-            className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="size-4" />
-            Back
-          </Link>
-          <div className="rounded-xl border bg-card p-8 text-center">
-            <p className="text-muted-foreground">
-              {error ? 'Failed to load repository.' : 'Repository not found.'}
-            </p>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
-  const ownerAvatar = getAvatarImageAttrs(repo.owner_avatar, 40);
-  const backHref = isAuthenticated ? '/stars' : '/discover';
-  const backLabel = isAuthenticated ? 'Back to Library' : 'Back to Discover';
+  if (error || !repo) return <ErrorState error={error} />;
 
   return (
     <main className="min-h-0 flex-1 overflow-y-auto bg-background">
@@ -286,225 +551,9 @@ export default function RepoDetailPage() {
         description="Inspect repository evidence and related projects."
       />
       <div className="mx-auto max-w-3xl p-4 md:p-6">
-        {/* Back link */}
-        <Link
-          href={backHref}
-          className="mb-5 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          {backLabel}
-        </Link>
-
-        {/* Repo header card */}
-        <div className="rounded-xl border bg-card p-6">
-          <div className="flex items-start justify-between gap-4">
-            {/* Owner + name */}
-            <div className="flex min-w-0 items-center gap-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={ownerAvatar.src}
-                srcSet={ownerAvatar.srcSet}
-                sizes={ownerAvatar.sizes}
-                alt={repo.owner_login}
-                width={40}
-                height={40}
-                className="size-10 shrink-0 rounded-full"
-                loading="eager"
-                decoding="async"
-                fetchPriority="high"
-              />
-              <div className="min-w-0">
-                <p className="truncate text-xs text-muted-foreground">{repo.owner_login}</p>
-                <h1 className="truncate text-base font-semibold">{repo.name}</h1>
-              </div>
-            </div>
-
-            {/* GitHub CTA */}
-            <a href={repo.html_url} target="_blank" rel="noopener noreferrer" className="shrink-0">
-              <Button variant="outline" size="sm" className="gap-1.5">
-                <ExternalLink className="size-3.5" />
-                View on GitHub
-              </Button>
-            </a>
-          </div>
-
-          {/* Description */}
-          {repo.description && (
-            <p className="mt-4 leading-relaxed text-muted-foreground">{repo.description}</p>
-          )}
-
-          {/* Topics */}
-          {repo.topics.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {repo.topics.map((topic) => (
-                <Badge key={topic} variant="secondary" className="text-xs font-normal">
-                  {topic}
-                </Badge>
-              ))}
-            </div>
-          )}
-
-          {/* Stats row */}
-          <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 border-t pt-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
-              <span className="font-medium text-foreground">
-                {formatStarCount(repo.stargazers_count)}
-              </span>
-              <span>stars</span>
-            </div>
-            {repo.language && (
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="inline-block size-2.5 rounded-full"
-                  style={{ backgroundColor: langColor ?? undefined }}
-                />
-                <span>{repo.language}</span>
-              </div>
-            )}
-            {repo.archived && (
-              <div className="flex items-center gap-1.5">
-                <Archive className="size-3.5" />
-                <span>Archived</span>
-              </div>
-            )}
-            {repo.repo_updated_at && (
-              <div className="flex items-center gap-1.5">
-                <GitFork className="size-3.5" />
-                <span>Updated {timeAgo(repo.repo_updated_at)}</span>
-              </div>
-            )}
-            {repo.repo_created_at && (
-              <div className="flex items-center gap-1.5">
-                <Calendar className="size-3.5" />
-                <span>Created {formatDate(repo.repo_created_at)}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {(starHistory || (repoTools?.tools.length ?? 0) > 0) && (
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            <div className="rounded-xl border bg-card p-4">
-              <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <TrendingUp className="size-3.5 text-primary" />
-                Star history
-              </h2>
-              {starHistory ? (
-                <MiniStarHistory history={starHistory} />
-              ) : (
-                <p className="text-sm text-muted-foreground">No snapshots available yet.</p>
-              )}
-            </div>
-
-            <div className="rounded-xl border bg-card p-4">
-              <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                <Wrench className="size-3.5 text-primary" />
-                Detected tools
-              </h2>
-              {repoTools?.tools.length ? (
-                <>
-                  <div className="flex flex-wrap gap-1.5">
-                    {repoTools.tools.slice(0, 12).map((tool) => (
-                      <Badge
-                        asChild
-                        key={tool.toolKey}
-                        variant="outline"
-                        className={confidenceClass(tool.confidence)}
-                        title={`${tool.confidence}% confidence from ${tool.sources.join(', ')}`}
-                      >
-                        <Link href={`/tools/${encodeURIComponent(tool.toolKey)}`}>
-                          {tool.toolName}
-                        </Link>
-                      </Badge>
-                    ))}
-                  </div>
-                  <div className="mt-3 flex items-start gap-2 text-xs text-muted-foreground">
-                    <Info className="mt-0.5 size-3.5 shrink-0" />
-                    <span>{repoTools.disclaimer}</span>
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-muted-foreground">No detected tools yet.</p>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Similar repos */}
-        {(similarLoading || similar.length > 0) && (
-          <div className="mt-6">
-            <h2 className="mb-3 flex items-center gap-1.5 text-sm font-semibold text-foreground">
-              <Sparkles className="size-3.5 text-primary" />
-              Similar projects
-            </h2>
-            {similarLoading ? (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="h-20 rounded-xl" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                {similar.map((s) => {
-                  const langColor = s.language ? (languageColors[s.language] ?? '#8b8b8b') : null;
-                  const avatar = getAvatarImageAttrs(s.owner.avatar_url, 24);
-                  return (
-                    <Link
-                      key={s.id}
-                      href={`/explore/${s.full_name}`}
-                      className="group rounded-xl border bg-card p-3 transition-colors hover:bg-accent/50"
-                    >
-                      <div className="flex items-start gap-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={avatar.src}
-                          srcSet={avatar.srcSet}
-                          sizes={avatar.sizes}
-                          alt={s.owner.login}
-                          width={24}
-                          height={24}
-                          className="size-6 shrink-0 rounded-full"
-                          loading="lazy"
-                          decoding="async"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            <span className="text-muted-foreground">{s.owner.login}/</span>
-                            {s.name}
-                          </p>
-                          {s.description && (
-                            <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                              {s.description}
-                            </p>
-                          )}
-                          <div className="mt-1.5 flex items-center gap-2.5 text-[11px] text-muted-foreground">
-                            {s.language && (
-                              <span className="flex items-center gap-1">
-                                <span
-                                  className="inline-block size-2 rounded-full"
-                                  style={{ backgroundColor: langColor ?? undefined }}
-                                />
-                                {s.language}
-                              </span>
-                            )}
-                            <span className="flex items-center gap-0.5">
-                              <Star className="size-3 fill-current" />
-                              {formatStarCount(s.stargazers_count)}
-                            </span>
-                            <span className="ml-auto tabular-nums">
-                              {Math.round(s.similarity * 100)}%
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
+        <RepoHeaderCard repo={repo} isAuthenticated={isAuthenticated} />
+        <RepoSecondaryData starHistory={starHistory} repoTools={repoTools} />
+        <SimilarReposSection similar={similar} similarLoading={similarLoading} />
       </div>
     </main>
   );

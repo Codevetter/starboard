@@ -38,16 +38,13 @@ function SheetOverlay({
   );
 }
 
-function SheetContent({
-  className,
-  children,
-  side = 'right',
-  showCloseButton = true,
-  ...props
-}: React.ComponentProps<typeof SheetPrimitive.Content> & {
+interface SheetContentProps extends React.ComponentProps<typeof SheetPrimitive.Content> {
   side?: 'top' | 'right' | 'bottom' | 'left';
   showCloseButton?: boolean;
-}) {
+}
+
+function SheetContent(props: SheetContentProps) {
+  const { className, children, side = 'right', showCloseButton = true, ...rest } = props;
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -65,7 +62,7 @@ function SheetContent({
             'data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t',
           className
         )}
-        {...props}
+        {...rest}
       >
         {children}
         {showCloseButton && (

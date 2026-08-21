@@ -7,6 +7,165 @@ import { trackSearchOutcome } from '@/lib/analytics';
 import { searchStarboardRagOrEmpty } from '@/lib/knowledgebase';
 import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
 
+interface StarsParams {
+  q: string | null;
+  languages: string[];
+  listId: string | null;
+  sort: string;
+  limit: number;
+  offset: number;
+}
+
+function parseStarsParams(params: URLSearchParams): StarsParams {
+  return {
+    q: params.get('q')?.trim() || null,
+    languages: params.get('language')?.split(',').filter(Boolean) || [],
+    listId: params.get('list_id'),
+    sort: params.get('sort') || 'starred',
+    limit: Math.min(Math.max(parseInt(params.get('limit') || '50', 10) || 50, 1), 200),
+    offset: Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0),
+  };
+}
+
+async function resolveStarSearchIds(
+  p: StarsParams,
+  userId: string,
+  whereClauses: string[],
+  whereArgs: InValue[]
+): Promise<number[] | null> {
+  const lexicalQuery = ftsSearchQuery(p.q!);
+  const RRF_K = 60;
+  const VEC_TOP_K = 500;
+  const useSemanticSearch = p.sort === 'relevance';
+
+  const lexIdsPromise = lexicalQuery
+    ? db
+        .execute({
+          sql: `SELECT r.id,
+                     MIN(rank) AS best_rank
+              FROM (
+                SELECT r.id AS id,
+                       bm25(repos_fts, 10.0, 14.0, 3.0, 1.5, 2.5) AS rank
+                FROM user_repos ur
+                JOIN repos r ON r.id = ur.repo_id
+                JOIN repos_fts ON repos_fts.rowid = r.id
+                WHERE ur.user_id = ?
+                  AND repos_fts MATCH ?
+                UNION ALL
+                SELECT r.id AS id,
+                       bm25(repo_ai_metadata_fts, 4.0, 3.0, 2.0, 2.0, 2.5) AS rank
+                FROM user_repos ur
+                JOIN repos r ON r.id = ur.repo_id
+                JOIN repo_ai_metadata_fts ON repo_ai_metadata_fts.rowid = r.id
+                WHERE ur.user_id = ?
+                  AND repo_ai_metadata_fts MATCH ?
+              ) matches
+              JOIN repos r ON r.id = matches.id
+              GROUP BY r.id
+              ORDER BY best_rank ASC, r.stargazers_count DESC
+              LIMIT 500`,
+          args: [userId, lexicalQuery, userId, lexicalQuery],
+        })
+        .then((result) => result.rows.map((r) => r.id as number))
+    : Promise.resolve([]);
+
+  const semIdsPromise = useSemanticSearch
+    ? searchStarboardRagOrEmpty(userId, expandedSearchQuery(p.q!), VEC_TOP_K)
+    : Promise.resolve([]);
+
+  const [lexIds, semIds] = await Promise.all([lexIdsPromise, semIdsPromise]);
+  const fused = useSemanticSearch ? blendSearchIds(lexIds, semIds, RRF_K) : lexIds;
+
+  if (fused.length > 0) {
+    whereClauses.push('r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))');
+    whereArgs.push(JSON.stringify(fused));
+    return fused;
+  }
+  whereClauses.push('0 = 1');
+  return null;
+}
+
+function applyStarFilters(p: StarsParams, whereClauses: string[], whereArgs: InValue[]): void {
+  if (p.languages.length > 0) {
+    whereClauses.push('r.language IN (SELECT CAST(value AS TEXT) FROM json_each(?))');
+    whereArgs.push(JSON.stringify(p.languages));
+  }
+
+  if (p.listId !== null) {
+    whereClauses.push(
+      'EXISTS (SELECT 1 FROM user_repo_lists url WHERE url.user_id = ur.user_id AND url.repo_id = ur.repo_id AND url.list_id = ?)'
+    );
+    whereArgs.push(parseInt(p.listId, 10));
+  }
+}
+
+const STAR_ORDER_BY_MAP: Record<string, string> = {
+  relevance: 'ur.starred_at DESC',
+  starred: 'ur.starred_at DESC',
+  stars: 'r.stargazers_count DESC',
+  updated: 'r.repo_updated_at DESC, r.stargazers_count DESC',
+  name: 'r.name ASC',
+};
+
+function buildStarOrderBy(sort: string, rankedRepoIds: number[] | null): string {
+  if (rankedRepoIds && rankedRepoIds.length > 0 && sort === 'relevance') {
+    const caseLines = rankedRepoIds.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
+    return `CASE r.id ${caseLines} ELSE 999999 END`;
+  }
+  return STAR_ORDER_BY_MAP[sort] || STAR_ORDER_BY_MAP.starred;
+}
+
+function buildStarFacetQueries(userId: string): InStatement[] {
+  return [
+    {
+      sql: `SELECT r.language, COUNT(*) as count
+            FROM user_repos ur
+            JOIN repos r ON r.id = ur.repo_id
+            WHERE ur.user_id = ? AND (ur.is_starred = 1 OR ur.is_saved = 1) AND r.language IS NOT NULL AND r.language != ''
+            GROUP BY r.language
+            ORDER BY count DESC`,
+      args: [userId],
+    },
+    {
+      sql: `SELECT ul.id, ul.name, ul.color, COUNT(ur.repo_id) as count
+            FROM user_lists ul
+            LEFT JOIN user_repo_lists url ON url.list_id = ul.id AND url.user_id = ul.user_id
+            LEFT JOIN user_repos ur ON ur.user_id = url.user_id AND ur.repo_id = url.repo_id AND (ur.is_starred = 1 OR ur.is_saved = 1)
+            WHERE ul.user_id = ?
+            GROUP BY ul.id
+            ORDER BY ul.position ASC`,
+      args: [userId],
+    },
+  ];
+}
+
+function mapStarRepoRow(row: Record<string, unknown>) {
+  return {
+    id: row.id as number,
+    name: row.name as string,
+    full_name: row.full_name as string,
+    owner: {
+      login: row.owner_login as string,
+      avatar_url: row.owner_avatar as string,
+    },
+    html_url: row.html_url as string,
+    description: row.description as string | null,
+    language: row.language as string | null,
+    stargazers_count: row.stargazers_count as number,
+    archived: Boolean(row.archived),
+    topics: JSON.parse((row.topics as string) || '[]'),
+    created_at: row.repo_created_at as string,
+    updated_at: row.repo_updated_at as string,
+    list_id: row.list_id as number | null,
+    collection_ids: JSON.parse((row.collection_ids as string) || '[]'),
+    tags: [],
+    notes: row.notes as string | null,
+    starred_at: row.starred_at as string,
+    is_starred: Boolean(row.is_starred),
+    is_saved: Boolean(row.is_saved),
+  };
+}
+
 export async function GET(request: NextRequest) {
   const session = await auth();
 
@@ -15,116 +174,22 @@ export async function GET(request: NextRequest) {
   }
 
   const userId = session.user.githubId;
-  const params = request.nextUrl.searchParams;
+  const p = parseStarsParams(request.nextUrl.searchParams);
 
-  // Parse query params
-  const q = params.get('q')?.trim() || null;
-  const languages = params.get('language')?.split(',').filter(Boolean) || [];
-  const listId = params.get('list_id');
-  const sort = params.get('sort') || 'starred';
-  const limit = Math.min(Math.max(parseInt(params.get('limit') || '50', 10) || 50, 1), 200);
-  const offset = Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0);
-
-  // Build dynamic WHERE clauses
   const whereClauses: string[] = ['ur.user_id = ?', '(ur.is_starred = 1 OR ur.is_saved = 1)'];
   const whereArgs: InValue[] = [userId];
 
-  // Hybrid search: rank-fuse lexical (LIKE w/ column priority) + vector (cosine).
-  // Reciprocal Rank Fusion: score = sum 1/(K + rank_i). Items in both lists rise.
   let rankedRepoIds: number[] | null = null;
-  if (q) {
-    const lexicalQuery = ftsSearchQuery(q);
-    const RRF_K = 60;
-    const VEC_TOP_K = 500;
-    const useSemanticSearch = sort === 'relevance';
-
-    // 1. Lexical matches through FTS5 over repo name/full_name/description/language/topics.
-    const lexIdsPromise = lexicalQuery
-      ? db
-          .execute({
-            sql: `SELECT r.id,
-                       MIN(rank) AS best_rank
-                FROM (
-                  SELECT r.id AS id,
-                         bm25(repos_fts, 10.0, 14.0, 3.0, 1.5, 2.5) AS rank
-                  FROM user_repos ur
-                  JOIN repos r ON r.id = ur.repo_id
-                  JOIN repos_fts ON repos_fts.rowid = r.id
-                  WHERE ur.user_id = ?
-                    AND repos_fts MATCH ?
-                  UNION ALL
-                  SELECT r.id AS id,
-                         bm25(repo_ai_metadata_fts, 4.0, 3.0, 2.0, 2.0, 2.5) AS rank
-                  FROM user_repos ur
-                  JOIN repos r ON r.id = ur.repo_id
-                  JOIN repo_ai_metadata_fts ON repo_ai_metadata_fts.rowid = r.id
-                  WHERE ur.user_id = ?
-                    AND repo_ai_metadata_fts MATCH ?
-                ) matches
-                JOIN repos r ON r.id = matches.id
-                GROUP BY r.id
-                ORDER BY best_rank ASC, r.stargazers_count DESC
-                LIMIT 500`,
-            args: [userId, lexicalQuery, userId, lexicalQuery],
-          })
-          .then((result) => result.rows.map((r) => r.id as number))
-      : Promise.resolve([]);
-
-    // 2. Semantic matches come only from the shared knowledgebase Worker.
-    //    If it is not configured or returns no matches, relevance falls back to
-    //    lexical matches instead of silently using a second local vector path.
-    const semIdsPromise = useSemanticSearch
-      ? searchStarboardRagOrEmpty(userId, expandedSearchQuery(q), VEC_TOP_K)
-      : Promise.resolve([]);
-
-    // 3. RRF fusion of the two ranked lists.
-    const [lexIds, semIds] = await Promise.all([lexIdsPromise, semIdsPromise]);
-    const fused = useSemanticSearch ? blendSearchIds(lexIds, semIds, RRF_K) : lexIds;
-
-    if (fused.length > 0) {
-      rankedRepoIds = fused;
-      whereClauses.push('r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))');
-      whereArgs.push(JSON.stringify(fused));
-    } else {
-      // No matches — keep the filtered result empty instead of returning the whole library.
-      whereClauses.push('0 = 1');
-    }
+  if (p.q) {
+    rankedRepoIds = await resolveStarSearchIds(p, userId, whereClauses, whereArgs);
   }
 
-  if (languages.length > 0) {
-    whereClauses.push('r.language IN (SELECT CAST(value AS TEXT) FROM json_each(?))');
-    whereArgs.push(JSON.stringify(languages));
-  }
-
-  if (listId !== null) {
-    whereClauses.push(
-      'EXISTS (SELECT 1 FROM user_repo_lists url WHERE url.user_id = ur.user_id AND url.repo_id = ur.repo_id AND url.list_id = ?)'
-    );
-    whereArgs.push(parseInt(listId, 10));
-  }
+  applyStarFilters(p, whereClauses, whereArgs);
 
   const whereSQL = whereClauses.join(' AND ');
-
-  // Sort mapping — use ranked order (exact first, then semantic) with default sort
-  const useRankedOrder = rankedRepoIds && rankedRepoIds.length > 0 && sort === 'relevance';
-  const orderByMap: Record<string, string> = {
-    relevance: 'ur.starred_at DESC',
-    starred: 'ur.starred_at DESC',
-    stars: 'r.stargazers_count DESC',
-    updated: 'r.repo_updated_at DESC, r.stargazers_count DESC',
-    name: 'r.name ASC',
-  };
-  let orderBy: string;
-  if (useRankedOrder) {
-    // Exact matches first (lower index), then semantic matches in similarity order
-    const caseLines = rankedRepoIds!.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
-    orderBy = `CASE r.id ${caseLines} ELSE 999999 END`;
-  } else {
-    orderBy = orderByMap[sort] || orderByMap.starred;
-  }
+  const orderBy = buildStarOrderBy(p.sort, rankedRepoIds);
 
   try {
-    // Main filtered query
     const mainQuery: InStatement = {
       sql: `SELECT r.*, ur.list_id, ur.notes, ur.starred_at, ur.is_starred, ur.is_saved,
                    COALESCE((
@@ -137,10 +202,9 @@ export async function GET(request: NextRequest) {
             WHERE ${whereSQL}
             ORDER BY ${orderBy}
             LIMIT ? OFFSET ?`,
-      args: [...whereArgs, limit, offset],
+      args: [...whereArgs, p.limit, p.offset],
     };
 
-    // Count query (same filters, no LIMIT/OFFSET)
     const countQuery: InStatement = {
       sql: `SELECT COUNT(*) as total
             FROM user_repos ur
@@ -149,29 +213,8 @@ export async function GET(request: NextRequest) {
       args: [...whereArgs],
     };
 
-    // Facet queries — UNFILTERED (global for this user)
-    const languageFacetQuery: InStatement = {
-      sql: `SELECT r.language, COUNT(*) as count
-            FROM user_repos ur
-            JOIN repos r ON r.id = ur.repo_id
-            WHERE ur.user_id = ? AND (ur.is_starred = 1 OR ur.is_saved = 1) AND r.language IS NOT NULL AND r.language != ''
-            GROUP BY r.language
-            ORDER BY count DESC`,
-      args: [userId],
-    };
+    const [languageFacetQuery, listFacetQuery] = buildStarFacetQueries(userId);
 
-    const listFacetQuery: InStatement = {
-      sql: `SELECT ul.id, ul.name, ul.color, COUNT(ur.repo_id) as count
-            FROM user_lists ul
-            LEFT JOIN user_repo_lists url ON url.list_id = ul.id AND url.user_id = ul.user_id
-            LEFT JOIN user_repos ur ON ur.user_id = url.user_id AND ur.repo_id = url.repo_id AND (ur.is_starred = 1 OR ur.is_saved = 1)
-            WHERE ul.user_id = ?
-            GROUP BY ul.id
-            ORDER BY ul.position ASC`,
-      args: [userId],
-    };
-
-    // Run main query + batch the rest in parallel
     const [mainResult, batchResults] = await Promise.all([
       db.execute(mainQuery),
       db.batch([countQuery, languageFacetQuery, listFacetQuery]),
@@ -179,47 +222,18 @@ export async function GET(request: NextRequest) {
 
     const [countResult, langResult, listResult] = batchResults;
 
-    // Parse main results
-    const repos = mainResult.rows.map((row) => ({
-      id: row.id as number,
-      name: row.name as string,
-      full_name: row.full_name as string,
-      owner: {
-        login: row.owner_login as string,
-        avatar_url: row.owner_avatar as string,
-      },
-      html_url: row.html_url as string,
-      description: row.description as string | null,
-      language: row.language as string | null,
-      stargazers_count: row.stargazers_count as number,
-      archived: Boolean(row.archived),
-      topics: JSON.parse((row.topics as string) || '[]'),
-      created_at: row.repo_created_at as string,
-      updated_at: row.repo_updated_at as string,
-      list_id: row.list_id as number | null,
-      collection_ids: JSON.parse((row.collection_ids as string) || '[]'),
-      tags: [],
-      notes: row.notes as string | null,
-      starred_at: row.starred_at as string,
-      is_starred: Boolean(row.is_starred),
-      is_saved: Boolean(row.is_saved),
-    }));
-
+    const repos = mainResult.rows.map((row) => mapStarRepoRow(row as Record<string, unknown>));
     const total = countResult.rows[0]?.total as number;
 
-    // Privacy-safe search activation evidence. Fires only when a query was
-    // supplied — no query text, repo IDs, or user identifiers are sent.
-    if (q) {
-      trackSearchOutcome(sort === 'relevance' ? 'semantic' : 'lexical', total);
+    if (p.q) {
+      trackSearchOutcome(p.sort === 'relevance' ? 'semantic' : 'lexical', total);
     }
 
-    // Language facets
     const languageFacets: [string, number][] = langResult.rows.map((row) => [
       row.language as string,
       row.count as number,
     ]);
 
-    // List facets
     const listFacets = listResult.rows.map((row) => ({
       id: row.id as number,
       name: row.name as string,

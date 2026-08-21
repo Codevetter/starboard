@@ -30,17 +30,15 @@ const TOOL_SCOPES: Array<{
   },
 ];
 
-export function ToolScopeSelector({
-  scope,
-  minStars,
-  isAuthenticated,
-  onScopeChange,
-}: {
+interface ToolScopeSelectorProps {
   scope: ToolScope;
   minStars: number;
   isAuthenticated: boolean;
   onScopeChange: (scope: ToolScope) => void;
-}) {
+}
+
+export function ToolScopeSelector(props: ToolScopeSelectorProps) {
+  const { scope, minStars, isAuthenticated, onScopeChange } = props;
   const selected = TOOL_SCOPES.find((option) => option.value === scope) ?? TOOL_SCOPES[0];
 
   return (
