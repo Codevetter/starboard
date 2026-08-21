@@ -147,13 +147,14 @@ Detailed file map: [docs/architecture/overview.md](docs/architecture/overview.md
 ### Adding Tasks
 
 - Track Starboard work in this repository's GitHub Issues.
-- Keep cross-project infrastructure work in Fleet Workspace, not SaaS Maker.
+- Keep reusable cross-project automation in Workflows and Skills and private
+  portfolio metadata in Site Health, not SaaS Maker.
 
 ### Using SaaS Maker
 
 - SaaS Maker is used only for the embedded feedback widget.
-- Fleet Workspace owns shared project metadata and infrastructure; Starboard
-  remains independently versioned and deployed.
+- Site Health owns private portfolio metadata; Workflows and Skills owns shared
+  automation. Starboard remains independently versioned and deployed.
 
 ### Free AI First
 

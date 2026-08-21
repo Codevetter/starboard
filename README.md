@@ -170,11 +170,11 @@ pnpm build:cf
 <!-- ACTIVE-AI-TASK-LOG:START -->
 ## Active AI Task Log
 
-This historical task ledger is retained for context; new planning and marketing automation live in Fleet Workspace.
+This historical task ledger is retained for context; current work lives in this repository's GitHub Issues and reusable automation lives in Workflows and Skills.
 
 - Business lane: P0 Can make money
 - Rule: do not create another broad "improve the UI" task unless the acceptance criteria differ materially from the tasks listed here.
-- Source of truth for current work: root `PROJECT_STATUS.md`; Fleet Workspace owns cross-project automation.
+- Source of truth for current work: this repository's GitHub Issues; `PROJECT_STATUS.md` records durable shipped truth.
 
 | Task | Status | Priority | Last known note |
 | --- | --- | --- | --- |
