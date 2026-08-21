@@ -225,7 +225,7 @@ function normalizeToken(value: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function knownTool(value: string): ToolDefinition | null {
+function knownTool(value: string): ToolDefinition | null {
   const normalized = normalizeToken(value);
   if (definitionsByAlias.has(normalized)) return definitionsByAlias.get(normalized)!;
   const scopedBase = normalized.split('/').pop();
@@ -241,7 +241,7 @@ export function getToolUrl(toolKey: string): string {
   return toolUrls[normalized] ?? `https://github.com/topics/${encodeURIComponent(normalized)}`;
 }
 
-export function detection(tool: ToolDefinition, confidence: number, source: string): ToolDetection {
+function detection(tool: ToolDefinition, confidence: number, source: string): ToolDetection {
   return {
     toolKey: tool.key,
     toolName: tool.name,

@@ -56,7 +56,7 @@ function LoadingScreen() {
   );
 }
 
-export function ConnectProjectForm({
+function ConnectProjectForm({
   initialRepository,
   onConnected,
 }: {

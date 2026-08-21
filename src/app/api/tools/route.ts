@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
+import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { getToolDefinition, getToolUrl, TOOL_ACCURACY_DISCLAIMER } from '@/lib/repo-tools';
 
 export const dynamic = 'force-dynamic';
@@ -106,19 +107,7 @@ function buildQueryFilter(query: string | null): { sql: string; args: InValue[] 
 
 function mapToolRepoRow(row: Record<string, unknown>) {
   return {
-    id: row.id as number,
-    name: row.name as string,
-    full_name: row.full_name as string,
-    owner: {
-      login: row.owner_login as string,
-      avatar_url: row.owner_avatar as string,
-    },
-    html_url: row.html_url as string,
-    description: row.description as string | null,
-    language: row.language as string | null,
-    stargazers_count: row.stargazers_count as number,
-    archived: Boolean(row.archived),
-    topics: JSON.parse((row.topics as string) || '[]') as string[],
+    ...mapRepoBaseRow(row),
     created_at: row.repo_created_at as string,
     updated_at: row.repo_updated_at as string,
     list_id: null,

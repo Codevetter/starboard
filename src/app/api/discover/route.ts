@@ -4,6 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { generateEmbeddings } from '@/lib/embeddings';
+import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { repoVectors } from '@/lib/repo-vectors';
 import { expandedSearchQuery, ftsSearchQuery, rrfFuse } from '@/lib/search';
 
@@ -221,19 +222,7 @@ function buildFacetQueries(userId: bigint | null): InStatement[] {
 
 function mapDiscoverRepo(row: Record<string, unknown>) {
   return {
-    id: row.id as number,
-    name: row.name as string,
-    full_name: row.full_name as string,
-    owner: {
-      login: row.owner_login as string,
-      avatar_url: row.owner_avatar as string,
-    },
-    html_url: row.html_url as string,
-    description: row.description as string | null,
-    language: row.language as string | null,
-    stargazers_count: row.stargazers_count as number,
-    archived: Boolean(row.archived),
-    topics: JSON.parse((row.topics as string) || '[]'),
+    ...mapRepoBaseRow(row),
     created_at: row.repo_created_at as string,
     updated_at: row.repo_updated_at as string,
     list_id: row.list_id as number | null,

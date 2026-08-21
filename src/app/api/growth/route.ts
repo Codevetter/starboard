@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
+import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 
 type GrowthScope = 'user' | 'discover' | 'all';
 
@@ -105,19 +106,7 @@ export async function GET(request: NextRequest) {
       const firstStars = row.first_stars as number;
       const starsGained = row.stars_gained as number;
       return {
-        id: row.id as number,
-        name: row.name as string,
-        full_name: row.full_name as string,
-        owner: {
-          login: row.owner_login as string,
-          avatar_url: row.owner_avatar as string,
-        },
-        html_url: row.html_url as string,
-        description: row.description as string | null,
-        language: row.language as string | null,
-        stargazers_count: row.stargazers_count as number,
-        archived: Boolean(row.archived),
-        topics: JSON.parse((row.topics as string) || '[]') as string[],
+        ...mapRepoBaseRow(row as Record<string, unknown>),
         starsGained,
         percentGrowth: firstStars > 0 ? (starsGained / firstStars) * 100 : null,
         firstSnapshot: {

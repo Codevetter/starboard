@@ -46,7 +46,7 @@ export interface UserRepo {
   star_growth_30d?: number | null;
 }
 
-export interface ListFacet {
+interface ListFacet {
   id: number;
   name: string;
   color: string;

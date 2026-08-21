@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { trackSearchOutcome } from '@/lib/analytics';
 import { searchStarboardRagOrEmpty } from '@/lib/knowledgebase';
+import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
 
 interface StarsParams {
@@ -141,19 +142,7 @@ function buildStarFacetQueries(userId: string): InStatement[] {
 
 function mapStarRepoRow(row: Record<string, unknown>) {
   return {
-    id: row.id as number,
-    name: row.name as string,
-    full_name: row.full_name as string,
-    owner: {
-      login: row.owner_login as string,
-      avatar_url: row.owner_avatar as string,
-    },
-    html_url: row.html_url as string,
-    description: row.description as string | null,
-    language: row.language as string | null,
-    stargazers_count: row.stargazers_count as number,
-    archived: Boolean(row.archived),
-    topics: JSON.parse((row.topics as string) || '[]'),
+    ...mapRepoBaseRow(row),
     created_at: row.repo_created_at as string,
     updated_at: row.repo_updated_at as string,
     list_id: row.list_id as number | null,

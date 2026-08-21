@@ -30,18 +30,17 @@ import { ftsSearchQuery, rrfFuse } from '@/lib/search';
 // Constants and bounds
 // ---------------------------------------------------------------------------
 
-export const RETRIEVAL_VERSION = 'v1';
-export const MIN_NEEDS = 1;
-export const MAX_NEEDS = 10;
-export const MIN_NEED_EVIDENCE = 1;
-export const VECTOR_TOP_K = 80;
-export const VECTOR_DISTANCE_MAX = 0.65;
-export const LEXICAL_LIMIT = 200;
-export const STRUCTURED_LIMIT = 120;
-export const HYDRATION_LIMIT = 250;
-export const CANDIDATES_PER_NEED = 8;
-export const MAX_TOTAL_CANDIDATES = 50;
-export const MIN_STARS_FLOOR = 5000;
+const RETRIEVAL_VERSION = 'v1';
+const MAX_NEEDS = 10;
+const MIN_NEED_EVIDENCE = 1;
+const VECTOR_TOP_K = 80;
+const VECTOR_DISTANCE_MAX = 0.65;
+const LEXICAL_LIMIT = 200;
+const STRUCTURED_LIMIT = 120;
+const HYDRATION_LIMIT = 250;
+const CANDIDATES_PER_NEED = 8;
+const MAX_TOTAL_CANDIDATES = 50;
+const MIN_STARS_FLOOR = 5000;
 
 const ELIGIBLE_REPO_SQL =
   'r.id IN (SELECT r2.id FROM repos r2 WHERE r2.stargazers_count >= ? UNION SELECT community_ur.repo_id FROM user_repos community_ur WHERE community_ur.is_starred = 1)';
@@ -50,7 +49,7 @@ const ELIGIBLE_REPO_SQL =
 // Types
 // ---------------------------------------------------------------------------
 
-export type NeedPriority = 'high' | 'medium' | 'low';
+type NeedPriority = 'high' | 'medium' | 'low';
 
 export type CandidateClassification =
   | 'adopt_or_integrate'
@@ -59,18 +58,13 @@ export type CandidateClassification =
   | 'competing_product_to_monitor'
   | 'unsuitable_negative_example';
 
-export type Confidence = 'high' | 'medium' | 'low';
+type Confidence = 'high' | 'medium' | 'low';
 
-export type ReportStatus = 'pending' | 'retrieving' | 'complete' | 'degraded' | 'failed';
+type ReportStatus = 'pending' | 'retrieving' | 'complete' | 'degraded' | 'failed';
 
-export type ReviewStatus = 'pending' | 'submitted' | 'complete' | 'rejected' | 'failed' | 'timeout';
+type ReviewStatus = 'pending' | 'submitted' | 'complete' | 'rejected' | 'failed' | 'timeout';
 
-export type ReviewedReportStatus =
-  | 'pending'
-  | 'awaiting_review'
-  | 'complete'
-  | 'degraded'
-  | 'failed';
+type ReviewedReportStatus = 'pending' | 'awaiting_review' | 'complete' | 'degraded' | 'failed';
 
 export interface CapabilityCard {
   repoId: number;
@@ -123,13 +117,13 @@ export interface NeedCandidate {
   score: number;
 }
 
-export interface NeedReport {
+interface NeedReport {
   need: ProjectNeed;
   candidates: NeedCandidate[];
   retrievalMode: ProjectRetrievalMode;
 }
 
-export type ProjectRetrievalMode =
+type ProjectRetrievalMode =
   | 'hybrid'
   | 'semantic'
   | 'lexical-structured'
@@ -426,7 +420,7 @@ WHERE r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`;
  * Load or refresh capability cards for a set of repository IDs. Cards are
  * refreshed only when the source fingerprint has changed.
  */
-export async function refreshCapabilityCards(
+async function refreshCapabilityCards(
   repoIds: number[],
   dependencies: NeedDrivenIntelligenceDependencies
 ): Promise<CapabilityCard[]> {
@@ -521,7 +515,7 @@ export async function computeProjectFingerprint(
   return { repoId: project.id, fingerprint, evidence };
 }
 
-export async function loadStoredFingerprint(
+async function loadStoredFingerprint(
   repoId: number,
   dependencies: NeedDrivenIntelligenceDependencies
 ): Promise<string | null> {
@@ -1171,7 +1165,7 @@ async function markPreviousLatestDraft(
   });
 }
 
-export async function persistDraftReport(
+async function persistDraftReport(
   report: DraftReport,
   dependencies: NeedDrivenIntelligenceDependencies
 ): Promise<number> {
@@ -1800,19 +1794,4 @@ export async function evaluateNewCatalogAdditions(
   }
 
   return [...triggered];
-}
-
-// ---------------------------------------------------------------------------
-// Public read API (no external-agent spend)
-// ---------------------------------------------------------------------------
-
-export async function readProjectIntelligence(
-  repoId: number,
-  dependencies: NeedDrivenIntelligenceDependencies
-): Promise<{ draft: DraftReport | null; reviewed: ReviewedReport | null }> {
-  const [draft, reviewed] = await Promise.all([
-    loadLatestDraftReport(repoId, dependencies),
-    loadLatestReviewedReport(repoId, dependencies),
-  ]);
-  return { draft, reviewed };
 }

@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { chunkForD1 } from '@/lib/d1-limits';
+import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { repoVectors } from '@/lib/repo-vectors';
 
 const VEC_TOP_K = 100;
@@ -153,19 +154,7 @@ export async function GET(
       .sort((a, b) => b.score - a.score)
       .slice(0, limit)
       .map(({ row, similarity }) => ({
-        id: row.id as number,
-        name: row.name as string,
-        full_name: row.full_name as string,
-        owner: {
-          login: row.owner_login as string,
-          avatar_url: row.owner_avatar as string,
-        },
-        html_url: row.html_url as string,
-        description: row.description as string | null,
-        language: row.language as string | null,
-        stargazers_count: row.stargazers_count as number,
-        archived: Boolean(row.archived),
-        topics: parseTopics(row.topics),
+        ...mapRepoBaseRow(row as Record<string, unknown>),
         updated_at: row.repo_updated_at as string | null,
         list_id: (row.list_id as number | null | undefined) ?? null,
         collection_ids: row.collection_ids
