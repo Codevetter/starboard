@@ -13,10 +13,10 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us-assets.i.posthog.com", // unsafe-inline/eval required by Next.js
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://us-assets.i.posthog.com https://www.clarity.ms", // unsafe-inline/eval required by Next.js
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: https://avatars.githubusercontent.com https://github.com",
-      "connect-src 'self' https://api.github.com https://us.i.posthog.com https://us-assets.i.posthog.com",
+      "connect-src 'self' https://api.github.com https://us.i.posthog.com https://us-assets.i.posthog.com https://www.clarity.ms",
       "frame-ancestors 'none'",
     ].join('; '),
   },

@@ -6,6 +6,7 @@
   "llmsFull": "https://starboard.codevetter.com/llms-full.txt",
   "sitemap": "https://starboard.codevetter.com/sitemap.xml",
   "robots": "https://starboard.codevetter.com/robots.txt",
+  "openapi": "https://starboard.codevetter.com/openapi.json",
   "markdown": {
     "suffix": ".md",
     "negotiation": true
