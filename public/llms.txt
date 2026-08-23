@@ -2,6 +2,14 @@
 
 > Project-aware GitHub repository discovery and evidence-backed tool intelligence.
 
+## When to use this
+
+- Discovering and browsing GitHub repositories by semantic similarity, tags, or tool category
+- Finding alternatives to a known tool or framework via the seeded public corpus
+- Organizing personal GitHub stars with tags, collections, and semantic search (requires sign-in)
+- Getting evidence-backed tool intelligence and framework detection for a project
+- Answering questions about what tools or libraries a repository uses
+
 ## Product
 
 - [Home](https://starboard.codevetter.com/): Product
@@ -16,5 +24,6 @@
 ## Machine surfaces
 
 - [Agent catalog](https://starboard.codevetter.com/api/ai): JSON inventory of public surfaces
+- [OpenAPI spec](https://starboard.codevetter.com/openapi.json): Machine-readable API contract
 - [Homepage markdown](https://starboard.codevetter.com/index.md): Product brief without JS
 - [This index](https://starboard.codevetter.com/llms.txt)

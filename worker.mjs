@@ -155,6 +155,21 @@ const worker = {
       // Only cache 2xx HTML responses — never error pages or redirects.
       const contentType = response.headers.get('content-type') ?? '';
       if (response.status !== 200 || !contentType.includes('text/html')) {
+        // Add Vary: Accept to non-200 HTML responses (e.g. 404) so caches
+        // distinguish markdown vs HTML negotiation.
+        if (contentType.includes('text/html')) {
+          const headers = new Headers(response.headers);
+          const vary = headers.get('vary');
+          headers.set(
+            'vary',
+            vary ? `${vary}, Accept, Accept-Encoding` : 'Accept, Accept-Encoding'
+          );
+          return new Response(response.body, {
+            status: response.status,
+            statusText: response.statusText,
+            headers,
+          });
+        }
         return response;
       }
 
@@ -167,6 +182,9 @@ const worker = {
       const body = await response.arrayBuffer();
       const headers = new Headers(response.headers);
       headers.set('Cache-Control', CACHE_CONTROL);
+      // Add Vary: Accept for HTML pages that have markdown alternates
+      const vary = headers.get('vary');
+      headers.set('vary', vary ? `${vary}, Accept, Accept-Encoding` : 'Accept, Accept-Encoding');
 
       const cacheable = new Response(body, {
         status: response.status,
