@@ -29,7 +29,7 @@ in [jobs.md](jobs.md); this page covers the push/PR and deploy pipelines.
 ## Docs (`.github/workflows/docs.yml`)
 
 - **Triggers:** push/PR on docs-touching paths (`docs/**`, `AGENTS.md`,
-  `STATUS.md`, `PROJECT_STATUS.md`, `README.md`, `blume.config.ts`,
+  `STATUS.md`, `PROJECT_STATUS.md`, `README.md`,
   `scripts/check-docs.mjs`, the workflow itself) + `workflow_dispatch`.
 - **Steps:** checkout → Node 22 → `node scripts/check-docs.mjs`.
 - Catches broken links, missing required sections, and files outside the

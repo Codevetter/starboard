@@ -60,8 +60,6 @@ The `--webpack` flag remains the verified OpenNext production build path.
 | Command | Purpose |
 | --- | --- |
 | `pnpm docs:check` | `node scripts/check-docs.mjs` — validate docs/ links + structure |
-| `pnpm docs:dev` | `blume dev` — local docs site (requires `pnpm add -D blume`) |
-| `pnpm docs:build` | `blume build` — static site → `.blume/dist` (presentation only; not part of production build) |
 
 ## Misc
 

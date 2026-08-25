@@ -39,8 +39,6 @@ pnpm db:migrate:remote # validate config + apply migrations/* to remote D1 (appr
 pnpm db:seed-popular   # reconcile missing popular repos (≥5k stars) — weekly GH Action
 pnpm db:seed-embeddings# backfill repo_embeddings
 pnpm docs:check        # validate docs/ links + structure
-pnpm docs:dev          # blume dev (local docs site; requires pnpm add -D blume)
-pnpm docs:build        # blume build (presentation only; not part of production build)
 ```
 
 Full command map: [docs/development/commands.md](docs/development/commands.md).
@@ -118,8 +116,8 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
    `node scripts/check-docs.mjs`) — it catches broken links, missing required
    sections, and files outside the canonical structure. CI runs it in
    `.github/workflows/docs.yml`.
-7. **Blume is presentation only.** `blume.config.ts` renders `docs/`; never
-   edit generated Blume output. Edit the Markdown and rebuild.
+7. **Markdown is the documentation source of truth.** Keep docs links and
+   structure valid with `pnpm docs:check`.
 
 ## Repo structure (high level)
 

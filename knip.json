@@ -13,8 +13,6 @@
     "**/public/**",
     "**/*.config.{js,ts,mjs,cjs}",
     "**/eslint.config.*",
-    "**/blume.config.*",
-    "**/docs-blume/**",
     "scripts/**",
     "tests/e2e/**",
     "e2e/**",
@@ -48,8 +46,6 @@
     "tsx",
     "knip",
     "jscpd",
-    "blume",
-    "@blume/*",
     "astro",
     "@astrojs/*",
     "shadcn",
@@ -66,8 +62,7 @@
     "vitest",
     "knip",
     "eslint",
-    "prettier",
-    "blume"
+    "prettier"
   ],
   "ignoreIssues": {
     "src/app/api/**/route.ts": ["exports", "types"],

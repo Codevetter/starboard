@@ -63,8 +63,6 @@ pnpm test:e2e          # playwright
 pnpm lint              # biome check .
 pnpm format            # biome format --write .
 pnpm docs:check        # validate docs/ links + structure
-pnpm docs:dev          # blume dev (local docs site; requires pnpm add -D blume)
-pnpm docs:build        # blume build (presentation only; not part of production build)
 ```
 
 ## Landing page (Astro overlay)

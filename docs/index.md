@@ -1,8 +1,7 @@
 # Starboard — Documentation Index
 
 This folder is the canonical source of truth for Starboard's product,
-architecture, operations, and durable knowledge. Markdown here is authoritative;
-the [`blume.config.ts`](../blume.config.ts) at the repo root only renders it.
+architecture, operations, and durable knowledge. Markdown here is authoritative.
 
 For a fast agent briefing, read [AGENTS.md](../AGENTS.md) first, then this index.
 
@@ -109,8 +108,8 @@ docs/
    `node scripts/check-docs.mjs`) — it catches broken links, missing required
    sections, and files outside the canonical structure. CI runs it in
    `.github/workflows/docs.yml`.
-7. **Blume is presentation only.** `blume.config.ts` renders `docs/`; never
-   edit generated Blume output. Edit the Markdown and rebuild.
+7. **Markdown is the documentation source of truth.** Keep docs links and
+   structure valid with `pnpm docs:check`.
 
 ## What lives outside this folder
 
