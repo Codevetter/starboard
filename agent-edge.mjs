@@ -3,9 +3,11 @@
  * Spec: foundry/ops/docs/agent-indexing-standard.md
  *
  * Usage in worker.mjs (before openNext.fetch):
- *   import { handleAgentEdge } from './agent-edge.mjs'
+ *   import { handleAgentEdge, withApiJsonNotFound } from './agent-edge.mjs'
  *   const agent = handleAgentEdge(request)
  *   if (agent) return agent
+ *   // ...and on the way back out, so unknown /api/* paths answer in JSON:
+ *   return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx))
  */
 
 /** @type {{ name: string, url: string, llmsTxt: string, llmsFullTxt?: string, indexMd: string, catalog: object }} */
@@ -88,6 +90,18 @@ export const AGENT_SURFACE = {
 };
 
 /**
+ * Paths under `/api/` that the edge itself serves. Everything else under
+ * `/api/` belongs to Next.js and MUST fall through — see `withApiJsonNotFound`.
+ */
+const EDGE_OWNED_API_PATHS = new Set(['/api/ai']);
+
+/**
+ * Pre-handler: answers only for surfaces the edge itself owns.
+ *
+ * Returns `null` for everything else so the request reaches OpenNext/Next.js.
+ * This function must never decide that a path does *not* exist — only Next.js
+ * knows the route table.
+ *
  * @param {Request} request
  * @returns {Response | null}
  */
@@ -105,7 +119,7 @@ export function handleAgentEdge(request) {
   if (path === '/index.md') {
     return text(AGENT_SURFACE.indexMd, 'text/markdown; charset=utf-8');
   }
-  if (path === '/api/ai') {
+  if (EDGE_OWNED_API_PATHS.has(path)) {
     // Re-bind origin so preview/custom domains stay correct
     const catalog = {
       ...AGENT_SURFACE.catalog,
@@ -129,11 +143,6 @@ export function handleAgentEdge(request) {
     return json(openapiSpecForOrigin(url.origin));
   }
 
-  // JSON error for unknown /api/* paths
-  if (path.startsWith('/api/')) {
-    return jsonError(404, 'not_found', `Unknown API path: ${path}`, path);
-  }
-
   // Homepage markdown negotiation
   if ((path === '/' || path === '') && wantsMarkdown(request)) {
     return text(AGENT_SURFACE.indexMd, 'text/markdown; charset=utf-8', {
@@ -142,12 +151,41 @@ export function handleAgentEdge(request) {
     });
   }
 
-  // Agent-friendly 404: markdown body for Accept: text/markdown
-  if (wantsMarkdown(request) && !path.includes('.')) {
+  // Agent-friendly 404: markdown body for Accept: text/markdown.
+  // `/api/*` is excluded: those paths are Next.js route handlers, and an
+  // Accept header must never stop a real API request from reaching them.
+  // Unknown API paths are shaped into JSON by `withApiJsonNotFound` instead.
+  if (!isApiPath(path) && wantsMarkdown(request) && !path.includes('.')) {
     return markdown404(path, url.origin);
   }
 
   return null;
+}
+
+/**
+ * Post-handler: shape Next.js's own 404 for `/api/*` into a JSON error body.
+ *
+ * The edge deliberately does not know which API routes exist — Next.js does.
+ * We call it, and only if *it* reports 404 do we swap the HTML error page for
+ * the machine-readable JSON envelope. That is why this cannot rot the way the
+ * previous allow-list did: adding a route handler under `src/app/api/` makes it
+ * reachable with no edge change, because the edge never asserts non-existence.
+ *
+ * @param {Request} request
+ * @param {Response} response Response from the downstream Next.js handler.
+ * @returns {Response}
+ */
+export function withApiJsonNotFound(request, response) {
+  if (request.method !== 'GET' && request.method !== 'HEAD') return response;
+  if (response.status !== 404) return response;
+  const path = new URL(request.url).pathname;
+  if (!isApiPath(path)) return response;
+  if ((response.headers.get('content-type') || '').includes('application/json')) return response;
+  return jsonError(404, 'not_found', `Unknown API path: ${path}`, path);
+}
+
+function isApiPath(pathname) {
+  return pathname.startsWith('/api/');
 }
 
 function wantsMarkdown(request) {
