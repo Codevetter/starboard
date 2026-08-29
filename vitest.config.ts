@@ -34,8 +34,15 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-    },
+    alias: [
+      // `.open-next/worker.js` is a gitignored build artifact, so it does not
+      // exist in CI. Alias it to a stub so `worker.mjs` — the real Cloudflare
+      // entrypoint — can be imported and exercised by unit tests.
+      {
+        find: /^\.\/\.open-next\/worker\.js$/,
+        replacement: resolve(__dirname, 'src/__tests__/fixtures/open-next-worker-stub.mjs'),
+      },
+      { find: '@', replacement: resolve(__dirname, 'src') },
+    ],
   },
 });

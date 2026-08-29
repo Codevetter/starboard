@@ -322,3 +322,28 @@ test('uncataloged public preview asks for sign-in without presenting a rate-limi
   await expect(page.getByRole('link', { name: 'Sign in to preview' })).toBeVisible();
   await expect(page.getByText(/rate limit/i)).toHaveCount(0);
 });
+
+test('public API routes are reachable through the Worker edge on GET', async ({ request }) => {
+  // Regression guard for the `agent-edge.mjs` `/api/*` catch-all that 404'd
+  // every real route handler before OpenNext ever saw the request. Statuses
+  // vary with the e2e database contents, so assert only that these are NOT the
+  // edge's "Unknown API path" 404.
+  for (const path of ['/api/health', '/api/discover', '/api/tools', '/api/auth/session']) {
+    const response = await request.get(path, { maxRedirects: 0 });
+    expect(
+      response.status(),
+      `${path} was 404'd — the edge is shadowing the Next.js route again`
+    ).not.toBe(404);
+  }
+
+  // The edge's own surface still works...
+  const catalog = await request.get('/api/ai');
+  expect(catalog.status()).toBe(200);
+  expect((await catalog.json()).name).toBe('Starboard');
+
+  // ...and a genuinely unknown API path still answers in JSON, not HTML.
+  const unknown = await request.get('/api/definitely-not-a-real-path');
+  expect(unknown.status()).toBe(404);
+  expect(unknown.headers()['content-type']).toContain('application/json');
+  expect((await unknown.json()).error.code).toBe('not_found');
+});

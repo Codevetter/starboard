@@ -13,7 +13,7 @@
 
 import openNext from './.open-next/worker.js';
 import { withTiming } from './timing.mjs';
-import { handleAgentEdge } from './agent-edge.mjs';
+import { handleAgentEdge, withApiJsonNotFound } from './agent-edge.mjs';
 
 // Durable Objects must be re-exported from the entry that wrangler.toml
 // points at, otherwise the bindings can't resolve them at deploy time.
@@ -68,18 +68,22 @@ function cacheKeyFor(request, versionId) {
 
 const worker = {
   fetch: withTiming(async function fetch(request, env, ctx) {
-    // Agent / LLM indexing surfaces (fleet GEO standard)
+    // Agent / LLM indexing surfaces (fleet GEO standard). This only answers
+    // for paths the edge itself owns; everything else falls through below.
     {
       const agent = handleAgentEdge(request);
       if (agent) return agent;
     }
     try {
+      // `withApiJsonNotFound` is applied on the way back out: Next.js owns the
+      // route table, so only its 404 (not an edge guess) turns into a JSON
+      // error body for `/api/*`.
       if (request.method !== 'GET') {
-        return openNext.fetch(request, env, ctx);
+        return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
       }
       const url = new URL(request.url);
       if (!isCacheableDocumentPath(url.pathname)) {
-        return openNext.fetch(request, env, ctx);
+        return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
       }
       // Auth-bearing requests pass straight through; the user is likely
       // going to be redirected by middleware to /library or /dashboard.
