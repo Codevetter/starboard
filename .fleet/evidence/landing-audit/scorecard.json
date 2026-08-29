@@ -1,0 +1,45 @@
+{
+  "$schema": "fleet.landing-audit.v1",
+  "project": "starboard",
+  "priority": "P2",
+  "qualificationScope": "current local production candidate",
+  "productionStatus": "live origin remains on the prior release; deployment was not authorized",
+  "threshold": 90,
+  "gates": {
+    "contentPurposeSynergy": {
+      "score": 95,
+      "status": "pass",
+      "evidence": "Independent fresh-visitor review found the product, audience, value, project-to-peer-to-tool mechanism, access boundary, and next actions clear, with a five-point deduction for limited real-project outcome proof."
+    },
+    "designQuality": {
+      "score": 95,
+      "status": "pass",
+      "evidence": "Visual QA at 390, 768, and 1440; critique 38/40; audit 19/20; zero unresolved P0/P1; Ask AI and project strip present."
+    },
+    "seo": {
+      "score": 94,
+      "status": "pass",
+      "evidence": "Current page passes all applicable critical checks. The sole generic failure requests an aggregate rating or review that does not exist and was not fabricated; the live robots, sitemap, and audited URL coverage pass."
+    },
+    "geo": {
+      "score": 100,
+      "status": "pass",
+      "evidence": "The live Worker is Fleet S-tier 100%, and the current source aligns the homepage Markdown, llms index, and AI catalog with the revised purpose."
+    },
+    "performance": {
+      "score": 96,
+      "status": "pass",
+      "evidence": "20-run production-static preview: weighted LCP 865ms, CLS 0.001, TBT 0ms; p75 LCP 2.404s slow mobile, 1.204s mid mobile, 603ms fast mobile, and 283ms desktop."
+    }
+  },
+  "evidence": {
+    "designReview": ".fleet/design-review.json",
+    "projectCheck": "pnpm quality and landing Astro build (pass)",
+    "performance": ".fleet/evidence/landing-audit/performance.html",
+    "screenshots": [
+      ".fleet/evidence/landing-audit/after-390.png",
+      ".fleet/evidence/landing-audit/after-768.png",
+      ".fleet/evidence/landing-audit/after-1440.png"
+    ]
+  }
+}
