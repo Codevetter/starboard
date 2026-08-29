@@ -2,65 +2,85 @@
   "$schema": "fleet.design-review.v1",
   "version": 1,
   "project": "starboard",
-  "target": "Landing, Discover repository cards, Tool Intelligence explanations, and Projects repository import",
-  "mode": "preserve",
+  "target": "Public landing page",
+  "surfaceMode": "persuade",
+  "mode": "overhaul",
   "register": "product",
   "context": {
     "product": "PRODUCT.md",
-    "design": "src/app/globals.css"
+    "design": "landing-astro/src/styles/landing.css"
   },
   "direction": {
-    "references": [],
+    "references": [
+      "Preline UI website footer blocks"
+    ],
     "probes": [],
-    "selected": "existing-design",
-    "approval": "not-required",
-    "before": ".fleet/evidence/discovery-entry-clarity/before-landing-1440.png"
+    "selected": "agent-selected",
+    "approval": "delegated",
+    "before": ".fleet/evidence/landing-audit/before-1440.png",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "preline",
+      "sources": [
+        "https://preline.co/blocks/marketing/website-footers/"
+      ],
+      "runtime": "markup-only",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": ""
+      }
+    },
+    "contract": {
+      "purpose": "Explain how Starboard starts from a GitHub project and produces inspectable repository and tool recommendations.",
+      "purposeSource": "PRODUCT.md and PROJECT_STATUS.md",
+      "canonicalPurpose": "Starboard helps developers evaluating open-source tools find relevant repositories and tool evidence by grounding discovery in the GitHub project in front of them.",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Developers evaluating open-source repositories and tools for software they are already building.",
+      "job": "Understand Starboard, preview one public project, or browse the public catalog.",
+      "thesis": "A warm, technical navigation chart that makes the evidence route visible before asking for trust.",
+      "system": "Editorial serif headings, compact mono labels, warm chart paper, navy evidence panels, coral signals, and ruled spatial rhythm.",
+      "signature": "The numbered repository-to-peer-to-tool evidence route shown as a navigational chart.",
+      "risk": "Dense evidence language could feel procedural, so the first viewport keeps one direct promise and one repository action."
+    }
   },
   "evidence": {
     "screenshots": [
       {
         "width": 390,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-landing-390.png"
+        "path": ".fleet/evidence/landing-audit/after-390.png"
       },
       {
         "width": 768,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-landing-768.png"
+        "path": ".fleet/evidence/landing-audit/after-768.png"
       },
       {
         "width": 1440,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-landing-1440.png"
-      },
-      {
-        "width": 390,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-discover-390.png"
-      },
-      {
-        "width": 768,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-discover-768.png"
-      },
-      {
-        "width": 1440,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-discover-1440.png"
-      },
-      {
-        "width": 390,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-tools-390.png"
-      },
-      {
-        "width": 768,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-tools-768.png"
-      },
-      {
-        "width": 1440,
-        "path": ".fleet/evidence/discovery-entry-clarity/after-tools-1440.png"
+        "path": ".fleet/evidence/landing-audit/after-1440.png"
       }
     ],
     "projectCheck": {
-      "command": "CI=1 CLOUDFLARE_API_TOKEN= pnpm test:e2e",
+      "command": "pnpm quality && pnpm --filter ./landing-astro build",
       "status": "pass"
     },
+    "performance": {
+      "command": "mise x node@24 -- psi-swarm run http://127.0.0.1:4316 --runs 5 --presets coverage --profile coverage --reason --output html",
+      "environment": "production static build served by astro preview",
+      "report": ".fleet/evidence/landing-audit/performance.html",
+      "verdict": "good",
+      "weightedLcpMs": 865,
+      "weightedCls": 0.001,
+      "weightedTbtMs": 0,
+      "p75LcpMs": {
+        "mobileSlow": 2404,
+        "mobileMid": 1204,
+        "mobileFast": 603,
+        "desktop": 283
+      }
+    },
     "critique": {
-      "score": 37,
+      "score": 38,
       "maximum": 40
     },
     "audit": {
@@ -81,6 +101,28 @@
           "note": "Removed the non-functional landing-page grid overlay after the detector pass."
         }
       ]
+    },
+    "comprehension": {
+      "status": "pass",
+      "reviewer": "Independent fresh-visitor reviewer (Harvey)",
+      "answers": {
+        "product": "Project-aware open-source repository and tool discovery for GitHub.",
+        "audience": "Developers choosing tools for a project they are already building.",
+        "value": "Find relevant peers and tools without relying on generic popularity lists.",
+        "mechanism": "Start from one public repository, build a peer set, and retain the supporting repository evidence.",
+        "proof": "The page explains the evidence model, confidence boundaries, peer grouping, and investigation route, but does not show a completed real-project recommendation or measured accuracy.",
+        "nextAction": "Paste a public GitHub repository or browse Discover."
+      },
+      "purposeScore": {
+        "product": 25,
+        "audience": 15,
+        "value": 15,
+        "mechanism": 15,
+        "proof": 10,
+        "nextAction": 15,
+        "total": 95
+      },
+      "mismatches": []
     }
   },
   "ownerFeedback": {

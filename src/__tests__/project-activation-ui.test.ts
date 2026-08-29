@@ -12,9 +12,9 @@ describe('project-first activation wiring', () => {
 
     expect(landing).toContain('action="/project-preview"');
     expect(landing).toContain('name="repository"');
-    expect(landing).toContain('No account needed for catalog matches');
+    expect(landing).toContain('Cataloged previews need no account');
     expect(landing).toContain('Uncataloged repositories use your signed-in GitHub session');
-    expect(landing).toContain('Browse Discover instead');
+    expect(landing).toContain('Browse the public catalog');
     expect(landing).not.toContain('Library · this week');
     expect(landing).not.toContain('>Hot<');
     expect(landing).not.toContain('>Watch<');

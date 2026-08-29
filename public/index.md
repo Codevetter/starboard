@@ -1,10 +1,10 @@
 # Starboard
 
-Project-aware GitHub repository discovery and tool intelligence.
+Project-aware open-source discovery for developers choosing tools for software they are already building.
 
 ## Public without sign-in
 
-- Preview a cataloged public GitHub project without creating an account or saving data
+- Start with a cataloged public GitHub project, inspect similar repositories, and trace tool suggestions to visible repository evidence without creating an account or saving data
 - Browse and search the seeded Discover corpus
 - Inspect detected tool and framework intelligence
 - Read the product history, scope, privacy policy, and terms
@@ -12,7 +12,7 @@ Project-aware GitHub repository discovery and tool intelligence.
 ## With GitHub sign-in
 
 - Sync and organize personal stars with tags and collections
-- Connect public GitHub projects by URL or the on-demand public repository picker
+- Look up uncataloged public repositories and connect projects for saved, project-aware recommendations
 - Search and organize a personal starred-repository library
 
 ## Agent entrypoints

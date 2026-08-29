@@ -30,6 +30,7 @@
       "!**/*.svg",
       "!**/public",
       "!**/design.html",
+      "!**/.fleet/evidence",
       "!**/*.css",
       "!**/*.astro",
       "!**/data/**/*.generated.json"

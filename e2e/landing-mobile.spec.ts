@@ -8,7 +8,7 @@ test.describe('production Astro landing page', () => {
 
     await expect(
       page.getByRole('heading', {
-        name: 'Discover better tools for the project you’re building.',
+        name: 'Find open-source tools that fit the project in front of you.',
         level: 1,
       })
     ).toBeVisible();
@@ -20,10 +20,14 @@ test.describe('production Astro landing page', () => {
     await expect(repository).toBeVisible();
     await expect(page.getByRole('button', { name: /preview project/i })).toBeVisible();
 
-    await expect(page.getByRole('link', { name: /browse discover instead/i })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: /browse the public catalog/i })).toHaveAttribute(
       'href',
       '/discover'
     );
+
+    await expect(page.getByText(/what starboard does not claim/i)).toBeVisible();
+    await expect(page.locator('portfolio-project-strip')).toHaveCount(1);
+    await expect(page.locator('ai-chat-footer')).toHaveCount(1);
 
     // No horizontal scroll — the page must never scroll sideways.
     const overflow = await page.evaluate(

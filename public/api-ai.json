@@ -17,7 +17,7 @@
       "url": "https://starboard.codevetter.com/",
       "md": "https://starboard.codevetter.com/index.md",
       "kind": "static",
-      "description": "Product home"
+      "description": "Project-aware tool discovery: start with a GitHub repository, inspect grounded peers, and trace tool suggestions to source evidence"
     },
     {
       "id": "discover",

@@ -24,11 +24,23 @@ const structuredData = {
   url: SITE_URL,
   description,
   applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Web Browser',
+  isAccessibleForFree: true,
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'USD',
+  },
+  creator: {
+    '@type': 'Person',
+    name: 'Sarthak Agrawal',
+    url: 'https://sarthakagrawal.dev',
+  },
 };
 ---
 
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -36,12 +48,19 @@ const structuredData = {
     <title>{title}</title>
     <meta name="description" content={description} />
     <meta name="application-name" content="Starboard" />
+    <meta name="theme-color" content="#f4efe4" />
     <meta
       name="keywords"
-      content="GitHub stars, repository organizer, semantic search, CodeVetter, open source discovery"
+      content="project-aware tool discovery, GitHub repository discovery, open source tools, GitHub stars organizer, tool intelligence"
     />
 
     <link rel="canonical" href={canonicalUrl} />
+    <link
+      rel="alternate"
+      type="text/markdown"
+      href={new URL(Astro.url.pathname === '/' ? '/index.md' : `${Astro.url.pathname}.md`, SITE_URL)}
+    />
+    <link rel="alternate" type="text/plain" href={new URL('/llms.txt', SITE_URL)} />
 
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalUrl} />
@@ -74,17 +93,27 @@ const structuredData = {
         --font-geist-sans: 'Geist Variable', system-ui, -apple-system, sans-serif;
         --font-geist-mono: 'Geist Mono Variable', ui-monospace, Menlo, monospace;
       }
-      html.dark { color-scheme: dark; }
+      html { color-scheme: light; }
       body { margin: 0; }
+      portfolio-project-strip,
+      ai-chat-footer { display: block; }
+      portfolio-project-strip { min-height: 2.875rem; }
+      ai-chat-footer { min-height: 6rem; }
+      @media (max-width: 1000px) {
+        ai-chat-footer { min-height: 9rem; }
+      }
     </style>
   </head>
   <body class="antialiased">
     <slot />
+    <portfolio-project-strip current-project="starboard"></portfolio-project-strip>
+    <ai-chat-footer product-name="Starboard"></ai-chat-footer>
     <script is:inline src="/project-strip.js" data-project="starboard" defer></script>
     <script
       is:inline
       src="https://sassmaker.com/ai-chat-footer.js"
       data-name="Starboard"
+      data-compose="false"
       defer
     ></script>
   </body>

@@ -1,285 +1,203 @@
 ---
+import ProductFooter from '@/components/ProductFooter.astro';
 import Layout from '@/layouts/Layout.astro';
 
 // Static Astro landing overlaid at `/` during build:cf.
-// Zero client JS. Public preview submits through a native GET form.
-
-const TITLE = 'Starboard — tool intelligence for your GitHub projects';
+// The public preview stays a native GET form with no client-side JavaScript.
+const TITLE = 'Starboard — project-aware tool discovery for GitHub';
 const DESCRIPTION =
-  'Connect your GitHub projects, search open source by meaning, and discover tools that fit the work you are shipping.';
+  'Start with a public GitHub project, find similar repositories, and evaluate open-source tools with visible source evidence.';
 ---
 
 <Layout title={TITLE} description={DESCRIPTION}>
-  <div class="relative flex min-h-svh w-full flex-col items-center overflow-x-hidden bg-background">
-    <div aria-hidden="true" class="pointer-events-none absolute inset-0 sb-mesh"></div>
+  <div class="site-shell">
+    <header class="site-header">
+      <a href="/" class="brand" aria-label="Starboard home">
+        <span class="brand-mark" aria-hidden="true">★</span>
+        <span>
+          <strong>Starboard</strong>
+          <small>project-aware discovery</small>
+        </span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="/discover">Discover</a>
+        <a href="/tools">Tool intelligence</a>
+        <a href="/about">How it works</a>
+        <a class="nav-sign-in" href="/login">Sign in</a>
+      </nav>
+    </header>
 
-    <main
-      class="relative flex w-full max-w-6xl flex-col items-center gap-20 overflow-x-hidden px-5 py-10 sm:px-6 sm:py-14 lg:gap-24 lg:py-16"
-      style="font-family: var(--font-geist-sans);"
-    >
-      {/* ── Nav ───────────────────────────────────────────────────── */}
-      <header class="flex w-full items-center justify-between gap-4">
-        <a href="/" class="group inline-flex items-center gap-2.5 text-sm font-semibold tracking-tight text-foreground">
-          <span class="sb-mark inline-flex size-8 items-center justify-center rounded-lg text-sm font-bold">★</span>
-          <span class="flex flex-col leading-none">
-            <span>Starboard</span>
-            <span class="mt-0.5 text-[10px] font-medium tracking-wide text-muted-foreground group-hover:text-foreground/80">tool intelligence</span>
-          </span>
-        </a>
-        <nav class="flex items-center gap-2 sm:gap-3 text-sm">
-          <a href="/discover" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground sm:inline">Discover</a>
-          <a href="/tools" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground md:inline">Tools</a>
-          <a href="/about" class="hidden rounded-lg px-3 py-2 text-muted-foreground transition-colors hover:text-foreground lg:inline">About</a>
-          <a href="/login" class="sb-btn-ghost inline-flex h-9 items-center justify-center rounded-lg px-3.5 text-sm font-medium text-foreground">
-            Sign in
-          </a>
-        </nav>
-      </header>
-
-      {/* ── Hero ──────────────────────────────────────────────────── */}
-      <section class="grid w-full items-center gap-12 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-14">
-        <div class="flex min-w-0 flex-col items-start gap-7 text-left">
-          <span class="sb-pill inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs text-muted-foreground">
-            <span class="inline-block size-1.5 rounded-full bg-amber"></span>
-            Free · open source · read-only GitHub
-          </span>
-
-          <h1 class="text-balance text-[2.1rem] font-bold tracking-tight text-foreground sm:text-5xl lg:text-[3.35rem] lg:leading-[1.06]">
-            Discover better tools for the project you’re building.
-          </h1>
-
-          <p class="max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+    <main>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="chart-kicker"><span>01</span> Project-aware GitHub discovery</p>
+          <h1 id="hero-title">Find open-source tools that fit the project in front of you.</h1>
+          <p class="hero-deck">
             Paste a public GitHub repository. Starboard finds similar projects, then shows which
             tools those peers use and the exact repository evidence behind each suggestion.
           </p>
 
-          <form action="/project-preview" method="get" class="flex w-full flex-col items-stretch gap-3 sm:flex-row">
-            <label class="sr-only" for="hero-repository">Public GitHub repository</label>
-            <input
-              id="hero-repository"
-              name="repository"
-              required
-              autocomplete="off"
-              autocapitalize="none"
-              spellcheck="false"
-              placeholder="github.com/owner/repository"
-              class="h-12 min-w-0 flex-1 rounded-xl border border-border bg-card px-4 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-sky focus:ring-2 focus:ring-sky/20"
-            />
-            <button type="submit" class="sb-btn-primary inline-flex h-12 shrink-0 items-center justify-center rounded-xl px-7 text-base font-semibold">
-              Preview project
-            </button>
+          <form action="/project-preview" method="get" class="project-form">
+            <label for="hero-repository">Public GitHub repository</label>
+            <div>
+              <input
+                id="hero-repository"
+                name="repository"
+                required
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                placeholder="github.com/owner/repository"
+              />
+              <button type="submit">Preview project <span aria-hidden="true">→</span></button>
+            </div>
           </form>
 
-          <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-            <a href="/discover" class="font-medium text-foreground underline-offset-4 hover:underline">
-              Browse Discover instead
-            </a>
-            <span class="text-muted-foreground">No account needed for catalog matches</span>
+          <div class="hero-actions">
+            <a href="/discover">Browse the public catalog</a>
+            <span>Cataloged previews need no account</span>
           </div>
-
-          <p class="max-w-xl text-xs leading-relaxed text-muted-foreground">
+          <p class="boundary-note">
             Uncataloged repositories use your signed-in GitHub session. Nothing is saved until you
             explicitly connect a project.
           </p>
         </div>
 
-        {/* Product mock */}
-        <div class="relative min-w-0">
-          <div
-            aria-hidden="true"
-            class="absolute -inset-6 -z-10 rounded-[2rem] opacity-90 blur-3xl"
-            style="background: radial-gradient(ellipse at center, oklch(0.72 0.08 80 / 0.2), transparent 68%);"
-          ></div>
-          <div class="sb-float sb-glow overflow-hidden rounded-2xl border border-border bg-card">
-            <div class="flex items-center gap-2 border-b border-border px-4 py-3">
-              <span class="size-2.5 rounded-full bg-red-500/75"></span>
-              <span class="size-2.5 rounded-full bg-amber-500/75"></span>
-              <span class="size-2.5 rounded-full bg-emerald-500/75"></span>
-              <span class="ml-2 truncate text-xs text-muted-foreground">codevetter/starboard</span>
-              <span class="ml-auto shrink-0 rounded-md bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">project context</span>
-            </div>
-            <div class="divide-y divide-border">
-              <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber">Project</span>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">Read the visible context</p>
-                  <p class="truncate text-xs text-muted-foreground">Language · topics · metadata · detected tools</p>
-                </div>
-              </div>
-              <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Peers</span>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">Find similar repositories</p>
-                  <p class="truncate text-xs text-muted-foreground">Retrieve broadly, then rerank with visible evidence</p>
-                </div>
-              </div>
-              <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald">Tools</span>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">See what those peers actually use</p>
-                  <p class="truncate text-xs text-muted-foreground">Only grounded support becomes a recommendation</p>
-                </div>
-              </div>
-              <div class="flex items-start gap-3 px-4 py-3.5">
-                <span class="mt-0.5 rounded-md bg-muted px-2 py-0.5 text-[10px] font-semibold text-muted-foreground">Why</span>
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-sm font-medium text-foreground">Repository evidence stays visible</p>
-                  <p class="truncate text-xs text-muted-foreground">Peer source · detection confidence · direct links</p>
-                </div>
-              </div>
-            </div>
-            <div class="border-t border-border bg-muted/25 px-4 py-3 text-center text-xs text-muted-foreground">
-              Evidence first — then inspect the repository on GitHub
+        <div class="route-chart" aria-label="How Starboard moves from a project to inspectable tool evidence">
+          <div class="chart-heading">
+            <span>Recommendation route</span>
+            <span>Evidence remains attached</span>
+          </div>
+          <div class="route-start">
+            <span class="route-index">01</span>
+            <div>
+              <small>Start with one repository</small>
+              <strong>owner / project</strong>
+              <p>Language · topics · metadata · detected tools</p>
             </div>
           </div>
+          <ol class="route-steps">
+            <li>
+              <span>02</span>
+              <div><strong>Build a peer set</strong><small>Retrieve broadly, then rerank with visible signals.</small></div>
+            </li>
+            <li>
+              <span>03</span>
+              <div><strong>Trace tool support</strong><small>Only detections found in those peers can support a suggestion.</small></div>
+            </li>
+            <li>
+              <span>04</span>
+              <div><strong>Inspect the source</strong><small>Open the peer repository and review the evidence yourself.</small></div>
+            </li>
+          </ol>
+          <p class="chart-caption"><span aria-hidden="true">↗</span> A route to investigate, not a claim that one tool is universally best.</p>
         </div>
       </section>
 
-      {/* ── Difference ───────────────────────────────────────────── */}
-      <section class="grid w-full gap-10 border-y border-border py-10 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:gap-16 lg:py-14">
-        <div class="max-w-2xl">
-          <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            Popular is easy to find. Relevant takes context.
-          </h2>
-          <p class="mt-4 text-pretty leading-relaxed text-muted-foreground">
-            GitHub can show what is trending. Starboard starts with the repository in front of you,
-            builds a defensible peer set, and keeps the evidence attached to every recommendation.
-          </p>
+      <section class="thesis" aria-labelledby="thesis-title">
+        <div>
+          <p class="chart-kicker"><span>02</span> Why project context matters</p>
+          <h2 id="thesis-title">Popular is easy to find. Relevant takes context.</h2>
         </div>
-        <dl class="divide-y divide-border">
-          <div class="grid gap-1 py-4 first:pt-0 sm:grid-cols-[10rem_1fr] lg:first:pt-4">
-            <dt class="text-sm font-medium text-foreground">Similar first</dt>
-            <dd class="text-sm leading-relaxed text-muted-foreground">Repository peers are the grounding layer, not a decorative related-results list.</dd>
-          </div>
-          <div class="grid gap-1 py-4 sm:grid-cols-[10rem_1fr]">
-            <dt class="text-sm font-medium text-foreground">Evidence attached</dt>
-            <dd class="text-sm leading-relaxed text-muted-foreground">Tool support names its source repositories and detection confidence.</dd>
-          </div>
-          <div class="grid gap-1 py-4 last:pb-0 sm:grid-cols-[10rem_1fr] lg:last:pb-4">
-            <dt class="text-sm font-medium text-foreground">Useful before login</dt>
-            <dd class="text-sm leading-relaxed text-muted-foreground">Discover, project previews, and Tool Intelligence remain publicly explorable.</dd>
-          </div>
+        <p>
+          Trending lists answer what is attracting attention. Starboard asks a narrower question:
+          what do projects like yours use, and what evidence supports taking a closer look?
+        </p>
+      </section>
+
+      <section class="evidence-section" aria-labelledby="evidence-title">
+        <header class="section-heading">
+          <p class="chart-kicker"><span>03</span> The evidence ledger</p>
+          <h2 id="evidence-title">A recommendation you can audit.</h2>
+          <p>Each layer narrows the search while keeping enough context for you to challenge the result.</p>
+        </header>
+
+        <div class="ledger">
+          <article>
+            <span class="ledger-number">A</span>
+            <p class="ledger-label">Project context</p>
+            <h3>Read the repository that is already in front of you.</h3>
+            <p>Starboard uses visible language, topics, repository metadata, and detected tools. It does not claim access to private code.</p>
+          </article>
+          <article>
+            <span class="ledger-number">B</span>
+            <p class="ledger-label">Grounded peers</p>
+            <h3>Compare against similar public repositories.</h3>
+            <p>Semantic, lexical, language, topic, and tool signals produce a bounded peer set. Sparse results are labeled as broader fallbacks.</p>
+          </article>
+          <article>
+            <span class="ledger-number">C</span>
+            <p class="ledger-label">Tool support</p>
+            <h3>See which peers supply the evidence.</h3>
+            <p>Tool suggestions name their supporting repositories and detection confidence, with direct links for manual review.</p>
+          </article>
+        </div>
+
+        <aside class="honesty-strip" aria-label="Recommendation limits">
+          <strong>What Starboard does not claim</strong>
+          <p>No universal best-tool ranking. No complete dependency audit. No benchmarked recommendation accuracy. The final judgment stays with you.</p>
+        </aside>
+      </section>
+
+      <section class="modes" aria-labelledby="modes-title">
+        <header class="section-heading compact">
+          <p class="chart-kicker"><span>04</span> Two useful modes</p>
+          <h2 id="modes-title">Explore in public. Add your context when it helps.</h2>
+        </header>
+
+        <div class="mode-grid">
+          <article class="mode-card public-mode">
+            <div class="mode-topline"><span>Public waters</span><strong>No account for cataloged projects</strong></div>
+            <h3>Discover repositories and inspect tool evidence.</h3>
+            <p>Search the seeded public catalog, open repository details, browse Tool Intelligence, and preview projects Starboard already knows.</p>
+            <ul>
+              <li>Semantic and lexical repository discovery</li>
+              <li>Language, tool, and growth filters</li>
+              <li>Visible detection source and confidence</li>
+            </ul>
+            <a href="/discover">Explore Discover <span aria-hidden="true">→</span></a>
+          </article>
+
+          <article class="mode-card personal-mode">
+            <div class="mode-topline"><span>Personal workspace</span><strong>GitHub sign-in</strong></div>
+            <h3>Connect a project or clean up a crowded star library.</h3>
+            <p>Choose your own public projects for saved recommendations, then search and organize the repositories you have starred over time.</p>
+            <ul>
+              <li>Saved public-project connections</li>
+              <li>Lists, tags, notes, and starred-repository sync</li>
+              <li>No GitHub write access</li>
+            </ul>
+            <a href="/login">Connect GitHub <span aria-hidden="true">→</span></a>
+          </article>
+        </div>
+      </section>
+
+      <section class="access-section" aria-labelledby="access-title">
+        <div class="access-intro">
+          <p class="chart-kicker"><span>05</span> Access chart</p>
+          <h2 id="access-title">Know what happens before you click.</h2>
+          <p>Starboard is free today. Signing in adds your GitHub context; it does not unlock a paid tier.</p>
+        </div>
+        <dl class="access-list">
+          <div><dt>Browse Discover and tools</dt><dd><span class="status-dot public"></span>Public</dd></div>
+          <div><dt>Preview a cataloged project</dt><dd><span class="status-dot public"></span>Public</dd></div>
+          <div><dt>Look up an uncataloged project</dt><dd><span class="status-dot sign-in"></span>GitHub sign-in</dd></div>
+          <div><dt>Save project recommendations</dt><dd><span class="status-dot sign-in"></span>GitHub sign-in</dd></div>
+          <div><dt>Sync and organize your stars</dt><dd><span class="status-dot sign-in"></span>GitHub sign-in</dd></div>
         </dl>
       </section>
 
-      {/* ── How it works ──────────────────────────────────────────── */}
-      <section class="w-full max-w-4xl">
-        <div class="mb-8 text-center">
-          <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">How it works</p>
-          <h2 class="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">From project to evidence in three steps.</h2>
-        </div>
-        <ol class="grid gap-4 sm:grid-cols-3">
-          <li class="relative rounded-2xl border border-border bg-card/60 p-6">
-            <span class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">1</span>
-            <h3 class="mt-4 font-semibold text-foreground">Preview a project</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Paste a public GitHub repository. Catalog matches need no account; new lookups use your signed-in GitHub session. Nothing is saved yet.</p>
-          </li>
-          <li class="relative rounded-2xl border border-border bg-card/60 p-6">
-            <span class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">2</span>
-            <h3 class="mt-4 font-semibold text-foreground">Compare grounded peers</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">Multiple catalog signals find similar projects, then visible evidence reranks them.</p>
-          </li>
-          <li class="relative rounded-2xl border border-border bg-card/60 p-6">
-            <span class="flex size-9 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">3</span>
-            <h3 class="mt-4 font-semibold text-foreground">Evaluate the tools</h3>
-            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">See peer support and detection confidence, then inspect the source repositories.</p>
-          </li>
-        </ol>
-      </section>
-
-      {/* ── Library workflow ───────────────────────────────────────── */}
-      <section class="w-full" id="library">
-        <div class="sb-glow overflow-hidden rounded-3xl border border-border bg-card/80">
-          <div class="grid lg:grid-cols-[1.1fr_0.9fr]">
-            <div class="space-y-5 p-7 sm:p-10">
-              <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-                Discover first. Organize the good finds later.
-              </h2>
-              <p class="max-w-xl text-pretty leading-relaxed text-muted-foreground">
-                Your Library turns GitHub stars into a searchable working set. Keep private notes,
-                use lists and tags, or select several repositories and act on them together.
-              </p>
-              <ul class="space-y-2.5 text-sm text-muted-foreground">
-                <li class="flex gap-2.5">
-                  <span class="mt-1 size-1.5 shrink-0 rounded-full bg-emerald"></span>
-                  <span>Sync the public repositories you already starred on GitHub.</span>
-                </li>
-                <li class="flex gap-2.5">
-                  <span class="mt-1 size-1.5 shrink-0 rounded-full bg-amber"></span>
-                  <span>Search, tag, save, and group them without changing anything on GitHub.</span>
-                </li>
-                <li class="flex gap-2.5">
-                  <span class="mt-1 size-1.5 shrink-0 rounded-full bg-muted-foreground"></span>
-                  <span>Bulk actions stay in a bottom bar that appears only when you select items.</span>
-                </li>
-              </ul>
-              <div class="flex flex-wrap gap-3 pt-1">
-                <a href="/login?callbackUrl=%2Fstars" class="sb-btn-ghost inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-foreground">
-                  Open your Library
-                </a>
-                <a href="/discover" class="inline-flex h-11 items-center justify-center rounded-xl px-5 text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
-                  Keep browsing Discover
-                </a>
-              </div>
-            </div>
-            <div class="relative border-t border-border bg-muted/20 p-7 sm:p-10 lg:border-l lg:border-t-0">
-              <div class="overflow-hidden rounded-xl border border-border bg-background/70">
-                <div class="divide-y divide-border">
-                  <div class="flex items-center gap-3 px-4 py-3 text-sm"><span class="size-4 rounded border border-amber/50 bg-amber/15"></span><span class="truncate text-foreground">codevetter/starboard</span></div>
-                  <div class="flex items-center gap-3 px-4 py-3 text-sm"><span class="size-4 rounded border border-amber/50 bg-amber/15"></span><span class="truncate text-foreground">openai/openai-node</span></div>
-                  <div class="flex items-center gap-3 px-4 py-3 text-sm"><span class="size-4 rounded border border-amber/50 bg-amber/15"></span><span class="truncate text-foreground">cloudflare/workers-sdk</span></div>
-                </div>
-                <div class="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-card px-4 py-3">
-                  <span class="text-xs font-medium text-foreground">3 selected</span>
-                  <div class="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span class="rounded-md border border-border px-2 py-1">Add to list</span>
-                    <span class="rounded-md border border-border px-2 py-1">Tag</span>
-                    <span>Clear</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+      <section class="final-cta" aria-labelledby="final-title">
+        <p class="chart-kicker"><span>06</span> Set a course</p>
+        <h2 id="final-title">Start with one public project.</h2>
+        <p>See the peers, follow the evidence, and decide which tools deserve a closer look.</p>
+        <div>
+          <a class="primary-link" href="#hero-repository">Preview a project <span aria-hidden="true">↑</span></a>
+          <a class="secondary-link" href="/discover">Browse Discover</a>
         </div>
       </section>
-
-      {/* ── Final CTA ─────────────────────────────────────────────── */}
-      <section class="flex w-full max-w-3xl flex-col items-center gap-5 rounded-3xl border border-border bg-gradient-to-b from-card/80 to-card/40 px-6 py-12 text-center sm:px-10">
-        <span class="sb-mark inline-flex size-11 items-center justify-center rounded-xl text-lg font-bold">★</span>
-        <h2 class="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          Start with the project in front of you.
-        </h2>
-        <p class="max-w-md text-pretty text-sm leading-relaxed text-muted-foreground">
-          Free. No paid plans or premium locks. Similar repositories ground every tool
-          recommendation in open-source evidence you can inspect.
-        </p>
-        <p class="text-xs text-muted-foreground">Minimal <code class="font-mono text-foreground/80">read:user</code> OAuth scope · no GitHub write access</p>
-        <a href="#hero-repository" class="sb-btn-primary inline-flex h-12 items-center justify-center rounded-xl px-8 text-base font-semibold">
-          Preview a public project
-        </a>
-      </section>
-
-      {/* ── Footer ────────────────────────────────────────────────── */}
-      <footer class="flex w-full max-w-3xl flex-col items-start gap-4 border-t border-border pt-10 text-sm text-muted-foreground">
-        <p class="text-pretty leading-relaxed">
-          Built by
-          <a href="https://github.com/sarthakagrawal927" class="mx-1 font-medium text-foreground underline-offset-4 hover:underline" target="_blank" rel="noopener noreferrer">Sarthak</a>
-          because open-source discovery should start from the project you are actually building.
-        </p>
-        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs">
-          <a href="https://github.com/Codevetter/starboard" class="underline-offset-4 hover:text-foreground hover:underline" target="_blank" rel="noopener noreferrer">Source</a>
-          <span aria-hidden="true" class="text-border">·</span>
-          <a href="/catalog-updates" class="underline-offset-4 hover:text-foreground hover:underline">Catalog updates</a>
-          <span aria-hidden="true" class="text-border">·</span>
-          <a href="/changelog" class="underline-offset-4 hover:text-foreground hover:underline">Changelog</a>
-          <span aria-hidden="true" class="text-border">·</span>
-          <a href="/about" class="underline-offset-4 hover:text-foreground hover:underline">About</a>
-          <span aria-hidden="true" class="text-border">·</span>
-          <a href="/discover" class="underline-offset-4 hover:text-foreground hover:underline">Discover</a>
-          <span aria-hidden="true" class="text-border">·</span>
-          <a href="/login" class="underline-offset-4 hover:text-foreground hover:underline">Login</a>
-        </div>
-      </footer>
     </main>
+
+    <ProductFooter />
   </div>
 </Layout>

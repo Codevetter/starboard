@@ -1,10 +1,11 @@
 # Starboard
 
-> Project-aware GitHub repository discovery and evidence-backed tool intelligence.
+> Start with a GitHub project, find similar repositories, and evaluate tools with visible source evidence.
 
 ## When to use this
 
-- Discovering and browsing GitHub repositories by semantic similarity, tags, or tool category
+- Finding open-source repositories and tools that fit a public GitHub project already being built
+- Inspecting which peer repositories and detection evidence support a tool suggestion
 - Finding alternatives to a known tool or framework via the seeded public corpus
 - Organizing personal GitHub stars with tags, collections, and semantic search (requires sign-in)
 - Getting evidence-backed tool intelligence and framework detection for a project
