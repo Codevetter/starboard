@@ -8,14 +8,15 @@
  *   CLOUDFLARE_ACCOUNT_ID
  *   D1_DATABASE_ID
  *   CLOUDFLARE_API_TOKEN — D1 Write
- *   AI_GATEWAY_URL
- *   AI_GATEWAY_API_KEY
+ *   AI_BASE_URL
+ *   AI_API_KEY
+ *   AI_MODEL
  * Optional env:
  *   ENRICH_LIMIT          — repos to enrich this run, default 50
  *   ENRICH_HARD_LIMIT     — safety cap for one run, default 200
  *   MIN_STARS_FLOOR      — minimum stars to enrich, default 5000
- *   AI_GATEWAY_REASONING_EFFORT     — free-AI router effort, default medium
- *   AI_GATEWAY_MIN_REASONING_LEVEL  — free-AI minimum model level, default medium
+ *   AI_TIMEOUT_MS                   — direct request timeout, default 30000
+ *   AI_MAX_ATTEMPTS                 — direct request attempts, default 2
  */
 
 import type { DbClient as Client, InStatement } from '../src/db/client';

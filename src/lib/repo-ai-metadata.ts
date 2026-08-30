@@ -1,22 +1,16 @@
-import { textHash } from './embeddings';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { generateText } from 'ai';
+import { createWorkersAI } from 'workers-ai-provider';
 
-const REASONING_EFFORTS = ['auto', 'low', 'medium', 'high'] as const;
-const MIN_REASONING_LEVELS = ['low', 'medium', 'high'] as const;
+import { getAiBinding, textHash } from './embeddings';
 
-const REPO_AI_METADATA_REASONING_EFFORT = normalizeReasoningEffort(
-  process.env.AI_GATEWAY_REASONING_EFFORT,
-  'medium'
-);
-const REPO_AI_METADATA_MIN_REASONING_LEVEL = normalizeMinReasoningLevel(
-  process.env.AI_GATEWAY_MIN_REASONING_LEVEL,
-  'medium'
-);
-export const REPO_AI_METADATA_ROUTE = `free-ai-router:reasoning=${REPO_AI_METADATA_REASONING_EFFORT}:min=${REPO_AI_METADATA_MIN_REASONING_LEVEL}`;
+const WORKERS_AI_METADATA_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+export const REPO_AI_METADATA_ROUTE = `workers-ai:${WORKERS_AI_METADATA_MODEL}|direct:${process.env.AI_MODEL || 'unconfigured'}`;
 export const HEURISTIC_REPO_AI_METADATA_MODEL = 'heuristic-taxonomy-v1';
 
 const MAX_TEXT_LENGTH = 1800;
-const REQUEST_TIMEOUT_MS = parseInt(process.env.AI_GATEWAY_TIMEOUT_MS || '30000', 10);
-const MAX_ATTEMPTS = parseInt(process.env.AI_GATEWAY_MAX_ATTEMPTS || '2', 10);
+const REQUEST_TIMEOUT_MS = parseInt(process.env.AI_TIMEOUT_MS || '30000', 10);
+const MAX_ATTEMPTS = parseInt(process.env.AI_MAX_ATTEMPTS || '2', 10);
 const CATEGORIES = [
   'ai-agents',
   'ai-evals',
@@ -54,20 +48,6 @@ export interface RepoAiMetadata {
 export interface RepoAiMetadataResult {
   metadata: RepoAiMetadata;
   model: string;
-}
-
-interface ChatCompletionResponse {
-  model?: string;
-  choices?: {
-    message?: {
-      content?: string;
-    };
-  }[];
-  x_gateway?: {
-    provider?: string;
-    model?: string;
-    reasoning_effort?: string;
-  };
 }
 
 export function buildRepoAiSourceText(repo: RepoMetadataSource): string {
@@ -110,49 +90,48 @@ ${buildRepoAiSourceText(repo)}`;
 export async function generateRepoAiMetadata(
   repo: RepoMetadataSource
 ): Promise<RepoAiMetadataResult> {
-  const url = process.env.AI_GATEWAY_URL;
-  const key = process.env.AI_GATEWAY_API_KEY;
-  if (!url || !key) {
-    throw new Error('AI_GATEWAY_URL and AI_GATEWAY_API_KEY are required');
-  }
-
-  const res = await fetchWithRetry(`${url.replace(/\/+$/, '')}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${key}`,
-      'x-gateway-project-id': 'starboard',
-    },
-    body: JSON.stringify({
-      messages: [
-        {
-          role: 'system',
-          content: 'You produce strict JSON for software repository classification.',
-        },
-        {
-          role: 'user',
-          content: buildRepoAiMetadataPrompt(repo),
-        },
-      ],
+  const binding = await getAiBinding();
+  if (binding) {
+    const workersAi = createWorkersAI({ binding: binding as Ai });
+    const result = await generateText({
+      model: workersAi(WORKERS_AI_METADATA_MODEL),
+      system: 'You produce strict JSON for software repository classification.',
+      prompt: buildRepoAiMetadataPrompt(repo),
       temperature: 0.1,
-      max_tokens: 260,
-      reasoning_effort: REPO_AI_METADATA_REASONING_EFFORT,
-      min_reasoning_level: REPO_AI_METADATA_MIN_REASONING_LEVEL,
-      project_id: 'starboard',
-    }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    const hint = res.status === 401 ? ' Check AI_GATEWAY_API_KEY for the free-AI gateway.' : '';
-    throw new Error(`AI metadata API error ${res.status}: ${body}${hint}`);
+      maxOutputTokens: 260,
+      maxRetries: Math.max(0, MAX_ATTEMPTS - 1),
+      timeout: { totalMs: REQUEST_TIMEOUT_MS },
+    });
+    return {
+      metadata: normalizeRepoAiMetadata(parseJsonObject(result.text || '{}')),
+      model: WORKERS_AI_METADATA_MODEL,
+    };
   }
 
-  const json = (await res.json()) as ChatCompletionResponse;
-  const content = chatCompletionText(json);
+  const url = process.env.AI_BASE_URL;
+  const key = process.env.AI_API_KEY;
+  const model = process.env.AI_MODEL;
+  if (!url || !key || !model) {
+    throw new Error('AI_BASE_URL, AI_API_KEY, and AI_MODEL are required');
+  }
+
+  const provider = createOpenAICompatible({
+    name: 'starboard-direct',
+    baseURL: url.replace(/\/+$/, ''),
+    apiKey: key,
+  });
+  const result = await generateText({
+    model: provider.chatModel(model),
+    system: 'You produce strict JSON for software repository classification.',
+    prompt: buildRepoAiMetadataPrompt(repo),
+    temperature: 0.1,
+    maxOutputTokens: 260,
+    maxRetries: Math.max(0, MAX_ATTEMPTS - 1),
+    timeout: { totalMs: REQUEST_TIMEOUT_MS },
+  });
   return {
-    metadata: normalizeRepoAiMetadata(parseJsonObject(content || '{}')),
-    model: chatCompletionModel(json),
+    metadata: normalizeRepoAiMetadata(parseJsonObject(result.text || '{}')),
+    model: model,
   };
 }
 
@@ -239,61 +218,6 @@ function inferCategory(text: string): string {
   if (/\b(test|testing|mock|assert)\b/.test(text)) return 'testing';
   if (/\b(framework|server|api)\b/.test(text)) return 'app-framework';
   return 'library';
-}
-
-function chatCompletionText(json: ChatCompletionResponse): string {
-  return json.choices?.[0]?.message?.content || '';
-}
-
-function chatCompletionModel(json: ChatCompletionResponse): string {
-  const provider = cleanText(json.x_gateway?.provider, 64);
-  const model = cleanText(json.x_gateway?.model || json.model, 160);
-  const reasoning = cleanText(json.x_gateway?.reasoning_effort, 16);
-  if (provider && model) {
-    return reasoning ? `${provider}:${model}:reasoning=${reasoning}` : `${provider}:${model}`;
-  }
-  return model || REPO_AI_METADATA_ROUTE;
-}
-
-function normalizeReasoningEffort(
-  value: string | undefined,
-  fallback: (typeof REASONING_EFFORTS)[number]
-): (typeof REASONING_EFFORTS)[number] {
-  return REASONING_EFFORTS.includes(value as (typeof REASONING_EFFORTS)[number])
-    ? (value as (typeof REASONING_EFFORTS)[number])
-    : fallback;
-}
-
-function normalizeMinReasoningLevel(
-  value: string | undefined,
-  fallback: (typeof MIN_REASONING_LEVELS)[number]
-): (typeof MIN_REASONING_LEVELS)[number] {
-  return MIN_REASONING_LEVELS.includes(value as (typeof MIN_REASONING_LEVELS)[number])
-    ? (value as (typeof MIN_REASONING_LEVELS)[number])
-    : fallback;
-}
-
-async function fetchWithRetry(url: string, init: RequestInit): Promise<Response> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    try {
-      const res = await fetch(url, { ...init, signal: controller.signal });
-      clearTimeout(timeout);
-      if (res.status < 500 && res.status !== 429) return res;
-      lastError = new Error(`retryable AI response ${res.status}`);
-    } catch (error) {
-      clearTimeout(timeout);
-      lastError = error;
-    }
-
-    if (attempt < MAX_ATTEMPTS) {
-      await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
-    }
-  }
-
-  throw lastError instanceof Error ? lastError : new Error('AI metadata request failed');
 }
 
 export function normalizeRepoAiMetadata(value: unknown): RepoAiMetadata {

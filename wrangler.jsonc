@@ -47,7 +47,7 @@
   ],
   // Set non-secret values here. Secrets go via `wrangler secret put`:
   //   AUTH_SECRET, AUTH_GITHUB_ID, AUTH_GITHUB_SECRET
-  // AI_GATEWAY_URL/KEY only needed if you want to keep the gateway path active.
+  // Node operator jobs use an explicitly configured direct provider/local endpoint.
   "vars": {
     "NEXT_PUBLIC_APP_NAME": "starboard",
     "AUTH_URL": "https://starboard.codevetter.com",

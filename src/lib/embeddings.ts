@@ -1,3 +1,6 @@
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { embedMany } from 'ai';
+
 /**
  * Embedding dimension contract.
  *
@@ -12,11 +15,7 @@ const EMBEDDING_MODEL = '@cf/baai/bge-base-en-v1.5';
 const EMBEDDING_DIM = 768;
 const BATCH_SIZE = 50;
 
-interface EmbeddingResponse {
-  data: { embedding: number[]; index: number }[];
-}
-
-interface AiBinding {
+export interface AiBinding {
   run(model: string, input: { text: string[] }): Promise<{ data: number[][] }>;
 }
 
@@ -51,9 +50,9 @@ interface RepoAiMetadataInput {
 /**
  * In Workers context (opennext), pull the direct AI binding.
  * Returns null when running in Node CLI (e.g. seed scripts) — caller falls
- * back to the HTTP gateway path.
+ * back to an explicitly configured direct provider/local endpoint.
  */
-async function getAiBinding(): Promise<AiBinding | null> {
+export async function getAiBinding(): Promise<AiBinding | null> {
   try {
     const mod = await import('@opennextjs/cloudflare');
     const ctx = mod.getCloudflareContext();
@@ -91,53 +90,39 @@ async function embedViaBinding(ai: AiBinding, texts: string[]): Promise<number[]
   throw lastError ?? new Error('Binding embedding failed after retries');
 }
 
-function isRetryableStatus(status: number): boolean {
-  // 429 (rate limit) + 5xx are transient and worth retrying.
-  return status === 429 || status >= 500;
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 async function embedViaHttp(texts: string[]): Promise<number[][]> {
-  const url = process.env.AI_GATEWAY_URL;
-  const key = process.env.AI_GATEWAY_API_KEY;
-  if (!url || !key) {
-    throw new Error('No AI binding available and AI_GATEWAY_URL/AI_GATEWAY_API_KEY not set');
+  const url = process.env.AI_BASE_URL;
+  const key = process.env.AI_API_KEY;
+  const model = process.env.AI_EMBED_MODEL;
+  if (!url || !key || !model) {
+    throw new Error(
+      'No AI binding available and AI_BASE_URL/AI_API_KEY/AI_EMBED_MODEL are not set'
+    );
   }
 
-  // Exponential backoff — transient gateway downtime shouldn't break search.
+  const provider = createOpenAICompatible({
+    name: 'starboard-direct',
+    baseURL: url.replace(/\/+$/, ''),
+    apiKey: key,
+  });
+
+  // Exponential backoff — transient provider downtime shouldn't break search.
   let lastError: unknown;
   for (let attempt = 0; attempt < MAX_EMBED_ATTEMPTS; attempt++) {
     if (attempt > 0) {
       await delay(400 * 2 ** (attempt - 1) + Math.floor(Math.random() * 200));
     }
     try {
-      const res = await fetch(`${url}/v1/embeddings`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${key}`,
-          'x-gateway-project-id': 'starboard',
-        },
-        body: JSON.stringify({
-          model: EMBEDDING_MODEL,
-          input: texts,
-          dimensions: EMBEDDING_DIM,
-        }),
+      const result = await embedMany({
+        model: provider.embeddingModel(model),
+        values: texts,
+        maxRetries: 0,
       });
-      if (!res.ok) {
-        if (isRetryableStatus(res.status) && attempt < MAX_EMBED_ATTEMPTS - 1) {
-          lastError = new Error(`Embedding API error ${res.status}`);
-          continue;
-        }
-        throw new Error(`Embedding API error ${res.status}: ${await res.text()}`);
-      }
-      const json: EmbeddingResponse = await res.json();
-      const out: number[][] = new Array(texts.length);
-      for (const item of json.data) out[item.index] = item.embedding;
-      return out;
+      return result.embeddings;
     } catch (err) {
       lastError = err;
       if (attempt === MAX_EMBED_ATTEMPTS - 1) throw err;
@@ -240,7 +225,7 @@ function normalizeEmbeddingDimensions(vec: number[]): number[] {
 /**
  * Generate embeddings for one or more texts.
  * Prefers the direct CF Workers AI binding (when running inside a Worker via
- * opennext); falls back to the AI Gateway HTTP path otherwise (Node CLI scripts).
+ * opennext); falls back to a direct configured endpoint otherwise (Node CLI scripts).
  */
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];

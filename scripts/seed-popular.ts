@@ -21,8 +21,9 @@
  *   CLOUDFLARE_ACCOUNT_ID
  *   D1_DATABASE_ID
  *   CLOUDFLARE_API_TOKEN — D1 Write (and Vectorize Write for direct local embedding mode)
- *   AI_GATEWAY_URL
- *   AI_GATEWAY_API_KEY
+ *   AI_BASE_URL
+ *   AI_API_KEY
+ *   AI_EMBED_MODEL
  *   GITHUB_TOKEN          — fine-grained PAT, public_repo:read
  * Optional env:
  *   SEED_DAILY_LIMIT      — embeddings per run, default 1000
@@ -396,13 +397,14 @@ async function runEmbeddingPhase(db: ReturnType<typeof createD1RestClientFromEnv
       });
       throw err;
     }
-    embedError = 'AI gateway authentication failed (skipped embeddings; repo seeding completed)';
+    embedError =
+      'Direct AI provider authentication failed (skipped embeddings; repo seeding completed)';
     console.warn(
-      '[embed] skipped: AI gateway authentication failed. Repo seeding completed; rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings.'
+      '[embed] skipped: direct AI provider authentication failed. Repo seeding completed; rotate/fix AI_API_KEY to resume scheduled embeddings.'
     );
     if (process.env.GITHUB_ACTIONS) {
       console.warn(
-        '::warning title=Starboard embeddings skipped::AI gateway authentication failed after repo seeding completed. Rotate/fix AI_GATEWAY_API_KEY to resume scheduled embeddings.'
+        '::warning title=Starboard embeddings skipped::Direct AI provider authentication failed after repo seeding completed. Rotate/fix AI_API_KEY to resume scheduled embeddings.'
       );
     }
   }

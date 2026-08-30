@@ -10,7 +10,7 @@ import { generateEmbeddings } from '@/lib/embeddings';
 async function isAuthorized(request: Request): Promise<boolean> {
   return hasValidOperatorToken(
     request.headers.get('authorization'),
-    process.env.AI_GATEWAY_API_KEY
+    process.env.STARBOARD_OPERATOR_TOKEN
   );
 }
 

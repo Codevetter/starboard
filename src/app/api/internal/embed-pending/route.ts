@@ -14,7 +14,7 @@ const MIN_STARS_FLOOR = 5000;
 async function isAuthorized(request: Request): Promise<boolean> {
   return hasValidOperatorToken(
     request.headers.get('authorization'),
-    process.env.AI_GATEWAY_API_KEY
+    process.env.STARBOARD_OPERATOR_TOKEN
   );
 }
 
