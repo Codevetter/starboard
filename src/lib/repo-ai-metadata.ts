@@ -1,10 +1,11 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText } from 'ai';
-import { createWorkersAI } from 'workers-ai-provider';
+import { createWorkersAI, type WorkersAISettings } from 'workers-ai-provider';
 
 import { getAiBinding, textHash } from './embeddings';
 
 const WORKERS_AI_METADATA_MODEL = '@cf/meta/llama-3.1-8b-instruct';
+type WorkersAiBinding = Extract<WorkersAISettings, { binding: unknown }>['binding'];
 export const REPO_AI_METADATA_ROUTE = `workers-ai:${WORKERS_AI_METADATA_MODEL}|direct:${process.env.AI_MODEL || 'unconfigured'}`;
 export const HEURISTIC_REPO_AI_METADATA_MODEL = 'heuristic-taxonomy-v1';
 
@@ -92,7 +93,7 @@ export async function generateRepoAiMetadata(
 ): Promise<RepoAiMetadataResult> {
   const binding = await getAiBinding();
   if (binding) {
-    const workersAi = createWorkersAI({ binding: binding as Ai });
+    const workersAi = createWorkersAI({ binding: binding as unknown as WorkersAiBinding });
     const result = await generateText({
       model: workersAi(WORKERS_AI_METADATA_MODEL),
       system: 'You produce strict JSON for software repository classification.',
