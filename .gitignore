@@ -78,3 +78,6 @@ cache.bin
 .agent-logs/
 .codevetter/
 *.agent.log
+
+# Local editor settings — never commit (may contain credentials)
+.claude/settings.local.json
