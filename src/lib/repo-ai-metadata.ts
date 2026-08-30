@@ -1,5 +1,5 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { generateText } from 'ai';
+import { generateText, type LanguageModel } from 'ai';
 import { createWorkersAI, type WorkersAISettings } from 'workers-ai-provider';
 
 import { getAiBinding, textHash } from './embeddings';
@@ -88,25 +88,33 @@ Repository:
 ${buildRepoAiSourceText(repo)}`;
 }
 
+async function generateWithModel(
+  languageModel: LanguageModel,
+  repo: RepoMetadataSource,
+  model: string
+): Promise<RepoAiMetadataResult> {
+  const result = await generateText({
+    model: languageModel,
+    system: 'You produce strict JSON for software repository classification.',
+    prompt: buildRepoAiMetadataPrompt(repo),
+    temperature: 0.1,
+    maxOutputTokens: 260,
+    maxRetries: Math.max(0, MAX_ATTEMPTS - 1),
+    timeout: { totalMs: REQUEST_TIMEOUT_MS },
+  });
+  return {
+    metadata: normalizeRepoAiMetadata(parseJsonObject(result.text || '{}')),
+    model,
+  };
+}
+
 export async function generateRepoAiMetadata(
   repo: RepoMetadataSource
 ): Promise<RepoAiMetadataResult> {
   const binding = await getAiBinding();
   if (binding) {
     const workersAi = createWorkersAI({ binding: binding as unknown as WorkersAiBinding });
-    const result = await generateText({
-      model: workersAi(WORKERS_AI_METADATA_MODEL),
-      system: 'You produce strict JSON for software repository classification.',
-      prompt: buildRepoAiMetadataPrompt(repo),
-      temperature: 0.1,
-      maxOutputTokens: 260,
-      maxRetries: Math.max(0, MAX_ATTEMPTS - 1),
-      timeout: { totalMs: REQUEST_TIMEOUT_MS },
-    });
-    return {
-      metadata: normalizeRepoAiMetadata(parseJsonObject(result.text || '{}')),
-      model: WORKERS_AI_METADATA_MODEL,
-    };
+    return generateWithModel(workersAi(WORKERS_AI_METADATA_MODEL), repo, WORKERS_AI_METADATA_MODEL);
   }
 
   const url = process.env.AI_BASE_URL;
@@ -121,19 +129,7 @@ export async function generateRepoAiMetadata(
     baseURL: url.replace(/\/+$/, ''),
     apiKey: key,
   });
-  const result = await generateText({
-    model: provider.chatModel(model),
-    system: 'You produce strict JSON for software repository classification.',
-    prompt: buildRepoAiMetadataPrompt(repo),
-    temperature: 0.1,
-    maxOutputTokens: 260,
-    maxRetries: Math.max(0, MAX_ATTEMPTS - 1),
-    timeout: { totalMs: REQUEST_TIMEOUT_MS },
-  });
-  return {
-    metadata: normalizeRepoAiMetadata(parseJsonObject(result.text || '{}')),
-    model: model,
-  };
+  return generateWithModel(provider.chatModel(model), repo, model);
 }
 
 export function inferRepoAiMetadata(repo: RepoMetadataSource): RepoAiMetadata {
