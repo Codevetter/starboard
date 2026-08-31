@@ -24,6 +24,10 @@ const projectsMigration = readFileSync(
   join(__dirname, '..', '..', 'migrations', '0003_user_projects.sql'),
   'utf-8'
 );
+const repoFullNameIndexMigration = readFileSync(
+  join(__dirname, '..', '..', 'migrations', '0005_repos_full_name_nocase_index.sql'),
+  'utf-8'
+);
 
 describe('db row-read regression guards', () => {
   it('the D1 migration defines idx_user_repos_repo for repo_id lookups', () => {
@@ -87,5 +91,12 @@ describe('db row-read regression guards', () => {
       'CREATE INDEX IF NOT EXISTS idx_user_projects_user_connected'
     );
     expect(projectsMigration).toContain('REFERENCES repos(id) ON DELETE CASCADE');
+  });
+
+  it('repository slug resolution has a matching case-insensitive index', () => {
+    expect(repoFullNameIndexMigration).toContain(
+      'CREATE INDEX IF NOT EXISTS idx_repos_full_name_nocase'
+    );
+    expect(repoFullNameIndexMigration).toContain('ON repos(full_name COLLATE NOCASE)');
   });
 });
