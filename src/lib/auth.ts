@@ -2,6 +2,7 @@ import NextAuth from 'next-auth';
 import GitHub from 'next-auth/providers/github';
 
 import { db } from '@/db';
+import { ping } from '@/lib/ping';
 
 export const { handlers, auth } = NextAuth({
   trustHost: true,
@@ -27,6 +28,11 @@ export const { handlers, auth } = NextAuth({
           // Email comes from the public GitHub profile (read:user scope) and is
           // NULL when the user keeps it private.
           // Fail-open: never block OAuth because D1 upsert failed.
+          const existing = await db.execute({
+            sql: 'SELECT 1 FROM users WHERE id = ? LIMIT 1',
+            args: [account.providerAccountId],
+          });
+          const isNewUser = existing.rows.length === 0;
           await db.execute({
             sql: `INSERT INTO users (id, username, avatar_url, email) VALUES (?, ?, ?, ?)
                   ON CONFLICT(id) DO UPDATE SET
@@ -40,6 +46,12 @@ export const { handlers, auth } = NextAuth({
               user.email ?? null,
             ],
           });
+          if (isNewUser) {
+            await ping('signup', {
+              title: user.email ?? (profile as { login?: string })?.login ?? account.providerAccountId,
+              props: { githubId: account.providerAccountId, login: (profile as { login?: string })?.login ?? null },
+            });
+          }
         } catch (error) {
           console.error('Failed to upsert user:', error);
         }
