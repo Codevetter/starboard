@@ -69,7 +69,7 @@ describe('GET /api/discover', () => {
     );
 
     expect(response.status).toBe(200);
-    const mainQuery = mocks.execute.mock.calls[0]?.[0] as { sql: string; args: unknown[] };
+    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
     expect(mainQuery.sql).toContain('star_growth_30d DESC');
     expect(mainQuery.sql).toContain('repo_tools selected_tools');
     expect(mainQuery.args).toContain(JSON.stringify(['react']));
@@ -88,7 +88,7 @@ describe('GET /api/discover', () => {
     const response = await GET(new NextRequest('http://localhost/api/discover'));
 
     expect(response.status).toBe(200);
-    const mainQuery = mocks.execute.mock.calls[0]?.[0] as { sql: string; args: unknown[] };
+    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
     expect(mainQuery.args.slice(0, 2)).toEqual([null, null]);
 
     const batchedQueries = mocks.batch.mock.calls[0]?.[0] as Array<{
@@ -106,7 +106,7 @@ describe('GET /api/discover', () => {
     const response = await GET(new NextRequest('http://localhost/api/discover'));
 
     expect(response.status).toBe(200);
-    const mainQuery = mocks.execute.mock.calls[0]?.[0] as { sql: string; args: unknown[] };
+    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
     expect(mainQuery.args.slice(0, 2)).toEqual([null, null]);
     expect(warn).toHaveBeenCalledWith('Discover auth unavailable; serving guest response');
 
@@ -135,7 +135,7 @@ describe('GET /api/discover', () => {
 
     expect(response.status).toBe(200);
     expect(mocks.embed).toHaveBeenCalledWith(['vector database vector database']);
-    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
+    const mainQuery = mocks.execute.mock.calls[2]?.[0] as { sql: string; args: unknown[] };
     expect(mainQuery.sql).toContain('CASE r.id WHEN 2 THEN 0 WHEN 1 THEN 1');
     expect(mainQuery.args).toContain(JSON.stringify([2, 1]));
   });
@@ -147,7 +147,7 @@ describe('GET /api/discover', () => {
     const response = await GET(new NextRequest('http://localhost/api/discover?q=database'));
 
     expect(response.status).toBe(200);
-    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
+    const mainQuery = mocks.execute.mock.calls[2]?.[0] as { sql: string; args: unknown[] };
     expect(mainQuery.args).toContain(JSON.stringify([1]));
     expect(warn).toHaveBeenCalledWith(
       'Discover semantic retrieval unavailable; using lexical search',
@@ -157,9 +157,13 @@ describe('GET /api/discover', () => {
   });
 
   // Regression guard: the eligibility filter must use the index-friendly
-  // IN (UNION) form, not the OR EXISTS correlated subquery that forced
+  // UNION form, not the OR EXISTS correlated subquery that forced
   // O(|repos| × |user_repos|) row reads per request (the 500M-row burn).
   // See scripts/enrich-tools.ts loadPending for the same pattern.
+  //
+  // It must also be resolved exactly once per request (resolveEligibleRepoIds),
+  // not re-run inline in every downstream query — the earlier inline form
+  // repeated the UNION/dedupe across up to six statements per request.
   it('uses an index-friendly eligibility filter (no OR EXISTS anti-pattern)', async () => {
     await GET(new NextRequest('http://localhost/api/discover'));
 
@@ -168,8 +172,17 @@ describe('GET /api/discover', () => {
       return typeof arg === 'string' ? arg : (arg as { sql: string }).sql;
     });
     const allSql = calls.join('\n');
+    const unionOccurrences = allSql.match(/UNION\s+SELECT[\s\S]*?user_repos/gi) ?? [];
 
     expect(allSql).not.toMatch(/OR\s+EXISTS\s*\(/i);
-    expect(allSql).toMatch(/IN\s*\(\s*SELECT[\s\S]*UNION\s+SELECT[\s\S]*user_repos/i);
+    expect(unionOccurrences).toHaveLength(1);
+
+    const firstBatchCall = mocks.batch.mock.calls[0]?.[0] as
+      | Array<{ sql: string; args: unknown[] }>
+      | undefined;
+    const batchedQueries = (firstBatchCall ?? []).map((q) => q.sql);
+    for (const sql of [...calls.slice(1), ...batchedQueries]) {
+      expect(sql).toMatch(/IN\s*\(\s*SELECT\s+CAST\(value AS INTEGER\)\s+FROM\s+json_each/i);
+    }
   });
 });
