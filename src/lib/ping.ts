@@ -50,54 +50,76 @@ interface PingFn {
 
 const DEFAULT_URL = 'https://ingest.sassmaker.com/v1/logs';
 
+interface ResolvedConfig {
+  key: string | undefined;
+  url: string;
+  environment: string;
+}
+
 function readEnv(name: string): string | undefined {
   // `process` exists on Node and on Workers with nodejs_compat (OpenNext apps).
   const p = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
   return p?.env?.[name];
 }
 
+/** Explicit config wins; anything missing is read from the environment at call time. */
+function resolveConfig(config: PingConfig): ResolvedConfig {
+  return {
+    key: config.key ?? readEnv('APP_HEALTH_INGEST_KEY'),
+    url: config.url ?? readEnv('APP_HEALTH_LOGS_URL') ?? DEFAULT_URL,
+    environment: config.environment ?? readEnv('APP_HEALTH_ENVIRONMENT') ?? 'production',
+  };
+}
+
+function cleanProps(
+  props: Record<string, PingScalar> = {}
+): Record<string, Exclude<PingScalar, undefined>> {
+  const out: Record<string, Exclude<PingScalar, undefined>> = {};
+  for (const [key, value] of Object.entries(props)) {
+    if (value !== undefined) out[key] = value;
+  }
+  return out;
+}
+
+/** One LogBatchV1 holding a single log. */
+function buildBody(event: string, options: PingOptions, environment: string): string {
+  return JSON.stringify({
+    batch_id: crypto.randomUUID(),
+    schema_version: 'v1',
+    environment,
+    logs: [
+      {
+        log_id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        event,
+        level: options.level ?? 'info',
+        title: options.title,
+        description: options.description,
+        icon: options.icon,
+        props: cleanProps(options.props),
+      },
+    ],
+  });
+}
+
 /** Build a ping function bound to explicit config. Missing config is read from the environment at call time. */
 function createPing(config: PingConfig = {}): PingFn {
   const send = async (event: string, options: PingOptions = {}): Promise<boolean> => {
-    const key = config.key ?? readEnv('APP_HEALTH_INGEST_KEY');
+    const { key, url, environment } = resolveConfig(config);
     if (!key) return false;
-    const url = config.url ?? readEnv('APP_HEALTH_LOGS_URL') ?? DEFAULT_URL;
-    const environment = config.environment ?? readEnv('APP_HEALTH_ENVIRONMENT') ?? 'production';
     const fetchImpl = config.fetch ?? fetch;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), config.timeoutMs ?? 3000);
     try {
-      const props: Record<string, string | number | boolean | null> = {};
-      for (const [k, v] of Object.entries(options.props ?? {})) {
-        if (v !== undefined) props[k] = v;
-      }
       const res = await fetchImpl(url, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          batch_id: crypto.randomUUID(),
-          schema_version: 'v1',
-          environment,
-          logs: [
-            {
-              log_id: crypto.randomUUID(),
-              timestamp: Date.now(),
-              event,
-              level: options.level ?? 'info',
-              title: options.title,
-              description: options.description,
-              icon: options.icon,
-              props,
-            },
-          ],
-        }),
+        body: buildBody(event, options, environment),
         signal: controller.signal,
       });
-      if (!res.ok) {
-        config.onError?.(new Error(`ping ${event}: HTTP ${res.status}`));
-        return false;
-      }
-      return true;
+      if (res.ok) return true;
+      config.onError?.(new Error(`ping ${event}: HTTP ${res.status}`));
+      return false;
     } catch (err) {
       config.onError?.(err);
       return false;
