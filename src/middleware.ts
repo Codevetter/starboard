@@ -7,7 +7,9 @@ import { shouldFreezeWrite } from '@/lib/write-freeze';
 // Next 16's Node-only proxy.ts output. Migrating mechanically makes build:cf
 // fail before bundling, so the deprecation warning is currently intentional.
 export function middleware(request: NextRequest) {
-  if (shouldBlockScraper(request.nextUrl.pathname, request.headers.get('user-agent'))) {
+  if (
+    shouldBlockScraper(request.nextUrl.pathname, request.headers.get('user-agent'), request.headers)
+  ) {
     return new NextResponse('Automated clients are not permitted on this route.', {
       status: 403,
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
