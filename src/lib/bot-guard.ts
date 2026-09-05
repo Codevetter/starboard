@@ -50,7 +50,7 @@ export function isAutomationUserAgent(userAgent: string | null | undefined): boo
   return AUTOMATION_UA_RE.test(ua);
 }
 
-export function isKnownCrawler(userAgent: string | null | undefined): boolean {
+function isKnownCrawler(userAgent: string | null | undefined): boolean {
   return CRAWLER_UA_RE.test(userAgent ?? '');
 }
 
