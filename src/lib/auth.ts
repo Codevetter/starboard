@@ -4,6 +4,43 @@ import GitHub from 'next-auth/providers/github';
 import { db } from '@/db';
 import { ping } from '@/lib/ping';
 
+type GithubProfile = { login?: string } | undefined;
+
+async function isFirstSignIn(githubId: string): Promise<boolean> {
+  const existing = await db.execute({
+    sql: 'SELECT 1 FROM users WHERE id = ? LIMIT 1',
+    args: [githubId],
+  });
+  return existing.rows.length === 0;
+}
+
+async function upsertGithubUser(
+  githubId: string,
+  user: { image?: string | null; email?: string | null },
+  profile: GithubProfile
+): Promise<void> {
+  await db.execute({
+    sql: `INSERT INTO users (id, username, avatar_url, email) VALUES (?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            username = excluded.username,
+            avatar_url = excluded.avatar_url,
+            email = COALESCE(excluded.email, email)`,
+    args: [githubId, profile?.login ?? '', user.image ?? null, user.email ?? null],
+  });
+}
+
+/** App Health application log for a first GitHub sign-in. Fails open inside the client. */
+async function notifySignup(
+  githubId: string,
+  user: { email?: string | null },
+  profile: GithubProfile
+): Promise<void> {
+  await ping('signup', {
+    title: user.email ?? profile?.login ?? githubId,
+    props: { githubId, login: profile?.login ?? null },
+  });
+}
+
 export const { handlers, auth } = NextAuth({
   trustHost: true,
   // Branded surfaces instead of the stock Auth.js provider picker.
@@ -28,34 +65,9 @@ export const { handlers, auth } = NextAuth({
           // Email comes from the public GitHub profile (read:user scope) and is
           // NULL when the user keeps it private.
           // Fail-open: never block OAuth because D1 upsert failed.
-          const existing = await db.execute({
-            sql: 'SELECT 1 FROM users WHERE id = ? LIMIT 1',
-            args: [account.providerAccountId],
-          });
-          const isNewUser = existing.rows.length === 0;
-          await db.execute({
-            sql: `INSERT INTO users (id, username, avatar_url, email) VALUES (?, ?, ?, ?)
-                  ON CONFLICT(id) DO UPDATE SET
-                    username = excluded.username,
-                    avatar_url = excluded.avatar_url,
-                    email = COALESCE(excluded.email, email)`,
-            args: [
-              account.providerAccountId,
-              (profile as { login?: string })?.login ?? '',
-              user.image ?? null,
-              user.email ?? null,
-            ],
-          });
-          if (isNewUser) {
-            await ping('signup', {
-              title:
-                user.email ?? (profile as { login?: string })?.login ?? account.providerAccountId,
-              props: {
-                githubId: account.providerAccountId,
-                login: (profile as { login?: string })?.login ?? null,
-              },
-            });
-          }
+          const isNewUser = await isFirstSignIn(account.providerAccountId);
+          await upsertGithubUser(account.providerAccountId, user, profile);
+          if (isNewUser) await notifySignup(account.providerAccountId, user, profile);
         } catch (error) {
           console.error('Failed to upsert user:', error);
         }
