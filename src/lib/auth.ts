@@ -48,8 +48,12 @@ export const { handlers, auth } = NextAuth({
           });
           if (isNewUser) {
             await ping('signup', {
-              title: user.email ?? (profile as { login?: string })?.login ?? account.providerAccountId,
-              props: { githubId: account.providerAccountId, login: (profile as { login?: string })?.login ?? null },
+              title:
+                user.email ?? (profile as { login?: string })?.login ?? account.providerAccountId,
+              props: {
+                githubId: account.providerAccountId,
+                login: (profile as { login?: string })?.login ?? null,
+              },
             });
           }
         } catch (error) {

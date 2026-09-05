@@ -101,8 +101,10 @@ export function createPing(config: PingConfig = {}): PingFn {
       clearTimeout(timer);
     }
   };
-  const withLevel = (level: PingLevel) => (event: string, options: Omit<PingOptions, 'level'> = {}) =>
-    send(event, { ...options, level });
+  const withLevel =
+    (level: PingLevel) =>
+    (event: string, options: Omit<PingOptions, 'level'> = {}) =>
+      send(event, { ...options, level });
   return Object.assign(send, {
     debug: withLevel('debug'),
     info: withLevel('info'),
