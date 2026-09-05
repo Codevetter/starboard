@@ -50,12 +50,19 @@ export async function GET(request: NextRequest) {
   const scopeSql = scopeClause(scope, session.user.githubId, minStars);
 
   const result = await db.execute({
-    sql: `WITH recent AS (
+    sql: `WITH candidates AS (
+            SELECT r.id AS repo_id
+            FROM repos r
+            ${scopeSql.join}
+            WHERE ${scopeSql.where}
+          ),
+          recent AS (
             SELECT repo_id,
                    MIN(datetime(captured_at)) AS first_at,
                    MAX(datetime(captured_at)) AS last_at
             FROM repo_star_snapshots
-            WHERE datetime(captured_at) >= datetime('now', ?)
+            WHERE repo_id IN (SELECT repo_id FROM candidates)
+              AND datetime(captured_at) >= datetime('now', ?)
             GROUP BY repo_id
           ),
           first_rows AS (
@@ -90,12 +97,10 @@ export async function GET(request: NextRequest) {
           JOIN first_rows ON first_rows.repo_id = recent.repo_id
           JOIN last_rows ON last_rows.repo_id = recent.repo_id
           JOIN repos r ON r.id = recent.repo_id
-          ${scopeSql.join}
           WHERE last_rows.stargazers_count > first_rows.stargazers_count
-            AND ${scopeSql.where}
           ORDER BY stars_gained DESC, r.stargazers_count DESC
           LIMIT ?`,
-    args: [`-${days} days`, ...scopeSql.joinArgs, ...scopeSql.whereArgs, limit],
+    args: [...scopeSql.joinArgs, ...scopeSql.whereArgs, `-${days} days`, limit],
   });
 
   return NextResponse.json({

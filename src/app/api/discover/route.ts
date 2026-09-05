@@ -18,8 +18,23 @@ const SEMANTIC_DISTANCE_MAX = 0.7;
 // per repo (O(|repos| × |user_repos|) row reads per request). The IN (UNION)
 // form lets each branch use its own index (idx_repos_stars and
 // idx_user_repos_repo) and dedupes via UNION.
-const ELIGIBLE_REPO_SQL =
-  'r.id IN (SELECT r2.id FROM repos r2 WHERE r2.stargazers_count >= ? UNION SELECT community_ur.repo_id FROM user_repos community_ur WHERE community_ur.is_starred = 1)';
+//
+// A single /api/discover request fans this predicate out across up to six
+// separate statements (search, main, count, and three facet queries), so
+// resolving it inline in each one re-ran the UNION/dedupe that many times.
+// resolveEligibleRepoIds() runs it exactly once per request; every downstream
+// query then filters against the already-materialized id list via json_each.
+const ELIGIBLE_REPO_UNION_SQL =
+  'SELECT r2.id FROM repos r2 WHERE r2.stargazers_count >= ? UNION SELECT community_ur.repo_id FROM user_repos community_ur WHERE community_ur.is_starred = 1';
+const ELIGIBLE_REPO_SQL = 'r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))';
+
+async function resolveEligibleRepoIds(): Promise<string> {
+  const result = await db.execute({
+    sql: ELIGIBLE_REPO_UNION_SQL,
+    args: [MIN_STARS_FLOOR],
+  });
+  return JSON.stringify(result.rows.map((row) => row.id as number));
+}
 const STAR_GROWTH_30D_SQL = `CASE
   WHEN (SELECT COUNT(*) FROM repo_star_snapshots count_snapshots
         WHERE count_snapshots.repo_id = r.id
@@ -65,6 +80,7 @@ function parseDiscoverParams(params: URLSearchParams): DiscoverParams {
 
 async function resolveSearchIds(
   q: string,
+  eligibleIdsJson: string,
   whereClauses: string[],
   whereArgs: InValue[]
 ): Promise<number[] | null> {
@@ -90,7 +106,7 @@ async function resolveSearchIds(
               GROUP BY r.id
               ORDER BY best_rank ASC, r.stargazers_count DESC
               LIMIT 500`,
-          args: [lexicalQuery, lexicalQuery, MIN_STARS_FLOOR],
+          args: [lexicalQuery, lexicalQuery, eligibleIdsJson],
         })
         .then((result) => result.rows.map((r) => r.id as number))
     : Promise.resolve([] as number[]);
@@ -121,12 +137,27 @@ async function resolveSearchIds(
   return null;
 }
 
+function validateFilters(p: DiscoverParams, userId: bigint | null): NextResponse | null {
+  if (p.listId !== null) {
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required for list filters' },
+        { status: 401 }
+      );
+    }
+    if (!Number.isInteger(parseInt(p.listId, 10))) {
+      return NextResponse.json({ error: 'Invalid list_id' }, { status: 400 });
+    }
+  }
+  return null;
+}
+
 function applyFilters(
   p: DiscoverParams,
   userId: bigint | null,
   whereClauses: string[],
   whereArgs: InValue[]
-): NextResponse | null {
+): void {
   if (p.languages.length > 0) {
     whereClauses.push('r.language IN (SELECT CAST(value AS TEXT) FROM json_each(?))');
     whereArgs.push(JSON.stringify(p.languages));
@@ -144,23 +175,12 @@ function applyFilters(
   }
 
   if (p.listId !== null) {
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Authentication required for list filters' },
-        { status: 401 }
-      );
-    }
-    const parsedListId = parseInt(p.listId, 10);
-    if (!Number.isInteger(parsedListId)) {
-      return NextResponse.json({ error: 'Invalid list_id' }, { status: 400 });
-    }
     whereClauses.push(
       'EXISTS (SELECT 1 FROM user_repo_lists url WHERE url.user_id = ? AND url.repo_id = r.id AND url.list_id = ?)'
     );
     whereArgs.push(userId);
-    whereArgs.push(parsedListId);
+    whereArgs.push(parseInt(p.listId, 10));
   }
-  return null;
 }
 
 const ORDER_BY_MAP: Record<string, string> = {
@@ -180,14 +200,14 @@ function buildOrderBy(sort: string, rankedRepoIds: number[] | null): string {
   return ORDER_BY_MAP[sort] || ORDER_BY_MAP.stars;
 }
 
-function buildFacetQueries(userId: bigint | null): InStatement[] {
+function buildFacetQueries(userId: bigint | null, eligibleIdsJson: string): InStatement[] {
   const languageFacetQuery: InStatement = {
     sql: `SELECT r.language, COUNT(*) as count
           FROM repos r
           WHERE ${ELIGIBLE_REPO_SQL} AND r.language IS NOT NULL AND r.language != ''
           GROUP BY r.language
           ORDER BY count DESC`,
-    args: [MIN_STARS_FLOOR],
+    args: [eligibleIdsJson],
   };
 
   const listFacetQuery: InStatement = userId
@@ -199,7 +219,7 @@ function buildFacetQueries(userId: bigint | null): InStatement[] {
               WHERE ul.user_id = ?
               GROUP BY ul.id
               ORDER BY ul.position ASC`,
-        args: [MIN_STARS_FLOOR, userId],
+        args: [eligibleIdsJson, userId],
       }
     : {
         sql: 'SELECT NULL AS id, NULL AS name, NULL AS color, 0 AS count WHERE 0 = 1',
@@ -214,7 +234,7 @@ function buildFacetQueries(userId: bigint | null): InStatement[] {
           GROUP BY rt.tool_key, rt.tool_name
           ORDER BY count DESC, rt.tool_name ASC
           LIMIT 40`,
-    args: [MIN_STARS_FLOOR],
+    args: [eligibleIdsJson],
   };
 
   return [languageFacetQuery, listFacetQuery, toolFacetQuery];
@@ -251,16 +271,20 @@ export async function GET(request: NextRequest) {
   const userId = session?.user?.githubId ?? null;
   const p = parseDiscoverParams(request.nextUrl.searchParams);
 
+  const filterError = validateFilters(p, userId);
+  if (filterError) return filterError;
+
+  const eligibleIdsJson = await resolveEligibleRepoIds();
+
   const whereClauses: string[] = [ELIGIBLE_REPO_SQL];
-  const whereArgs: InValue[] = [MIN_STARS_FLOOR];
+  const whereArgs: InValue[] = [eligibleIdsJson];
 
   let rankedRepoIds: number[] | null = null;
   if (p.q) {
-    rankedRepoIds = await resolveSearchIds(p.q, whereClauses, whereArgs);
+    rankedRepoIds = await resolveSearchIds(p.q, eligibleIdsJson, whereClauses, whereArgs);
   }
 
-  const filterError = applyFilters(p, userId, whereClauses, whereArgs);
-  if (filterError) return filterError;
+  applyFilters(p, userId, whereClauses, whereArgs);
 
   const whereSQL = whereClauses.join(' AND ');
   const orderBy = buildOrderBy(p.sort, rankedRepoIds);
@@ -295,7 +319,10 @@ export async function GET(request: NextRequest) {
       args: [userId, ...whereArgs],
     };
 
-    const [languageFacetQuery, listFacetQuery, toolFacetQuery] = buildFacetQueries(userId);
+    const [languageFacetQuery, listFacetQuery, toolFacetQuery] = buildFacetQueries(
+      userId,
+      eligibleIdsJson
+    );
 
     const [mainResult, batchResults] = await Promise.all([
       db.execute(mainQuery),
