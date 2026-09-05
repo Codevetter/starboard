@@ -1,10 +1,13 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type Profile } from 'next-auth';
 import GitHub from 'next-auth/providers/github';
 
 import { db } from '@/db';
 import { ping } from '@/lib/ping';
 
-type GithubProfile = { login?: string } | undefined;
+type GithubProfile = Profile | undefined;
+
+const githubLogin = (profile: GithubProfile): string | undefined =>
+  (profile as { login?: string } | undefined)?.login;
 
 async function isFirstSignIn(githubId: string): Promise<boolean> {
   const existing = await db.execute({
@@ -25,7 +28,7 @@ async function upsertGithubUser(
             username = excluded.username,
             avatar_url = excluded.avatar_url,
             email = COALESCE(excluded.email, email)`,
-    args: [githubId, profile?.login ?? '', user.image ?? null, user.email ?? null],
+    args: [githubId, githubLogin(profile) ?? '', user.image ?? null, user.email ?? null],
   });
 }
 
@@ -36,8 +39,8 @@ async function notifySignup(
   profile: GithubProfile
 ): Promise<void> {
   await ping('signup', {
-    title: user.email ?? profile?.login ?? githubId,
-    props: { githubId, login: profile?.login ?? null },
+    title: user.email ?? githubLogin(profile) ?? githubId,
+    props: { githubId, login: githubLogin(profile) ?? null },
   });
 }
 
