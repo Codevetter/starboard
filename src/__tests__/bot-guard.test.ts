@@ -23,7 +23,9 @@ describe('bot-guard', () => {
   it('identifies the observed scraper and common automation clients', () => {
     expect(isAutomationUserAgent('Lightpanda/1.0')).toBe(true);
     expect(isAutomationUserAgent('python-requests/2.32')).toBe(true);
-    expect(isAutomationUserAgent('Mozilla/5.0 (X11; Linux x86_64) HeadlessChrome/120.0.0.0')).toBe(true);
+    expect(isAutomationUserAgent('Mozilla/5.0 (X11; Linux x86_64) HeadlessChrome/120.0.0.0')).toBe(
+      true
+    );
     expect(isAutomationUserAgent('')).toBe(true);
     expect(isAutomationUserAgent(null)).toBe(true);
   });
@@ -32,7 +34,9 @@ describe('bot-guard', () => {
     expect(isAutomationUserAgent(CHROME)).toBe(false);
     expect(isAutomationUserAgent(GOOGLEBOT)).toBe(false);
     expect(isAutomationUserAgent(BINGBOT)).toBe(false);
-    expect(isAutomationUserAgent('Mozilla/5.0 (Windows NT 10.0; rv:121.0) Gecko/20100101 Firefox/121.0')).toBe(false);
+    expect(
+      isAutomationUserAgent('Mozilla/5.0 (Windows NT 10.0; rv:121.0) Gecko/20100101 Firefox/121.0')
+    ).toBe(false);
   });
 
   it('blocks only when both the path and the agent match', () => {

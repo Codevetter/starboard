@@ -33,6 +33,9 @@ export function isAutomationUserAgent(userAgent: string | null | undefined): boo
 /**
  * True when the request should be refused with 403 before it reaches Next.js.
  */
-export function shouldBlockScraper(pathname: string, userAgent: string | null | undefined): boolean {
+export function shouldBlockScraper(
+  pathname: string,
+  userAgent: string | null | undefined
+): boolean {
   return isGuardedPath(pathname) && isAutomationUserAgent(userAgent);
 }
