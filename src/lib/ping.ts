@@ -10,15 +10,19 @@
 // it is safe to merge before the key exists. On Node servers with steady
 // traffic prefer the batching SDK: `appHealth.log()` in @saas-maker/app-health.
 //
+// Export surface: apps import either `ping` (env-driven) or `createPing`
+// (explicit config). Fleet repos run knip in strict mode, so after copying,
+// delete whichever of the two your app does not import.
+//
 // Environment:
 //   APP_HEALTH_INGEST_KEY    product ingest key (secret)
 //   APP_HEALTH_ENVIRONMENT   environment name the key routes to (default production)
 //   APP_HEALTH_LOGS_URL      override the endpoint (default https://ingest.sassmaker.com/v1/logs)
 
-export type PingLevel = 'debug' | 'info' | 'warn' | 'error';
-export type PingScalar = string | number | boolean | null | undefined;
+type PingLevel = 'debug' | 'info' | 'warn' | 'error';
+type PingScalar = string | number | boolean | null | undefined;
 
-export interface PingOptions {
+interface PingOptions {
   /** debug | info | warn | error. Default info. */
   level?: PingLevel;
   title?: string;
@@ -27,7 +31,7 @@ export interface PingOptions {
   props?: Record<string, PingScalar>;
 }
 
-export interface PingConfig {
+interface PingConfig {
   key?: string;
   environment?: string;
   url?: string;
@@ -36,7 +40,7 @@ export interface PingConfig {
   onError?: (err: unknown) => void;
 }
 
-export interface PingFn {
+interface PingFn {
   (event: string, options?: PingOptions): Promise<boolean>;
   debug: (event: string, options?: Omit<PingOptions, 'level'>) => Promise<boolean>;
   info: (event: string, options?: Omit<PingOptions, 'level'>) => Promise<boolean>;
@@ -53,7 +57,7 @@ function readEnv(name: string): string | undefined {
 }
 
 /** Build a ping function bound to explicit config. Missing config is read from the environment at call time. */
-export function createPing(config: PingConfig = {}): PingFn {
+function createPing(config: PingConfig = {}): PingFn {
   const send = async (event: string, options: PingOptions = {}): Promise<boolean> => {
     const key = config.key ?? readEnv('APP_HEALTH_INGEST_KEY');
     if (!key) return false;
