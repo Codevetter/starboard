@@ -188,3 +188,14 @@ This historical task ledger is retained for context; current work lives in this 
 | `14253981` starboard: add paid weekly intelligence digest preview (removed 2026-08-08) | done | high | 2026-05-26 |
 | `ec12eae5` starboard: add paid weekly action preview (removed 2026-08-08) | done | medium | 2026-05-27 |
 <!-- ACTIVE-AI-TASK-LOG:END -->
+
+<!-- portfolio-retained-work:2026-09-07 -->
+## Retained work from the portfolio review
+
+These are unresolved requirements retained at the owner’s request. They are not completed features. Work should follow a concrete need and fresh evidence.
+
+### Scheduled seed run failed
+
+Investigate the failing scheduled seed receipt and verify a successful scheduled run, freshness and bounded ingestion.
+
+Original requirements and discussion: [#107](https://github.com/Codevetter/starboard/issues/107).
