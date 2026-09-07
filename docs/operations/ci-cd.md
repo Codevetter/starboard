@@ -38,7 +38,7 @@ in [jobs.md](jobs.md); this page covers the push/PR and deploy pipelines.
 ## Cloudflare operator smoke (`.github/workflows/cloudflare-operator-smoke.yml`)
 
 - **Trigger:** `workflow_dispatch` only.
-- **Steps:** read-only D1 API check → authenticated Worker probe of its D1 and
+- **Steps:** require `STARBOARD_OPERATOR_TOKEN` → read-only D1 API check → authenticated Worker probe of its D1 and
   Vectorize bindings.
 - Keeps Vectorize API credentials out of GitHub while still proving the live
   binding path used by embedding jobs.

@@ -21,6 +21,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Require operator token before remote work
+        run: node scripts/check-operator-token.mjs
+        env:
+          STARBOARD_OPERATOR_TOKEN: ${{ secrets.STARBOARD_OPERATOR_TOKEN }}
+
       - uses: pnpm/action-setup@v6
         with:
           run_install: false
@@ -47,7 +52,7 @@ jobs:
             "$EMBED_LIMIT" > "$request_file"
           curl --fail-with-body --silent --show-error --retry 3 --retry-delay 5 \
             --max-time 900 --request POST \
-            --header "Authorization: Bearer ${AI_GATEWAY_API_KEY}" \
+            --header "Authorization: Bearer ${STARBOARD_OPERATOR_TOKEN}" \
             --header 'Content-Type: application/json' \
             --data-binary "@$request_file" \
             --output "$response_file" \
@@ -55,5 +60,5 @@ jobs:
           node -e 'const fs=require("fs"); const r=JSON.parse(fs.readFileSync(process.argv[1], "utf8")); console.log(`Embedded ${r.embedded}; ${r.remaining} remaining`)' \
             "$response_file"
         env:
-          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          STARBOARD_OPERATOR_TOKEN: ${{ secrets.STARBOARD_OPERATOR_TOKEN }}
           EMBED_LIMIT: ${{ github.event.inputs.embed_limit || '3000' }}

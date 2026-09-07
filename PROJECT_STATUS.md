@@ -63,7 +63,7 @@ provenance. The workflow is free and has no billing or entitlement gate.
 |---------|--------|
 | Hosting | Cloudflare Worker `starboard` via OpenNext |
 | Database | Cloudflare D1 `starboard` — apply ordered schema with `pnpm db:migrate:remote` |
-| Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`; `AI_GATEWAY_API_KEY` for authenticated operator jobs; `RAG_SERVICE_KEY` for relevance RAG. Any legacy unused `TURSO_*` bindings are separate credential-cleanup work. |
+| Secrets | `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`; `STARBOARD_OPERATOR_TOKEN` for authenticated operator jobs; `AI_GATEWAY_API_KEY` only for HTTP AI gateway calls; `RAG_SERVICE_KEY` for relevance RAG. Any legacy unused `TURSO_*` bindings are separate credential-cleanup work. |
 | Embedding model | `@cf/baai/bge-base-en-v1.5` — change model, dimension, and replacement Vectorize index together |
 | Project connections | Additive `0003_user_projects.sql`; remote migration requires explicit approval before application rollout |
 | Data refresh jobs | Weekly complete additions-only `seed-popular` at Sunday 03:17 UTC plus manual seed/enrich/embed dispatches |

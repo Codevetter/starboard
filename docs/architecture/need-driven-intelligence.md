@@ -53,9 +53,9 @@ Connected project
   reports. Pass `?run=1` to trigger a deterministic pipeline run if no report
   exists. Never triggers external-agent spend.
 - `POST /api/internal/project-intelligence/run` — operator-only pipeline run
-  for a specific project. Requires `AI_GATEWAY_API_KEY` bearer token.
+  for a specific project. Requires `STARBOARD_OPERATOR_TOKEN` bearer token.
 - `POST /api/internal/external-reviews/ingest` — operator-only review result
-  ingestion. Idempotent via idempotency key. Requires `AI_GATEWAY_API_KEY`.
+  ingestion. Idempotent via idempotency key. Requires `STARBOARD_OPERATOR_TOKEN`.
 
 ## Database tables
 

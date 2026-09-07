@@ -196,6 +196,14 @@ These are unresolved requirements retained at the owner’s request. They are no
 
 ### Scheduled seed run failed
 
-Investigate the failing scheduled seed receipt and verify a successful scheduled run, freshness and bounded ingestion.
+The source credential mismatch is repaired: operator workflows use
+`STARBOARD_OPERATOR_TOKEN`, with a preflight before migrations or seeding.
+Local tests prove that the gateway key is rejected before data/embedding work
+and that the dedicated token reaches the binding probe. Repository secret-name
+metadata did not show the operator token; no secret was provisioned or read.
+[Provisioning and recovery](docs/operations/env.md#operator-credential-recovery-gate)
+remain separate authorized work. Keep the alert open until a successful scheduled
+run verifies embedding, enrichment, freshness and bounded ingestion. No production
+job was rerun and no recovery is claimed from source CI.
 
 Original requirements and discussion: [#107](https://github.com/Codevetter/starboard/issues/107).

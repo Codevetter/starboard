@@ -14,7 +14,8 @@ annotates intent, inputs, and dependencies.
   false`, so seed and standalone backfill cannot duplicate embedding work.
 - **Timeout:** 60 minutes.
 - **Steps:**
-  1. `pnpm db:migrate:remote` (approval-gated D1 migrations).
+  1. Require `STARBOARD_OPERATOR_TOKEN` before remote work, then
+     `pnpm db:migrate:remote` (approval-gated D1 migrations).
   2. `pnpm db:seed-popular` (`scripts/seed-popular.ts`) — completely enumerate
      GitHub Search repos ≥ `MIN_STARS_FLOOR=5000` through non-overlapping
      creation-date partitions that each fit one response; compare the resulting
@@ -27,8 +28,8 @@ annotates intent, inputs, and dependencies.
      tool detection → `repo_tools`. `TOOL_MIN_STARS=10000`,
      `TOOL_ENRICH_HARD_LIMIT=750`.
 - **Credentials:** scoped D1 `CLOUDFLARE_API_TOKEN`, non-secret
-  account/database variables, and the existing AI gateway key as the Worker
-  operator bearer. GitHub does not receive Vectorize API access.
+  account/database variables, and dedicated `STARBOARD_OPERATOR_TOKEN` as the
+  Worker operator bearer. GitHub does not receive Vectorize API access.
 - **Completeness controls:** any `incomplete_results`, duplicate identity,
   truncated date partition, source-count drift, or unique-ID mismatch fails the
   run before D1 writes. Root source counts are checked before and after the walk.
@@ -64,10 +65,24 @@ annotates intent, inputs, and dependencies.
 - **Concurrency:** shared group `starboard-embedding`, `cancel-in-progress:
   false`.
 - **Timeout:** 30 minutes.
-- **Steps:** `pnpm db:migrate:remote` → authenticated Worker operator request
+- **Steps:** require `STARBOARD_OPERATOR_TOKEN` → `pnpm db:migrate:remote` → authenticated Worker operator request
   (backfill through native Workers AI, Vectorize, and D1 bindings).
-- **Credentials:** scoped D1 migration token + the existing AI gateway key as
+- **Credentials:** scoped D1 migration token + dedicated `STARBOARD_OPERATOR_TOKEN` as
   the Worker operator bearer. GitHub does not receive Vectorize API access.
+
+## Current recovery gate
+
+The 2026-09-06 scheduled [run](https://github.com/Codevetter/starboard/actions/runs/34020569401)
+completed migrations and repository seeding, then received HTTP 401 at the
+embedding step; tool enrichment was skipped. The workflow sent the AI gateway
+key while the route required the dedicated operator token. Source now uses the
+correct credential contract and fails before remote work when it is missing.
+
+See [operator credential recovery](env.md#operator-credential-recovery-gate)
+for the separate provisioning requirement. Keep
+[#107](https://github.com/Codevetter/starboard/issues/107) open until a successful
+scheduled run records embedding, enrichment and bounded freshness evidence.
+Do not rerun migrations or production jobs merely to validate the source fix.
 
 ## Cloudflare Workers scheduled triggers
 

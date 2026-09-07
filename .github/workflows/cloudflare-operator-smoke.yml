@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Require operator token before remote work
+        run: node scripts/check-operator-token.mjs
+        env:
+          STARBOARD_OPERATOR_TOKEN: ${{ secrets.STARBOARD_OPERATOR_TOKEN }}
+
       - uses: pnpm/action-setup@v6
         with:
           run_install: false
@@ -36,7 +41,7 @@ jobs:
       - name: Verify Worker D1 and Vectorize bindings
         run: >-
           curl --fail --silent --show-error --retry 3 --retry-delay 5 --max-time 30
-          --header "Authorization: Bearer ${AI_GATEWAY_API_KEY}"
+          --header "Authorization: Bearer ${STARBOARD_OPERATOR_TOKEN}"
           https://starboard.codevetter.com/api/internal/embed-pending > /dev/null
         env:
-          AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+          STARBOARD_OPERATOR_TOKEN: ${{ secrets.STARBOARD_OPERATOR_TOKEN }}
