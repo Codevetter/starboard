@@ -98,7 +98,7 @@ export function ProjectRecommendationCard({
   }
 
   return (
-    <Card className="rounded-lg py-4 shadow-none">
+    <Card className="min-w-0 rounded-lg py-4 shadow-none">
       <CardHeader className="gap-3 px-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -178,7 +178,7 @@ export function GroundedToolRecommendationCard({
   const signal = toolSignal(recommendation);
 
   return (
-    <Card className="rounded-lg py-4 shadow-none">
+    <Card className="min-w-0 rounded-lg py-4 shadow-none">
       <CardHeader className="gap-2 px-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>

@@ -367,7 +367,7 @@ function RecommendationsSection({
         </div>
       )}
       {recommendations && recommendations.similarProjects.length > 0 && (
-        <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
           {(showAllPeers
             ? recommendations.similarProjects
             : recommendations.similarProjects.slice(0, 3)
@@ -497,7 +497,7 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
               No additional tools are grounded strongly enough yet.
             </div>
           ) : (
-            <div className="mt-4 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
               {recommendations.recommendedTools.map((recommendation, index) => (
                 <GroundedToolRecommendationCard
                   key={recommendation.key}
