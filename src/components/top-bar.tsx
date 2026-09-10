@@ -436,7 +436,7 @@ export function TopBar(props: TopBarProps) {
         <UserMenu session={session} userAvatar={userAvatar} />
       ) : (
         <Button asChild size="sm" className="shrink-0">
-          <Link href="/">Connect GitHub</Link>
+          <Link href="/login">Connect GitHub</Link>
         </Button>
       )}
     </header>
