@@ -19,18 +19,11 @@ const canonicalUrl = new URL(canonicalPath(Astro.url.pathname), SITE_URL).href;
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 const structuredData = {
   '@context': 'https://schema.org',
-  '@type': 'WebApplication',
+  '@type': 'WebSite',
   name: 'Starboard',
   url: SITE_URL,
   description,
-  applicationCategory: 'DeveloperApplication',
-  operatingSystem: 'Web Browser',
   isAccessibleForFree: true,
-  offers: {
-    '@type': 'Offer',
-    price: '0',
-    priceCurrency: 'USD',
-  },
   creator: {
     '@type': 'Person',
     name: 'Sarthak Agrawal',
