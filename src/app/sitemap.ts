@@ -1,21 +1,14 @@
-import { existsSync, readdirSync } from 'node:fs';
-import path from 'node:path';
-
 import type { MetadataRoute } from 'next';
 
+import { PUBLISHED_ARTICLE_SLUGS } from '@/data/published-articles';
 import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
 
 export const dynamic = 'force-static';
 
-// Article pages are Astro markdown files under landing-astro; enumerate them
-// at build time so the sitemap tracks published posts without a second list.
-const articleDir = path.join(process.cwd(), 'landing-astro', 'src', 'pages', 'articles');
-const articlePaths = existsSync(articleDir)
-  ? readdirSync(articleDir)
-      .filter((file) => file.endsWith('.md'))
-      .sort()
-      .map((file) => `/articles/${file.replace(/\.md$/, '')}`)
-  : [];
+// Article slugs come from a generated manifest (emitted by
+// landing-astro/scripts/sync-articles.mjs) — filesystem enumeration cannot
+// run inside the deployed Worker.
+const articlePaths = PUBLISHED_ARTICLE_SLUGS.map((slug) => `/articles/${slug}`);
 
 const siteUrl = 'https://starboard.codevetter.com';
 
