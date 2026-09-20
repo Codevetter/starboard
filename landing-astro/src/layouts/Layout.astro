@@ -7,9 +7,13 @@ import { canonicalPath } from '@/lib/canonical';
 interface Props {
   title: string;
   description: string;
+  /** Defaults to the site-wide WebSite schema; articles pass BlogPosting. */
+  structuredData?: Record<string, unknown>;
+  /** Defaults to `${pathname}.md`; override for index routes like /articles. */
+  markdownPath?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description, markdownPath } = Astro.props;
 
 const SITE_URL = 'https://starboard.codevetter.com';
 const canonicalUrl = new URL(canonicalPath(Astro.url.pathname), SITE_URL).href;
@@ -17,7 +21,7 @@ const canonicalUrl = new URL(canonicalPath(Astro.url.pathname), SITE_URL).href;
 // convention → dynamic JSX → PNG). The single-Worker overlay keeps that
 // route on the OpenNext side, so this URL still resolves.
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
-const structuredData = {
+const structuredData = Astro.props.structuredData ?? {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Starboard',
@@ -51,7 +55,7 @@ const structuredData = {
     <link
       rel="alternate"
       type="text/markdown"
-      href={new URL(Astro.url.pathname === '/' ? '/index.md' : `${Astro.url.pathname}.md`, SITE_URL)}
+      href={new URL(markdownPath ?? (Astro.url.pathname === '/' ? '/index.md' : `${Astro.url.pathname}.md`), SITE_URL)}
     />
     <link rel="alternate" type="text/plain" href={new URL('/llms.txt', SITE_URL)} />
 

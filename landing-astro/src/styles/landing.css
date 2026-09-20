@@ -1009,3 +1009,61 @@ main,
     transform: none;
   }
 }
+
+/* Article pages (markdown bodies rendered by layouts/Article.astro) */
+.article-body {
+  padding: 40px 0 56px;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: var(--ink);
+}
+
+.article-body h2 {
+  margin: 56px 0 0;
+  font-family: var(--serif);
+  font-size: 1.9rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.article-body h3 {
+  margin: 36px 0 0;
+  font-size: 1.15rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.article-body p,
+.article-body ul,
+.article-body ol {
+  margin: 18px 0 0;
+}
+
+.article-body ul,
+.article-body ol {
+  padding-left: 1.4rem;
+}
+
+.article-body li {
+  margin-top: 8px;
+}
+
+.article-body a {
+  color: var(--navy);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.article-body code {
+  padding: 2px 6px;
+  border: 1px solid var(--soft-rule);
+  border-radius: 5px;
+  background: var(--paper-raised);
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.85em;
+}
+
+.article-body strong {
+  font-weight: 650;
+}

@@ -1,3 +1,6 @@
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import sitemap from '@/app/sitemap';
@@ -5,6 +8,17 @@ import { PUBLIC_CANONICALS, PUBLIC_CANONICAL_PATHS } from '@/lib/public-canonica
 import { canonicalPath } from '../../landing-astro/src/lib/canonical';
 
 const siteUrl = 'https://starboard.codevetter.com';
+
+// Article routes are generated from landing-astro markdown pages; mirror the
+// enumeration sitemap.ts performs so the contract covers them without
+// duplicating a list.
+const articleDir = path.join(process.cwd(), 'landing-astro', 'src', 'pages', 'articles');
+const articlePaths = existsSync(articleDir)
+  ? readdirSync(articleDir)
+      .filter((file) => file.endsWith('.md'))
+      .sort()
+      .map((file) => `/articles/${file.replace(/\.md$/, '')}`)
+  : [];
 
 describe('sitemap / canonical contract', () => {
   it('advertises only real public routes in canonical order', () => {
@@ -15,6 +29,8 @@ describe('sitemap / canonical contract', () => {
       `${siteUrl}/tools`,
       `${siteUrl}/catalog-updates`,
       `${siteUrl}/changelog`,
+      `${siteUrl}/articles`,
+      ...articlePaths.map((articlePath) => `${siteUrl}${articlePath}`),
       `${siteUrl}/about`,
       `${siteUrl}/privacy`,
       `${siteUrl}/terms`,
@@ -24,8 +40,9 @@ describe('sitemap / canonical contract', () => {
   it('gives every sitemap URL an exact, extensionless self-canonical', () => {
     // Every sitemap pathname must be a registered canonical, and every
     // registered canonical must appear in the sitemap — no drift either way.
+    // Dynamic article routes join the registered static canonicals here.
     const sitemapPaths = sitemap().map((entry) => new URL(entry.url).pathname);
-    expect(sitemapPaths.sort()).toEqual([...PUBLIC_CANONICAL_PATHS].sort());
+    expect(sitemapPaths.sort()).toEqual([...PUBLIC_CANONICAL_PATHS, ...articlePaths].sort());
 
     // Each canonical is self-referential and carries no file extension.
     for (const path of PUBLIC_CANONICAL_PATHS) {

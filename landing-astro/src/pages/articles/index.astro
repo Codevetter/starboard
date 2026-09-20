@@ -1,0 +1,83 @@
+---
+import ProductFooter from '@/components/ProductFooter.astro';
+import Layout from '@/layouts/Layout.astro';
+
+interface ArticleFrontmatter {
+  title: string;
+  description: string;
+  date: string;
+  readingMinutes: number;
+}
+
+const articles = Object.entries(
+  import.meta.glob<{ frontmatter: ArticleFrontmatter }>('./*.md', {
+    eager: true,
+  }),
+)
+  .map(([file, mod]) => ({
+    href: `/articles/${file.replace(/^\.\//, '').replace(/\.md$/, '')}`,
+    title: mod.frontmatter.title,
+    description: mod.frontmatter.description,
+    date: mod.frontmatter.date,
+    readingMinutes: mod.frontmatter.readingMinutes,
+  }))
+  .sort(
+    (a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title),
+  );
+---
+
+<Layout
+  title="Articles — Starboard"
+  description="Guides on evaluating GitHub repositories, reading tool signals, and choosing open-source dependencies."
+  markdownPath="/articles.md"
+>
+  <div class="min-h-svh bg-background text-foreground">
+    <main
+      class="mx-auto w-full max-w-4xl px-5 py-12 sm:px-6 sm:py-20"
+      style="font-family: var(--font-geist-sans);"
+    >
+      <a
+        href="/"
+        class="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        ← Starboard
+      </a>
+
+      <header class="mt-8 border-b pb-10">
+        <p class="font-mono text-xs uppercase tracking-[0.16em] text-primary">Articles</p>
+        <h1 class="mt-3 text-balance text-4xl font-bold tracking-tight sm:text-6xl">
+          Reading repositories well
+        </h1>
+        <p class="mt-5 max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
+          Practical guides on evaluating open-source projects, reading tool signals,
+          and choosing dependencies with evidence instead of stars alone.
+        </p>
+      </header>
+
+      <section class="divide-y" aria-label="Published articles">
+        {articles.map((article) => (
+          <article class="grid gap-4 py-8 sm:grid-cols-[8.5rem_minmax(0,1fr)] sm:gap-8">
+            <time
+              datetime={article.date}
+              class="pt-1 font-mono text-xs uppercase tracking-[0.12em] text-primary"
+            >
+              {article.date}
+            </time>
+            <div>
+              <h2 class="text-xl font-semibold tracking-tight sm:text-2xl">
+                <a href={article.href} class="underline-offset-4 hover:underline">{article.title}</a>
+              </h2>
+              <p class="mt-3 text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
+                {article.description}
+              </p>
+              <p class="mt-3 font-mono text-xs text-muted-foreground">
+                {article.readingMinutes} min read
+              </p>
+            </div>
+          </article>
+        ))}
+      </section>
+    </main>
+    <ProductFooter />
+  </div>
+</Layout>
