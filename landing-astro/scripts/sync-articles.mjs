@@ -22,7 +22,9 @@ if (!draftsDir) {
 const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const HEADING = /^#{1,4} /;
 const SKIP_HEADING = /^(outline|internal[- ]link\w*|source notes)\b/i;
-const INLINE_NOTE = /\*?\[Internal Link Suggestions?:[^\]]*\]\*?/gi;
+const INLINE_NOTE = /\*?\[Internal[- ]Link\s*Suggestions?:[^\]]*\]\*?/gi;
+const INLINE_NOTE_LINE = /^[ \t]*\*?[([]?\s*Internal[- ]Link\s*Suggestions?:.*[)\]*]?[ \t]*$/gim;
+const DRAFT_COMMENT = /<!--[\s\S]*?(?:source notes|do not publish)[\s\S]*?-->/gi;
 const today = new Date().toISOString().slice(0, 10);
 const outDir = new URL('../src/pages/articles/', import.meta.url).pathname;
 
@@ -66,6 +68,8 @@ const stripWorkingSections = (body) => {
   }
   return kept
     .join('\n')
+    .replace(DRAFT_COMMENT, '')
+    .replace(INLINE_NOTE_LINE, '')
     .replace(INLINE_NOTE, '')
     .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')

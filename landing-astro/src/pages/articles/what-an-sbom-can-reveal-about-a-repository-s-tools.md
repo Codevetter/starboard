@@ -4,7 +4,7 @@ title: "What an SBOM can reveal about a repository's tools"
 description: "Discover how Software Bill of Materials (SBOMs) provide concrete evidence of the tools, frameworks, and dependencies used within open-source repositories."
 date: "2026-09-20"
 author: "Sarthak Agrawal"
-readingMinutes: 8
+readingMinutes: 7
 ---
 
 ## Introduction: The gap between claims and reality in open source
@@ -14,8 +14,6 @@ When evaluating open-source projects, understanding the actual stack of a reposi
 To bridge this gap, developers need concrete evidence. This is where a Software Bill of Materials (SBOM) and package manifests become invaluable. By inspecting these structural files, we can extract a highly accurate picture of the tools, frameworks, and dependencies that genuinely drive a project.
 
 The distinction is important. In the dynamic world of software development, marketing materials, readme files, and general documentation often lag behind the actual state of the codebase. A repository might claim to have transitioned to a new build system or deprecated a legacy framework, but without inspecting the structural dependency graph, developers are simply taking the documentation's word for it. This reliance on potentially stale human-written text introduces friction and risk when trying to match open-source tools to your own internal projects.
-
-*Internal link suggestion: Link "match open-source tools to your own internal projects" to the `/projects` page or documentation detailing Starboard's project-aware discovery.*
 
 ## What is an SBOM?
 
@@ -36,8 +34,6 @@ This deep visibility is essential when you are trying to understand if a reposit
 For example, if an SBOM explicitly lists `@cloudflare/workers-types`, there is high confidence that the repository interacts with the Cloudflare Workers ecosystem, regardless of whether the README mentions it.
 
 This level of granular detail allows for more sophisticated evaluation. Instead of simply knowing a project uses "JavaScript," an SBOM can tell you it relies heavily on specific modern tooling or, conversely, is stuck on older, deprecated libraries that the maintainers haven't yet refactored away from. This is vital intelligence when you are attempting to build a long-term, maintainable software stack and need to ensure the open-source components you adopt share similar architectural philosophies and dependency profiles.
-
-*Internal link suggestion: Link "tool intelligence systems" to the `/tools` page or documentation regarding Starboard's Tool Intelligence feature.*
 
 ## Comparing evidence: SBOMs vs. Manifests vs. READMEs
 
@@ -79,12 +75,8 @@ Because accuracy varies by ecosystem—especially concerning those tricky C/C++ 
 
 This aggregation transforms how developers navigate the open-source landscape. Instead of searching for repositories that simply mention a framework, developers can search for repositories that provably use it. This allows for the discovery of reference implementations, the identification of popular architectural patterns, and a deeper understanding of how the broader community is combining different tools and frameworks to solve real-world problems.
 
-*Internal link suggestion: Link "explore detected tools in Starboard" to the `/discover` page to encourage users to explore the seeded public repository corpus.*
-
 ## Conclusion & Next Action
 
 An SBOM is more than a security compliance checklist; it is the ground truth of a repository's stack. By prioritizing structural evidence like SBOMs and package manifests over human-written summaries, developers can make more informed decisions about which open-source projects to adopt or reference.
 
 Stop guessing what tools your starred repositories are actually using. Connect your GitHub account to Starboard to unlock project-aware discovery and explore the evidence-backed Tool Intelligence of your personal library.
-
-*Internal link suggestion: Link "Connect your GitHub account to Starboard" to the sign-in or GitHub OAuth connection flow.*
