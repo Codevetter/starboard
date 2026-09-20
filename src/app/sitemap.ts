@@ -1,8 +1,21 @@
+import { existsSync, readdirSync } from 'node:fs';
+import path from 'node:path';
+
 import type { MetadataRoute } from 'next';
 
 import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
 
 export const dynamic = 'force-static';
+
+// Article pages are Astro markdown files under landing-astro; enumerate them
+// at build time so the sitemap tracks published posts without a second list.
+const articleDir = path.join(process.cwd(), 'landing-astro', 'src', 'pages', 'articles');
+const articlePaths = existsSync(articleDir)
+  ? readdirSync(articleDir)
+      .filter((file) => file.endsWith('.md'))
+      .sort()
+      .map((file) => `/articles/${file.replace(/\.md$/, '')}`)
+  : [];
 
 const siteUrl = 'https://starboard.codevetter.com';
 
@@ -19,6 +32,12 @@ const routeMeta: {
   { path: PUBLIC_CANONICALS.tools, changeFrequency: 'weekly', priority: 0.9 },
   { path: PUBLIC_CANONICALS.catalogUpdates, changeFrequency: 'daily', priority: 0.85 },
   { path: PUBLIC_CANONICALS.changelog, changeFrequency: 'monthly', priority: 0.65 },
+  { path: PUBLIC_CANONICALS.articles, changeFrequency: 'weekly', priority: 0.7 },
+  ...articlePaths.map((articlePath) => ({
+    path: articlePath,
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  })),
   { path: PUBLIC_CANONICALS.about, changeFrequency: 'monthly', priority: 0.55 },
   { path: PUBLIC_CANONICALS.privacy, changeFrequency: 'yearly', priority: 0.3 },
   { path: PUBLIC_CANONICALS.terms, changeFrequency: 'yearly', priority: 0.3 },

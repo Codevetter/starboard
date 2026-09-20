@@ -1,0 +1,92 @@
+---
+import ProductFooter from '@/components/ProductFooter.astro';
+import Layout from '@/layouts/Layout.astro';
+
+const { frontmatter } = Astro.props;
+const {
+  title,
+  description,
+  date,
+  author = 'Sarthak Agrawal',
+  readingMinutes,
+} = frontmatter;
+
+const displayDate = date
+  ? new Date(`${date}T00:00:00`).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+  : null;
+
+const meta = [
+  displayDate,
+  author ? `By ${author}` : null,
+  readingMinutes ? `${readingMinutes} min read` : null,
+].filter(Boolean);
+
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: title,
+  description,
+  datePublished: date,
+  author: { '@type': 'Person', name: author },
+  publisher: { '@type': 'Organization', name: 'Starboard' },
+};
+---
+
+<Layout
+  title={`${title} — Starboard`}
+  description={description}
+  structuredData={structuredData}
+>
+  <div class="min-h-svh bg-background text-foreground">
+    <main
+      class="mx-auto w-full max-w-3xl px-5 py-12 sm:px-6 sm:py-20"
+      style="font-family: var(--font-geist-sans);"
+    >
+      <a
+        href="/articles"
+        class="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+      >
+        ← All articles
+      </a>
+
+      <header class="mt-8 border-b pb-10">
+        <p class="font-mono text-xs uppercase tracking-[0.16em] text-primary">Starboard article</p>
+        <h1 class="mt-3 text-balance text-3xl font-bold tracking-tight sm:text-5xl">
+          {title}
+        </h1>
+        <p class="mt-5 max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
+          {description}
+        </p>
+        {meta.length > 0 && (
+          <p class="mt-4 font-mono text-xs uppercase tracking-[0.12em] text-muted-foreground">
+            {meta.join(' · ')}
+          </p>
+        )}
+      </header>
+
+      <article class="article-body">
+        <slot />
+      </article>
+
+      <nav class="flex flex-wrap gap-x-6 gap-y-3 border-t pt-7 text-sm" aria-label="Article links">
+        <a
+          href="/articles"
+          class="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          All articles →
+        </a>
+        <a
+          href="/discover"
+          class="font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
+          Public discover →
+        </a>
+      </nav>
+    </main>
+    <ProductFooter />
+  </div>
+</Layout>

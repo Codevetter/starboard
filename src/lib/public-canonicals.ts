@@ -20,6 +20,7 @@ export const PUBLIC_CANONICALS = {
   tools: '/tools',
   catalogUpdates: '/catalog-updates',
   changelog: '/changelog',
+  articles: '/articles',
   about: '/about',
   privacy: '/privacy',
   terms: '/terms',
