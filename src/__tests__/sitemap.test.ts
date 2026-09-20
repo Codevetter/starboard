@@ -4,23 +4,28 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 import sitemap from '@/app/sitemap';
+import { PUBLISHED_ARTICLE_SLUGS } from '@/data/published-articles';
 import { PUBLIC_CANONICALS, PUBLIC_CANONICAL_PATHS } from '@/lib/public-canonicals';
 import { canonicalPath } from '../../landing-astro/src/lib/canonical';
 
 const siteUrl = 'https://starboard.codevetter.com';
 
-// Article routes are generated from landing-astro markdown pages; mirror the
-// enumeration sitemap.ts performs so the contract covers them without
-// duplicating a list.
+// The sitemap reads the generated slug manifest; verify it cannot drift from
+// the markdown pages that actually exist under landing-astro.
 const articleDir = path.join(process.cwd(), 'landing-astro', 'src', 'pages', 'articles');
-const articlePaths = existsSync(articleDir)
+const onDiskSlugs = existsSync(articleDir)
   ? readdirSync(articleDir)
       .filter((file) => file.endsWith('.md'))
       .sort()
-      .map((file) => `/articles/${file.replace(/\.md$/, '')}`)
+      .map((file) => file.replace(/\.md$/, ''))
   : [];
+const articlePaths = PUBLISHED_ARTICLE_SLUGS.map((slug) => `/articles/${slug}`);
 
 describe('sitemap / canonical contract', () => {
+  it('keeps the generated slug manifest in sync with the markdown pages', () => {
+    expect([...PUBLISHED_ARTICLE_SLUGS]).toEqual(onDiskSlugs);
+  });
+
   it('advertises only real public routes in canonical order', () => {
     expect(sitemap().map((entry) => entry.url)).toEqual([
       `${siteUrl}/`,
