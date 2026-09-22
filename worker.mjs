@@ -37,10 +37,27 @@ const CACHEABLE_DOCUMENT_PATHS = new Set([
   '/terms',
 ]);
 const CACHEABLE_PREFIXES = ['/tools', '/projects', '/lists', '/reports', '/explore'];
+// Anonymous public JSON surfaces. Only routes that serve identical content to
+// every guest belong here; anything session-bearing was already bypassed by
+// hasAuthCookie above, and /api/discover's optional-session variant is safe
+// because signed-in requests never reach this branch.
+const CACHEABLE_API_PATTERNS = [
+  /^\/api\/repos\/[^/]+$/, // repo detail
+  /^\/api\/repos\/[^/]+\/(tools|star-history)$/, // public repo sub-resources
+  /^\/api\/catalog-updates$/,
+  /^\/api\/tools$/,
+  /^\/api\/discover$/,
+  /^\/api\/lists\/public\/[^/]+$/,
+  /^\/api\/projects\/[^/]+\/(intelligence|recommendations)$/,
+];
+const API_CACHE_CONTROL = 'public, max-age=300, s-maxage=300';
 // Browsers must revalidate document URLs after a deployment so an open client
 // cannot keep HTML that references chunks removed by the next build. The
 // versioned Cache API key still keeps anonymous document traffic at the edge.
 const CACHE_CONTROL = 'public, max-age=0, s-maxage=86400, stale-while-revalidate=604800';
+function isCacheableApiPath(pathname) {
+  return CACHEABLE_API_PATTERNS.some((pattern) => pattern.test(pathname));
+}
 function isCacheableDocumentPath(pathname) {
   if (CACHEABLE_DOCUMENT_PATHS.has(pathname)) return true;
   for (const prefix of CACHEABLE_PREFIXES) {
@@ -82,13 +99,15 @@ const worker = {
         return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
       }
       const url = new URL(request.url);
-      if (!isCacheableDocumentPath(url.pathname)) {
+      const cacheableApi = isCacheableApiPath(url.pathname);
+      if (!isCacheableDocumentPath(url.pathname) && !cacheableApi) {
         return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
       }
-      // Auth-bearing requests pass straight through; the user is likely
-      // going to be redirected by middleware to /library or /dashboard.
-      if (url.pathname === '/' && hasAuthCookie(request)) {
-        return openNext.fetch(request, env, ctx);
+      // Auth-bearing requests bypass the shared cache on EVERY path, not just
+      // '/': a signed-in render of a cacheable route must never be stored
+      // under the anonymous key (leak) nor served a guest entry (staleness).
+      if (hasAuthCookie(request)) {
+        return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
       }
 
       // Short-circuit: the Astro landing is overlaid into
@@ -145,7 +164,11 @@ const worker = {
         }
       }
 
-      const cache = caches.default;
+      // `caches` is the Workers Cache API — absent under vitest/node.
+      const cache = globalThis.caches?.default;
+      if (!cache) {
+        return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
+      }
       const cacheKey = cacheKeyFor(request, env.CF_VERSION_METADATA?.id ?? 'local');
       const cached = await cache.match(cacheKey);
       if (cached) {
@@ -156,9 +179,22 @@ const worker = {
 
       const response = await openNext.fetch(request, env, ctx);
 
-      // Only cache 2xx HTML responses — never error pages or redirects.
+      // Only cache 200s of the expected type — never errors, redirects,
+      // personalized (Set-Cookie) responses, or responses the handler marked
+      // no-store/private.
       const contentType = response.headers.get('content-type') ?? '';
-      if (response.status !== 200 || !contentType.includes('text/html')) {
+      const cacheableType = cacheableApi
+        ? contentType.includes('application/json')
+        : // text/x-component = RSC payloads for client-side navigation;
+          // otherwise every soft nav re-renders the page.
+          contentType.includes('text/html') || contentType.includes('text/x-component');
+      const originCacheControl = response.headers.get('cache-control') ?? '';
+      if (
+        response.status !== 200 ||
+        !cacheableType ||
+        response.headers.has('set-cookie') ||
+        /\b(no-store|private)\b/i.test(originCacheControl)
+      ) {
         // Add Vary: Accept to non-200 HTML responses (e.g. 404) so caches
         // distinguish markdown vs HTML negotiation.
         if (contentType.includes('text/html')) {
@@ -185,7 +221,7 @@ const worker = {
       // the same Uint8Array sidesteps the streaming edge case entirely.
       const body = await response.arrayBuffer();
       const headers = new Headers(response.headers);
-      headers.set('Cache-Control', CACHE_CONTROL);
+      headers.set('Cache-Control', cacheableApi ? API_CACHE_CONTROL : CACHE_CONTROL);
       // Add Vary: Accept for HTML pages that have markdown alternates
       const vary = headers.get('vary');
       headers.set('vary', vary ? `${vary}, Accept, Accept-Encoding` : 'Accept, Accept-Encoding');

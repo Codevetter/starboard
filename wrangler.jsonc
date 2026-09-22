@@ -45,6 +45,29 @@
       "index_name": "starboard-repos"
     }
   ],
+  // OpenNext ISR plumbing: R2 holds the incremental cache; the Durable Object
+  // queue serializes revalidations and the sharded DO backs the tag cache.
+  "r2_buckets": [
+    {
+      "binding": "NEXT_INC_CACHE_R2_BUCKET",
+      "bucket_name": "starboard-inc-cache"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      { "name": "NEXT_CACHE_DO_QUEUE", "class_name": "DOQueueHandler" },
+      {
+        "name": "NEXT_TAG_CACHE_DO_SHARDED",
+        "class_name": "DOShardedTagCache"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["DOQueueHandler", "DOShardedTagCache"]
+    }
+  ],
   // Set non-secret values here. Secrets go via `wrangler secret put`:
   //   AUTH_SECRET, AUTH_GITHUB_ID, AUTH_GITHUB_SECRET
   // Node operator jobs use an explicitly configured direct provider/local endpoint.
@@ -59,6 +82,10 @@
     {
       "binding": "RAG_SERVICE",
       "service": "knowledgebase"
+    },
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "starboard"
     }
   ]
 }

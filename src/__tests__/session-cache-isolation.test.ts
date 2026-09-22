@@ -10,8 +10,11 @@ describe('authenticated session cache isolation', () => {
   it('does not use the fully-static incremental cache for the dynamic application', () => {
     const openNextConfig = source('open-next.config.ts');
 
+    // The static-assets incremental cache serves build-time/authenticated HTML
+    // across requests — unsafe for this app. R2-backed incremental cache is the
+    // correct backend: ISR semantics are honored without cross-request leaks.
     expect(openNextConfig).not.toContain('staticAssetsIncrementalCache');
-    expect(openNextConfig).toContain('defineCloudflareConfig({})');
+    expect(openNextConfig).toContain('r2-incremental-cache');
   });
 
   it('does not serialize a server session through the root client provider', () => {
