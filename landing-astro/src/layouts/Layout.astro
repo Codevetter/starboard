@@ -19,16 +19,34 @@ const canonicalUrl = new URL(canonicalPath(Astro.url.pathname), SITE_URL).href;
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
 const structuredData = {
   '@context': 'https://schema.org',
-  '@type': 'WebSite',
-  name: 'Starboard',
-  url: SITE_URL,
-  description,
-  isAccessibleForFree: true,
-  creator: {
-    '@type': 'Person',
-    name: 'Sarthak Agrawal',
-    url: 'https://sarthakagrawal.dev',
-  },
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      name: 'Starboard',
+      alternateName: ['starboard.codevetter.com'],
+      url: SITE_URL,
+      description,
+      isAccessibleForFree: true,
+      creator: {
+        '@type': 'Person',
+        name: 'Sarthak Agrawal',
+        url: 'https://sarthakagrawal.dev',
+      },
+    },
+    {
+      '@type': 'SoftwareApplication',
+      name: 'Starboard',
+      url: SITE_URL,
+      description,
+      applicationCategory: 'DeveloperApplication',
+      isAccessibleForFree: true,
+      publisher: {
+        '@type': 'Person',
+        name: 'Sarthak Agrawal',
+        url: 'https://sarthakagrawal.dev',
+      },
+    },
+  ],
 };
 ---
 

@@ -50,6 +50,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "2.0.41",
+    "@saas-maker/app-health": "https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz",
     "@saas-maker/feedback": "^0.4.0",
     "@tanstack/react-virtual": "3.14.8",
     "ai": "6.0.168",

@@ -17,6 +17,9 @@ importers:
       '@ai-sdk/openai-compatible':
         specifier: 2.0.41
         version: 2.0.41(zod@4.4.3)
+      '@saas-maker/app-health':
+        specifier: https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz
+        version: https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz(express@5.2.1)(hono@4.13.1)
       '@saas-maker/feedback':
         specifier: ^0.4.0
         version: 0.4.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -2647,6 +2650,18 @@ packages:
 
   '@rolldown/pluginutils@1.0.1':
     resolution: {integrity: sha512-2j9bGt5Jh8hj+vPtgzPtl72j0yRxHAyumoo6TNfAjsLB04UtpSvPbPcDcBMxz7n+9CYB0c1GxQFxYRg2jimqGw==}
+
+  '@saas-maker/app-health@https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz':
+    resolution: {tarball: https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz}
+    version: 0.4.0
+    peerDependencies:
+      express: '>=4.19.0 <6'
+      hono: '>=4.10.0 <5'
+    peerDependenciesMeta:
+      express:
+        optional: true
+      hono:
+        optional: true
 
   '@saas-maker/feedback@0.4.0':
     resolution: {integrity: sha512-skVP2Ku9iFuvhYXvKKLk9jNyxKmYWow9IL5UbTUnkAzzwOIpUVOK4z4wLBpr2hDcuVjHmOG8LqwCXcLGXbcSlg==}
@@ -8558,6 +8573,11 @@ snapshots:
     optional: true
 
   '@rolldown/pluginutils@1.0.1': {}
+
+  '@saas-maker/app-health@https://github.com/sass-maker/app-health/releases/download/node-v0.4.0/saas-maker-app-health-0.4.0.tgz(express@5.2.1)(hono@4.13.1)':
+    optionalDependencies:
+      express: 5.2.1
+      hono: 4.13.1
 
   '@saas-maker/feedback@0.4.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
     dependencies:
