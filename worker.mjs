@@ -179,9 +179,12 @@ const worker = {
 
       const response = await openNext.fetch(request, env, ctx);
 
-      // Only cache 200s of the expected type — never errors, redirects,
-      // personalized (Set-Cookie) responses, or responses the handler marked
-      // no-store/private.
+      // Only cache 200s of the expected type — never errors, redirects, or
+      // personalized (Set-Cookie) responses. For API paths we additionally
+      // honor a handler-declared no-store/private (e.g. degraded fallbacks);
+      // document pages emit blanket private/no-store whenever they read the
+      // session, but the auth-cookie bypass above guarantees only anonymous
+      // renders ever reach the store — their content is identical per guest.
       const contentType = response.headers.get('content-type') ?? '';
       const cacheableType = cacheableApi
         ? contentType.includes('application/json')
@@ -193,7 +196,7 @@ const worker = {
         response.status !== 200 ||
         !cacheableType ||
         response.headers.has('set-cookie') ||
-        /\b(no-store|private)\b/i.test(originCacheControl)
+        (cacheableApi && /\b(no-store|private)\b/i.test(originCacheControl))
       ) {
         // Add Vary: Accept to non-200 HTML responses (e.g. 404) so caches
         // distinguish markdown vs HTML negotiation.
