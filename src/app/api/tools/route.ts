@@ -11,9 +11,12 @@ export const revalidate = 0;
 
 type ToolScope = 'user' | 'discover' | 'all';
 
-function json(data: unknown, init?: ResponseInit) {
+// Guest responses are identical for every anonymous caller — the edge cache
+// may share them. Session-bearing responses stay no-store so personalized
+// (scope=user/all) output never enters a shared cache.
+function json(data: unknown, init?: ResponseInit, sharedCacheable = false) {
   const headers = new Headers(init?.headers);
-  headers.set('Cache-Control', 'no-store');
+  headers.set('Cache-Control', sharedCacheable ? 'public, max-age=300, s-maxage=300' : 'no-store');
   return NextResponse.json(data, { ...init, headers });
 }
 
@@ -228,7 +231,8 @@ async function fetchToolDetailRepos(
 
 async function handleToolDetail(
   p: ToolQueryParams,
-  scopeSql: NonNullable<ReturnType<typeof scopeClause>>
+  scopeSql: NonNullable<ReturnType<typeof scopeClause>>,
+  sharedCacheable: boolean
 ) {
   const { sql: querySql, args: queryArgs } = buildQueryFilter(p.query);
   const summary = await fetchToolSummary(p, scopeSql, querySql, queryArgs);
@@ -237,24 +241,29 @@ async function handleToolDetail(
   const result = await fetchToolDetailRepos(p, scopeSql, querySql, queryArgs);
   const tool = buildToolSummary(summaryRow, definition, p.tool!);
 
-  return json({
-    scope: p.scope,
-    minStars: p.minStars,
-    minConfidence: p.minConfidence,
-    disclaimer: TOOL_ACCURACY_DISCLAIMER,
-    tool,
-    repos: result.rows.map((row) => mapToolRepoRow(row as Record<string, unknown>)),
-    page: {
-      offset: p.offset,
-      limit: p.limit,
-      hasMore: p.offset + result.rows.length < tool.repoCount,
+  return json(
+    {
+      scope: p.scope,
+      minStars: p.minStars,
+      minConfidence: p.minConfidence,
+      disclaimer: TOOL_ACCURACY_DISCLAIMER,
+      tool,
+      repos: result.rows.map((row) => mapToolRepoRow(row as Record<string, unknown>)),
+      page: {
+        offset: p.offset,
+        limit: p.limit,
+        hasMore: p.offset + result.rows.length < tool.repoCount,
+      },
     },
-  });
+    undefined,
+    sharedCacheable
+  );
 }
 
 async function handleToolList(
   p: ToolQueryParams,
-  scopeSql: NonNullable<ReturnType<typeof scopeClause>>
+  scopeSql: NonNullable<ReturnType<typeof scopeClause>>,
+  sharedCacheable: boolean
 ) {
   const result = await db.execute({
     sql: `SELECT rt.tool_key,
@@ -275,25 +284,30 @@ async function handleToolList(
     args: [...scopeSql.joinArgs, p.minConfidence, ...scopeSql.whereArgs, p.limit],
   });
 
-  return json({
-    scope: p.scope,
-    minStars: p.minStars,
-    minConfidence: p.minConfidence,
-    disclaimer: TOOL_ACCURACY_DISCLAIMER,
-    tools: result.rows.map((row) => ({
-      toolKey: row.tool_key as string,
-      toolName: row.tool_name as string,
-      category: row.category as string,
-      url: getToolUrl(row.tool_key as string),
-      repoCount: row.repo_count as number,
-      avgConfidence: Math.round(row.avg_confidence as number),
-      maxConfidence: row.max_confidence as number,
-    })),
-  });
+  return json(
+    {
+      scope: p.scope,
+      minStars: p.minStars,
+      minConfidence: p.minConfidence,
+      disclaimer: TOOL_ACCURACY_DISCLAIMER,
+      tools: result.rows.map((row) => ({
+        toolKey: row.tool_key as string,
+        toolName: row.tool_name as string,
+        category: row.category as string,
+        url: getToolUrl(row.tool_key as string),
+        repoCount: row.repo_count as number,
+        avgConfidence: Math.round(row.avg_confidence as number),
+        maxConfidence: row.max_confidence as number,
+      })),
+    },
+    undefined,
+    sharedCacheable
+  );
 }
 
 export async function GET(request: NextRequest) {
   const session = await auth();
+  const guest = !session?.user?.githubId;
   const p = parseToolParams(request.nextUrl.searchParams);
   const scopeSql = scopeClause(p.scope, session?.user?.githubId ?? null, p.minStars);
 
@@ -302,8 +316,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (p.tool) {
-    return handleToolDetail(p, scopeSql);
+    return handleToolDetail(p, scopeSql, guest);
   }
 
-  return handleToolList(p, scopeSql);
+  return handleToolList(p, scopeSql, guest);
 }

@@ -46,6 +46,8 @@ const sortLabels: Record<SortOption, string> = {
 
 interface TopBarProps {
   title?: string;
+  /** Render the title as a non-heading element when the page supplies its own h1. */
+  titleAs?: 'h1' | 'p';
   description?: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
@@ -204,11 +206,13 @@ function UserMenu({
 
 function SearchOrTitle({
   title,
+  titleAs = 'h1',
   description,
   searchQuery,
   onSearchChange,
 }: {
   title?: string;
+  titleAs?: 'h1' | 'p';
   description?: string;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
@@ -226,9 +230,10 @@ function SearchOrTitle({
       </div>
     );
   }
+  const TitleTag = titleAs;
   return (
     <div className="min-w-0 flex-1">
-      <h1 className="truncate text-sm font-semibold">{title}</h1>
+      <TitleTag className="truncate text-sm font-semibold">{title}</TitleTag>
       {description && <p className="truncate text-xs text-muted-foreground">{description}</p>}
     </div>
   );
@@ -369,6 +374,7 @@ function ClearFiltersButton({ onClearFilters }: { onClearFilters: () => void }) 
 export function TopBar(props: TopBarProps) {
   const {
     title,
+    titleAs,
     description,
     searchQuery,
     onSearchChange,
@@ -408,6 +414,7 @@ export function TopBar(props: TopBarProps) {
 
       <SearchOrTitle
         title={title}
+        titleAs={titleAs}
         description={description}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
