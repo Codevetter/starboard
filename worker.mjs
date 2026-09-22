@@ -77,8 +77,21 @@ function hasAuthCookie(request) {
   return AUTH_COOKIE_FRAGMENTS.some((c) => cookie.includes(c));
 }
 
+// Tracking params don't change the render but would split the cache —
+// a crawler or shared link carrying ?utm_source=... gets its own entry.
+// Strip them so they collapse onto the canonical entry.
+const IGNORED_KEY_PARAMS = /^(utm_|fbclid$|gclid$|dclid$|msclkid$|mc_|igshid$|si$)/i;
 function cacheKeyFor(request, versionId) {
   const cacheUrl = new URL(request.url);
+  // _rsc is a per-navigation cache-buster on RSC payloads; the payload for a
+  // given path+query is identical, so fold it to a stable marker. Deleting it
+  // outright would collide RSC and HTML responses under one key.
+  const isRsc = cacheUrl.searchParams.has('_rsc') || request.headers.get('rsc') === '1';
+  for (const key of [...cacheUrl.searchParams.keys()]) {
+    if (IGNORED_KEY_PARAMS.test(key)) cacheUrl.searchParams.delete(key);
+  }
+  cacheUrl.searchParams.delete('_rsc');
+  if (isRsc) cacheUrl.searchParams.set('__rsc', '1');
   cacheUrl.searchParams.set('__starboard_worker_version', versionId);
   return new Request(cacheUrl, request);
 }
