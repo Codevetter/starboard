@@ -1,6 +1,26 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-08-17
+Last updated: 2026-09-22
+
+## Runtime cost posture (2026-09-22)
+
+- ISR is real now: `open-next.config.ts` wires the R2 incremental cache,
+  regional cache, DO revalidation queue, and sharded DO tag cache
+  (`wrangler.jsonc`: `NEXT_INC_CACHE_R2_BUCKET`, `NEXT_CACHE_DO_QUEUE`,
+  `NEXT_TAG_CACHE_DO_SHARDED`, `WORKER_SELF_REFERENCE`, `new_sqlite_classes`
+  migration). Previously `defineCloudflareConfig({})` meant no incremental
+  cache — every render ran live (~16.4M CPU-ms/mo at 66–146ms/req).
+- `worker.mjs` edge cache: anonymous GETs on whitelisted document paths plus
+  verified-public JSON surfaces (`/api/repos/{id}` + `/tools` +
+  `/star-history`, `/api/discover`, `/api/catalog-updates`, `/api/tools`,
+  `/api/lists/public/*`, `/api/projects/*/intelligence|recommendations`)
+  cache at the edge; `utm_*`/`*clid` params collapse onto the canonical key
+  and `_rsc` folds to a stable `__rsc` marker so RSC payloads cache beside —
+  never as — the HTML entry.
+- Session isolation: any request carrying an auth cookie bypasses the shared
+  cache on all paths; `/api/tools` declares `public` only for guest
+  responses and `no-store` when a session exists.
+
 
 ## Why/What
 
