@@ -101,6 +101,15 @@ const structuredData = Astro.props.structuredData ?? {
       }
     </style>
     <script is:inline src="/app-health-log.js" defer></script>
+    <script
+      is:inline
+      defer
+      src="https://health.sassmaker.com/tracker.js"
+      data-key="ahk_pub_c51dbbf523477f116fa158a0f255be9e625a7626e91ec2c29a9c1890d430abe9"
+      data-project="app-cd5de47f-b205-4f47-aa3b-be88833bcf00"
+      data-identity="persistent"
+      data-endpoint="https://ingest.sassmaker.com/v1/browser"
+    ></script>
   </head>
   <body class="antialiased">
     <slot />
