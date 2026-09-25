@@ -6,6 +6,12 @@ const GITHUB_REPOSITORY_EPOCH = '2007-01-01';
 export interface CatalogRepoIdentity {
   id: number;
   fullName: string;
+  /**
+   * Present when the search response included repository metadata. Used to
+   * refresh stored rows so catalog star counts cannot freeze at insert time.
+   */
+  stargazersCount?: number;
+  updatedAt?: string;
 }
 
 export interface CatalogSearchResult {

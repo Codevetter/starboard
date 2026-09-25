@@ -25,9 +25,12 @@ weekly or manually dispatched seed-popular job
 ```
 
 Discover requests do not synchronously call GitHub. The weekly catalog job is
-additions-only: it does not delete or refresh existing repository rows. Growth
-uses snapshots captured at ingest or user sync and remains empty when
-insufficient samples exist.
+addition-bounded and never deletes stored-only rows; rows still in the source
+set get `stargazers_count`, `repo_updated_at`, and `fetched_at` refreshed from
+the search response. Repository detail reads also refresh a row from GitHub
+when `repos.fetched_at` is older than the freshness TTL, so displayed star
+counts cannot freeze at ingest time. Growth uses snapshots captured at ingest,
+on refresh, or at user sync and remains empty when insufficient samples exist.
 
 ## Connected projects
 

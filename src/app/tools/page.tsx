@@ -12,6 +12,7 @@ import {
   type ToolScope,
   ToolScopeSelector,
 } from '@/components/tool-intelligence-guide';
+import { formatCompactCount } from '@/lib/repo-display';
 import { jsonFetcher } from '@/lib/swr-fetcher';
 
 import { Badge } from '@/components/ui/badge';
@@ -38,10 +39,6 @@ interface ToolsResponse {
 }
 
 const fetcher = jsonFetcher;
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
-}
 
 function confidenceLabel(value: number): string {
   if (value >= 90) return 'High';
@@ -86,7 +83,7 @@ function ToolCard({ tool }: { tool: ToolSummary }) {
       </div>
       <div className="mt-4 flex items-end justify-between gap-3">
         <div>
-          <div className="text-2xl font-semibold">{formatNumber(tool.repoCount)}</div>
+          <div className="text-2xl font-semibold">{formatCompactCount(tool.repoCount)}</div>
           <div className="text-xs text-muted-foreground">repositories</div>
         </div>
         <Badge variant="outline" className={confidenceClass(tool.avgConfidence)}>

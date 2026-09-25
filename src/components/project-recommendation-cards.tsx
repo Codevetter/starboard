@@ -18,10 +18,7 @@ import type {
   GroundedToolRecommendation,
   ProjectRecommendation,
 } from '@/lib/project-recommendations';
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
-}
+import { formatCompactCount } from '@/lib/repo-display';
 
 function RecommendationFeedback({
   kind,
@@ -116,7 +113,9 @@ export function ProjectRecommendationCard({
               {recommendation.language && (
                 <Badge variant="secondary">{recommendation.language}</Badge>
               )}
-              <Badge variant="outline">{formatNumber(recommendation.stargazersCount)} stars</Badge>
+              <Badge variant="outline">
+                {formatCompactCount(recommendation.stargazersCount)} stars
+              </Badge>
             </div>
           </div>
           <Button asChild variant="ghost" size="icon-sm">

@@ -25,55 +25,8 @@ import { TopBar } from '@/components/top-bar';
 import { useRepoDetail } from '@/hooks/use-repo-detail';
 import { useSimilarRepos } from '@/hooks/use-similar-repos';
 import { getAvatarImageAttrs } from '@/lib/avatar';
+import { formatCompactCount, languageColor, timeAgo } from '@/lib/repo-display';
 import { jsonFetcher } from '@/lib/swr-fetcher';
-
-const languageColors: Record<string, string> = {
-  JavaScript: '#f1e05a',
-  TypeScript: '#3178c6',
-  Python: '#3572A5',
-  Rust: '#dea584',
-  Go: '#00ADD8',
-  Java: '#b07219',
-  'C++': '#f34b7d',
-  C: '#555555',
-  'C#': '#178600',
-  Ruby: '#701516',
-  PHP: '#4F5D95',
-  Swift: '#F05138',
-  Kotlin: '#A97BFF',
-  Dart: '#00B4AB',
-  Shell: '#89e051',
-  Elixir: '#6e4a7e',
-  Haskell: '#5e5086',
-  Zig: '#ec915c',
-  HTML: '#e34c26',
-  CSS: '#563d7c',
-  Vue: '#41b883',
-  Svelte: '#ff3e00',
-};
-
-function timeAgo(dateStr: string): string {
-  const now = Date.now();
-  const date = new Date(dateStr).getTime();
-  const seconds = Math.floor((now - date) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days}d ago`;
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months}mo ago`;
-  return `${Math.floor(months / 12)}y ago`;
-}
-
-function formatStarCount(count: number): string {
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}k`;
-  }
-  return count.toString();
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -224,7 +177,7 @@ interface RepoHeaderCardProps {
 }
 
 function RepoHeaderCard({ repo, isAuthenticated }: RepoHeaderCardProps) {
-  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
+  const langColor = languageColor(repo.language);
   const ownerAvatar = getAvatarImageAttrs(repo.owner_avatar, 40);
   const backHref = isAuthenticated ? '/stars' : '/discover';
   const backLabel = isAuthenticated ? 'Back to Library' : 'Back to Discover';
@@ -287,7 +240,7 @@ function RepoHeaderCard({ repo, isAuthenticated }: RepoHeaderCardProps) {
           <div className="flex items-center gap-1.5">
             <Star className="size-3.5 fill-yellow-400 text-yellow-400" />
             <span className="font-medium text-foreground">
-              {formatStarCount(repo.stargazers_count)}
+              {formatCompactCount(repo.stargazers_count)}
             </span>
             <span>stars</span>
           </div>
@@ -383,7 +336,7 @@ interface SimilarRepoCardProps {
 }
 
 function SimilarRepoCard({ repo }: SimilarRepoCardProps) {
-  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
+  const langColor = languageColor(repo.language);
   const avatar = getAvatarImageAttrs(repo.owner.avatar_url, 24);
   return (
     <Link
@@ -424,7 +377,7 @@ function SimilarRepoCard({ repo }: SimilarRepoCardProps) {
             )}
             <span className="flex items-center gap-0.5">
               <Star className="size-3 fill-current" />
-              {formatStarCount(repo.stargazers_count)}
+              {formatCompactCount(repo.stargazers_count)}
             </span>
             <span className="ml-auto tabular-nums">{Math.round(repo.similarity * 100)}%</span>
           </div>

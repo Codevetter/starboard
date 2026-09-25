@@ -29,12 +29,27 @@ describe('GitHub project picker API', () => {
     expect(mocks.fetchRepositories).not.toHaveBeenCalled();
   });
 
+  it('links to the GitHub OAuth app page so users can grant more organizations', async () => {
+    process.env.AUTH_GITHUB_ID = 'test-client-id';
+    try {
+      const response = await GET();
+
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        orgAccessUrl: 'https://github.com/settings/connections/applications/test-client-id',
+      });
+    } finally {
+      delete process.env.AUTH_GITHUB_ID;
+    }
+  });
+
   it('returns every public repository choice loaded by the GitHub fetcher', async () => {
     const response = await GET();
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       repositories: [{ id: 1, fullName: 'acme/app' }],
+      orgAccessUrl: null,
     });
     expect(mocks.fetchRepositories).toHaveBeenCalledWith('token');
   });

@@ -13,6 +13,7 @@ import {
   type ToolScope,
   ToolScopeSelector,
 } from '@/components/tool-intelligence-guide';
+import { formatCompactCount } from '@/lib/repo-display';
 import { jsonFetcher } from '@/lib/swr-fetcher';
 
 import { Badge } from '@/components/ui/badge';
@@ -57,10 +58,6 @@ interface ToolReposResponse {
 
 const fetcher = jsonFetcher;
 const PAGE_SIZE = 48;
-
-function formatNumber(value: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(value);
-}
 
 function confidenceLabel(value: number): string {
   if (value >= 90) return 'High confidence';
@@ -111,7 +108,7 @@ function ToolRepoCard({ repo }: ToolRepoCardProps) {
             {repo.tool.confidence}% confidence
           </Badge>
           {repo.language && <Badge variant="secondary">{repo.language}</Badge>}
-          <Badge variant="secondary">{formatNumber(repo.stargazers_count)} stars</Badge>
+          <Badge variant="secondary">{formatCompactCount(repo.stargazers_count)} stars</Badge>
         </div>
         <div className="flex flex-wrap gap-1.5">
           {repo.tool.sources.slice(0, 4).map((source) => (
@@ -179,7 +176,7 @@ function ToolDetailHeader({ tool, decodedToolKey }: ToolDetailHeaderProps) {
                 </Badge>
                 <Badge variant="secondary">{tool.category}</Badge>
                 <Badge variant="secondary">
-                  {formatNumber(tool.repoCount)}{' '}
+                  {formatCompactCount(tool.repoCount)}{' '}
                   {tool.repoCount === 1 ? 'repository' : 'repositories'}
                 </Badge>
               </>

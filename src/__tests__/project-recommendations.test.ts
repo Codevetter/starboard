@@ -79,6 +79,50 @@ describe('rankProjectRecommendations', () => {
     ).toEqual([]);
   });
 
+  it('admits a peer on embedding similarity alone and reports it as evidence', () => {
+    const project = repo({ id: 1, fullName: 'acme/app', language: 'TypeScript' });
+    const semanticPeer = repo({
+      id: 2,
+      fullName: 'oss/same-idea-different-words',
+      language: 'Rust',
+      stargazersCount: 4_000,
+      semanticSimilarity: 0.7,
+    });
+
+    const result = rankProjectRecommendations(project, [semanticPeer]);
+
+    expect(result.fallback).toBe(false);
+    expect(result.similarProjects[0].fullName).toBe('oss/same-idea-different-words');
+    expect(result.similarProjects[0].evidence).toContain(
+      'Semantically close in the repository embedding index'
+    );
+  });
+
+  it('ranks a close embedding match above a weaker literal-topic match', () => {
+    const project = repo({
+      id: 1,
+      fullName: 'acme/app',
+      language: 'TypeScript',
+      topics: ['payments'],
+    });
+    const semanticPeer = repo({
+      id: 2,
+      fullName: 'oss/semantic-peer',
+      semanticSimilarity: 0.9,
+      stargazersCount: 2_000,
+    });
+    const topicalPeer = repo({
+      id: 3,
+      fullName: 'oss/topical-peer',
+      topics: ['payments'],
+      stargazersCount: 200_000,
+    });
+
+    const result = rankProjectRecommendations(project, [topicalPeer, semanticPeer]);
+
+    expect(result.similarProjects[0].fullName).toBe('oss/semantic-peer');
+  });
+
   it('does not admit a peer from primary-language overlap alone', () => {
     const project = repo({ id: 1, fullName: 'acme/app', language: 'TypeScript' });
     const unrelated = repo({

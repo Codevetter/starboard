@@ -73,8 +73,8 @@ export async function POST(request: NextRequest) {
       sql: `INSERT INTO repos (
               id, name, full_name, owner_login, owner_avatar, html_url,
               description, language, stargazers_count, archived, topics,
-              repo_created_at, repo_updated_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              repo_created_at, repo_updated_at, fetched_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(id) DO UPDATE SET
               name = excluded.name,
               full_name = excluded.full_name,
@@ -87,7 +87,8 @@ export async function POST(request: NextRequest) {
               archived = excluded.archived,
               topics = excluded.topics,
               repo_created_at = excluded.repo_created_at,
-              repo_updated_at = excluded.repo_updated_at`,
+              repo_updated_at = excluded.repo_updated_at,
+              fetched_at = excluded.fetched_at`,
       args: [
         project.id,
         project.name,

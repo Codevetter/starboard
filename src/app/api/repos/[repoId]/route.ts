@@ -1,8 +1,15 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
+import { auth } from '@/lib/auth';
 
-import { type GitHubRepoResponse, resolveRepoId, upsertRepoFromGitHub } from '../resolve';
+import {
+  type GitHubRepoResponse,
+  refreshRepoFromGitHub,
+  repoMetadataIsStale,
+  resolveRepoId,
+  upsertRepoFromGitHub,
+} from '../resolve';
 
 export async function GET(
   request: NextRequest,
@@ -47,6 +54,31 @@ export async function GET(
         { error: 'Repository not found in public catalog' },
         { status: 404 }
       );
+    }
+
+    // Existing rows are refreshed from GitHub once per TTL window so star
+    // counts cannot silently freeze at insert time. catalogOnly stays a pure
+    // read so catalog callers cannot trigger writes or rate-limit spend.
+    if (
+      !catalogOnly &&
+      repoResult.rows.length > 0 &&
+      repoMetadataIsStale(repoResult.rows[0].fetched_at)
+    ) {
+      try {
+        const accessToken = (await auth())?.accessToken ?? null;
+        const refreshed = await refreshRepoFromGitHub(
+          repoResult.rows[0].full_name as string,
+          accessToken
+        );
+        if (refreshed) {
+          repoResult = await db.execute({
+            sql: 'SELECT * FROM repos WHERE id = ?',
+            args: [repoId],
+          });
+        }
+      } catch (refreshError) {
+        console.warn('Repo metadata refresh failed; serving stored row:', refreshError);
+      }
     }
 
     // If not cached locally, fetch from GitHub and upsert

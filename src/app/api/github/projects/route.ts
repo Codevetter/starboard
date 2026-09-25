@@ -11,7 +11,17 @@ export async function GET() {
 
   try {
     const repositories = await fetchPublicGitHubRepositories(session.accessToken);
-    return NextResponse.json({ repositories });
+    // OAuth apps list org repositories only for orgs that have granted the
+    // app. GitHub never re-shows the consent screen after first sign-in, so
+    // the picker links to the app's connection page where additional orgs
+    // can be granted or requested.
+    const clientId = process.env.AUTH_GITHUB_ID ?? process.env.GITHUB_ID ?? '';
+    return NextResponse.json({
+      repositories,
+      orgAccessUrl: clientId
+        ? `https://github.com/settings/connections/applications/${clientId}`
+        : null,
+    });
   } catch (error) {
     if (error instanceof GitHubProjectApiError && [403, 429].includes(error.status)) {
       return NextResponse.json(

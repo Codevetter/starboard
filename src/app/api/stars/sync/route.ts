@@ -32,8 +32,8 @@ function buildRepoUpsertStatements(freshRepos: StarredRepo[]): InStatement[] {
   const statements: InStatement[] = [];
   for (const repo of freshRepos) {
     statements.push({
-      sql: `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url, description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      sql: `INSERT INTO repos (id, name, full_name, owner_login, owner_avatar, html_url, description, language, stargazers_count, archived, topics, repo_created_at, repo_updated_at, fetched_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
             ON CONFLICT(id) DO UPDATE SET
               name = excluded.name,
               full_name = excluded.full_name,
@@ -45,7 +45,8 @@ function buildRepoUpsertStatements(freshRepos: StarredRepo[]): InStatement[] {
               stargazers_count = excluded.stargazers_count,
               archived = excluded.archived,
               topics = excluded.topics,
-              repo_updated_at = excluded.repo_updated_at`,
+              repo_updated_at = excluded.repo_updated_at,
+              fetched_at = excluded.fetched_at`,
       args: [
         repo.id,
         repo.name,

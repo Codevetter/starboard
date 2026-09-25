@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 
 import { db } from '@/db';
 import { getAvatarImageAttrs } from '@/lib/avatar';
+import { formatCompactCount } from '@/lib/repo-display';
 
 interface Repo {
   id: number;
@@ -67,13 +68,6 @@ async function getPublicList(slug: string) {
     },
     repos: reposResult.rows as unknown as Repo[],
   };
-}
-
-function formatStars(count: number): string {
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(1).replace(/\.0$/, '')}k`;
-  }
-  return String(count);
 }
 
 export async function generateMetadata({
@@ -186,7 +180,7 @@ function PublicRepoCard({ repo }: { repo: Repo }) {
           <svg className="size-3.5" fill="currentColor" viewBox="0 0 16 16" aria-hidden="true">
             <path d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.21.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.791L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.79l.72-4.194L.818 6.374a.75.75 0 0 1 .416-1.28l4.21-.611L7.327.668A.75.75 0 0 1 8 .25Z" />
           </svg>
-          {formatStars(repo.stargazers_count)}
+          {formatCompactCount(repo.stargazers_count)}
         </span>
       </div>
 

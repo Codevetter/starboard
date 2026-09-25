@@ -19,6 +19,12 @@ export interface ProjectRecommendationRepo {
   aiCategory?: string | null;
   aiKeywords?: string[];
   tools: ProjectToolSignal[];
+  /**
+   * Normalized embedding similarity (0–1) when this repo arrived via vector
+   * retrieval. Absent for candidates that only matched lexical or structured
+   * lanes.
+   */
+  semanticSimilarity?: number;
 }
 
 export interface ProjectRecommendation extends ProjectRecommendationRepo {
@@ -87,6 +93,9 @@ const GENERIC_TOKENS = new Set([
 const MIN_SPECIFIC_PEER_SCORE = 12;
 const MIN_GROUNDED_TOOL_CONFIDENCE = 65;
 const MIN_GROUNDED_TOOL_SUPPORT = 2;
+// Embedding proximity is strong similarity evidence: a vector-nearest repo
+// with no shared literal topics/tools must still outrank a topical mismatch.
+const SEMANTIC_SCORE_WEIGHT = 24;
 const COMPETING_TOOL_CATEGORIES = new Set(['framework', 'package-manager']);
 
 function normalizedSet(values: Array<string | null | undefined>): Set<string> {
@@ -233,6 +242,7 @@ interface CandidateScore {
   score: number;
   specificScore: number;
   languageMatch: boolean;
+  semanticScore: number;
   topicMatches: string[];
   toolMatches: string[];
   categoryMatches: string[];
@@ -343,10 +353,15 @@ function scoreCandidate(
     tokenSpecific = value;
   }
 
+  const semanticScore = Math.round(
+    Math.max(0, Math.min(1, candidate.semanticSimilarity ?? 0)) * SEMANTIC_SCORE_WEIGHT
+  );
+
   return {
-    score: langTopic.score + toolCat.score + tokenScore,
-    specificScore: langTopic.specificScore + toolCat.specificScore + tokenSpecific,
+    score: langTopic.score + toolCat.score + tokenScore + semanticScore,
+    specificScore: langTopic.specificScore + toolCat.specificScore + tokenSpecific + semanticScore,
     languageMatch: langTopic.languageMatch,
+    semanticScore,
     topicMatches: langTopic.topicMatches,
     toolMatches: toolCat.toolMatches,
     categoryMatches: toolCat.categoryMatches,
@@ -360,6 +375,9 @@ function buildEvidence(
   scored: CandidateScore
 ): string[] {
   const evidence: string[] = [];
+  if (scored.semanticScore > 0) {
+    evidence.push('Semantically close in the repository embedding index');
+  }
   if (scored.languageMatch) evidence.push(`Same primary language: ${project.language}`);
   if (scored.topicMatches.length > 0)
     evidence.push(`Shared topics: ${scored.topicMatches.join(', ')}`);

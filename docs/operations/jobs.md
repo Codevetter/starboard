@@ -19,9 +19,11 @@ annotates intent, inputs, and dependencies.
   2. `pnpm db:seed-popular` (`scripts/seed-popular.ts`) — completely enumerate
      GitHub Search repos ≥ `MIN_STARS_FLOOR=5000` through non-overlapping
      creation-date partitions that each fit one response; compare the resulting
-     IDs with one `SELECT id FROM repos`; fetch details and insert only IDs absent
-     from D1. Uses `${{ github.token }}` deliberately so a stale PAT cannot break
-     reconciliation.
+     IDs with one `SELECT id, stargazers_count FROM repos`; fetch details and
+     insert only IDs absent from D1; refresh `stargazers_count`,
+     `repo_updated_at`, and `fetched_at` on stored rows still in the source set
+     from the search metadata already in hand. Uses `${{ github.token }}`
+     deliberately so a stale PAT cannot break reconciliation.
   3. Authenticated Worker operator request — Workers AI embeddings → Vectorize
      binding, with drift hashes written through the D1 binding.
   4. `pnpm db:enrich-tools` (`scripts/enrich-tools.ts`) — SBOM/tree/manifest
@@ -38,8 +40,11 @@ annotates intent, inputs, and dependencies.
   allowance), then applies `SEED_MAX_ADDITIONS` before detail fetches or writes.
   The scheduled default is 100 additions against the 100,000 free daily
   row-write allowance, and code rejects manual values above 100 before GitHub or
-  D1 access. Existing rows are not updated, stored-only rows are not deleted,
-  and new rows are inserted in batches of 50. The existing embedding and tool
+  D1 access. Stored rows still in the source set are refreshed in place (star
+  count, `repo_updated_at`, `fetched_at`) with a snapshot recorded only when the
+  count moved — 1–2 statements per catalog row once a week, inside the
+  daily write allowance — while stored-only rows are not deleted and new rows
+  are inserted in batches of 50. The existing embedding and tool
   enrichment steps remain bounded at 1,000 and 250 repositories respectively;
   because unchanged hashes are skipped, a normal weekly run processes only new
   or independently changed rows. See Cloudflare's

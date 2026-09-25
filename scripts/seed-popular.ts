@@ -7,8 +7,10 @@
  *      Search response.
  *   2. Read every stored D1 repository ID once, diff both sets in memory, and
  *      fail before writes if additions exceed SEED_MAX_ADDITIONS.
- *   3. Fetch details and insert only genuinely new repositories. Existing rows
- *      are never updated and stored-only rows are never deleted.
+ *   3. Fetch details and insert only genuinely new repositories. Stored rows
+ *      that are still in the source set get their star count, updated_at, and
+ *      fetched_at refreshed from the search response; stored-only rows are
+ *      never deleted and no row is rewritten from a second GitHub fetch.
  *   4. In direct/local mode, embed up to SEED_DAILY_LIMIT pending repos. The
  *      GitHub workflow delegates this step to the deployed Worker so Workers AI,
  *      Vectorize, and D1 are reached through native bindings.
@@ -42,6 +44,7 @@ import {
   enumeratePopularCatalog,
   GITHUB_SEARCH_PAGE_SIZE,
   planCatalogReconciliation,
+  type CatalogRepoIdentity,
   type CatalogSearchResult,
 } from '../src/lib/popular-catalog-reconciliation';
 import { recordStep } from '../src/lib/refresh-manifest';
@@ -110,9 +113,9 @@ function batchDb(db: Client, stmts: InStatement[]) {
   return withDbRetry('batch', () => db.batch(stmts));
 }
 
-async function loadStoredRepoIds(db: Client): Promise<Set<number>> {
-  const result = await executeDb(db, 'SELECT id FROM repos');
-  return new Set(result.rows.map((row) => row.id as number));
+async function loadStoredRepoStars(db: Client): Promise<Map<number, number>> {
+  const result = await executeDb(db, 'SELECT id, stargazers_count FROM repos');
+  return new Map(result.rows.map((row) => [row.id as number, row.stargazers_count as number]));
 }
 
 let lastGitHubSearchAt = 0;
@@ -187,7 +190,12 @@ async function ghSearch(q: string, token: string): Promise<CatalogSearchResult> 
   return {
     totalCount: result.total_count,
     incomplete: result.incomplete_results,
-    repos: result.items.map((repo) => ({ id: repo.id, fullName: repo.full_name })),
+    repos: result.items.map((repo) => ({
+      id: repo.id,
+      fullName: repo.full_name,
+      stargazersCount: repo.stargazers_count,
+      updatedAt: repo.updated_at,
+    })),
   };
 }
 
@@ -208,8 +216,8 @@ async function insertNewRepos(db: Client, repos: GhRepo[]): Promise<number[]> {
         sql: `INSERT OR IGNORE INTO repos
               (id, name, full_name, owner_login, owner_avatar, html_url,
                description, language, stargazers_count, archived, topics,
-               repo_created_at, repo_updated_at, cataloged_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+               repo_created_at, repo_updated_at, cataloged_at, fetched_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))`,
         args: [
           repo.id,
           repo.name,
@@ -310,11 +318,51 @@ function isEmbeddingAuthError(err: unknown): boolean {
   return /Embedding API error 401|invalid_api_key|Unauthorized/i.test(err.message);
 }
 
+/**
+ * Refresh stored rows from the enumerated search results. The search response
+ * already carries current stargazers_count/updated_at, so this costs no extra
+ * GitHub calls. Star snapshots are recorded only when the count moved.
+ */
+async function refreshStoredCatalogRows(
+  db: Client,
+  storedStars: Map<number, number>,
+  sourceRepos: Map<number, CatalogRepoIdentity>
+): Promise<number> {
+  const statements: InStatement[] = [];
+  let refreshed = 0;
+  for (const repo of sourceRepos.values()) {
+    if (!storedStars.has(repo.id) || typeof repo.stargazersCount !== 'number') continue;
+    refreshed += 1;
+    statements.push({
+      sql: `UPDATE repos
+            SET stargazers_count = ?,
+                repo_updated_at = COALESCE(?, repo_updated_at),
+                fetched_at = datetime('now')
+            WHERE id = ?`,
+      args: [repo.stargazersCount, repo.updatedAt ?? null, repo.id],
+    });
+    if (storedStars.get(repo.id) !== repo.stargazersCount) {
+      statements.push({
+        sql: `INSERT INTO repo_star_snapshots (repo_id, stargazers_count)
+              VALUES (?, ?)
+              ON CONFLICT(repo_id, captured_at) DO UPDATE SET
+                stargazers_count = excluded.stargazers_count`,
+        args: [repo.id, repo.stargazersCount],
+      });
+    }
+  }
+  for (let offset = 0; offset < statements.length; offset += BATCH_SIZE) {
+    await batchDb(db, statements.slice(offset, offset + BATCH_SIZE));
+  }
+  return refreshed;
+}
+
 interface ReconciliationResult {
   sourceCount: number;
   storedCount: number;
   plannedAdditions: number;
   insertedAdditions: number;
+  refreshedRows: number;
   storedOnlyCount: number;
   leafPartitions: number;
 }
@@ -335,12 +383,13 @@ async function runReconciliation(
         source_count: reconciliation.sourceCount,
         stored_count: reconciliation.storedCount,
         planned_additions: reconciliation.plannedAdditions,
+        refreshed_rows: reconciliation.refreshedRows,
         stored_only_count: reconciliation.storedOnlyCount,
         leaf_partitions: reconciliation.leafPartitions,
       },
       timeoutS: 60 * 60,
       idempotency:
-        'Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted',
+        'Complete source and stored ID sets are diffed before writes; source-only repos are INSERT OR IGNORE, stored rows still in the source set get star/updated_at/fetched_at refreshed from the search response, and stored-only rows are never deleted',
       outputCount: reconciliation.insertedAdditions,
       expectedMinOutput: 0,
       verifiedNoopReason:
@@ -361,7 +410,7 @@ async function runReconciliation(
       },
       timeoutS: 60 * 60,
       idempotency:
-        'Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted',
+        'Complete source and stored ID sets are diffed before writes; source-only repos are INSERT OR IGNORE, stored rows still in the source set get star/updated_at/fetched_at refreshed from the search response, and stored-only rows are never deleted',
       outputCount: 0,
       expectedMinOutput: 0,
       error: message,
@@ -474,7 +523,8 @@ const reconcileCatalog = async (db: Client, ghToken: string): Promise<Reconcilia
     minStars: MIN_STARS_FLOOR,
     minExpectedRepos: MIN_SOURCE_REPOS,
   });
-  const storedIds = await loadStoredRepoIds(db);
+  const storedStars = await loadStoredRepoStars(db);
+  const storedIds = new Set(storedStars.keys());
   const plan = planCatalogReconciliation(source.repos, storedIds, MAX_ADDITIONS);
 
   console.info(
@@ -507,11 +557,17 @@ const reconcileCatalog = async (db: Client, ghToken: string): Promise<Reconcilia
     `[reconcile] inserted ${insertedIds.length}/${plan.additions.length} planned additions`
   );
 
+  // Refresh stored rows from the search metadata already in hand. Without
+  // this, catalog star counts freeze at insertion time.
+  const refreshedRows = await refreshStoredCatalogRows(db, storedStars, source.repos);
+  console.info(`[reconcile] refreshed ${refreshedRows} stored catalog rows`);
+
   return {
     sourceCount: source.sourceCount,
     storedCount: storedIds.size,
     plannedAdditions: plan.additions.length,
     insertedAdditions: insertedIds.length,
+    refreshedRows,
     storedOnlyCount: plan.storedOnlyCount,
     leafPartitions: source.leafPartitions,
   };
