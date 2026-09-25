@@ -11,6 +11,23 @@ import {
   upsertRepoFromGitHub,
 } from '../resolve';
 
+// Existing rows are refreshed from GitHub once per TTL window so star counts
+// cannot silently freeze at insert time. catalogOnly stays a pure read so
+// catalog callers cannot trigger writes or rate-limit spend.
+async function refreshIfStale(
+  row: Record<string, unknown>,
+  catalogOnly: boolean
+): Promise<boolean> {
+  if (catalogOnly || !repoMetadataIsStale(row.fetched_at)) return false;
+  try {
+    const accessToken = (await auth())?.accessToken ?? null;
+    return await refreshRepoFromGitHub(row.full_name as string, accessToken);
+  } catch (refreshError) {
+    console.warn('Repo metadata refresh failed; serving stored row:', refreshError);
+    return false;
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ repoId: string }> }
@@ -56,29 +73,11 @@ export async function GET(
       );
     }
 
-    // Existing rows are refreshed from GitHub once per TTL window so star
-    // counts cannot silently freeze at insert time. catalogOnly stays a pure
-    // read so catalog callers cannot trigger writes or rate-limit spend.
-    if (
-      !catalogOnly &&
-      repoResult.rows.length > 0 &&
-      repoMetadataIsStale(repoResult.rows[0].fetched_at)
-    ) {
-      try {
-        const accessToken = (await auth())?.accessToken ?? null;
-        const refreshed = await refreshRepoFromGitHub(
-          repoResult.rows[0].full_name as string,
-          accessToken
-        );
-        if (refreshed) {
-          repoResult = await db.execute({
-            sql: 'SELECT * FROM repos WHERE id = ?',
-            args: [repoId],
-          });
-        }
-      } catch (refreshError) {
-        console.warn('Repo metadata refresh failed; serving stored row:', refreshError);
-      }
+    if (repoResult.rows.length > 0 && (await refreshIfStale(repoResult.rows[0], catalogOnly))) {
+      repoResult = await db.execute({
+        sql: 'SELECT * FROM repos WHERE id = ?',
+        args: [repoId],
+      });
     }
 
     // If not cached locally, fetch from GitHub and upsert
