@@ -330,6 +330,10 @@ function buildNavigationItems(pathname: string | null, status: string) {
   const isDiscover = pathname?.startsWith('/discover') ?? false;
   const isProjects = pathname?.startsWith('/projects') ?? false;
   const isTools = pathname?.startsWith('/tools') ?? false;
+  // Library owns only the starred-repos surface and shared lists. Repo detail
+  // pages (/explore/*) and catalog updates intentionally highlight nothing.
+  const isLibrary =
+    (pathname?.startsWith('/stars') ?? false) || (pathname?.startsWith('/lists') ?? false);
   const isAuthed = status === 'authenticated';
   return [
     { href: '/discover', label: 'Discover', icon: Database, active: isDiscover, visible: true },
@@ -345,7 +349,7 @@ function buildNavigationItems(pathname: string | null, status: string) {
       href: '/stars',
       label: 'Library',
       icon: Star,
-      active: !isDiscover && !isProjects && !isTools,
+      active: isLibrary,
       visible: isAuthed,
     },
   ].filter((item) => item.visible);

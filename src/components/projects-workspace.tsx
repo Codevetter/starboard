@@ -1,6 +1,14 @@
 'use client';
 
-import { ArrowUpRight, ChevronsUpDown, FolderGit2, Loader2, Plus, Trash2 } from 'lucide-react';
+import {
+  ArrowUpRight,
+  ChevronsUpDown,
+  FolderGit2,
+  Loader2,
+  Plus,
+  RefreshCw,
+  Trash2,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -35,6 +43,7 @@ interface RecommendationsResponse extends ProjectIntelligenceResult {
 
 interface GitHubProjectsResponse {
   repositories: PublicGitHubProject[];
+  orgAccessUrl: string | null;
 }
 
 function retrievalLabel(mode: RecommendationRetrievalMode): string {
@@ -71,6 +80,7 @@ function ConnectProjectForm({
   const [pickerBusy, setPickerBusy] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
   const [pickerRepositories, setPickerRepositories] = useState<PublicGitHubProject[] | null>(null);
+  const [orgAccessUrl, setOrgAccessUrl] = useState<string | null>(null);
   const [pickerQuery, setPickerQuery] = useState('');
   const [activePickerIndex, setActivePickerIndex] = useState(0);
   const pickerButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -99,15 +109,8 @@ function ConnectProjectForm({
     queueMicrotask(() => pickerButtonRef.current?.focus());
   }
 
-  async function togglePicker() {
-    const nextOpen = !pickerOpen;
-    setPickerOpen(nextOpen);
-    if (nextOpen) {
-      setPickerQuery('');
-      setActivePickerIndex(0);
-    }
-    if (!nextOpen || pickerRepositories || pickerBusy) return;
-
+  async function loadPickerRepositories() {
+    if (pickerBusy) return;
     setPickerBusy(true);
     setPickerError(null);
     try {
@@ -115,6 +118,8 @@ function ConnectProjectForm({
       const payload = (await response.json()) as GitHubProjectsResponse & { error?: string };
       if (!response.ok) throw new Error(payload.error || 'GitHub repositories could not load.');
       setPickerRepositories(payload.repositories);
+      setOrgAccessUrl(payload.orgAccessUrl ?? null);
+      setActivePickerIndex(0);
     } catch (reason) {
       setPickerError(
         reason instanceof Error
@@ -124,6 +129,17 @@ function ConnectProjectForm({
     } finally {
       setPickerBusy(false);
     }
+  }
+
+  function togglePicker() {
+    const nextOpen = !pickerOpen;
+    setPickerOpen(nextOpen);
+    if (nextOpen) {
+      setPickerQuery('');
+      setActivePickerIndex(0);
+    }
+    if (!nextOpen || pickerRepositories) return;
+    void loadPickerRepositories();
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -232,7 +248,8 @@ function ConnectProjectForm({
           )}
           {pickerRepositories?.length === 0 && (
             <p className="p-3 text-sm text-muted-foreground">
-              No public repositories were returned. Paste a URL instead.
+              No public repositories were returned. Paste a URL instead — or if an organization is
+              missing, grant Starboard access on GitHub and refresh this list.
             </p>
           )}
           {pickerRepositories &&
@@ -285,6 +302,35 @@ function ConnectProjectForm({
                 </span>
               </button>
             ))}
+          </div>
+          <div className="sticky bottom-0 border-t bg-card p-2">
+            <p className="px-1 pb-1.5 text-xs text-muted-foreground">
+              Missing an organization?{' '}
+              {orgAccessUrl ? (
+                <a
+                  href={orgAccessUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-medium text-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  Grant access on GitHub
+                </a>
+              ) : (
+                'Grant access in your GitHub app settings'
+              )}
+              , then refresh this list.
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-8 w-full justify-start px-1 text-xs"
+              disabled={pickerBusy}
+              onClick={() => void loadPickerRepositories()}
+            >
+              <RefreshCw className={`size-3.5 ${pickerBusy ? 'animate-spin' : ''}`} />
+              Refresh repository list
+            </Button>
           </div>
         </div>
       )}

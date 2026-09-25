@@ -46,11 +46,14 @@ describe('db row-read regression guards', () => {
     expect(schemaSql).not.toMatch(/INSERT INTO (\w+)\(\1\)\s*VALUES\('rebuild'\)/);
   });
 
-  it('seed-popular reads IDs once and writes additions without updating existing repos', () => {
-    expect(seedPopularTs).toContain("executeDb(db, 'SELECT id FROM repos')");
+  it('seed-popular reads stored rows once, inserts additions, and refreshes stored stars', () => {
+    expect(seedPopularTs).toContain("executeDb(db, 'SELECT id, stargazers_count FROM repos')");
     expect(seedPopularTs).toContain('planCatalogReconciliation');
     expect(seedPopularTs).toContain('INSERT OR IGNORE INTO repos');
-    expect(seedPopularTs).not.toContain('stargazers_count = excluded.stargazers_count');
+    // Additions remain INSERT OR IGNORE; stored rows still in the source set
+    // are refreshed via bounded UPDATEs driven by the search response so
+    // catalog star counts cannot freeze at insert time.
+    expect(seedPopularTs).toContain('refreshStoredCatalogRows');
     expect(seedPopularTs).not.toContain('DELETE FROM repos');
     expect(seedPopularTs).not.toContain('UPDATE seed_cursor');
   });

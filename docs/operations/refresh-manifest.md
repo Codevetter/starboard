@@ -28,9 +28,9 @@ cross-run latest-watermark/unresolved-failure view.
     "seed_reconciliation": {
       "step": "seed_reconciliation",
       "source_watermark": "github_unique_ids:12351",
-      "bounds": {"min_stars_floor": 5000, "min_source_repos": 5000, "max_additions": 100, "source_count": 12351, "stored_count": 14500, "planned_additions": 42, "stored_only_count": 2191, "leaf_partitions": 128},
+      "bounds": {"min_stars_floor": 5000, "min_source_repos": 5000, "max_additions": 100, "source_count": 12351, "stored_count": 14500, "planned_additions": 42, "refreshed_rows": 12351, "stored_only_count": 2191, "leaf_partitions": 128},
       "timeout_s": 3600,
-      "idempotency": "Complete source and stored ID sets are diffed before INSERT OR IGNORE; existing rows are never updated and stored-only rows are never deleted",
+      "idempotency": "Complete source and stored ID sets are diffed before writes; source-only repos are INSERT OR IGNORE, stored rows still in the source set get star/updated_at/fetched_at refreshed from the search response, and stored-only rows are never deleted",
       "retries": {"maxAttempts": 4, "backoffBaseMs": 1000, "used": 0},
       "output_count": 42,
       "evidence_status": "produced",

@@ -10,47 +10,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import type { UserList } from '@/hooks/use-lists';
 import type { UserRepo } from '@/hooks/use-starred-repos';
 import { getAvatarImageAttrs } from '@/lib/avatar';
+import { formatCompactCount, languageColor } from '@/lib/repo-display';
 import { cn } from '@/lib/utils';
-
-const languageColors: Record<string, string> = {
-  JavaScript: '#f1e05a',
-  TypeScript: '#3178c6',
-  Python: '#3572A5',
-  Rust: '#dea584',
-  Go: '#00ADD8',
-  Java: '#b07219',
-  'C++': '#f34b7d',
-  C: '#555555',
-  'C#': '#178600',
-  Ruby: '#701516',
-  PHP: '#4F5D95',
-  Swift: '#F05138',
-  Kotlin: '#A97BFF',
-  Dart: '#00B4AB',
-  Scala: '#c22d40',
-  Shell: '#89e051',
-  Lua: '#000080',
-  Elixir: '#6e4a7e',
-  Haskell: '#5e5086',
-  Clojure: '#db5855',
-  Zig: '#ec915c',
-  Vim: '#199f4b',
-  HTML: '#e34c26',
-  CSS: '#563d7c',
-  SCSS: '#c6538c',
-  Vue: '#41b883',
-  Svelte: '#ff3e00',
-  Jupyter: '#DA5B0B',
-  R: '#198CE7',
-  Markdown: '#083fa1',
-};
-
-function formatStarCount(count: number): string {
-  if (count >= 1000) {
-    return `${(count / 1000).toFixed(count >= 10000 ? 0 : 1)}k`;
-  }
-  return count.toString();
-}
 
 function formatUpdatedDate(value: string | null | undefined): string | null {
   if (!value) return null;
@@ -194,7 +155,7 @@ function RepoCardListView({ state }: { state: RepoCardState }) {
         )}
         <span className="flex items-center gap-1">
           <Star className="size-3 fill-current" />
-          {formatStarCount(repo.stargazers_count)}
+          {formatCompactCount(repo.stargazers_count)}
         </span>
         {saveButton}
         {lists && onAssignList && (
@@ -286,7 +247,7 @@ function RepoCardGridView({ state }: { state: RepoCardState }) {
           )}
           <span className="flex shrink-0 items-center gap-1">
             <Star className="size-3 fill-current" />
-            {formatStarCount(repo.stargazers_count)}
+            {formatCompactCount(repo.stargazers_count)}
           </span>
           {updatedDate && (
             <span className="flex shrink-0 items-center gap-1">
@@ -310,7 +271,7 @@ export const RepoCard = memo(function RepoCard(props: RepoCardProps) {
     isSelected = false,
     onToggleSelect,
   } = props;
-  const langColor = repo.language ? (languageColors[repo.language] ?? '#8b8b8b') : null;
+  const langColor = languageColor(repo.language);
 
   const avatarSize = viewMode === 'list' ? 32 : 24;
   const avatarImage = getAvatarImageAttrs(repo.owner.avatar_url, avatarSize);

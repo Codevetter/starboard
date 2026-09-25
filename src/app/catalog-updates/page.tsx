@@ -12,6 +12,7 @@ import {
   groupCatalogChangesByDate,
   loadCatalogUpdates,
 } from '@/lib/catalog-updates';
+import { formatCompactCount } from '@/lib/repo-display';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,10 +25,6 @@ export const metadata: Metadata = {
   },
 };
 
-function formatStars(n: number): string {
-  return new Intl.NumberFormat(undefined, { notation: 'compact' }).format(n);
-}
-
 function CatalogSummaryCards({
   summary,
 }: {
@@ -37,10 +34,10 @@ function CatalogSummaryCards({
     <div className="grid gap-3 sm:grid-cols-3">
       <div className="rounded-xl border bg-card/60 px-4 py-3">
         <p className="text-2xl font-semibold tabular-nums">
-          {formatStars(summary.totalCatalogRepos)}
+          {formatCompactCount(summary.totalCatalogRepos)}
         </p>
         <p className="text-xs text-muted-foreground">
-          repos ≥ {formatStars(summary.minStarsFloor)} stars
+          repos ≥ {formatCompactCount(summary.minStarsFloor)} stars
         </p>
       </div>
       <div className="rounded-xl border bg-card/60 px-4 py-3">
@@ -93,7 +90,7 @@ function CatalogEntryRow({
         {entry.fullName}
       </Link>
       <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-        ★ {formatStars(entry.stargazersCount)}
+        ★ {formatCompactCount(entry.stargazersCount)}
       </span>
       <Link
         href={entry.htmlUrl}

@@ -75,7 +75,7 @@ async function semanticCandidates(
   project: ProjectRecommendationRepo,
   text: string,
   dependencies: ProjectIntelligenceDependencies
-): Promise<number[]> {
+): Promise<RepoVectorMatch[]> {
   try {
     const store = dependencies.vectorStore();
     let matches = await store.queryByRepoId(project.id, VECTOR_TOP_K);
@@ -84,9 +84,9 @@ async function semanticCandidates(
       if (!embedding) return [];
       matches = await store.query(embedding, VECTOR_TOP_K);
     }
-    return matches
-      .filter((match) => match.repoId !== project.id && match.distance <= VECTOR_DISTANCE_MAX)
-      .map((match) => match.repoId);
+    return matches.filter(
+      (match) => match.repoId !== project.id && match.distance <= VECTOR_DISTANCE_MAX
+    );
   } catch (error) {
     console.warn('Project semantic retrieval unavailable; using catalog evidence only', error);
     return [];
@@ -145,7 +145,8 @@ async function structuredCandidates(
 async function hydrateCandidates(
   ids: number[],
   projectId: number,
-  dependencies: ProjectIntelligenceDependencies
+  dependencies: ProjectIntelligenceDependencies,
+  similarityById: Map<number, number>
 ): Promise<ProjectRecommendationRepo[]> {
   const result = await dependencies.database.execute({
     sql: `SELECT r.id,
@@ -186,7 +187,9 @@ async function hydrateCandidates(
   );
   return ids.flatMap((id) => {
     const candidate = byId.get(id);
-    return candidate ? [candidate] : [];
+    if (!candidate) return [];
+    const semanticSimilarity = similarityById.get(id);
+    return [semanticSimilarity === undefined ? candidate : { ...candidate, semanticSimilarity }];
   });
 }
 
@@ -255,7 +258,16 @@ export function createProjectIntelligence(
       lexicalCandidates(project, text, dependencies),
       structuredCandidates(project, dependencies),
     ]);
-    const semanticIds = semanticResult.status === 'fulfilled' ? semanticResult.value : [];
+    const semanticMatches = semanticResult.status === 'fulfilled' ? semanticResult.value : [];
+    const semanticIds = semanticMatches.map((match) => match.repoId);
+    // Carry normalized similarity (0 = distance ceiling, 1 = identical) into
+    // the evidence reranker so embedding proximity survives past retrieval.
+    const similarityById = new Map(
+      semanticMatches.map((match) => [
+        match.repoId,
+        Math.max(0, 1 - match.distance / VECTOR_DISTANCE_MAX),
+      ])
+    );
     const lexicalIds = lexicalResult.status === 'fulfilled' ? lexicalResult.value : [];
     const structuredIds = structuredResult.status === 'fulfilled' ? structuredResult.value : [];
     const candidateIds = rrfFuse([semanticIds, lexicalIds, structuredIds]).slice(
@@ -265,7 +277,7 @@ export function createProjectIntelligence(
     const usingFallback = candidateIds.length === 0;
     const candidates = usingFallback
       ? await fallbackCandidates(project.id, dependencies)
-      : await hydrateCandidates(candidateIds, project.id, dependencies);
+      : await hydrateCandidates(candidateIds, project.id, dependencies, similarityById);
     const ranked = rankProjectRecommendations(project, candidates, limit);
 
     return {
