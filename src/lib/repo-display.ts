@@ -3,7 +3,7 @@
  * language dots the same way.
  */
 
-export const LANGUAGE_COLORS: Record<string, string> = {
+const LANGUAGE_COLORS: Record<string, string> = {
   JavaScript: '#f1e05a',
   TypeScript: '#3178c6',
   Python: '#3572A5',
@@ -36,7 +36,7 @@ export const LANGUAGE_COLORS: Record<string, string> = {
   Markdown: '#083fa1',
 };
 
-export const LANGUAGE_COLOR_FALLBACK = '#8b8b8b';
+const LANGUAGE_COLOR_FALLBACK = '#8b8b8b';
 
 export function languageColor(language: string | null | undefined): string | null {
   return language ? (LANGUAGE_COLORS[language] ?? LANGUAGE_COLOR_FALLBACK) : null;

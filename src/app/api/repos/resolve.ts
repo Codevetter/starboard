@@ -52,7 +52,7 @@ export async function upsertRepoFromGitHub(gh: GitHubRepoResponse): Promise<void
 }
 
 /** How old a repos row may get before a detail read refreshes it from GitHub. */
-export const REPO_METADATA_TTL_MS = 12 * 60 * 60 * 1000;
+const REPO_METADATA_TTL_MS = 12 * 60 * 60 * 1000;
 
 /**
  * True when the row's metadata was fetched more than the TTL ago — or when
