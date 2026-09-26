@@ -22,7 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TopBar } from '@/components/top-bar';
-import { useRepoDetail } from '@/hooks/use-repo-detail';
+import { useRepoDetail, type RepoDetailEntry } from '@/hooks/use-repo-detail';
 import { useSimilarRepos } from '@/hooks/use-similar-repos';
 import { getAvatarImageAttrs } from '@/lib/avatar';
 import { jsonFetcher } from '@/lib/swr-fetcher';
@@ -503,8 +503,8 @@ function InvalidSlugState() {
   );
 }
 
-function useRepoPageData(repoSlug: string) {
-  const { repo, isLoading, error } = useRepoDetail(repoSlug);
+function useRepoPageData(repoSlug: string, initialRepo: RepoDetailEntry | null) {
+  const { repo, isLoading, error } = useRepoDetail(repoSlug, initialRepo);
   const [secondaryReady, setSecondaryReady] = useState(false);
   useEffect(() => {
     if (!repo?.id) {
@@ -530,7 +530,11 @@ function useRepoPageData(repoSlug: string) {
   return { repo, isLoading, error, similar, similarLoading, starHistory, repoTools };
 }
 
-export default function ExploreClient() {
+export default function ExploreClient({
+  initialRepo = null,
+}: {
+  initialRepo?: RepoDetailEntry | null;
+}) {
   const params = useParams();
   const slugParts = params.slug as string[];
   const repoSlug = slugParts?.length === 2 ? `${slugParts[0]}/${slugParts[1]}` : '';
@@ -538,7 +542,7 @@ export default function ExploreClient() {
   const isAuthenticated = status === 'authenticated';
 
   const { repo, isLoading, error, similar, similarLoading, starHistory, repoTools } =
-    useRepoPageData(repoSlug);
+    useRepoPageData(repoSlug, initialRepo);
 
   if (!repoSlug) return <InvalidSlugState />;
   if (isLoading) return <PageSkeleton />;

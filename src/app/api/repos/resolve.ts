@@ -51,6 +51,60 @@ export async function upsertRepoFromGitHub(gh: GitHubRepoResponse): Promise<void
   });
 }
 
+export interface CatalogRepo {
+  id: number;
+  name: string;
+  full_name: string;
+  owner_login: string;
+  owner_avatar: string;
+  html_url: string;
+  description: string | null;
+  language: string | null;
+  stargazers_count: number;
+  archived: boolean;
+  topics: string[];
+  repo_created_at: string | null;
+  repo_updated_at: string | null;
+}
+
+function rowToCatalogRepo(row: Record<string, unknown>): CatalogRepo {
+  let topics: string[] = [];
+  try {
+    const parsed = JSON.parse(String(row.topics ?? '[]'));
+    if (Array.isArray(parsed)) topics = parsed.filter((t): t is string => typeof t === 'string');
+  } catch {
+    // malformed topics JSON renders as an empty list
+  }
+  return {
+    id: Number(row.id),
+    name: String(row.name),
+    full_name: String(row.full_name),
+    owner_login: String(row.owner_login),
+    owner_avatar: String(row.owner_avatar),
+    html_url: String(row.html_url),
+    description: row.description == null ? null : String(row.description),
+    language: row.language == null ? null : String(row.language),
+    stargazers_count: Number(row.stargazers_count ?? 0),
+    archived: Number(row.archived ?? 0) === 1,
+    topics,
+    repo_created_at: row.repo_created_at == null ? null : String(row.repo_created_at),
+    repo_updated_at: row.repo_updated_at == null ? null : String(row.repo_updated_at),
+  };
+}
+
+/**
+ * Read a repo from the catalog by owner/name. D1 only — no GitHub fetch.
+ * Used by server-rendered pages that must not block on upstream API calls.
+ */
+export async function getRepoFromDb(fullName: string): Promise<CatalogRepo | null> {
+  const result = await db.execute({
+    sql: 'SELECT * FROM repos WHERE full_name = ? COLLATE NOCASE',
+    args: [fullName],
+  });
+  if (result.rows.length === 0) return null;
+  return rowToCatalogRepo(result.rows[0]);
+}
+
 /**
  * Resolve owner/repo slug to a numeric repo ID.
  * If the repo isn't in our DB yet, fetches from GitHub and inserts it.

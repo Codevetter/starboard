@@ -17,34 +17,49 @@ const canonicalUrl = new URL(canonicalPath(Astro.url.pathname), SITE_URL).href;
 // convention → dynamic JSX → PNG). The single-Worker overlay keeps that
 // route on the OpenNext side, so this URL still resolves.
 const OG_IMAGE = `${SITE_URL}/opengraph-image`;
+const CODEVETTER_ORG_ID = 'https://codevetter.com/#org';
 const structuredData = {
   '@context': 'https://schema.org',
   '@graph': [
     {
+      '@type': 'Organization',
+      '@id': CODEVETTER_ORG_ID,
+      name: 'CodeVetter',
+      url: 'https://codevetter.com',
+      sameAs: ['https://github.com/Codevetter', 'https://github.com/Codevetter/codevetter'],
+    },
+    {
       '@type': 'WebSite',
+      '@id': `${SITE_URL}/#site`,
       name: 'Starboard',
       alternateName: ['starboard.codevetter.com'],
       url: SITE_URL,
       description,
       isAccessibleForFree: true,
+      publisher: { '@id': CODEVETTER_ORG_ID },
       creator: {
         '@type': 'Person',
         name: 'Sarthak Agrawal',
         url: 'https://sarthakagrawal.dev',
       },
+      sameAs: ['https://github.com/Codevetter/starboard'],
     },
     {
       '@type': 'SoftwareApplication',
+      '@id': `${SITE_URL}/#software`,
       name: 'Starboard',
       url: SITE_URL,
       description,
       applicationCategory: 'DeveloperApplication',
+      operatingSystem: 'Web',
       isAccessibleForFree: true,
-      publisher: {
+      publisher: { '@id': CODEVETTER_ORG_ID },
+      creator: {
         '@type': 'Person',
         name: 'Sarthak Agrawal',
         url: 'https://sarthakagrawal.dev',
       },
+      sameAs: ['https://github.com/Codevetter/starboard'],
     },
   ],
 };
