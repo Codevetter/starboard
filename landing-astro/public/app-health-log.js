@@ -22,7 +22,10 @@
   document.addEventListener("click", function (e) {
     var t = e.target && e.target.closest ? e.target.closest("[data-log]") : null;
     var name = t && t.getAttribute("data-log");
-    if (name) send(name, { title: (t.textContent || "").trim().slice(0, 120) || name, props: { page: location.pathname } });
+    if (name) {
+      send(name, { title: (t.textContent || "").trim().slice(0, 120) || name, props: { page: location.pathname } });
+      if (window.appHealth && typeof window.appHealth.track === "function") window.appHealth.track(name);
+    }
   }, true);
   window.addEventListener("error", function (e) {
     send("client.error", { level: "error", title: String(e.message || "error").slice(0, 200), props: { page: location.pathname } });

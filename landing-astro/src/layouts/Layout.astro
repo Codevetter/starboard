@@ -93,9 +93,11 @@ const structuredData = Astro.props.structuredData ?? {
       html { color-scheme: light; }
       body { margin: 0; }
       portfolio-project-strip,
-      ai-chat-footer { display: block; }
+      ai-chat-footer,
+      saas-maker-newsletter-capture { display: block; }
       portfolio-project-strip { min-height: 2.875rem; }
       ai-chat-footer { min-height: 6rem; }
+      saas-maker-newsletter-capture { min-height: 7rem; }
       @media (max-width: 1000px) {
         ai-chat-footer { min-height: 9rem; }
       }
@@ -113,6 +115,13 @@ const structuredData = Astro.props.structuredData ?? {
   </head>
   <body class="antialiased">
     <slot />
+    <saas-maker-newsletter-capture
+      catalog-id="starboard"
+      product-name="Starboard"
+      kind="newsletter"
+      source="footer"
+      privacy-url="https://starboard.codevetter.com/privacy"
+    ></saas-maker-newsletter-capture>
     <portfolio-project-strip current-project="starboard"></portfolio-project-strip>
     <ai-chat-footer product-name="Starboard"></ai-chat-footer>
     <script is:inline src="/project-strip.js" data-project="starboard" defer></script>
@@ -122,5 +131,6 @@ const structuredData = Astro.props.structuredData ?? {
       data-name="Starboard"
       defer
     ></script>
+    <script is:inline type="module" src="https://sassmaker.com/newsletter-capture.js"></script>
   </body>
 </html>

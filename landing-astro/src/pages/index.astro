@@ -50,12 +50,14 @@ const DESCRIPTION =
                 spellcheck="false"
                 placeholder="github.com/owner/repository"
               />
-              <button type="submit">Preview project <span aria-hidden="true">→</span></button>
+              <button type="submit" data-log="project_preview_cta_clicked">
+                Preview project <span aria-hidden="true">→</span>
+              </button>
             </div>
           </form>
 
           <div class="hero-actions">
-            <a href="/discover">Browse the public catalog</a>
+            <a href="/discover" data-log="public_catalog_browsed">Browse the public catalog</a>
             <span>Cataloged previews need no account</span>
           </div>
           <p class="boundary-note">
@@ -156,7 +158,7 @@ const DESCRIPTION =
               <li>Language, tool, and growth filters</li>
               <li>Visible detection source and confidence</li>
             </ul>
-            <a href="/discover">Explore Discover <span aria-hidden="true">→</span></a>
+            <a href="/discover" data-log="public_catalog_browsed">Explore Discover <span aria-hidden="true">→</span></a>
           </article>
 
           <article class="mode-card personal-mode">
@@ -168,7 +170,7 @@ const DESCRIPTION =
               <li>Lists, tags, notes, and starred-repository sync</li>
               <li>No GitHub write access</li>
             </ul>
-            <a href="/login">Connect GitHub <span aria-hidden="true">→</span></a>
+            <a href="/login" data-log="github_connect_started">Connect GitHub <span aria-hidden="true">→</span></a>
           </article>
         </div>
       </section>
