@@ -24,10 +24,7 @@
     var name = t && t.getAttribute("data-log");
     if (name) {
       send(name, { title: (t.textContent || "").trim().slice(0, 120) || name, props: { page: location.pathname } });
-      if (window.appHealth && typeof window.appHealth.track === "function") {
-        window.appHealth.track(name);
-        if (typeof window.appHealth.flush === "function") window.appHealth.flush().catch(function () {});
-      }
+      if (window.appHealth && typeof window.appHealth.track === "function") window.appHealth.track(name);
     }
   }, true);
   window.addEventListener("error", function (e) {
