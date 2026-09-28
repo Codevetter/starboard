@@ -1,3 +1,5 @@
+import { recordEndpointHealth } from './endpoint-health.mjs';
+
 /**
  * Backend performance timing middleware for Workers.
  *
@@ -5,12 +7,19 @@
  * `performance.now()`, reports it via the `Server-Timing` response header,
  * and logs requests slower than 200 ms via `console.warn`.
  */
-export function withTiming(handler) {
+export function withTiming(handler, observeEndpoint = recordEndpointHealth) {
   return async (request, env, ctx) => {
     const start = performance.now();
     const url = new URL(request.url);
-    const response = await handler(request, env, ctx);
+    let response;
+    try {
+      response = await handler(request, env, ctx);
+    } catch (error) {
+      observeEndpoint(request, 500, performance.now() - start, env, ctx);
+      throw error;
+    }
     const duration = performance.now() - start;
+    observeEndpoint(request, response.status, duration, env, ctx);
 
     // Add Server-Timing header
     const headers = new Headers(response.headers);
