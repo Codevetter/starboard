@@ -37,11 +37,14 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ repoId: string }> }
 ) {
+  const scope = request.nextUrl.searchParams.get('scope') || 'global'; // "user" | "global"
   let userId: string | null = null;
-  try {
-    userId = (await auth())?.user?.githubId ?? null;
-  } catch {
-    // Global similarity is public. Only the explicit user scope fails closed.
+  if (scope !== 'global') {
+    try {
+      userId = (await auth())?.user?.githubId ?? null;
+    } catch {
+      // Global similarity is public. Only the explicit user scope fails closed.
+    }
   }
 
   const { repoId: rawId } = await params;
@@ -52,7 +55,6 @@ export async function GET(
 
   const limitParam = request.nextUrl.searchParams.get('limit');
   const limit = Math.min(Math.max(parseInt(limitParam || '', 10) || DEFAULT_LIMIT, 1), 30);
-  const scope = request.nextUrl.searchParams.get('scope') || 'global'; // "user" | "global"
   if (scope === 'user' && !userId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
