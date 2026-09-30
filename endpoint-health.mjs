@@ -78,7 +78,8 @@ export function createEndpointHealthRecorder(createClient = createAppHealthClien
             disableTimer: true,
             maxQueueSize: 100,
             maxBatchSize: 20,
-            requestTimeoutMs: 1_000,
+            // Bound the background collector/D1 round trip without cutting it off at one second.
+            requestTimeoutMs: 5_000,
             maxRetries: 1,
           }),
         };

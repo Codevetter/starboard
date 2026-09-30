@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { AppHealthClient } from '@saas-maker/app-health';
+import {
+  createAppHealthClient,
+  type AppHealthClient,
+  type AppHealthClientOptions,
+} from '@saas-maker/app-health';
 
 import { createEndpointHealthRecorder } from '../../endpoint-health.mjs';
 import { withTiming } from '../../timing.mjs';
@@ -59,7 +63,7 @@ describe('optional API endpoint health', () => {
       disableTimer: true,
       maxQueueSize: 100,
       maxBatchSize: 20,
-      requestTimeoutMs: 1_000,
+      requestTimeoutMs: 5_000,
       maxRetries: 1,
     });
     expect(events).toEqual([
@@ -70,6 +74,51 @@ describe('optional API endpoint health', () => {
         duration_ms: 12,
       },
     ]);
+  });
+
+  it('accepts an ingest response that takes longer than one second without retrying', async () => {
+    let client: AppHealthClient | undefined;
+    const createClient = (options: AppHealthClientOptions) => {
+      client = createAppHealthClient({
+        ...options,
+        fetch: (_input, init) =>
+          new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => resolve({ status: 202 }), 1_500);
+            init.signal?.addEventListener(
+              'abort',
+              () => {
+                clearTimeout(timeout);
+                reject(init.signal?.reason ?? new Error('request aborted'));
+              },
+              { once: true }
+            );
+          }),
+      });
+      return client;
+    };
+    const observe = createEndpointHealthRecorder(createClient);
+    let delivery: Promise<unknown> | undefined;
+
+    observe(
+      new Request('https://starboard.example/api/health'),
+      200,
+      8,
+      { APP_HEALTH_INGEST_KEY: 'synthetic-test-key' },
+      {
+        waitUntil: (promise: Promise<unknown>) => {
+          delivery = promise;
+        },
+      }
+    );
+    await delivery;
+
+    expect(client?.diagnostics()).toMatchObject({
+      sentBatches: 1,
+      sentEvents: 1,
+      retriedBatches: 0,
+      failedBatches: 0,
+      droppedDelivery: 0,
+    });
   });
 
   it('uses the generic group for unknown API paths without forwarding path or query values', async () => {
