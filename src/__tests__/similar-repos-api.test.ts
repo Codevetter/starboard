@@ -63,25 +63,49 @@ describe('GET /api/repos/[repoId]/similar', () => {
       similar: [{ id: 2, full_name: 'peer/store', similarity: 0.8 }],
     });
     expect(mocks.queryByRepoId).toHaveBeenCalledWith(1, 100);
+    expect(mocks.auth).not.toHaveBeenCalled();
   });
 
-  it('fails closed only when a guest explicitly requests user scope', async () => {
+  it('fails closed when session lookup fails for explicit user scope', async () => {
+    mocks.auth.mockRejectedValueOnce(new Error('Auth unavailable'));
+
     const response = await GET(new NextRequest('http://localhost/api/repos/1/similar?scope=user'), {
       params: Promise.resolve({ repoId: '1' }),
     });
 
     expect(response.status).toBe(401);
+    expect(mocks.auth).toHaveBeenCalledTimes(1);
     expect(mocks.execute).not.toHaveBeenCalled();
     expect(mocks.queryByRepoId).not.toHaveBeenCalled();
   });
 
-  it('keeps the public path available when optional auth lookup fails', async () => {
-    mocks.auth.mockRejectedValueOnce(new Error('Auth unavailable'));
+  it('preserves authenticated user-scope hydration', async () => {
+    mocks.auth.mockResolvedValueOnce({ user: { githubId: 'owner-1' } });
 
+    const response = await GET(new NextRequest('http://localhost/api/repos/1/similar?scope=user'), {
+      params: Promise.resolve({ repoId: '1' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(mocks.auth).toHaveBeenCalledTimes(1);
+    expect(mocks.execute).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        sql: expect.stringContaining('FROM user_repos ur'),
+        args: ['owner-1', 2],
+      })
+    );
+    expect(await response.json()).toMatchObject({
+      similar: [{ id: 2, full_name: 'peer/store', similarity: 0.8 }],
+    });
+  });
+
+  it('does not resolve an unused session for the default global scope', async () => {
     const response = await GET(new NextRequest('http://localhost/api/repos/1/similar'), {
       params: Promise.resolve({ repoId: '1' }),
     });
 
     expect(response.status).toBe(200);
+    expect(mocks.auth).not.toHaveBeenCalled();
   });
 });
