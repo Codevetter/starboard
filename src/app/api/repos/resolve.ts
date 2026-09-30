@@ -1,4 +1,5 @@
 import { db } from '@/db';
+import type { DbResult } from '@/db/client';
 
 export interface GitHubRepoResponse {
   id: number;
@@ -110,19 +111,24 @@ export async function refreshRepoFromGitHub(
 /**
  * Resolve owner/repo slug to a numeric repo ID.
  * If the repo isn't in our DB yet, fetches from GitHub and inserts it.
- * Returns the numeric repo ID or null if not found on GitHub.
+ * Returns the numeric ID and cached row when present, or null when not found.
  */
-export async function resolveRepoId(owner: string, repo: string): Promise<number | null> {
+export interface ResolvedRepo {
+  id: number;
+  cachedResult: DbResult | null;
+}
+
+export async function resolveRepo(owner: string, repo: string): Promise<ResolvedRepo | null> {
   const fullName = `${owner}/${repo}`;
 
   // Check DB first
   const existing = await db.execute({
-    sql: 'SELECT id FROM repos WHERE full_name = ? COLLATE NOCASE',
+    sql: 'SELECT * FROM repos WHERE full_name = ? COLLATE NOCASE',
     args: [fullName],
   });
 
   if (existing.rows.length > 0) {
-    return existing.rows[0].id as number;
+    return { id: existing.rows[0].id as number, cachedResult: existing };
   }
 
   // Fetch from GitHub
@@ -136,5 +142,5 @@ export async function resolveRepoId(owner: string, repo: string): Promise<number
 
   await upsertRepoFromGitHub(gh);
 
-  return gh.id as number;
+  return { id: gh.id, cachedResult: null };
 }

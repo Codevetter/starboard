@@ -1,13 +1,14 @@
 import { type NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/db';
+import type { DbResult } from '@/db/client';
 import { auth } from '@/lib/auth';
 
 import {
   type GitHubRepoResponse,
   refreshRepoFromGitHub,
   repoMetadataIsStale,
-  resolveRepoId,
+  resolveRepo,
   upsertRepoFromGitHub,
 } from '../resolve';
 
@@ -28,6 +29,26 @@ async function refreshIfStale(
   }
 }
 
+function repoDetailResponse(row: Record<string, unknown>) {
+  return NextResponse.json({
+    repo: {
+      id: row.id as number,
+      name: row.name as string,
+      full_name: row.full_name as string,
+      owner_login: row.owner_login as string,
+      owner_avatar: row.owner_avatar as string,
+      html_url: row.html_url as string,
+      description: row.description as string | null,
+      language: row.language as string | null,
+      stargazers_count: row.stargazers_count as number,
+      archived: Boolean(row.archived),
+      topics: JSON.parse((row.topics as string) || '[]'),
+      repo_created_at: row.repo_created_at as string | null,
+      repo_updated_at: row.repo_updated_at as string | null,
+    },
+  });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ repoId: string }> }
@@ -39,6 +60,7 @@ export async function GET(
   // 1. Numeric ID: /api/repos/12345
   // 2. Slug lookup: /api/repos/lookup?name=owner/repo
   let repoId: number;
+  let cachedRepoResult: DbResult | null = null;
 
   if (rawId === 'lookup') {
     const name = request.nextUrl.searchParams.get('name');
@@ -46,11 +68,12 @@ export async function GET(
       return NextResponse.json({ error: 'name param required (owner/repo)' }, { status: 400 });
     }
     const [owner, repo] = name.split('/', 2);
-    const resolved = await resolveRepoId(owner, repo);
+    const resolved = await resolveRepo(owner, repo);
     if (!resolved) {
       return NextResponse.json({ error: 'Repository not found' }, { status: 404 });
     }
-    repoId = resolved;
+    repoId = resolved.id;
+    cachedRepoResult = resolved.cachedResult;
   } else {
     repoId = parseInt(rawId, 10);
     if (Number.isNaN(repoId)) {
@@ -60,10 +83,12 @@ export async function GET(
 
   try {
     // Look up repo in our DB
-    let repoResult = await db.execute({
-      sql: 'SELECT * FROM repos WHERE id = ?',
-      args: [repoId],
-    });
+    let repoResult =
+      cachedRepoResult ??
+      (await db.execute({
+        sql: 'SELECT * FROM repos WHERE id = ?',
+        args: [repoId],
+      }));
 
     // Catalog-only callers must never turn a read into a cache mutation.
     if (repoResult.rows.length === 0 && catalogOnly) {
@@ -106,25 +131,7 @@ export async function GET(
       });
     }
 
-    const row = repoResult.rows[0];
-
-    return NextResponse.json({
-      repo: {
-        id: row.id as number,
-        name: row.name as string,
-        full_name: row.full_name as string,
-        owner_login: row.owner_login as string,
-        owner_avatar: row.owner_avatar as string,
-        html_url: row.html_url as string,
-        description: row.description as string | null,
-        language: row.language as string | null,
-        stargazers_count: row.stargazers_count as number,
-        archived: Boolean(row.archived),
-        topics: JSON.parse((row.topics as string) || '[]'),
-        repo_created_at: row.repo_created_at as string | null,
-        repo_updated_at: row.repo_updated_at as string | null,
-      },
-    });
+    return repoDetailResponse(repoResult.rows[0]);
   } catch (error) {
     console.error('Failed to fetch repo detail:', error);
     return NextResponse.json({ error: 'Failed to fetch repository' }, { status: 500 });

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
-  resolveRepoId: vi.fn(),
+  resolveRepo: vi.fn(),
   refreshRepoFromGitHub: vi.fn(),
   repoMetadataIsStale: vi.fn(),
   auth: vi.fn(),
@@ -13,7 +13,7 @@ vi.mock('@/db', () => ({
   db: { execute: mocks.execute },
 }));
 vi.mock('@/app/api/repos/resolve', () => ({
-  resolveRepoId: mocks.resolveRepoId,
+  resolveRepo: mocks.resolveRepo,
   refreshRepoFromGitHub: mocks.refreshRepoFromGitHub,
   repoMetadataIsStale: mocks.repoMetadataIsStale,
   upsertRepoFromGitHub: vi.fn(),
@@ -81,6 +81,88 @@ describe('GET /api/repos/[repoId]', () => {
     expect(fetchSpy).not.toHaveBeenCalled();
 
     fetchSpy.mockRestore();
+  });
+
+  it('returns a cached slug lookup row without a second D1 read', async () => {
+    mocks.resolveRepo.mockResolvedValue({
+      id: 123,
+      cachedResult: { rows: [cachedRow()] },
+    });
+
+    const response = await GET(
+      new NextRequest('http://localhost/api/repos/lookup?name=fleet/example'),
+      {
+        params: Promise.resolve({ repoId: 'lookup' }),
+      }
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      repo: {
+        id: 123,
+        name: 'example',
+        full_name: 'fleet/example',
+        owner_login: 'fleet',
+        owner_avatar: 'https://example.com/avatar.png',
+        html_url: 'https://github.com/fleet/example',
+        description: 'Example repository',
+        language: 'TypeScript',
+        stargazers_count: 9000,
+        archived: false,
+        topics: ['react'],
+        repo_created_at: '2026-01-01T00:00:00Z',
+        repo_updated_at: '2026-07-01T00:00:00Z',
+      },
+    });
+    expect(mocks.resolveRepo).toHaveBeenCalledWith('fleet', 'example');
+    expect(mocks.execute).not.toHaveBeenCalled();
+    expect(mocks.auth).not.toHaveBeenCalled();
+  });
+
+  it('refreshes a stale cached slug with auth and hydrates the updated row by ID', async () => {
+    mocks.resolveRepo.mockResolvedValue({
+      id: 123,
+      cachedResult: { rows: [cachedRow()] },
+    });
+    mocks.repoMetadataIsStale.mockReturnValue(true);
+    mocks.auth.mockResolvedValue({ accessToken: 'session-token' });
+    mocks.refreshRepoFromGitHub.mockResolvedValue(true);
+    mocks.execute.mockResolvedValueOnce({
+      rows: [cachedRow({ stargazers_count: 42_000 })],
+    });
+
+    const response = await GET(
+      new NextRequest('http://localhost/api/repos/lookup?name=fleet/example'),
+      {
+        params: Promise.resolve({ repoId: 'lookup' }),
+      }
+    );
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as { repo: { stargazers_count: number } };
+    expect(payload.repo.stargazers_count).toBe(42_000);
+    expect(mocks.auth).toHaveBeenCalledTimes(1);
+    expect(mocks.refreshRepoFromGitHub).toHaveBeenCalledWith('fleet/example', 'session-token');
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
+    expect(mocks.execute).toHaveBeenCalledWith({
+      sql: 'SELECT * FROM repos WHERE id = ?',
+      args: [123],
+    });
+  });
+
+  it('preserves a missing slug lookup 404', async () => {
+    mocks.resolveRepo.mockResolvedValue(null);
+
+    const response = await GET(
+      new NextRequest('http://localhost/api/repos/lookup?name=fleet/missing'),
+      {
+        params: Promise.resolve({ repoId: 'lookup' }),
+      }
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: 'Repository not found' });
+    expect(mocks.execute).not.toHaveBeenCalled();
   });
 
   it('refreshes a stale cached record from GitHub and serves the fresh row', async () => {
