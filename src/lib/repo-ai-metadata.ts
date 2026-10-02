@@ -1,13 +1,9 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText, type LanguageModel } from 'ai';
-import { createWorkersAI, type WorkersAISettings } from 'workers-ai-provider';
 
-import { getAiBinding, textHash, type AiBinding } from './embeddings';
-import { reserveWorkersAiCall, type SharedBudgetNamespace } from './shared-ai-budget';
+import { createFleetGatewayFetch, getFreeAiBinding, textHash } from './embeddings';
 
-const WORKERS_AI_METADATA_MODEL = '@cf/meta/llama-3.1-8b-instruct';
-type WorkersAiBinding = Extract<WorkersAISettings, { binding: unknown }>['binding'];
-export const REPO_AI_METADATA_ROUTE = `workers-ai:${WORKERS_AI_METADATA_MODEL}|direct:${process.env.AI_MODEL || 'unconfigured'}`;
+export const REPO_AI_METADATA_ROUTE = `free-ai:auto|direct:${process.env.AI_MODEL || 'unconfigured'}`;
 export const HEURISTIC_REPO_AI_METADATA_MODEL = 'heuristic-taxonomy-v1';
 
 const MAX_TEXT_LENGTH = 1800;
@@ -101,12 +97,13 @@ function buildRepoAiGenerationInput(repo: RepoMetadataSource) {
 async function generateWithModel(
   languageModel: LanguageModel,
   model: string,
-  input: ReturnType<typeof buildRepoAiGenerationInput>
+  input: ReturnType<typeof buildRepoAiGenerationInput>,
+  maxRetries = Math.max(0, MAX_ATTEMPTS - 1)
 ): Promise<RepoAiMetadataResult> {
   const result = await generateText({
     model: languageModel,
     ...input,
-    maxRetries: Math.max(0, MAX_ATTEMPTS - 1),
+    maxRetries,
     timeout: { totalMs: REQUEST_TIMEOUT_MS },
   });
   return {
@@ -115,52 +112,37 @@ async function generateWithModel(
   };
 }
 
-export function createBudgetedWorkersAiBinding(
-  ai: AiBinding,
-  budget: SharedBudgetNamespace
-): WorkersAiBinding {
-  const binding = ai as unknown as WorkersAiBinding;
-  return new Proxy(binding, {
-    get(target, property, receiver) {
-      if (property !== 'run') return Reflect.get(target, property, receiver);
-      return async (...args: Parameters<WorkersAiBinding['run']>) => {
-        const [model, input] = args as [string, unknown, ...unknown[]];
-        await reserveWorkersAiCall(budget, model, input);
-        return Reflect.apply(target.run, target, args);
-      };
-    },
-  });
-}
-
 export async function generateRepoAiMetadata(
   repo: RepoMetadataSource
 ): Promise<RepoAiMetadataResult> {
   const input = buildRepoAiGenerationInput(repo);
-  const bindings = await getAiBinding();
-  if (bindings) {
-    const workersAi = createWorkersAI({
-      binding: createBudgetedWorkersAiBinding(bindings.ai, bindings.budget),
+  const gateway = await getFreeAiBinding();
+  if (gateway) {
+    const provider = createOpenAICompatible({
+      name: 'free-ai',
+      baseURL: 'https://fleet-gateway.internal/v1',
+      apiKey: 'service-binding',
+      supportsStructuredOutputs: false,
+      fetch: createFleetGatewayFetch(gateway, 'starboard'),
     });
-    return generateWithModel(
-      workersAi(WORKERS_AI_METADATA_MODEL),
-      WORKERS_AI_METADATA_MODEL,
-      input
-    );
+    return generateWithModel(provider.chatModel('auto'), 'auto', input, 0);
   }
 
   const url = process.env.AI_BASE_URL;
   const key = process.env.AI_API_KEY;
   const model = process.env.AI_MODEL;
-  if (!url || !key || !model) {
-    throw new Error('AI_BASE_URL, AI_API_KEY, and AI_MODEL are required');
+  if (url && key && model) {
+    const provider = createOpenAICompatible({
+      name: 'starboard-direct',
+      baseURL: url.replace(/\/+$/, ''),
+      apiKey: key,
+    });
+    return generateWithModel(provider.chatModel(model), model, input);
   }
 
-  const provider = createOpenAICompatible({
-    name: 'starboard-direct',
-    baseURL: url.replace(/\/+$/, ''),
-    apiKey: key,
-  });
-  return generateWithModel(provider.chatModel(model), model, input);
+  throw new Error(
+    'Free AI gateway binding is unavailable and no explicit direct model is configured'
+  );
 }
 
 export function inferRepoAiMetadata(repo: RepoMetadataSource): RepoAiMetadata {

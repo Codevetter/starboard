@@ -1,6 +1,6 @@
 # starboard — PROJECT STATUS
 
-Last updated: 2026-08-17
+Last updated: 2026-10-02
 
 ## Why/What
 
@@ -26,11 +26,15 @@ installation, alerts, reports, digest email, and stack generation.
 | Data | Cloudflare D1 (relational + FTS5) and Vectorize (768d ANN) — raw SQL, no ORM |
 | Auth | NextAuth v5 (GitHub OAuth, `read:user`) |
 | Client state | SWR (data), nuqs (URL-backed filters/sort) |
-| AI / search | Cloudflare Workers AI `@cf/baai/bge-base-en-v1.5` (768d); optional `knowledgebase` Worker via service binding |
+| AI / search | Managed Worker embeddings and repo metadata use the private Free AI `FleetGateway` binding; BGE base (default mean pooling, 768d) contract retained; optional `knowledgebase` Worker via service binding |
 | Deploy | Cloudflare Workers via OpenNext (`@opennextjs/cloudflare`) |
 | CI | GitHub Actions — push CI + manual SHA-tagged deploy + weekly complete additions-only seed/enrich/embed |
 
 **Local dev:** `pnpm install && cp .env.example .env.local && pnpm dev` → http://localhost:3000
+
+**Gateway cutover status:** source integration is prepared against Free AI Issue
+[#83](https://github.com/sass-maker/free-ai/issues/83). It has not been merged or
+deployed; current production behavior is not inferred from these source changes.
 
 **Key checks:** `pnpm test:coverage` · `pnpm test:e2e` · `pnpm build:cf` (Cloudflare path)
 

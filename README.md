@@ -25,7 +25,7 @@ matches, and keeps personal stars searchable with tags and collections.
 | Repository vectors | Cloudflare Vectorize (`starboard-repos`, 768-d cosine) |
 | Auth | NextAuth v5 + GitHub OAuth |
 | RAG search | Shared Cloudflare `knowledgebase` Worker for relevance search |
-| AI | Cloudflare Workers AI binding for non-RAG embeddings; free-ai gateway fallback for Node-based GitHub Actions |
+| AI | Private Free AI `FleetGateway` binding for managed Worker embeddings and repository metadata; explicitly configured direct providers remain available to local jobs |
 | CI/CD | GitHub Actions — push CI keeps `main` releasable; production deploys are manual and SHA-tagged; operator Actions use scoped D1 access and native Worker bindings |
 
 ## Features
@@ -64,7 +64,7 @@ Starboard is free: there are no paid plans, usage credits, or premium locks.
 - **nuqs** for URL-backed filter/sort state
 - **@tanstack/react-virtual** for virtualized scrolling
 - **Shared knowledgebase RAG** for relevance search; sync ingests README-backed repo documents when GitHub exposes a README
-- **Cloudflare Workers AI** for non-RAG embeddings, with free-ai HTTP fallback in Node contexts
+- **Private Free AI gateway binding** for managed Worker embeddings and repository metadata; explicit direct provider settings remain a separate local/BYOK path
 
 ## Local Development
 

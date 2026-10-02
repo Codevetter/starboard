@@ -1,34 +1,31 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { embedViaBinding } from './embeddings';
-import { SharedBudgetDeniedError, type SharedBudgetNamespace } from './shared-ai-budget';
+import { embedViaGateway, type FleetGatewayBinding } from './embeddings';
 
-describe('Workers AI embedding budget', () => {
-  it('reserves each binding retry and stops before AI when a later reservation is denied', async () => {
-    let reservations = 0;
-    const namespace: SharedBudgetNamespace = {
-      idFromName: vi.fn(() => 'global-budget'),
-      get: vi.fn(() => ({
-        fetch: vi.fn(async () => {
-          reservations += 1;
-          return Response.json({
-            allowed: reservations === 1,
-            used: reservations === 1 ? 1 : 0,
-            remaining: reservations === 1 ? 9_499 : 9_500,
-            retryAfter: reservations === 1 ? 0 : 1,
-            dayKey: new Date().toISOString().slice(0, 10),
-          });
-        }),
-      })),
+describe('Starboard centralized embedding admission', () => {
+  it('makes one attributed gateway call per batch and leaves neuron reservation to the gateway', async () => {
+    const calls: Array<{ project: string; model: string; input: unknown }> = [];
+    const gateway: FleetGatewayBinding = {
+      run: vi.fn(async (projectId, model, input) => {
+        calls.push({ project: projectId, model, input });
+        return {
+          data: (input as { text: string[] }).text.map(() =>
+            Array.from({ length: 768 }, () => 0.25)
+          ),
+        };
+      }),
+      fetch: vi.fn(),
     };
-    const run = vi.fn(async () => {
-      throw Object.assign(new Error('overloaded'), { status: 503 });
-    });
 
-    await expect(embedViaBinding({ run }, namespace, ['café'])).rejects.toBeInstanceOf(
-      SharedBudgetDeniedError
-    );
-    expect(reservations).toBe(2);
-    expect(run).toHaveBeenCalledTimes(1);
+    await embedViaGateway(gateway, ['café']);
+
+    expect(calls).toEqual([
+      {
+        project: 'starboard',
+        model: '@cf/baai/bge-base-en-v1.5',
+        input: { text: ['café'] },
+      },
+    ]);
+    expect(gateway.run).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,12 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { embedMany } from 'ai';
 
-import {
-  reserveWorkersAiCall,
-  SharedBudgetDeniedError,
-  type SharedBudgetNamespace,
-} from './shared-ai-budget';
-
 /**
  * Embedding dimension contract.
  *
@@ -21,31 +15,9 @@ const EMBEDDING_MODEL = '@cf/baai/bge-base-en-v1.5';
 const EMBEDDING_DIM = 768;
 const BATCH_SIZE = 50;
 
-export interface AiBinding {
-  run(model: string, input: { text: string[] }): Promise<{ data: number[][] }>;
-}
-
-interface WorkerAiBindings {
-  ai: AiBinding;
-  budget: SharedBudgetNamespace;
-}
-
-// Errors thrown by the Workers AI binding don't always carry an HTTP status.
-// Detect rate-limit / overload signals from the message too so we can back off.
-function isRetryableBindingError(err: unknown): boolean {
-  if (err && typeof err === 'object') {
-    const status = (err as { status?: number }).status;
-    if (status === 429 || (typeof status === 'number' && status >= 500)) return true;
-  }
-  const msg = err instanceof Error ? err.message.toLowerCase() : '';
-  return (
-    msg.includes('rate') ||
-    msg.includes('429') ||
-    msg.includes('overload') ||
-    msg.includes('too many requests') ||
-    msg.includes('busy') ||
-    msg.includes('capacity')
-  );
+export interface FleetGatewayBinding {
+  run(projectId: string, model: string, input: unknown): Promise<unknown>;
+  fetch(request: Request): Promise<Response>;
 }
 
 export { EMBEDDING_DIM };
@@ -59,23 +31,22 @@ interface RepoAiMetadataInput {
 }
 
 /**
- * In Workers context (opennext), pull the direct AI binding.
- * Returns null when running in Node CLI (e.g. seed scripts) — caller falls
- * back to an explicitly configured direct provider/local endpoint.
+ * Returns null only when running outside a Worker (for example a Node seed job).
+ * A Worker missing the required service binding fails closed.
  */
-export async function getAiBinding(): Promise<WorkerAiBindings | null> {
+export async function getFreeAiBinding(): Promise<FleetGatewayBinding | null> {
+  let runtimeEnv: unknown;
   try {
     const mod = await import('@opennextjs/cloudflare');
-    const ctx = mod.getCloudflareContext();
-    const ai = (ctx.env as { AI?: AiBinding }).AI;
-    if (!ai) return null;
-    const budget = Reflect.get(ctx.env, 'NEURON_BUDGET') as SharedBudgetNamespace | undefined;
-    if (!budget) throw new SharedBudgetDeniedError();
-    return { ai, budget };
-  } catch (error) {
-    if (error instanceof SharedBudgetDeniedError) throw error;
+    runtimeEnv = mod.getCloudflareContext().env;
+  } catch {
     return null;
   }
+  const binding = (runtimeEnv as { FREE_AI?: FleetGatewayBinding } | undefined)?.FREE_AI;
+  if (!binding || typeof binding.run !== 'function' || typeof binding.fetch !== 'function') {
+    throw new Error('Free AI gateway binding is unavailable in the Worker runtime.');
+  }
+  return binding;
 }
 
 const MAX_EMBED_ATTEMPTS = 3;
@@ -85,33 +56,59 @@ const MAX_EMBED_ATTEMPTS = 3;
 // while staying well under the per-minute request ceiling.
 const INTER_BATCH_DELAY_MS = 200;
 
-export async function embedViaBinding(
-  ai: AiBinding,
-  budget: SharedBudgetNamespace,
+export async function embedViaGateway(
+  gateway: FleetGatewayBinding,
   texts: string[]
 ): Promise<number[][]> {
-  // Mirror embedViaHttp: 3 attempts, exponential backoff with jitter.
-  // The Workers AI binding throws on 429/overload; without this, a single
-  // rate-limited batch fails the whole sync/discover request.
-  let lastError: unknown;
-  for (let attempt = 0; attempt < MAX_EMBED_ATTEMPTS; attempt++) {
-    if (attempt > 0) {
-      await delay(400 * 2 ** (attempt - 1) + Math.floor(Math.random() * 200));
+  const vectors: number[][] = [];
+  for (let start = 0; start < texts.length; start += BATCH_SIZE) {
+    if (start > 0) await delay(INTER_BATCH_DELAY_MS);
+    const batch = texts.slice(start, start + BATCH_SIZE);
+    const result = (await gateway.run('starboard', EMBEDDING_MODEL, { text: batch })) as {
+      data?: unknown;
+    };
+    const rows = Array.isArray(result?.data) ? result.data : [];
+    const normalized = rows.map((row) =>
+      Array.isArray(row) ? normalizeEmbeddingDimensions(row as number[]) : null
+    );
+    if (
+      rows.length !== batch.length ||
+      normalized.some(
+        (row) =>
+          !row ||
+          row.length !== EMBEDDING_DIM ||
+          row.some((value) => typeof value !== 'number' || !Number.isFinite(value))
+      )
+    ) {
+      throw new Error(
+        `Free AI returned embeddings that do not match the ${EMBEDDING_DIM}-dimension BGE contract`
+      );
     }
-    const input = { text: texts };
-    // Keep the reservation outside the retry catch. A budget denial must stop
-    // the request and must never fall through to another provider.
-    await reserveWorkersAiCall(budget, EMBEDDING_MODEL, input);
-    try {
-      const res = await ai.run(EMBEDDING_MODEL, input);
-      return res.data;
-    } catch (err) {
-      lastError = err;
-      if (isRetryableBindingError(err) && attempt < MAX_EMBED_ATTEMPTS - 1) continue;
-      throw err;
-    }
+    vectors.push(...(normalized as number[][]));
   }
-  throw lastError ?? new Error('Binding embedding failed after retries');
+  return vectors;
+}
+
+export function createFleetGatewayFetch(
+  gateway: Pick<FleetGatewayBinding, 'fetch'>,
+  projectId: string
+): typeof fetch {
+  return async (input, init) => {
+    const original = new Request(input, init);
+    const sourceUrl = new URL(original.url);
+    if (sourceUrl.pathname !== '/v1/chat/completions') {
+      throw new Error(`Free AI service binding route is not allowed: ${sourceUrl.pathname}`);
+    }
+    const headers = new Headers(original.headers);
+    headers.set('authorization', 'Bearer service-binding');
+    headers.set('x-gateway-project-id', projectId);
+    const request = new Request(
+      `https://fleet-gateway.internal${sourceUrl.pathname}${sourceUrl.search}`,
+      original
+    );
+    for (const [name, value] of headers) request.headers.set(name, value);
+    return gateway.fetch(request);
+  };
 }
 
 function delay(ms: number): Promise<void> {
@@ -248,21 +245,35 @@ function normalizeEmbeddingDimensions(vec: number[]): number[] {
 
 /**
  * Generate embeddings for one or more texts.
- * Prefers the direct CF Workers AI binding (when running inside a Worker via
- * opennext); falls back to a direct configured endpoint otherwise (Node CLI scripts).
+ * Managed Worker calls use the private Free AI service binding; an explicitly
+ * configured direct endpoint remains available to Node CLI scripts.
  */
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
-  const bindings = await getAiBinding();
+  const gateway = await getFreeAiBinding();
+  if (gateway) {
+    const vectors = await embedViaGateway(gateway, texts);
+    if (vectors.length !== texts.length)
+      throw new Error('Free AI embedding response count mismatch');
+    return vectors;
+  }
+
+  const url = process.env.AI_BASE_URL;
+  const key = process.env.AI_API_KEY;
+  const model = process.env.AI_EMBED_MODEL;
+  if (!(url && key && model)) {
+    throw new Error(
+      'Free AI gateway binding is unavailable and no explicit direct embedding provider is configured'
+    );
+  }
+
   const results: number[][] = new Array(texts.length);
 
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     if (i > 0) await delay(INTER_BATCH_DELAY_MS);
     const batch = texts.slice(i, i + BATCH_SIZE);
-    const embeddings = bindings
-      ? await embedViaBinding(bindings.ai, bindings.budget, batch)
-      : await embedViaHttp(batch);
+    const embeddings = await embedViaHttp(batch);
     for (let j = 0; j < embeddings.length; j++) {
       const vec = normalizeEmbeddingDimensions(embeddings[j]);
       if (vec.length !== EMBEDDING_DIM) {

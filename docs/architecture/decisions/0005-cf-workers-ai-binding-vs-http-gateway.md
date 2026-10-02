@@ -1,7 +1,7 @@
 # ADR-0005 — CF Workers AI binding vs HTTP AI Gateway for embeddings
 
 **Date:** 2026-04-25
-**Status:** Active
+**Status:** Superseded for managed Worker inference by Free AI Issue #83; retained for local job compatibility context
 
 ## Context
 
@@ -36,6 +36,16 @@ query in the hot path.
 `getCloudflareContext()` throws in Node; the try/catch in `getAiBinding()` makes
 it return `null` gracefully. If the binding is misconfigured in wrangler but the
 env vars are set, the HTTP fallback silently takes over.
+
+## Managed Worker routing update (2026-10-02)
+
+The direct `ai.run()` Worker path is superseded for managed inference by the
+private `FREE_AI` service binding and `FleetGateway` entrypoint. Worker
+embeddings keep `@cf/baai/bge-base-en-v1.5`, the model's default mean pooling, the 768-dimensional
+Vectorize contract, and the original returned coordinates; malformed or
+wrong-sized responses fail closed without normalization. The gateway owns the
+single neuron reservation. Node seed jobs retain their explicit configured
+provider path, and this source change does not claim a production deployment.
 
 ## See also
 
