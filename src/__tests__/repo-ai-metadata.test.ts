@@ -1,12 +1,12 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  getAiBinding: vi.fn(),
+  getFreeAiBinding: vi.fn(),
 }));
 
 vi.mock('@/lib/embeddings', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/embeddings')>()),
-  getAiBinding: mocks.getAiBinding,
+  getFreeAiBinding: mocks.getFreeAiBinding,
 }));
 
 import {
@@ -27,7 +27,12 @@ const repo = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getAiBinding.mockResolvedValue(null);
+  mocks.getFreeAiBinding.mockResolvedValue(null);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 describe('repo AI metadata helpers', () => {
@@ -81,17 +86,50 @@ describe('repo AI metadata helpers', () => {
     expect(metadata.use_cases).toContain('evaluate prompts');
   });
 
-  it('fails closed for the unpriced metadata model before calling Workers AI', async () => {
-    const ai = { run: vi.fn() };
-    const budget = {
-      idFromName: vi.fn(),
-      get: vi.fn(),
+  it('sends metadata JSON through the private gateway with attribution and no SDK retries', async () => {
+    vi.stubEnv('AI_BASE_URL', '');
+    vi.stubEnv('AI_API_KEY', '');
+    vi.stubEnv('AI_MODEL', '');
+    let request: Request | undefined;
+    const gateway = {
+      run: vi.fn(),
+      fetch: vi.fn(async (incoming: Request) => {
+        request = incoming;
+        return Response.json({
+          id: 'chat-test',
+          model: 'free-model',
+          choices: [
+            {
+              message: {
+                role: 'assistant',
+                content: JSON.stringify({
+                  summary: 'A useful evaluation platform.',
+                  category: 'ai-evals',
+                  subcategories: ['llm evals'],
+                  use_cases: ['evaluate prompts'],
+                  keywords: ['evals'],
+                }),
+              },
+              finish_reason: 'stop',
+            },
+          ],
+          usage: { prompt_tokens: 5, completion_tokens: 10 },
+        });
+      }),
     };
-    mocks.getAiBinding.mockResolvedValue({ ai, budget });
+    mocks.getFreeAiBinding.mockResolvedValue(gateway);
 
-    await expect(generateRepoAiMetadata(repo)).rejects.toThrow('Shared AI budget');
+    const result = await generateRepoAiMetadata(repo);
 
-    expect(ai.run).not.toHaveBeenCalled();
-    expect(budget.idFromName).not.toHaveBeenCalled();
+    expect(result.model).toBe('auto');
+    expect(result.metadata.category).toBe('ai-evals');
+    expect(gateway.fetch).toHaveBeenCalledTimes(1);
+    expect(request?.url).toBe('https://fleet-gateway.internal/v1/chat/completions');
+    expect(request?.headers.get('x-gateway-project-id')).toBe('starboard');
+    expect(request?.headers.get('authorization')).toBe('Bearer service-binding');
+    const body = (await request?.json()) as Record<string, unknown>;
+    expect(body.model).toBe('auto');
+    expect(body).not.toHaveProperty('response_format');
+    expect(body).not.toHaveProperty('stream');
   });
 });

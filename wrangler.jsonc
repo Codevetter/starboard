@@ -26,11 +26,6 @@
       "custom_domain": true
     }
   ],
-  // Workers AI binding — replaces the AI Gateway HTTP layer for embeddings.
-  // The seed-popular GH Action still uses HTTP since it runs in Node.
-  "ai": {
-    "binding": "AI"
-  },
   "durable_objects": {
     "bindings": [
       {
@@ -65,6 +60,11 @@
     "STARBOARD_RAG_INDEX_ID": "16522a1b-afe6-4167-99d7-d00695ee271a"
   },
   "services": [
+    {
+      "binding": "FREE_AI",
+      "service": "free-ai-gateway",
+      "entrypoint": "FleetGateway"
+    },
     {
       "binding": "RAG_SERVICE",
       "service": "knowledgebase"
