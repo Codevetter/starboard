@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   resolveRepo: vi.fn(),
   refreshRepoFromGitHub: vi.fn(),
   repoMetadataIsStale: vi.fn(),
+  upsertRepoFromGitHub: vi.fn(),
+  getCloudflareContext: vi.fn(),
   auth: vi.fn(),
 }));
 
@@ -16,9 +18,10 @@ vi.mock('@/app/api/repos/resolve', () => ({
   resolveRepo: mocks.resolveRepo,
   refreshRepoFromGitHub: mocks.refreshRepoFromGitHub,
   repoMetadataIsStale: mocks.repoMetadataIsStale,
-  upsertRepoFromGitHub: vi.fn(),
+  upsertRepoFromGitHub: mocks.upsertRepoFromGitHub,
 }));
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
+vi.mock('@opennextjs/cloudflare', () => ({ getCloudflareContext: mocks.getCloudflareContext }));
 
 import { GET } from '@/app/api/repos/[repoId]/route';
 
@@ -44,6 +47,9 @@ describe('GET /api/repos/[repoId]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.auth.mockResolvedValue(null);
+    mocks.getCloudflareContext.mockImplementation(() => {
+      throw new Error('No Cloudflare request context');
+    });
     mocks.repoMetadataIsStale.mockReturnValue(false);
     mocks.refreshRepoFromGitHub.mockResolvedValue(false);
   });
@@ -182,6 +188,77 @@ describe('GET /api/repos/[repoId]', () => {
     expect(mocks.repoMetadataIsStale).toHaveBeenCalledWith('2026-07-01 00:00:00');
     expect(mocks.refreshRepoFromGitHub).toHaveBeenCalledWith('fleet/example', null);
     expect(mocks.execute).toHaveBeenCalledTimes(2);
+  });
+
+  it('serves stale details immediately and completes one deferred refresh', async () => {
+    let completeRefresh!: (value: boolean) => void;
+    let persisted = false;
+    const refreshResult = new Promise<boolean>((resolve) => {
+      completeRefresh = resolve;
+    });
+    const waitUntilPromises: Promise<unknown>[] = [];
+    mocks.getCloudflareContext.mockReturnValue({
+      ctx: { waitUntil: (promise: Promise<unknown>) => waitUntilPromises.push(promise) },
+    });
+    mocks.execute.mockResolvedValueOnce({ rows: [cachedRow()] });
+    mocks.repoMetadataIsStale.mockReturnValue(true);
+    mocks.refreshRepoFromGitHub.mockImplementation(async () => {
+      const refreshed = await refreshResult;
+      persisted = refreshed;
+      return refreshed;
+    });
+
+    const response = await GET(new NextRequest('http://localhost/api/repos/123'), {
+      params: Promise.resolve({ repoId: '123' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).repo.stargazers_count).toBe(9000);
+    expect(mocks.execute).toHaveBeenCalledTimes(1);
+    await Promise.resolve();
+    expect(mocks.refreshRepoFromGitHub).toHaveBeenCalledTimes(1);
+    expect(waitUntilPromises).toHaveLength(1);
+    expect(persisted).toBe(false);
+
+    completeRefresh(true);
+    await waitUntilPromises[0];
+    expect(persisted).toBe(true);
+  });
+
+  it('still fetches a missing numeric repository from GitHub', async () => {
+    mocks.execute
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [cachedRow()] });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          id: 123,
+          name: 'example',
+          full_name: 'fleet/example',
+          owner: { login: 'fleet', avatar_url: 'https://example.com/avatar.png' },
+          html_url: 'https://github.com/fleet/example',
+          description: 'Example repository',
+          language: 'TypeScript',
+          stargazers_count: 9000,
+          created_at: '2026-01-01T00:00:00Z',
+          updated_at: '2026-07-01T00:00:00Z',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      )
+    );
+
+    const response = await GET(new NextRequest('http://localhost/api/repos/123'), {
+      params: Promise.resolve({ repoId: '123' }),
+    });
+
+    expect(response.status).toBe(200);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      'https://api.github.com/repositories/123',
+      expect.objectContaining({ next: { revalidate: 3600 } })
+    );
+    expect(mocks.upsertRepoFromGitHub).toHaveBeenCalledTimes(1);
+    expect(mocks.execute).toHaveBeenCalledTimes(2);
+    fetchSpy.mockRestore();
   });
 
   it('serves the stored row when a refresh attempt fails', async () => {
