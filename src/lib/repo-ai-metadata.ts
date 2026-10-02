@@ -3,6 +3,7 @@ import { generateText, type LanguageModel } from 'ai';
 import { createWorkersAI, type WorkersAISettings } from 'workers-ai-provider';
 
 import { getAiBinding, textHash } from './embeddings';
+import { reserveWorkersAiCall } from './shared-ai-budget';
 
 const WORKERS_AI_METADATA_MODEL = '@cf/meta/llama-3.1-8b-instruct';
 type WorkersAiBinding = Extract<WorkersAISettings, { binding: unknown }>['binding'];
@@ -88,17 +89,23 @@ Repository:
 ${buildRepoAiSourceText(repo)}`;
 }
 
-async function generateWithModel(
-  languageModel: LanguageModel,
-  repo: RepoMetadataSource,
-  model: string
-): Promise<RepoAiMetadataResult> {
-  const result = await generateText({
-    model: languageModel,
+function buildRepoAiGenerationInput(repo: RepoMetadataSource) {
+  return {
     system: 'You produce strict JSON for software repository classification.',
     prompt: buildRepoAiMetadataPrompt(repo),
     temperature: 0.1,
     maxOutputTokens: 260,
+  };
+}
+
+async function generateWithModel(
+  languageModel: LanguageModel,
+  model: string,
+  input: ReturnType<typeof buildRepoAiGenerationInput>
+): Promise<RepoAiMetadataResult> {
+  const result = await generateText({
+    model: languageModel,
+    ...input,
     maxRetries: Math.max(0, MAX_ATTEMPTS - 1),
     timeout: { totalMs: REQUEST_TIMEOUT_MS },
   });
@@ -111,10 +118,16 @@ async function generateWithModel(
 export async function generateRepoAiMetadata(
   repo: RepoMetadataSource
 ): Promise<RepoAiMetadataResult> {
-  const binding = await getAiBinding();
-  if (binding) {
-    const workersAi = createWorkersAI({ binding: binding as unknown as WorkersAiBinding });
-    return generateWithModel(workersAi(WORKERS_AI_METADATA_MODEL), repo, WORKERS_AI_METADATA_MODEL);
+  const input = buildRepoAiGenerationInput(repo);
+  const bindings = await getAiBinding();
+  if (bindings) {
+    await reserveWorkersAiCall(bindings.budget, WORKERS_AI_METADATA_MODEL, input);
+    const workersAi = createWorkersAI({ binding: bindings.ai as unknown as WorkersAiBinding });
+    return generateWithModel(
+      workersAi(WORKERS_AI_METADATA_MODEL),
+      WORKERS_AI_METADATA_MODEL,
+      input
+    );
   }
 
   const url = process.env.AI_BASE_URL;
@@ -129,7 +142,7 @@ export async function generateRepoAiMetadata(
     baseURL: url.replace(/\/+$/, ''),
     apiKey: key,
   });
-  return generateWithModel(provider.chatModel(model), repo, model);
+  return generateWithModel(provider.chatModel(model), model, input);
 }
 
 export function inferRepoAiMetadata(repo: RepoMetadataSource): RepoAiMetadata {
