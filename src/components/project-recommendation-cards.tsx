@@ -97,8 +97,8 @@ export function ProjectRecommendationCard({
   return (
     <Card className="min-w-0 rounded-lg py-4 shadow-none">
       <CardHeader className="gap-3 px-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+        <div className="flex w-full min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <CardTitle className="truncate text-base">
               <Link
                 href={`/explore/${recommendation.fullName}`}
@@ -118,7 +118,7 @@ export function ProjectRecommendationCard({
               </Badge>
             </div>
           </div>
-          <Button asChild variant="ghost" size="icon-sm">
+          <Button asChild variant="ghost" size="icon-sm" className="shrink-0">
             <Link
               href={recommendation.htmlUrl}
               target="_blank"
