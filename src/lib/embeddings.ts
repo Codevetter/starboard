@@ -235,7 +235,7 @@ function normalizeEmbeddingDimensions(vec: number[]): number[] {
     const reduced = new Array<number>(EMBEDDING_DIM);
     for (let i = 0; i < EMBEDDING_DIM; i++) {
       let sum = 0;
-      for (let j = 0; j < factor; j++) sum += vec[i * factor + j];
+      for (let j = 0; j < factor; j++) sum += vec[i * factor + j] ?? 0;
       reduced[i] = sum / factor;
     }
     return reduced;
