@@ -105,3 +105,10 @@ export function denyVectorizeStorageGrowth(): void {
     'Vectorize storage growth is disabled until verified storage headroom is available.'
   );
 }
+
+export async function runOnlyIfVectorizeStorageGrowthAllowed<T>(
+  work: () => Promise<T>
+): Promise<T> {
+  denyVectorizeStorageGrowth();
+  return work();
+}

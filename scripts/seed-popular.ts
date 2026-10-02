@@ -49,6 +49,7 @@ import {
 } from '../src/lib/popular-catalog-reconciliation';
 import { recordStep } from '../src/lib/refresh-manifest';
 import { createVectorizeRestWriterFromEnv } from '../src/lib/repo-vectors-rest';
+import { runOnlyIfVectorizeStorageGrowthAllowed } from '../src/lib/shared-ai-budget';
 
 const DAILY_LIMIT = parseInt(process.env.SEED_DAILY_LIMIT || '1000', 10);
 const MIN_STARS_FLOOR = parseInt(process.env.MIN_STARS_FLOOR || '5000', 10);
@@ -297,7 +298,9 @@ async function embedPending(db: Client, limit: number): Promise<number> {
 
   for (let i = 0; i < toEmbed.length; i += BATCH_SIZE) {
     const batch = toEmbed.slice(i, i + BATCH_SIZE);
-    const embeddings = await generateEmbeddings(batch.map((r) => r.text));
+    const embeddings = await runOnlyIfVectorizeStorageGrowthAllowed(() =>
+      generateEmbeddings(batch.map((r) => r.text))
+    );
     await vectors.upsert(batch.map((item, j) => ({ repoId: item.id, values: embeddings[j] })));
     const stmts: InStatement[] = batch.map((item) => ({
       sql: `INSERT INTO repo_embeddings (repo_id, text_hash)

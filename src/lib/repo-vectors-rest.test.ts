@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createVectorizeRestWriter } from './repo-vectors-rest';
+import { runOnlyIfVectorizeStorageGrowthAllowed } from './shared-ai-budget';
 
 describe('Vectorize REST operator writer', () => {
   it('blocks storage writes before sending a REST request', async () => {
@@ -16,5 +17,14 @@ describe('Vectorize REST operator writer', () => {
       /storage growth is disabled/
     );
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('blocks scheduled embeddings before invoking the paid provider', async () => {
+    const generate = vi.fn().mockResolvedValue([[0.1]]);
+
+    await expect(runOnlyIfVectorizeStorageGrowthAllowed(generate)).rejects.toThrow(
+      /storage growth is disabled/
+    );
+    expect(generate).not.toHaveBeenCalled();
   });
 });
