@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import { db } from '@/db';
 import type { DbResult } from '@/db/client';
@@ -12,14 +13,53 @@ import {
   upsertRepoFromGitHub,
 } from '../resolve';
 
-// Existing rows are refreshed from GitHub once per TTL window so star counts
+// Keep one stale-row refresh in flight per repo per Worker isolate. A durable
+// cross-isolate lock would require shared state/schema; the GitHub read itself
+// remains bounded to one request per eligible detail read in the meantime.
+const staleRefreshes = new Map<number, Promise<void>>();
+
+function scheduleStaleRefresh(repoId: number, fullName: string): boolean {
+  if (staleRefreshes.has(repoId)) return true;
+
+  let waitUntil: (promise: Promise<unknown>) => void;
+  try {
+    const ctx = getCloudflareContext().ctx as {
+      waitUntil: (promise: Promise<unknown>) => void;
+    };
+    waitUntil = ctx.waitUntil.bind(ctx);
+  } catch {
+    // Outside a Worker there is no execution lifetime to hold the task open;
+    // let the caller use the synchronous fallback instead.
+    return false;
+  }
+
+  const refresh = (async () => {
+    try {
+      const accessToken = (await auth())?.accessToken ?? null;
+      await refreshRepoFromGitHub(fullName, accessToken);
+    } catch (refreshError) {
+      console.warn('Repo metadata refresh failed; serving stored row:', refreshError);
+    } finally {
+      staleRefreshes.delete(repoId);
+    }
+  })();
+  staleRefreshes.set(repoId, refresh);
+  waitUntil(refresh);
+  return true;
+}
+
+// Existing rows are refreshed from GitHub after the 12-hour TTL so star counts
 // cannot silently freeze at insert time. catalogOnly stays a pure read so
 // catalog callers cannot trigger writes or rate-limit spend.
 async function refreshIfStale(
   row: Record<string, unknown>,
+  repoId: number,
   catalogOnly: boolean
 ): Promise<boolean> {
   if (catalogOnly || !repoMetadataIsStale(row.fetched_at)) return false;
+  if (scheduleStaleRefresh(repoId, row.full_name as string)) return false;
+
+  // Keep local Next.js development behavior functional without a Worker ctx.
   try {
     const accessToken = (await auth())?.accessToken ?? null;
     return await refreshRepoFromGitHub(row.full_name as string, accessToken);
@@ -98,7 +138,10 @@ export async function GET(
       );
     }
 
-    if (repoResult.rows.length > 0 && (await refreshIfStale(repoResult.rows[0], catalogOnly))) {
+    if (
+      repoResult.rows.length > 0 &&
+      (await refreshIfStale(repoResult.rows[0], repoId, catalogOnly))
+    ) {
       repoResult = await db.execute({
         sql: 'SELECT * FROM repos WHERE id = ?',
         args: [repoId],
