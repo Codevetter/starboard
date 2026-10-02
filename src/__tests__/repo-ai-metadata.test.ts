@@ -1,30 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
-  createWorkersAI: vi.fn(),
-  generateText: vi.fn(),
   getAiBinding: vi.fn(),
-  reserveWorkersAiCall: vi.fn(),
-}));
-
-vi.mock('ai', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('ai')>()),
-  generateText: mocks.generateText,
-}));
-
-vi.mock('workers-ai-provider', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('workers-ai-provider')>()),
-  createWorkersAI: mocks.createWorkersAI,
 }));
 
 vi.mock('@/lib/embeddings', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/lib/embeddings')>()),
   getAiBinding: mocks.getAiBinding,
-}));
-
-vi.mock('@/lib/shared-ai-budget', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/lib/shared-ai-budget')>()),
-  reserveWorkersAiCall: mocks.reserveWorkersAiCall,
 }));
 
 import {
@@ -46,9 +28,6 @@ const repo = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getAiBinding.mockResolvedValue(null);
-  mocks.createWorkersAI.mockImplementation(() => (model: string) => ({ modelId: model }));
-  mocks.generateText.mockResolvedValue({ text: '{"summary":"Test","category":"ai-evals"}' });
-  mocks.reserveWorkersAiCall.mockResolvedValue(undefined);
 });
 
 describe('repo AI metadata helpers', () => {
@@ -102,35 +81,17 @@ describe('repo AI metadata helpers', () => {
     expect(metadata.use_cases).toContain('evaluate prompts');
   });
 
-  it('reserves the shared budget and gives Workers AI the actual binding', async () => {
+  it('fails closed for the unpriced metadata model before calling Workers AI', async () => {
     const ai = { run: vi.fn() };
-    const budget = { idFromName: vi.fn(), get: vi.fn() };
+    const budget = {
+      idFromName: vi.fn(),
+      get: vi.fn(),
+    };
     mocks.getAiBinding.mockResolvedValue({ ai, budget });
 
-    await generateRepoAiMetadata(repo);
+    await expect(generateRepoAiMetadata(repo)).rejects.toThrow('Shared AI budget');
 
-    expect(mocks.reserveWorkersAiCall).toHaveBeenCalledTimes(1);
-    const [reservedBudget, reservedModel, reservedInput] = mocks.reserveWorkersAiCall.mock.calls[0];
-    expect(reservedBudget).toBe(budget);
-    expect(reservedModel).toBe('@cf/meta/llama-3.1-8b-instruct');
-    expect(reservedInput).toMatchObject({
-      system: 'You produce strict JSON for software repository classification.',
-      prompt: buildRepoAiMetadataPrompt(repo),
-      maxOutputTokens: 260,
-    });
-    expect(mocks.createWorkersAI).toHaveBeenCalledWith({ binding: ai });
-    expect(mocks.generateText).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not fall back to an unguarded model call after budget denial', async () => {
-    const ai = { run: vi.fn() };
-    const budget = { idFromName: vi.fn(), get: vi.fn() };
-    mocks.getAiBinding.mockResolvedValue({ ai, budget });
-    mocks.reserveWorkersAiCall.mockRejectedValue(new Error('budget denied'));
-
-    await expect(generateRepoAiMetadata(repo)).rejects.toThrow('budget denied');
-
-    expect(mocks.createWorkersAI).not.toHaveBeenCalled();
-    expect(mocks.generateText).not.toHaveBeenCalled();
+    expect(ai.run).not.toHaveBeenCalled();
+    expect(budget.idFromName).not.toHaveBeenCalled();
   });
 });

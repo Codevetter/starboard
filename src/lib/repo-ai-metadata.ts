@@ -2,8 +2,8 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText, type LanguageModel } from 'ai';
 import { createWorkersAI, type WorkersAISettings } from 'workers-ai-provider';
 
-import { getAiBinding, textHash } from './embeddings';
-import { reserveWorkersAiCall } from './shared-ai-budget';
+import { getAiBinding, textHash, type AiBinding } from './embeddings';
+import { reserveWorkersAiCall, type SharedBudgetNamespace } from './shared-ai-budget';
 
 const WORKERS_AI_METADATA_MODEL = '@cf/meta/llama-3.1-8b-instruct';
 type WorkersAiBinding = Extract<WorkersAISettings, { binding: unknown }>['binding'];
@@ -115,14 +115,32 @@ async function generateWithModel(
   };
 }
 
+export function createBudgetedWorkersAiBinding(
+  ai: AiBinding,
+  budget: SharedBudgetNamespace
+): WorkersAiBinding {
+  const binding = ai as unknown as WorkersAiBinding;
+  return new Proxy(binding, {
+    get(target, property, receiver) {
+      if (property !== 'run') return Reflect.get(target, property, receiver);
+      return async (...args: Parameters<WorkersAiBinding['run']>) => {
+        const [model, input] = args as [string, unknown, ...unknown[]];
+        await reserveWorkersAiCall(budget, model, input);
+        return Reflect.apply(target.run, target, args);
+      };
+    },
+  });
+}
+
 export async function generateRepoAiMetadata(
   repo: RepoMetadataSource
 ): Promise<RepoAiMetadataResult> {
   const input = buildRepoAiGenerationInput(repo);
   const bindings = await getAiBinding();
   if (bindings) {
-    await reserveWorkersAiCall(bindings.budget, WORKERS_AI_METADATA_MODEL, input);
-    const workersAi = createWorkersAI({ binding: bindings.ai as unknown as WorkersAiBinding });
+    const workersAi = createWorkersAI({
+      binding: createBudgetedWorkersAiBinding(bindings.ai, bindings.budget),
+    });
     return generateWithModel(
       workersAi(WORKERS_AI_METADATA_MODEL),
       WORKERS_AI_METADATA_MODEL,
