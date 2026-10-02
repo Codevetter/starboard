@@ -1,8 +1,18 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  getAiBinding: vi.fn(),
+}));
+
+vi.mock('@/lib/embeddings', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/embeddings')>()),
+  getAiBinding: mocks.getAiBinding,
+}));
 
 import {
   buildRepoAiMetadataPrompt,
   buildRepoAiSourceText,
+  generateRepoAiMetadata,
   inferRepoAiMetadata,
   normalizeRepoAiMetadata,
   repoAiSourceHash,
@@ -14,6 +24,11 @@ const repo = {
   language: 'TypeScript',
   topics: ['evals', 'llm', 'testing'],
 };
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.getAiBinding.mockResolvedValue(null);
+});
 
 describe('repo AI metadata helpers', () => {
   it('builds compact source text from repo metadata', () => {
@@ -64,5 +79,19 @@ describe('repo AI metadata helpers', () => {
     expect(metadata.category).toBe('ai-evals');
     expect(metadata.keywords).toContain('evals');
     expect(metadata.use_cases).toContain('evaluate prompts');
+  });
+
+  it('fails closed for the unpriced metadata model before calling Workers AI', async () => {
+    const ai = { run: vi.fn() };
+    const budget = {
+      idFromName: vi.fn(),
+      get: vi.fn(),
+    };
+    mocks.getAiBinding.mockResolvedValue({ ai, budget });
+
+    await expect(generateRepoAiMetadata(repo)).rejects.toThrow('Shared AI budget');
+
+    expect(ai.run).not.toHaveBeenCalled();
+    expect(budget.idFromName).not.toHaveBeenCalled();
   });
 });
