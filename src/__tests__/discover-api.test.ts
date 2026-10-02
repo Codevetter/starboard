@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   execute: vi.fn(),
   batch: vi.fn(),
   vectorQuery: vi.fn(),
+  reserveVectorQuery: vi.fn(),
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
@@ -18,7 +19,7 @@ vi.mock('@/db', () => ({
 }));
 vi.mock('@/lib/embeddings', () => ({ generateEmbeddings: mocks.embed }));
 vi.mock('@/lib/repo-vectors', () => ({
-  repoVectors: () => ({ query: mocks.vectorQuery }),
+  repoVectors: () => ({ query: mocks.vectorQuery, reserveQuery: mocks.reserveVectorQuery }),
 }));
 
 import { GET } from '@/app/api/discover/route';
@@ -29,6 +30,7 @@ describe('GET /api/discover', () => {
     mocks.auth.mockResolvedValue({ user: { githubId: 'user-1' } });
     mocks.embed.mockResolvedValue([[0.1, 0.2]]);
     mocks.vectorQuery.mockResolvedValue([]);
+    mocks.reserveVectorQuery.mockResolvedValue(Symbol('admission'));
     mocks.execute.mockResolvedValue({
       rows: [
         {
@@ -134,10 +136,29 @@ describe('GET /api/discover', () => {
     );
 
     expect(response.status).toBe(200);
+    expect(mocks.reserveVectorQuery).toHaveBeenCalledBefore(mocks.embed);
     expect(mocks.embed).toHaveBeenCalledWith(['vector database vector database']);
+    expect(mocks.vectorQuery).toHaveBeenCalledWith(
+      [0.1, 0.2],
+      expect.any(Number),
+      expect.any(Symbol)
+    );
     const mainQuery = mocks.execute.mock.calls[2]?.[0] as { sql: string; args: unknown[] };
     expect(mainQuery.sql).toContain('CASE r.id WHEN 2 THEN 0 WHEN 1 THEN 1');
     expect(mainQuery.args).toContain(JSON.stringify([2, 1]));
+  });
+
+  it('does not generate a semantic embedding when Vectorize budget preflight is denied', async () => {
+    mocks.reserveVectorQuery.mockRejectedValueOnce(new Error('Vectorize budget unavailable'));
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const response = await GET(new NextRequest('http://localhost/api/discover?q=database'));
+
+    expect(response.status).toBe(200);
+    expect(mocks.reserveVectorQuery).toHaveBeenCalledTimes(1);
+    expect(mocks.embed).not.toHaveBeenCalled();
+    expect(mocks.vectorQuery).not.toHaveBeenCalled();
+    warn.mockRestore();
   });
 
   it('degrades to lexical Discover results when semantic retrieval fails', async () => {

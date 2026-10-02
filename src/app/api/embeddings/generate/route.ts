@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
 import { repoVectors } from '@/lib/repo-vectors';
+import { denyVectorizeStorageGrowth, SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
 
 // Prevent concurrent runs per user
 const activeJobs = new Set<string>();
@@ -19,6 +20,15 @@ export async function POST() {
 
   if (activeJobs.has(userId)) {
     return NextResponse.json({ skipped: true, reason: 'already running' });
+  }
+
+  try {
+    denyVectorizeStorageGrowth();
+  } catch (error) {
+    if (error instanceof SharedBudgetDeniedError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    throw error;
   }
 
   activeJobs.add(userId);
