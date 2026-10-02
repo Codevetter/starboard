@@ -23,7 +23,10 @@ function scheduleStaleRefresh(repoId: number, fullName: string): boolean {
 
   let waitUntil: (promise: Promise<unknown>) => void;
   try {
-    waitUntil = getCloudflareContext().ctx.waitUntil as (promise: Promise<unknown>) => void;
+    const ctx = getCloudflareContext().ctx as {
+      waitUntil: (promise: Promise<unknown>) => void;
+    };
+    waitUntil = ctx.waitUntil.bind(ctx);
   } catch {
     // Outside a Worker there is no execution lifetime to hold the task open;
     // let the caller use the synchronous fallback instead.

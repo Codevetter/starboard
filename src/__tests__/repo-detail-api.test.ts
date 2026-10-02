@@ -197,8 +197,15 @@ describe('GET /api/repos/[repoId]', () => {
       completeRefresh = resolve;
     });
     const waitUntilPromises: Promise<unknown>[] = [];
+    const ctx = {
+      receiver: 'worker-execution-context',
+      waitUntil(this: { receiver: string }, promise: Promise<unknown>) {
+        expect(this.receiver).toBe('worker-execution-context');
+        waitUntilPromises.push(promise);
+      },
+    };
     mocks.getCloudflareContext.mockReturnValue({
-      ctx: { waitUntil: (promise: Promise<unknown>) => waitUntilPromises.push(promise) },
+      ctx,
     });
     mocks.execute.mockResolvedValueOnce({ rows: [cachedRow()] });
     mocks.repoMetadataIsStale.mockReturnValue(true);
