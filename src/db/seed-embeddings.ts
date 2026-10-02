@@ -2,6 +2,7 @@ import type { InStatement } from './client';
 import { createD1RestClientFromEnv } from './rest-client';
 import { buildEmbeddingFromRow, generateEmbeddings } from '../lib/embeddings';
 import { createVectorizeRestWriterFromEnv } from '../lib/repo-vectors-rest';
+import { runOnlyIfVectorizeStorageGrowthAllowed } from '../lib/shared-ai-budget';
 
 const BATCH_SIZE = 50;
 const EMBED_LIMIT = parseInt(process.env.EMBED_LIMIT || '0', 10);
@@ -68,7 +69,9 @@ async function seed() {
       `Embedding batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(toEmbed.length / BATCH_SIZE)} (${batch.length} repos)...`
     );
 
-    const embeddings = await generateEmbeddings(texts);
+    const embeddings = await runOnlyIfVectorizeStorageGrowthAllowed(() =>
+      generateEmbeddings(texts)
+    );
     await vectors.upsert(batch.map((item, j) => ({ repoId: item.id, values: embeddings[j] })));
 
     const stmts: InStatement[] = batch.map((item) => ({

@@ -5,6 +5,7 @@ import { db } from '@/db';
 import { buildEmbeddingFromRow, generateEmbeddings } from '@/lib/embeddings';
 import { hasValidOperatorToken } from '@/lib/operator-auth';
 import { repoVectors } from '@/lib/repo-vectors';
+import { denyVectorizeStorageGrowth, SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
 
 const BATCH_SIZE = 50;
 const DEFAULT_LIMIT = 3000;
@@ -50,6 +51,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'limit must be a positive integer' }, { status: 400 });
   }
   const limit = Math.min(Number(requestedLimit), MAX_LIMIT);
+
+  try {
+    denyVectorizeStorageGrowth();
+  } catch (error) {
+    if (error instanceof SharedBudgetDeniedError) {
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    }
+    throw error;
+  }
 
   const repos = await db.execute({
     sql: `SELECT r.id,

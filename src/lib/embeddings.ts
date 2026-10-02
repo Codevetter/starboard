@@ -1,6 +1,12 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { embedMany } from 'ai';
 
+import {
+  reserveWorkersAiCall,
+  SharedBudgetDeniedError,
+  type SharedBudgetNamespace,
+} from './shared-ai-budget';
+
 /**
  * Embedding dimension contract.
  *
@@ -17,6 +23,11 @@ const BATCH_SIZE = 50;
 
 export interface AiBinding {
   run(model: string, input: { text: string[] }): Promise<{ data: number[][] }>;
+}
+
+interface WorkerAiBindings {
+  ai: AiBinding;
+  budget: SharedBudgetNamespace;
 }
 
 // Errors thrown by the Workers AI binding don't always carry an HTTP status.
@@ -52,12 +63,17 @@ interface RepoAiMetadataInput {
  * Returns null when running in Node CLI (e.g. seed scripts) — caller falls
  * back to an explicitly configured direct provider/local endpoint.
  */
-export async function getAiBinding(): Promise<AiBinding | null> {
+export async function getAiBinding(): Promise<WorkerAiBindings | null> {
   try {
     const mod = await import('@opennextjs/cloudflare');
     const ctx = mod.getCloudflareContext();
-    return (ctx.env as { AI?: AiBinding }).AI ?? null;
-  } catch {
+    const ai = (ctx.env as { AI?: AiBinding }).AI;
+    if (!ai) return null;
+    const budget = Reflect.get(ctx.env, 'NEURON_BUDGET') as SharedBudgetNamespace | undefined;
+    if (!budget) throw new SharedBudgetDeniedError();
+    return { ai, budget };
+  } catch (error) {
+    if (error instanceof SharedBudgetDeniedError) throw error;
     return null;
   }
 }
@@ -69,7 +85,11 @@ const MAX_EMBED_ATTEMPTS = 3;
 // while staying well under the per-minute request ceiling.
 const INTER_BATCH_DELAY_MS = 200;
 
-async function embedViaBinding(ai: AiBinding, texts: string[]): Promise<number[][]> {
+export async function embedViaBinding(
+  ai: AiBinding,
+  budget: SharedBudgetNamespace,
+  texts: string[]
+): Promise<number[][]> {
   // Mirror embedViaHttp: 3 attempts, exponential backoff with jitter.
   // The Workers AI binding throws on 429/overload; without this, a single
   // rate-limited batch fails the whole sync/discover request.
@@ -78,8 +98,12 @@ async function embedViaBinding(ai: AiBinding, texts: string[]): Promise<number[]
     if (attempt > 0) {
       await delay(400 * 2 ** (attempt - 1) + Math.floor(Math.random() * 200));
     }
+    const input = { text: texts };
+    // Keep the reservation outside the retry catch. A budget denial must stop
+    // the request and must never fall through to another provider.
+    await reserveWorkersAiCall(budget, EMBEDDING_MODEL, input);
     try {
-      const res = await ai.run(EMBEDDING_MODEL, { text: texts });
+      const res = await ai.run(EMBEDDING_MODEL, input);
       return res.data;
     } catch (err) {
       lastError = err;
@@ -230,13 +254,15 @@ function normalizeEmbeddingDimensions(vec: number[]): number[] {
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
 
-  const ai = await getAiBinding();
+  const bindings = await getAiBinding();
   const results: number[][] = new Array(texts.length);
 
   for (let i = 0; i < texts.length; i += BATCH_SIZE) {
     if (i > 0) await delay(INTER_BATCH_DELAY_MS);
     const batch = texts.slice(i, i + BATCH_SIZE);
-    const embeddings = ai ? await embedViaBinding(ai, batch) : await embedViaHttp(batch);
+    const embeddings = bindings
+      ? await embedViaBinding(bindings.ai, bindings.budget, batch)
+      : await embedViaHttp(batch);
     for (let j = 0; j < embeddings.length; j++) {
       const vec = normalizeEmbeddingDimensions(embeddings[j]);
       if (vec.length !== EMBEDDING_DIM) {

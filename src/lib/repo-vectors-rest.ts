@@ -1,4 +1,5 @@
 import type { RepoVectorInput } from './repo-vectors';
+import { denyVectorizeStorageGrowth } from './shared-ai-budget';
 
 interface VectorizeRestConfig {
   accountId: string;
@@ -19,6 +20,7 @@ export function createVectorizeRestWriter(config: VectorizeRestConfig) {
   return {
     async upsert(vectors: RepoVectorInput[]): Promise<void> {
       if (vectors.length === 0) return;
+      denyVectorizeStorageGrowth();
       const body = vectors
         .map((vector) =>
           JSON.stringify({

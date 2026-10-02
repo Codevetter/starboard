@@ -113,9 +113,11 @@ async function resolveSearchIds(
 
   const semanticIdsPromise = (async () => {
     try {
+      const vectors = repoVectors();
+      const admission = await vectors.reserveQuery();
       const [embedding] = await generateEmbeddings([expandedSearchQuery(q)]);
       if (!embedding) return [];
-      const matches = await repoVectors().query(embedding, SEMANTIC_TOP_K);
+      const matches = await vectors.query(embedding, SEMANTIC_TOP_K, admission);
       return matches
         .filter((match) => match.distance <= SEMANTIC_DISTANCE_MAX)
         .map((match) => match.repoId);
