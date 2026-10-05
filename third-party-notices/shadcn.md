@@ -1,6 +1,6 @@
 # shadcn CSS notice
 
-The project vendors the published `dist/tailwind.css` artifact from `shadcn@4.16.2` as `src/app/shadcn-tailwind.css`. This is an exact file copy (SHA-256: `bc7d83425702955b4cb67cb14ede9d603f9d912376d57a2d81d661094d2a782a`). Source package: <https://www.npmjs.com/package/shadcn/v/4.16.2>.
+The project vendors the published `dist/tailwind.css` artifact from `shadcn@4.16.2` as `vendor/shadcn/tailwind.css`. This is an exact file copy (SHA-256: `bc7d83425702955b4cb67cb14ede9d603f9d912376d57a2d81d661094d2a782a`). Source package: <https://www.npmjs.com/package/shadcn/v/4.16.2>.
 
 The upstream package is licensed under MIT. The notice below is copied from that package's `LICENSE.md`.
 
