@@ -45,7 +45,8 @@
     "quality:dependencies": "node scripts/check-code-health.mjs dependencies",
     "quality:suppressions": "node scripts/check-code-health.mjs suppressions",
     "quality:hygiene": "node scripts/check-code-health.mjs hygiene",
-    "quality": "pnpm check && pnpm typecheck && pnpm test:coverage && pnpm docs:check && pnpm quality:unused && pnpm quality:complexity && pnpm quality:duplication && pnpm quality:cycles && pnpm quality:dependencies && pnpm quality:suppressions && pnpm quality:hygiene",
+    "quality": "pnpm check && pnpm typecheck && pnpm test:coverage && pnpm docs:check && pnpm quality:unused && pnpm quality:complexity && pnpm quality:duplication && pnpm quality:cycles && pnpm test:dependency-security && pnpm quality:dependencies && pnpm quality:suppressions && pnpm quality:hygiene",
+    "test:dependency-security": "node --test scripts/http-cache-security.test.mjs",
     "prepare": "husky"
   },
   "dependencies": {
@@ -83,7 +84,6 @@
     "husky": "9.1.7",
     "jscpd": "5.0.14",
     "knip": "^6.29.0",
-    "shadcn": "4.16.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.1",
     "tw-animate-css": "1.4.0",
@@ -101,7 +101,11 @@
       "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
       "svgo@>=4.0.0 <4.1.0": "4.1.0",
       "devalue": "5.9.3",
-      "undici@>=7.0.0 <8.0.0": "7.29.1"
+      "undici@>=7.0.0 <8.0.0": "7.29.1",
+      "http-cache-semantics": "4.3.0"
+    },
+    "patchedDependencies": {
+      "http-cache-semantics@4.3.0": "patches/http-cache-semantics@4.3.0.patch"
     }
   }
 }
