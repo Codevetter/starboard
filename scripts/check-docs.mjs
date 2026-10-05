@@ -19,8 +19,9 @@
 
 import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = resolve(new URL('..', import.meta.url).pathname);
+const ROOT = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const DOCS = join(ROOT, 'docs');
 
 const CANONICAL_TOP_LEVEL_DIRS = new Set([
