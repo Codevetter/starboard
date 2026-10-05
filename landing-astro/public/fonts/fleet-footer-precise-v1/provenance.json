@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "product": "Starboard",
+  "source": "Published C Precise local font mirrors",
+  "sourceRevision": "4af5e531f9010771d5b46e31002000a799b0e77a",
+  "license": "SIL Open Font License 1.1",
+  "licenseNormalization": "Public copies remove trailing horizontal whitespace only; full wording and copyright notices are retained.",
+  "fonts": {
+    "geist": {
+      "font": "geist.woff2",
+      "license": "geist-OFL.txt",
+      "bytes": 29400,
+      "sha256": "19f9c92546aa300c312235e3125af1b81394d8db9a4bc4a425cd5b641d2d54e1",
+      "licenseBytes": 4386,
+      "licenseSha256": "fb64c1011862d97fe49c633ad9180ffd80a61aab6ff220a2935704e8a0c3a7c4",
+      "upstreamLicenseBytes": 4387,
+      "upstreamLicenseSha256": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
+      "normalization": "Trailing horizontal whitespace removed only; license text, notice and punctuation unchanged."
+    },
+    "geistmono": {
+      "font": "geistmono.woff2",
+      "license": "geistmono-OFL.txt",
+      "bytes": 9864,
+      "sha256": "3f98383b122fe015a48536cd4a1cda855a201718923ffe74931a01597107b9b5",
+      "licenseBytes": 4386,
+      "licenseSha256": "fb64c1011862d97fe49c633ad9180ffd80a61aab6ff220a2935704e8a0c3a7c4",
+      "upstreamLicenseBytes": 4387,
+      "upstreamLicenseSha256": "1781d2806a07d91c4edf4740b88449fab7d0eadad53f7c351b94cd4d4eb8c00f",
+      "normalization": "Trailing horizontal whitespace removed only; license text, notice and punctuation unchanged."
+    },
+    "newsreader": {
+      "font": "newsreader.woff2",
+      "license": "newsreader-OFL.txt",
+      "bytes": 132000,
+      "sha256": "6e4f2958c3a7c4a80acde4e5a679abe7e01bc1e30b92be3c7a8b696ef401d101",
+      "licenseBytes": 4393,
+      "licenseSha256": "afdae9053282ba66bbacbc4cb20ad20b12ef46379ac587fd464fe3ff8ce1cd4a",
+      "upstreamLicenseBytes": 4394,
+      "upstreamLicenseSha256": "fdfad38143ec470553cae82a1e45320bdd1b9ec70415d37bd0171051d8a4ded8",
+      "normalization": "Trailing horizontal whitespace removed only; license text, notice and punctuation unchanged."
+    }
+  }
+}

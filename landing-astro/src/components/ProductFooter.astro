@@ -1,67 +1,229 @@
-<footer class="product-footer">
-  <div class="product-footer-state">
-    <div>
-      <p class="chart-kicker">Current product state</p>
-      <h2>Public discovery first. <em>Personal context when you connect GitHub.</em></h2>
-      <p>
-        Starboard is live and maintained. It works with public GitHub repositories and keeps
-        recommendation evidence visible so you can inspect the source before adopting a tool.
-      </p>
-    </div>
-    <dl>
-      <div>
-        <dt>Access</dt>
-        <dd>Cataloged previews and Discover are public. New lookups and saved projects use GitHub sign-in.</dd>
-      </div>
-      <div>
-        <dt>Cost</dt>
-        <dd>Free today, with no checkout, subscription, or premium-feature gate in the current product.</dd>
-      </div>
-      <div>
-        <dt>GitHub boundary</dt>
-        <dd>Public repositories, minimal <code>read:user</code> OAuth scope, and no GitHub write access.</dd>
-      </div>
-    </dl>
-  </div>
-
-  <div class="product-footer-links">
-    <div class="footer-intro">
-      <a class="footer-brand" href="/" aria-label="Starboard home">
-        <span aria-hidden="true">★</span>
-        <strong>Starboard</strong>
-      </a>
-      <p>Project-aware discovery for open-source repositories and tools.</p>
+<footer class="product-footer" aria-label="Starboard footer">
+  <fleet-footer-extension
+    data-fleet-footer-project="starboard"
+    product-name="Starboard"
+    theme="dark"
+    surface="web"
+    font-base="/fonts/fleet-footer-precise-v1/"
+    signature-font="inherit"
+    art-src="/footer-art/starboard.webp"
+    art-alt="Starboard: A project-aware charting bench centers an unfinished vessel model beside one deliberately selected tool. A star-chart folio and organized tool cabinet fill the wings; unused tools remain visibly optional."
+    art-width="2169"
+    art-height="725"
+    art-position="50% 50%"
+    art-credit="Original illustration for Starboard"
+  >
+    <div slot="cta" data-fleet-footer-cta class="product-footer-cta">
+      <a href="/discover">Browse public repositories</a>
     </div>
 
-    <nav aria-label="Footer navigation">
-      <div class="footer-link-group">
-        <p>Explore</p>
-        <a href="/discover">Discover</a>
-        <a href="/tools">Tool intelligence</a>
-        <a href="/about">How it works</a>
+    <div slot="navigation" data-fleet-footer-navigation class="product-footer-navigation">
+      <div class="product-footer-state">
+        <div>
+          <p class="chart-kicker">Current product state</p>
+          <h2>Public discovery first. <em>Personal context when you connect GitHub.</em></h2>
+          <p class="product-footer-description">
+            Starboard is live and maintained. It works with public GitHub repositories and keeps
+            recommendation evidence visible so you can inspect the source before adopting a tool.
+          </p>
+        </div>
+        <dl>
+          <div>
+            <dt>Access</dt>
+            <dd>Cataloged previews and Discover are public. New lookups and saved projects use GitHub sign-in.</dd>
+          </div>
+          <div>
+            <dt>Cost</dt>
+            <dd>Free today, with no checkout, subscription, or premium-feature gate in the current product.</dd>
+          </div>
+          <div>
+            <dt>GitHub boundary</dt>
+            <dd>Public repositories, minimal <code>read:user</code> OAuth scope, and no GitHub write access.</dd>
+          </div>
+        </dl>
       </div>
-      <div class="footer-link-group">
-        <p>Product</p>
-        <a href="/articles">Articles</a>
-        <a href="/changelog">Changelog</a>
-        <a
-          href="https://github.com/Codevetter/starboard"
-          aria-label="GitHub repository"
-          title="GitHub repository"
-          target="_blank"
-          rel="noopener noreferrer"
-        ><svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></a>
-      </div>
-      <div class="footer-link-group">
-        <p>Trust</p>
-        <a href="/privacy">Privacy</a>
-        <a href="/terms">Terms</a>
-      </div>
-    </nav>
 
-    <div class="footer-meta">
-      <p>Free today · public repositories · no GitHub write access</p>
-      <p>Built by <a href="https://sarthakagrawal.dev">Sarthak Agrawal</a>.</p>
+      <div class="product-footer-links">
+        <div class="footer-intro">
+          <a class="footer-brand" href="/" aria-label="Starboard home">
+            <span aria-hidden="true">★</span>
+            <strong>Starboard</strong>
+          </a>
+          <p>Project-aware discovery for open-source repositories and tools.</p>
+        </div>
+
+        <nav aria-label="Footer navigation">
+          <div class="footer-link-group">
+            <h3 data-fleet-footer-group-label>Explore</h3>
+            <a href="/discover">Discover</a>
+            <a href="/tools">Tool intelligence</a>
+            <a href="/about">How it works</a>
+          </div>
+          <div class="footer-link-group">
+            <h3 data-fleet-footer-group-label>Product</h3>
+            <a href="/articles">Articles</a>
+            <a href="/changelog">Changelog</a>
+            <a
+              href="https://github.com/Codevetter/starboard"
+              aria-label="GitHub repository"
+              title="GitHub repository"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <svg viewBox="0 0 16 16" width="20" height="20" fill="currentColor" aria-hidden="true">
+                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+              </svg>
+            </a>
+          </div>
+          <div class="footer-link-group">
+            <h3 data-fleet-footer-group-label>Trust</h3>
+            <a href="/privacy">Privacy</a>
+            <a href="/terms">Terms</a>
+          </div>
+        </nav>
+
+        <div class="footer-meta">
+          <p>Free today · public repositories · no GitHub write access</p>
+          <p>Built by <a href="https://sarthakagrawal.dev">Sarthak Agrawal</a>.</p>
+        </div>
+      </div>
     </div>
-  </div>
+
+    <saas-maker-newsletter-capture
+      slot="capture"
+      theme="dark"
+      catalog-id="starboard"
+      product-name="Starboard"
+      kind="newsletter"
+      source="footer"
+      privacy-url="https://starboard.codevetter.com/privacy"
+      layout="compact"
+      integrated=""
+    ></saas-maker-newsletter-capture>
+
+    <ai-chat-footer
+      slot="ai"
+      theme="dark"
+      product-name="Starboard"
+      layout="question"
+      integrated=""
+    ></ai-chat-footer>
+
+    <portfolio-project-strip
+      slot="projects"
+      theme="dark"
+      current-project="starboard"
+      layout="studio"
+      integrated=""
+    ></portfolio-project-strip>
+  </fleet-footer-extension>
 </footer>
+
+<style>
+  .product-footer.product-footer {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  fleet-footer-extension {
+    display: block;
+    color: #dbe1dd;
+    font-family: var(--font-geist-sans), system-ui, sans-serif;
+    --fleet-footer-canvas: #123b4a;
+    --fleet-footer-lower: #0d2d39;
+    --fleet-footer-muted: #c2cbc6;
+    --fleet-footer-border: rgb(255 255 255 / 20%);
+    --fleet-footer-focus: #ef9a76;
+    --fleet-footer-signature-font: var(--font-geist-sans), system-ui, sans-serif;
+    --fleet-footer-edge: clamp(1rem, 4vw, 3rem);
+    --fleet-footer-max-width: 80rem;
+    --portfolio-strip-text: #dbe1dd;
+    --portfolio-strip-muted: #c2cbc6;
+    --portfolio-strip-border: rgb(255 255 255 / 20%);
+    --portfolio-strip-focus: #ef9a76;
+  }
+
+  .product-footer-cta a {
+    min-height: 48px;
+    background: #ef9a76;
+    color: #123b4a;
+  }
+
+  .product-footer-cta a:focus-visible,
+  .product-footer a:focus-visible {
+    outline: 2px solid #f4efe4;
+    outline-offset: 3px;
+  }
+
+  .product-footer-navigation {
+    min-width: 0;
+    container-type: inline-size;
+  }
+
+  .product-footer-state {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    padding: 0;
+  }
+
+  .product-footer-state h2 {
+    font-size: clamp(1.35rem, 4.5cqi, 2.3rem);
+    line-height: 1.2;
+  }
+
+  .product-footer-links {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1.5rem;
+    padding: 1.5rem 0 0;
+  }
+
+  .product-footer-links > *,
+  .product-footer-links nav {
+    min-width: 0;
+  }
+
+  .product-footer-links nav {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+    gap: clamp(0.75rem, 2cqi, 1.75rem);
+  }
+
+
+  .product-footer .footer-link-group h3 {
+    margin: 0 0 0.2rem;
+    color: #ef9a76;
+    font: 650 9px var(--font-geist-mono), monospace;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .product-footer-links nav a {
+    min-height: 44px;
+  }
+
+  .product-footer-links nav a:focus-visible,
+  .footer-meta a:focus-visible {
+    outline: 2px solid #f4efe4;
+    outline-offset: 3px;
+  }
+
+  @container (min-width: 42rem) {
+    .product-footer-links {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    }
+
+    .footer-meta {
+      grid-column: 1 / -1;
+    }
+  }
+
+  @container (min-width: 56rem) {
+    .product-footer-state {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+    }
+  }
+</style>
