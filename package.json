@@ -46,7 +46,7 @@
     "quality:suppressions": "node scripts/check-code-health.mjs suppressions",
     "quality:hygiene": "node scripts/check-code-health.mjs hygiene",
     "quality": "pnpm check && pnpm typecheck && pnpm test:coverage && pnpm docs:check && pnpm quality:unused && pnpm quality:complexity && pnpm quality:duplication && pnpm quality:cycles && pnpm test:dependency-security && pnpm quality:dependencies && pnpm quality:suppressions && pnpm quality:hygiene",
-    "test:dependency-security": "node --test scripts/http-cache-security.test.mjs",
+    "test:dependency-security": "node --test scripts/http-cache-security.mjs",
     "prepare": "husky"
   },
   "dependencies": {
