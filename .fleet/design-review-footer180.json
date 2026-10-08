@@ -1,0 +1,269 @@
+{
+  "$schema": "fleet.design-review.v2",
+  "version": 2,
+  "project": "starboard",
+  "target": "Source-authored Art terrace closing footer for starboard; SaaS Maker #180 Fleet rollout",
+  "surfaceMode": "read",
+  "mode": "overhaul",
+  "register": "product",
+  "context": {
+    "product": ".fleet-local/footer180-context/PRODUCT.md",
+    "design": ".fleet-local/footer180-context/DESIGN.md"
+  },
+  "direction": {
+    "productSurfaces": {
+      "scope": "paired",
+      "landing": "a-atlas-landing.html; b-atlas-landing.html; c-atlas-landing.html",
+      "app": "a-atlas-app.html; b-atlas-app.html; c-atlas-app.html",
+      "reason": "Shared whole-system A selection is Fleet-wide. This pass changes only authored closing web/footer regions; original app/native behavior remains source-owned. Actual entry-flow and paired evidence pending."
+    },
+    "pairedPreview": {
+      "landing": "",
+      "app": ""
+    },
+    "source": "comparison",
+    "references": [
+      "direction-contracts.md",
+      "/tmp/fleet-finish-wave-20261002/shared-footer-architecture/architecture-proposal.md"
+    ],
+    "probes": [
+      {
+        "id": "a",
+        "path": ".fleet-local/footer180-directions/captures/a-atlas-landing-1440.png",
+        "pairedApp": ".fleet-local/footer180-directions/captures/a-atlas-app-1440.png",
+        "otherIdentity": ".fleet-local/footer180-directions/captures/a-codevetter-landing-1440.png",
+        "mobile": ".fleet-local/footer180-directions/captures/a-atlas-landing-390.png",
+        "thesis": "Generous framed project illustration with quiet help and discovery.",
+        "layout": "Art first, moderate editorial CTA row, separated three-disclosure utility rail, curated studio row and native footer.",
+        "typography": "Product-native display and body: Atlas Georgia/forest/paper; CodeVetter system sans/true black/amber; mono for small labels only.",
+        "surfaces": {
+          "landing": ".fleet-local/footer180-directions/captures/a-atlas-landing-1440.png",
+          "app": ".fleet-local/footer180-directions/captures/a-atlas-app-1440.png"
+        }
+      },
+      {
+        "id": "b",
+        "path": ".fleet-local/footer180-directions/captures/b-atlas-landing-1440.png",
+        "pairedApp": ".fleet-local/footer180-directions/captures/b-atlas-app-1440.png",
+        "otherIdentity": ".fleet-local/footer180-directions/captures/b-codevetter-landing-1440.png",
+        "mobile": ".fleet-local/footer180-directions/captures/b-atlas-landing-390.png",
+        "thesis": "An asymmetric studio workbench pairs art with explicit services.",
+        "layout": "Large side illustration plate and editorial CTA, vertical service index beside project rows, native footer.",
+        "typography": "Product-native display and body: Atlas Georgia/forest/paper; CodeVetter system sans/true black/amber; mono for small labels only.",
+        "surfaces": {
+          "landing": ".fleet-local/footer180-directions/captures/b-atlas-landing-1440.png",
+          "app": ".fleet-local/footer180-directions/captures/b-atlas-app-1440.png"
+        }
+      },
+      {
+        "id": "c",
+        "path": ".fleet-local/footer180-directions/captures/c-atlas-landing-1440.png",
+        "pairedApp": ".fleet-local/footer180-directions/captures/c-atlas-app-1440.png",
+        "otherIdentity": ".fleet-local/footer180-directions/captures/c-codevetter-landing-1440.png",
+        "mobile": ".fleet-local/footer180-directions/captures/c-atlas-landing-390.png",
+        "thesis": "A full-width illustrated final scene followed by a concise afterword.",
+        "layout": "Short CTA header, full-bleed art, lower disclosure bar and compact studio index, native footer.",
+        "typography": "Product-native display and body: Atlas Georgia/forest/paper; CodeVetter system sans/true black/amber; mono for small labels only.",
+        "surfaces": {
+          "landing": ".fleet-local/footer180-directions/captures/c-atlas-landing-1440.png",
+          "app": ".fleet-local/footer180-directions/captures/c-atlas-app-1440.png"
+        }
+      }
+    ],
+    "selected": "a",
+    "approval": "approved",
+    "ownerEvidence": {
+      "path": ".fleet-local/footer180-directions/owner-selection.json",
+      "quote": "go for it"
+    },
+    "supplied": "",
+    "before": "",
+    "library": {
+      "strategy": "upstream-first",
+      "primary": "existing-project-system",
+      "sources": [],
+      "runtime": "none",
+      "customReplacement": {
+        "used": false,
+        "authorization": "not-required",
+        "reason": "Custom project art and composition requested by owner; standard controls preserve native/current primitives."
+      }
+    },
+    "contract": {
+      "purpose": "Starboard makes a large GitHub Stars collection useful for personal exploration and project-aware tool discovery.",
+      "purposeSource": "Generated canonical purpose contract plus inspected source actors recorded in .fleet-local/footer180-context/PRODUCT.md; existing repo PRODUCT/DESIGN retain authority.",
+      "canonicalPurpose": "Starboard makes a large GitHub Stars collection useful for personal exploration and project-aware tool discovery.",
+      "purposeAlignment": "match",
+      "driftNote": "",
+      "audience": "Developers whose saved repositories have outgrown GitHub\u2019s default starred-items interface.",
+      "job": "Finish the product page clearly; make optional help, updates, feedback, discovery and navigation reachable.",
+      "thesis": "One shared composition system, generous unique art for each project, product-native color/type and task-appropriate density.",
+      "system": "Approved A Art terrace with existing product fonts/colors and native CTA/navigation ownership. Current theme: light paper",
+      "signature": "Original pixel art representing a research cabinet or evidence workshop; dedicated image frame rather than controls laid over busy art.",
+      "risk": "Art creates vertical weight; mitigate with intentional mobile focus and shallower app frames. Disclosures add one step to optional utility.",
+      "qualityBar": "Rendered product identity and hierarchy, readable mobile art/controls, truthful local/public boundaries, preserved consent and native routes. Scores cannot establish acceptance."
+    }
+  },
+  "evidence": {
+    "platform": "web",
+    "productContinuity": {
+      "status": "pending",
+      "reason": "Direction probes demonstrate paired density, identity and vocabulary. Actual implemented landing/app runtime and first-value handoff remain to be qualified after selection.",
+      "reviewer": "",
+      "report": ".fleet-local/footer180-directions/sources.json",
+      "surfaces": {
+        "landing": ".fleet-local/footer180-directions/captures/a-atlas-landing-1440.png",
+        "app": ".fleet-local/footer180-directions/captures/a-atlas-app-1440.png"
+      },
+      "checks": {
+        "designSystem": {
+          "status": "pending",
+          "observation": ""
+        },
+        "identity": {
+          "status": "pending",
+          "observation": ""
+        },
+        "vocabulary": {
+          "status": "pending",
+          "observation": ""
+        },
+        "productTruth": {
+          "status": "pending",
+          "observation": ""
+        },
+        "handoff": {
+          "status": "pending",
+          "observation": ""
+        }
+      }
+    },
+    "slopScale": {
+      "platform": "web",
+      "posture": "advisory",
+      "reason": "Pinned local scan on all 9 static direction surfaces; no production quality or owner acceptance inferred.",
+      "checkpoints": [
+        {
+          "stage": "directions",
+          "direction": "a",
+          "status": "scanned",
+          "report": ".fleet-local/footer180-directions/slop-direction-a-selection.json",
+          "command": "node /Users/sarthak/Desktop/fleet/saas-maker/tooling/scripts/slop-score.mjs http://127.0.0.1:8897/a-atlas-landing.html http://127.0.0.1:8897/a-atlas-app.html http://127.0.0.1:8897/a-codevetter-landing.html --json",
+          "findingsReview": "Atlas paper/serif and CodeVetter true-black identity preserve actual product systems; native disclosures serve real optional utilities. Sparse uppercase labels retained intentionally. No detected low-contrast text. Advisory score is not owner acceptance."
+        },
+        {
+          "stage": "directions",
+          "direction": "b",
+          "status": "scanned",
+          "report": ".fleet-local/footer180-directions/slop-direction-b-selection.json",
+          "command": "node /Users/sarthak/Desktop/fleet/saas-maker/tooling/scripts/slop-score.mjs http://127.0.0.1:8897/b-atlas-landing.html http://127.0.0.1:8897/b-atlas-app.html http://127.0.0.1:8897/b-codevetter-landing.html --json",
+          "findingsReview": "Atlas paper/serif and CodeVetter true-black identity preserve actual product systems; native disclosures serve real optional utilities. Sparse uppercase labels retained intentionally. No detected low-contrast text. Advisory score is not owner acceptance."
+        },
+        {
+          "stage": "directions",
+          "direction": "c",
+          "status": "scanned",
+          "report": ".fleet-local/footer180-directions/slop-direction-c-selection.json",
+          "command": "node /Users/sarthak/Desktop/fleet/saas-maker/tooling/scripts/slop-score.mjs http://127.0.0.1:8897/c-atlas-landing.html http://127.0.0.1:8897/c-atlas-app.html http://127.0.0.1:8897/c-codevetter-landing.html --json",
+          "findingsReview": "Atlas paper/serif and CodeVetter true-black identity preserve actual product systems; native disclosures serve real optional utilities. Sparse uppercase labels retained intentionally. No detected low-contrast text. Advisory score is not owner acceptance."
+        }
+      ]
+    },
+    "visualReview": {
+      "status": "pending",
+      "reviewer": "Root plus independent remaining_source agent",
+      "direction": "Three comparisons; no selected system",
+      "report": ".fleet-local/footer180-directions/review-final.md",
+      "checks": {
+        "hierarchy": {
+          "status": "pending",
+          "observation": ""
+        },
+        "typography": {
+          "status": "pending",
+          "observation": ""
+        },
+        "composition": {
+          "status": "pending",
+          "observation": ""
+        },
+        "identity": {
+          "status": "pending",
+          "observation": ""
+        },
+        "interaction": {
+          "status": "pending",
+          "observation": ""
+        },
+        "responsive": {
+          "status": "pending",
+          "observation": ""
+        }
+      }
+    },
+    "screenshots": [],
+    "projectCheck": {
+      "command": "pending scoped checks",
+      "status": "pending"
+    },
+    "critique": {
+      "score": 0,
+      "maximum": 40,
+      "dimensions": {
+        "hierarchy": 0,
+        "typography": 0,
+        "composition": 0,
+        "identity": 0,
+        "interaction": 0,
+        "responsive": 0
+      }
+    },
+    "audit": {
+      "score": 0,
+      "maximum": 20,
+      "dimensions": {
+        "purpose": 0,
+        "accessibility": 0,
+        "behavior": 0,
+        "responsive": 0,
+        "performance": 0
+      }
+    },
+    "unresolved": {
+      "p0": 0,
+      "p1": 0
+    },
+    "detector": {
+      "posture": "advisory",
+      "findings": []
+    },
+    "comprehension": {
+      "status": "not-applicable",
+      "reviewer": "",
+      "answers": {
+        "product": "",
+        "audience": "",
+        "value": "",
+        "mechanism": "",
+        "proof": "",
+        "nextAction": ""
+      },
+      "purposeScore": {
+        "product": 0,
+        "audience": 0,
+        "value": 0,
+        "mechanism": 0,
+        "proof": 0,
+        "nextAction": 0,
+        "total": 0
+      },
+      "mismatches": []
+    }
+  },
+  "ownerFeedback": {
+    "decision": "approved",
+    "note": "Proceeding with recommended A \u2014 Art terrace; exact owner reply and surrounding recommendation recorded in owner-selection.json."
+  },
+  "productionOwner": "saas-maker",
+  "phase": "Implementation pending, inherited exact owner A approval; no completed product render or final acceptance claimed."
+}
