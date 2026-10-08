@@ -1,5 +1,11 @@
 import { pathToFileURL } from 'node:url';
 
+function pendingCount(receipt) {
+  if (!Number.isSafeInteger(receipt.pending) || receipt.pending < 0)
+    throw new Error('Invalid demand receipt.');
+  return receipt.pending;
+}
+
 export async function smokeEmbeddingAdmission({ limit, token, fetchImpl = fetch }) {
   if (!Number.isInteger(limit) || limit < 0 || limit > 100) {
     throw new Error('Embedding smoke limit must be an integer from 0 to 100.');
@@ -13,10 +19,8 @@ export async function smokeEmbeddingAdmission({ limit, token, fetchImpl = fetch 
     signal: AbortSignal.timeout(30_000),
   });
   if (!demand.ok) throw new Error(`Embedding demand HTTP ${demand.status}`);
-  const before = await demand.json();
-  if (!Number.isSafeInteger(before.pending) || before.pending < 0)
-    throw new Error('Invalid demand receipt.');
-  if (before.pending === 0) return { pendingBefore: 0, embedded: 0, pendingAfter: 0 };
+  const pendingBefore = pendingCount(await demand.json());
+  if (pendingBefore === 0) return { pendingBefore: 0, embedded: 0, pendingAfter: 0 };
   // Never retry a mutation with an ambiguous result. The shared ledger retains
   // its reservation and the next run reconciles D1 hashes before trying again.
   const response = await fetchImpl(endpoint, {
@@ -35,13 +39,11 @@ export async function smokeEmbeddingAdmission({ limit, token, fetchImpl = fetch 
     signal: AbortSignal.timeout(30_000),
   });
   if (!after.ok) throw new Error(`Embedding demand readback HTTP ${after.status}`);
-  const readback = await after.json();
-  if (!Number.isSafeInteger(readback.pending) || readback.pending < 0)
-    throw new Error('Invalid demand readback.');
+  const pendingAfter = pendingCount(await after.json());
   return {
-    pendingBefore: before.pending,
+    pendingBefore,
     embedded: result.embedded,
-    pendingAfter: readback.pending,
+    pendingAfter,
   };
 }
 
