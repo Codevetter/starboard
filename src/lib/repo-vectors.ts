@@ -1,8 +1,8 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 import {
-  denyVectorizeStorageGrowth,
   reserveVectorizeQuery,
+  reserveVectorizeStorage,
   SharedBudgetDeniedError,
   type SharedBudgetNamespace,
 } from './shared-ai-budget';
@@ -42,7 +42,7 @@ export interface VectorizeIndexLike {
 
 export interface RepoVectorBudget {
   reserveQuery(dimensions: number): Promise<void>;
-  denyStorageGrowth(): void;
+  reserveStorage(dimensions: number): Promise<void>;
 }
 
 const VECTORIZE_MAX_TOP_K = 100;
@@ -61,8 +61,16 @@ function normalizeMatches(result: VectorizeMatchesLike): RepoVectorMatch[] {
 
 export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVectorBudget) {
   const queryAdmission = Symbol('reserved-vectorize-query');
+  const storageAdmissions = new Map<symbol, { count: number; monthKey: string }>();
   let reservationAvailable = false;
   return {
+    async reserveStorage(count: number): Promise<symbol> {
+      if (!Number.isSafeInteger(count) || count < 1) throw new SharedBudgetDeniedError();
+      await budget.reserveStorage(count * 768);
+      const admission = Symbol('reserved-vectorize-storage');
+      storageAdmissions.set(admission, { count, monthKey: new Date().toISOString().slice(0, 7) });
+      return admission;
+    },
     async reserveQuery(dimensions = 768): Promise<symbol> {
       if (reservationAvailable) throw new Error('Vectorize query reservation is already pending.');
       await budget.reserveQuery(dimensions);
@@ -90,9 +98,30 @@ export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVec
         })
       );
     },
-    async upsert(vectors: RepoVectorInput[]): Promise<void> {
+    async upsert(vectors: RepoVectorInput[], admitted?: symbol): Promise<void> {
       if (vectors.length === 0) return;
-      budget.denyStorageGrowth();
+      if (
+        vectors.some(
+          (v) =>
+            !Number.isSafeInteger(v.repoId) ||
+            v.repoId < 1 ||
+            v.values.length !== 768 ||
+            v.values.some((value) => !Number.isFinite(value))
+        )
+      ) {
+        throw new Error(
+          'Vectorize writes require repository IDs and raw finite 768-dimensional vectors.'
+        );
+      }
+      if (admitted !== undefined) {
+        const receipt = storageAdmissions.get(admitted);
+        if (
+          receipt?.count !== vectors.length ||
+          receipt.monthKey !== new Date().toISOString().slice(0, 7)
+        )
+          throw new SharedBudgetDeniedError();
+        storageAdmissions.delete(admitted);
+      } else await budget.reserveStorage(vectors.length * 768);
       await index.upsert(
         vectors.map((vector) => ({
           id: String(vector.repoId),
@@ -112,6 +141,6 @@ export function repoVectors() {
   if (!namespace) throw new SharedBudgetDeniedError();
   return createRepoVectorStore(index, {
     reserveQuery: (dimensions) => reserveVectorizeQuery(namespace, dimensions),
-    denyStorageGrowth: denyVectorizeStorageGrowth,
+    reserveStorage: (dimensions) => reserveVectorizeStorage(namespace, dimensions),
   });
 }

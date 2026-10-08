@@ -5,7 +5,7 @@ import { denyVectorizeStorageGrowth } from './shared-ai-budget';
 
 const testBudget = () => ({
   reserveQuery: vi.fn(async (_dimensions: number) => {}),
-  denyStorageGrowth: () => {},
+  reserveStorage: vi.fn(async (_dimensions: number) => {}),
 });
 
 describe('repo vector store', () => {
@@ -35,9 +35,13 @@ describe('repo vector store', () => {
       upsert,
     } as unknown as VectorizeIndexLike;
 
-    await createRepoVectorStore(index, testBudget()).upsert([{ repoId: 7, values: [0.2, 0.3] }]);
+    await createRepoVectorStore(index, testBudget()).upsert([
+      { repoId: 7, values: Array(768).fill(0.2) },
+    ]);
 
-    expect(upsert).toHaveBeenCalledWith([{ id: '7', values: [0.2, 0.3], metadata: { repoId: 7 } }]);
+    expect(upsert).toHaveBeenCalledWith([
+      { id: '7', values: Array(768).fill(0.2), metadata: { repoId: 7 } },
+    ]);
   });
 
   it('does not write any vectors when storage headroom is not verified', async () => {
@@ -45,7 +49,7 @@ describe('repo vector store', () => {
     const index = { query: vi.fn(), queryById: vi.fn(), upsert } as unknown as VectorizeIndexLike;
     const vectors = createRepoVectorStore(index, {
       ...testBudget(),
-      denyStorageGrowth: denyVectorizeStorageGrowth,
+      reserveStorage: async () => denyVectorizeStorageGrowth(),
     });
 
     await expect(vectors.upsert([{ repoId: 7, values: Array(768).fill(0) }])).rejects.toThrow(
@@ -100,5 +104,54 @@ describe('repo vector store', () => {
     await vectors.queryByRepoId(7, 10);
 
     expect(budget.reserveQuery.mock.calls).toEqual([[2], [768]]);
+  });
+  it('consumes each correctly sized admission once, including failed writes', async () => {
+    const upsert = vi.fn().mockRejectedValue(new Error('ambiguous write'));
+    const budget = testBudget();
+    const index = { query: vi.fn(), queryById: vi.fn(), upsert } as unknown as VectorizeIndexLike;
+    const vectors = createRepoVectorStore(index, budget);
+    const admission = await vectors.reserveStorage(1);
+    const input = [{ repoId: 7, values: Array(768).fill(0) }];
+    await expect(vectors.upsert(input, Symbol('forged'))).rejects.toThrow();
+    await expect(vectors.upsert([...input, ...input], admission)).rejects.toThrow();
+    expect(upsert).not.toHaveBeenCalled();
+    await expect(vectors.upsert(input, admission)).rejects.toThrow('ambiguous write');
+    await expect(vectors.upsert(input, admission)).rejects.toThrow();
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(budget.reserveStorage).toHaveBeenCalledExactlyOnceWith(768);
+  });
+
+  it.each([769, 1536, 3072])(
+    'rejects raw %i-dimensional writes before admission',
+    async (dimensions) => {
+      const upsert = vi.fn();
+      const budget = testBudget();
+      const index = { query: vi.fn(), queryById: vi.fn(), upsert } as unknown as VectorizeIndexLike;
+      await expect(
+        createRepoVectorStore(index, budget).upsert([
+          { repoId: 7, values: Array(dimensions).fill(0) },
+        ])
+      ).rejects.toThrow(/raw finite 768/);
+      expect(upsert).not.toHaveBeenCalled();
+      expect(budget.reserveStorage).not.toHaveBeenCalled();
+    }
+  );
+
+  it('rejects an admission held across an unverified month boundary', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-10-31T23:59:59Z'));
+    try {
+      const upsert = vi.fn();
+      const index = { query: vi.fn(), queryById: vi.fn(), upsert } as unknown as VectorizeIndexLike;
+      const vectors = createRepoVectorStore(index, testBudget());
+      const admission = await vectors.reserveStorage(1);
+      vi.setSystemTime(new Date('2026-11-01T00:00:00Z'));
+      await expect(
+        vectors.upsert([{ repoId: 7, values: Array(768).fill(0) }], admission)
+      ).rejects.toThrow();
+      expect(upsert).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

@@ -87,6 +87,10 @@ export async function reserveVectorizeQuery(
   if (!Number.isSafeInteger(dimensions) || dimensions <= 0 || dimensions > VECTORIZE_CAP)
     return deny();
   const receipt = await reserve(namespace, 'try-debit-vectorize', { dimensions });
+  validateVectorizeReceipt(receipt, dimensions);
+}
+
+function validateVectorizeReceipt(receipt: Record<string, unknown>, dimensions: number): void {
   if (
     receipt.allowed !== true ||
     receipt.monthKey !== new Date().toISOString().slice(0, 7) ||
@@ -96,6 +100,24 @@ export async function reserveVectorizeQuery(
     receipt.used < dimensions ||
     !safeInteger(receipt.remaining) ||
     receipt.used + receipt.remaining !== VECTORIZE_CAP
+  )
+    deny();
+}
+
+export async function reserveVectorizeStorage(
+  namespace: SharedBudgetNamespace,
+  dimensions: number
+): Promise<void> {
+  if (!Number.isSafeInteger(dimensions) || dimensions <= 0 || dimensions > VECTORIZE_CAP)
+    return deny();
+  const receipt = await reserve(namespace, 'try-debit-vectorize-storage', { dimensions });
+  validateVectorizeReceipt(receipt, dimensions);
+  if (
+    receipt.storedCap !== 200_000_000 ||
+    !safeInteger(receipt.storedUsed) ||
+    receipt.storedUsed < dimensions ||
+    !safeInteger(receipt.storedRemaining) ||
+    receipt.storedUsed + receipt.storedRemaining !== receipt.storedCap
   )
     return deny();
 }

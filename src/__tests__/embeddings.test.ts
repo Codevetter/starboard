@@ -44,7 +44,7 @@ describe('embedding dimension contract', () => {
     );
     globalThis.fetch = fetchMock as typeof fetch;
 
-    await generateEmbeddings(['repo text']);
+    await expect(generateEmbeddings(['repo text'])).resolves.toEqual([embedding]);
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const init = fetchMock.mock.calls[0]![1]!;
@@ -54,21 +54,22 @@ describe('embedding dimension contract', () => {
     });
   });
 
-  it('normalizes oversized direct-provider embeddings to the schema dimension', async () => {
-    process.env.AI_BASE_URL = 'https://direct.example.test/v1';
-    process.env.AI_API_KEY = 'test-key';
-    process.env.AI_EMBED_MODEL = 'free-embedding-model';
-    const embedding = Array.from({ length: EMBEDDING_DIM * 4 }, (_, index) => index);
-    globalThis.fetch = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
-      Response.json({ data: [{ embedding, index: 0 }] })
-    ) as typeof fetch;
+  it.each([EMBEDDING_DIM + 1, EMBEDDING_DIM * 2, EMBEDDING_DIM * 4])(
+    'rejects direct-provider embeddings with %i dimensions',
+    async (dimensions) => {
+      process.env.AI_BASE_URL = 'https://direct.example.test/v1';
+      process.env.AI_API_KEY = 'test-key';
+      process.env.AI_EMBED_MODEL = 'free-embedding-model';
+      const embedding = Array.from({ length: dimensions }, (_, index) => index);
+      globalThis.fetch = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
+        Response.json({ data: [{ embedding, index: 0 }] })
+      ) as typeof fetch;
 
-    const [normalized] = await generateEmbeddings(['repo text']);
-
-    expect(normalized).toHaveLength(EMBEDDING_DIM);
-    expect(normalized[0]).toBe(1.5);
-    expect(normalized[1]).toBe(5.5);
-  });
+      await expect(generateEmbeddings(['repo text'])).rejects.toThrow(
+        'Embedding dimension mismatch'
+      );
+    }
+  );
 });
 
 describe('buildRepoEmbeddingText', () => {

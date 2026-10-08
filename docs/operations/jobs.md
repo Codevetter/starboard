@@ -54,6 +54,8 @@ annotates intent, inputs, and dependencies.
   enumeration is expected to use roughly 250 requests, below the workflow
   token's 1,000 requests/hour per-repository allowance.
 
+- **Embedding admission:** the operator route reserves each batch in Free AI's existing shared budget before inference, then consumes a request-local admission once at the raw 768-dimensional write. Concurrent jobs and retries charge both queried corpus growth and storage conservatively; ambiguous writes never refund capacity or checkpoint D1. October's reviewed headroom is bounded, and unverified future months fail closed. Public generation and direct REST backfill remain blocked. See Free AI's [cost guardrails](https://github.com/sass-maker/free-ai/blob/main/docs/operations/cloudflare-cost-guardrails.md) for the pricing bound and account-writer limitation.
+
 - **Failure visibility:** a follow-on `alert` job runs after every *scheduled*
   seed and keeps exactly one open tracking issue labelled
   `scheduled-job-failure`. A failed run opens that issue (or comments on the
