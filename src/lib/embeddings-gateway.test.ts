@@ -32,22 +32,25 @@ describe('Starboard private Free AI embeddings', () => {
     expect(vectors.at(-1)?.[0]).toBe(54);
   });
 
-  it('preserves legacy dimension normalization for expanded native embeddings', async () => {
+  it('rejects expanded vectors instead of coercing them into the BGE index space', async () => {
     const gateway: FleetGatewayBinding = {
       run: vi.fn(async () => ({ data: [Array.from({ length: 1536 }, (_, index) => index)] })),
       fetch: vi.fn(),
     };
 
-    const [vector] = await embedViaGateway(gateway, ['repo']);
-
-    expect(vector).toHaveLength(768);
-    expect(vector[0]).toBe(0.5);
-    expect(vector[1]).toBe(2.5);
+    await expect(embedViaGateway(gateway, ['repo'])).rejects.toThrow(/768-dimension BGE contract/);
   });
 
-  it('rejects dimensions that do not preserve the legacy normalization contract', async () => {
+  it.each([
+    ['wrong row count', { data: [] }],
+    ['wrong dimension', { data: [Array.from({ length: 767 }, () => 1)] }],
+    [
+      'non-finite values',
+      { data: [Array.from({ length: 768 }, (_, index) => (index === 0 ? Number.NaN : 1))] },
+    ],
+  ])('rejects %s from the private gateway', async (_case, result) => {
     const gateway: FleetGatewayBinding = {
-      run: vi.fn(async () => ({ data: [Array.from({ length: 1537 }, () => 1)] })),
+      run: vi.fn(async () => result),
       fetch: vi.fn(),
     };
 
