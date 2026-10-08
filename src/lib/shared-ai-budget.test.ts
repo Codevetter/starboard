@@ -4,6 +4,7 @@ import {
   denyVectorizeStorageGrowth,
   estimateWorkersAiNeurons,
   reserveVectorizeQuery,
+  reserveVectorizeStorage,
   reserveWorkersAiCall,
   SharedBudgetDeniedError,
   type SharedBudgetNamespace,
@@ -91,5 +92,40 @@ describe('shared AI spend guard', () => {
 
   it('blocks stored-vector growth without using the query reservation endpoint', () => {
     expect(denyVectorizeStorageGrowth).toThrowError(SharedBudgetDeniedError);
+  });
+  it('requires both strict storage and query receipts and fails closed on missing counters', async () => {
+    const receipt = {
+      allowed: true,
+      used: 35_000_768,
+      remaining: 9_999_232,
+      retryAfter: 0,
+      monthKey: new Date().toISOString().slice(0, 7),
+      baselineVerified: true,
+      storedCap: 200_000_000,
+      storedUsed: 30_000_768,
+      storedRemaining: 169_999_232,
+    };
+    const { namespace, requests } = makeBudget(receipt);
+    await reserveVectorizeStorage(namespace, 768);
+    expect(requests[0]).toEqual({
+      url: 'https://internal.local/try-debit-vectorize-storage',
+      body: { dimensions: 768 },
+    });
+    for (const invalid of [
+      { ...receipt, storedCap: 300_000_000 },
+      { ...receipt, storedUsed: undefined },
+      { ...receipt, storedRemaining: 200_000_000 },
+      { ...receipt, baselineVerified: false },
+      { ...receipt, monthKey: '2000-01' },
+      { ...receipt, used: 1 },
+      { ...receipt, allowed: false },
+    ]) {
+      await expect(
+        reserveVectorizeStorage(makeBudget(invalid).namespace, 768)
+      ).rejects.toBeInstanceOf(SharedBudgetDeniedError);
+    }
+    await expect(
+      reserveVectorizeStorage(makeBudget(receipt, 503).namespace, 768)
+    ).rejects.toBeInstanceOf(SharedBudgetDeniedError);
   });
 });

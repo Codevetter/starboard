@@ -5,7 +5,7 @@ import { db } from '@/db';
 import { buildEmbeddingFromRow, generateEmbeddings } from '@/lib/embeddings';
 import { hasValidOperatorToken } from '@/lib/operator-auth';
 import { repoVectors } from '@/lib/repo-vectors';
-import { denyVectorizeStorageGrowth, SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
+import { SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
 
 const BATCH_SIZE = 50;
 const DEFAULT_LIMIT = 3000;
@@ -113,23 +113,34 @@ export async function POST(request: Request) {
   }
   const limit = Math.min(Number(requestedLimit), MAX_LIMIT);
 
-  try {
-    denyVectorizeStorageGrowth();
-  } catch (error) {
-    if (error instanceof SharedBudgetDeniedError) {
-      return NextResponse.json({ error: error.message }, { status: 503 });
-    }
-    throw error;
-  }
-
   const { eligible, pending } = await loadEmbeddingDemand();
 
   const selected = pending.slice(0, limit);
+  if (selected.length === 0)
+    return NextResponse.json({ eligible, embedded: 0, remaining: 0, limit });
+  let vectors: ReturnType<typeof repoVectors>;
+  try {
+    vectors = repoVectors();
+  } catch (error) {
+    if (error instanceof SharedBudgetDeniedError)
+      return NextResponse.json({ error: error.message }, { status: 503 });
+    throw error;
+  }
   for (let i = 0; i < selected.length; i += BATCH_SIZE) {
     const batch = selected.slice(i, i + BATCH_SIZE);
+    let admission: symbol;
+    try {
+      admission = await vectors.reserveStorage(batch.length);
+    } catch (error) {
+      if (error instanceof SharedBudgetDeniedError) {
+        return NextResponse.json({ error: error.message }, { status: 503 });
+      }
+      throw error;
+    }
     const embeddings = await generateEmbeddings(batch.map((item) => item.text));
-    await repoVectors().upsert(
-      batch.map((item, index) => ({ repoId: item.id, values: embeddings[index] }))
+    await vectors.upsert(
+      batch.map((item, index) => ({ repoId: item.id, values: embeddings[index] })),
+      admission
     );
     const statements: InStatement[] = batch.map((item) => ({
       sql: `INSERT INTO repo_embeddings (repo_id, text_hash)

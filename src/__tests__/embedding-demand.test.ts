@@ -1,14 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { execute, batch, queryByRepoId, upsert, generateEmbeddings } = vi.hoisted(() => ({
-  execute: vi.fn(),
-  batch: vi.fn(),
-  queryByRepoId: vi.fn(),
-  upsert: vi.fn(),
-  generateEmbeddings: vi.fn(),
-}));
+const { execute, batch, queryByRepoId, upsert, reserveStorage, generateEmbeddings } = vi.hoisted(
+  () => ({
+    execute: vi.fn(),
+    batch: vi.fn(),
+    queryByRepoId: vi.fn(),
+    upsert: vi.fn(),
+    reserveStorage: vi.fn(),
+    generateEmbeddings: vi.fn(),
+  })
+);
 vi.mock('@/db', () => ({ db: { execute, batch } }));
-vi.mock('@/lib/repo-vectors', () => ({ repoVectors: () => ({ queryByRepoId, upsert }) }));
+vi.mock('@/lib/repo-vectors', () => ({
+  repoVectors: () => ({ queryByRepoId, upsert, reserveStorage }),
+}));
 vi.mock('@/lib/embeddings', async () => {
   const actual = await vi.importActual<typeof import('@/lib/embeddings')>('@/lib/embeddings');
   return { ...actual, generateEmbeddings };
@@ -16,6 +21,7 @@ vi.mock('@/lib/embeddings', async () => {
 
 import { GET, POST } from '@/app/api/internal/embed-pending/route';
 import { buildEmbeddingFromRow } from '@/lib/embeddings';
+import { SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
 
 function row(id: number, extra: Record<string, unknown> = {}) {
   return {
@@ -156,7 +162,9 @@ describe('operator embedding demand aggregates', () => {
     expect(batch).not.toHaveBeenCalled();
   });
 
-  it('keeps POST storage denial before D1, embeddings or vector writes', async () => {
+  it('denies admission after read-only demand, before inference or vector writes', async () => {
+    execute.mockResolvedValue({ rows: [row(1)] });
+    reserveStorage.mockRejectedValue(new SharedBudgetDeniedError());
     const response = await POST(
       new Request('https://starboard.test/api/internal/embed-pending', {
         method: 'POST',
@@ -166,12 +174,55 @@ describe('operator embedding demand aggregates', () => {
     );
     expect(response.status).toBe(503);
     expect(await response.json()).toEqual({
-      error: 'Vectorize storage growth is disabled until verified storage headroom is available.',
+      error: 'Shared AI budget is unavailable or exhausted.',
     });
-    expect(execute).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledTimes(1);
     expect(generateEmbeddings).not.toHaveBeenCalled();
     expect(queryByRepoId).not.toHaveBeenCalled();
     expect(upsert).not.toHaveBeenCalled();
+    expect(batch).not.toHaveBeenCalled();
+  });
+  it('reserves before inference and checkpoints only after the admitted write', async () => {
+    const admission = Symbol('test-admission');
+    execute.mockResolvedValue({ rows: [row(1)] });
+    reserveStorage.mockResolvedValue(admission);
+    generateEmbeddings.mockResolvedValue([Array(768).fill(0)]);
+    upsert.mockResolvedValue(undefined);
+    batch.mockResolvedValue(undefined);
+    const response = await POST(
+      new Request('https://starboard.test/api/internal/embed-pending', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer synthetic-operator', 'Content-Type': 'application/json' },
+        body: '{"limit":1}',
+      })
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ embedded: 1, remaining: 0 });
+    expect(reserveStorage).toHaveBeenCalledExactlyOnceWith(1);
+    expect(reserveStorage.mock.invocationCallOrder[0]).toBeLessThan(
+      generateEmbeddings.mock.invocationCallOrder[0]
+    );
+    expect(upsert).toHaveBeenCalledWith([{ repoId: 1, values: Array(768).fill(0) }], admission);
+    expect(upsert.mock.invocationCallOrder[0]).toBeLessThan(batch.mock.invocationCallOrder[0]);
+  });
+
+  it('never checkpoints an ambiguous failed write', async () => {
+    execute.mockResolvedValue({ rows: [row(1)] });
+    reserveStorage.mockResolvedValue(Symbol('test-admission'));
+    generateEmbeddings.mockResolvedValue([Array(768).fill(0)]);
+    upsert.mockRejectedValue(new Error('ambiguous write'));
+    await expect(
+      POST(
+        new Request('https://starboard.test/api/internal/embed-pending', {
+          method: 'POST',
+          headers: {
+            Authorization: 'Bearer synthetic-operator',
+            'Content-Type': 'application/json',
+          },
+          body: '{"limit":1}',
+        })
+      )
+    ).rejects.toThrow('ambiguous write');
     expect(batch).not.toHaveBeenCalled();
   });
 });
