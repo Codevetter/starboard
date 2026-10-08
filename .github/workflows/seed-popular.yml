@@ -78,7 +78,9 @@ jobs:
           response_file="$RUNNER_TEMP/seed-embedding-response.json"
           node -e 'process.stdout.write(JSON.stringify({ limit: Number(process.argv[1]) }))' \
             "$EMBED_LIMIT" > "$request_file"
-          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 5 \
+          # An ambiguous mutation must be reconciled by hashes on the next run.
+          # Do not repeat inference or burn another reservation inside curl.
+          curl --fail-with-body --silent --show-error \
             --max-time 900 --request POST \
             --header "Authorization: Bearer ${STARBOARD_OPERATOR_TOKEN}" \
             --header 'Content-Type: application/json' \
