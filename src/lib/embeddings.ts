@@ -68,23 +68,21 @@ export async function embedViaGateway(
       data?: unknown;
     };
     const rows = Array.isArray(result?.data) ? result.data : [];
-    const normalized = rows.map((row) =>
-      Array.isArray(row) ? normalizeEmbeddingDimensions(row as number[]) : null
-    );
+    const rawVectors = rows.map((row) => (Array.isArray(row) ? (row as number[]) : null));
     if (
       rows.length !== batch.length ||
-      normalized.some(
-        (row) =>
-          !row ||
-          row.length !== EMBEDDING_DIM ||
-          row.some((value) => typeof value !== 'number' || !Number.isFinite(value))
+      rawVectors.some(
+        (vector) =>
+          !vector ||
+          vector.length !== EMBEDDING_DIM ||
+          vector.some((value) => typeof value !== 'number' || !Number.isFinite(value))
       )
     ) {
       throw new Error(
         `Free AI returned embeddings that do not match the ${EMBEDDING_DIM}-dimension BGE contract`
       );
     }
-    vectors.push(...(normalized as number[][]));
+    vectors.push(...(rawVectors as number[][]));
   }
   return vectors;
 }
