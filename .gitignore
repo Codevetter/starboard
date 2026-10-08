@@ -81,3 +81,6 @@ cache.bin
 
 # Local editor settings — never commit (may contain credentials)
 .claude/settings.local.json
+
+# Private Fleet design/review evidence (owner-local, never committed)
+.fleet-local/
