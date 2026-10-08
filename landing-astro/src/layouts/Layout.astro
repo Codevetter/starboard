@@ -92,15 +92,10 @@ const structuredData = Astro.props.structuredData ?? {
       }
       html { color-scheme: light; }
       body { margin: 0; }
+      fleet-footer-extension,
       portfolio-project-strip,
       ai-chat-footer,
       saas-maker-newsletter-capture { display: block; }
-      portfolio-project-strip { min-height: 2.875rem; }
-      ai-chat-footer { min-height: 6rem; }
-      saas-maker-newsletter-capture { min-height: 7rem; }
-      @media (max-width: 1000px) {
-        ai-chat-footer { min-height: 9rem; }
-      }
     </style>
     <script is:inline src="/app-health-log.js" defer></script>
     <script
@@ -115,25 +110,31 @@ const structuredData = Astro.props.structuredData ?? {
   </head>
   <body class="antialiased">
     <slot />
-    <saas-maker-newsletter-capture
-      catalog-id="starboard"
-      product-name="Starboard"
-      kind="newsletter"
-      source="footer"
-      privacy-url="https://starboard.codevetter.com/privacy"
-    ></saas-maker-newsletter-capture>
-    <portfolio-project-strip current-project="starboard"></portfolio-project-strip>
-    <ai-chat-footer product-name="Starboard"></ai-chat-footer>
-    <script is:inline src="/project-strip.js" data-project="starboard" defer></script>
+    <script
+      is:inline
+      src="https://sassmaker.com/project-strip.js?v=precise-b0adaa67"
+      data-project="starboard"
+      data-theme="dark"
+      data-host-only="true"
+      defer
+    ></script>
     <script>
       import '../scripts/app-health-flush';
     </script>
     <script
       is:inline
-      src="https://sassmaker.com/ai-chat-footer.js"
+      src="https://sassmaker.com/ai-chat-footer.js?v=precise-b0adaa67"
       data-name="Starboard"
+      data-theme="dark"
+      data-surface="web"
+      data-host-only="true"
+      data-capture="false"
       defer
     ></script>
-    <script is:inline type="module" src="https://sassmaker.com/newsletter-capture.js"></script>
+    <script
+      is:inline
+      type="module"
+      src="https://sassmaker.com/newsletter-capture.js?v=precise-b0adaa67"
+    ></script>
   </body>
 </html>
