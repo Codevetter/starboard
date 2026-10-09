@@ -93,7 +93,7 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
   plans, retros, security audit, OSS evaluation).
 - **[GitHub Issues](https://github.com/Codevetter/starboard/issues)** —
   proposals, design notes, requirements, and task checklists for non-trivial
-  changes. See [docs/development/openspec.md](docs/development/openspec.md).
+  changes. See [docs/archive/openspec.md](docs/development/openspec.md).
 - **[public/](public/)** — runtime agent-indexing surfaces (`llms.txt`,
   `index.md`, `api-ai.json`, `robots.txt`, `sitemap.xml`). See
   [docs/product/surfaces.md](docs/product/surfaces.md).
