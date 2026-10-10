@@ -10,7 +10,16 @@ describe('project-first activation wiring', () => {
   it('sends the static landing hero to the repository preview', () => {
     const landing = source('landing-astro/src/content/home.json');
 
-    expect(landing).toContain('"href": "/project-preview"');
+    const hero = JSON.parse(landing).hero;
+    expect(hero.layout).toBe('form');
+    expect(hero.form).toMatchObject({
+      label: 'public github repository',
+      name: 'repository',
+      placeholder: 'github.com/owner/repository',
+      submit: 'preview project',
+      action: 'https://starboard.codevetter.com/project-preview',
+      required: true,
+    });
     expect(landing).toContain('Cataloged previews need no account');
     expect(landing).toContain('Uncataloged repositories use your signed-in GitHub session');
     expect(landing).toContain('browse the public catalog');

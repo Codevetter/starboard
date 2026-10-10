@@ -1,9 +1,9 @@
 {
   "template": "workbench",
   "page": {
-    "title": "Starboard \u2014 project-aware tool discovery for GitHub",
+    "title": "Starboard — project-aware tool discovery for GitHub",
     "description": "Start with a public GitHub project, find similar repositories, and evaluate open-source tools with visible source evidence.",
-    "theme": "base",
+    "theme": "paper",
     "canonical": "https://starboard.codevetter.com/",
     "og": {
       "image": "https://starboard.codevetter.com/opengraph-image",
@@ -26,21 +26,32 @@
     },
     "tokens": {
       "--background": "#f4efe4",
-      "--foreground": "#17201f",
+      "--foreground": "#123b4a",
       "--surface": "#e8e0d1",
       "--card": "#fbf7ee",
-      "--card-foreground": "#17201f",
+      "--card-foreground": "#123b4a",
       "--muted": "#e8e0d1",
       "--muted-foreground": "#5f6863",
       "--primary": "#123b4a",
       "--primary-foreground": "#f4efe4",
-      "--brand": "#123b4a",
-      "--brand-foreground": "#f4efe4",
-      "--brand-soft": "#e8e0d1",
+      "--brand": "#d94e30",
+      "--brand-foreground": "#fbf7ee",
+      "--brand-soft": "#f1ddd3",
       "--brand-ink": "#123b4a",
-      "--border": "rgba(23, 32, 31, 0.18)"
+      "--border": "rgba(23, 32, 31, 0.18)",
+      "--ring": "#d94e30",
+      "--display-weight": "400"
     },
-    "assetBase": "/images/"
+    "assetBase": "/images/",
+    "fonts": {
+      "display": "newsreader",
+      "text": "figtree",
+      "accent": "newsreader",
+      "accentStyle": "normal"
+    },
+    "surface": {
+      "backdrop": "grid"
+    }
   },
   "product": "Starboard",
   "url": "https://starboard.codevetter.com",
@@ -70,25 +81,31 @@
     }
   },
   "hero": {
-    "eyebrow": "project-aware GitHub discovery",
-    "title": "find open-source tools that fit *the project in front of you.*",
-    "lede": "Starboard finds similar projects, then shows which tools those peers use and the exact repository evidence behind each suggestion.",
-    "primary": {
-      "label": "preview a project",
-      "href": "/project-preview"
-    },
+    "eyebrow": "01 project-aware github discovery",
+    "title": "find open-source tools that fit the project in front of you.",
+    "lede": "Paste a public GitHub repository. Starboard finds similar projects, then shows which tools those peers use and the exact repository evidence behind each suggestion.",
     "secondary": {
       "label": "browse the public catalog",
       "href": "/discover"
     },
-    "note": "Cataloged previews need no account. Uncataloged repositories use your signed-in GitHub session. Nothing is saved until you explicitly connect a project.",
-    "window": {
-      "title": "discover",
-      "src": "discover.webp",
-      "alt": "Starboard Discover showing public repository search and tool filters",
-      "width": 2880,
-      "height": 1800,
-      "chrome": "none"
+    "layout": "form",
+    "form": {
+      "label": "public github repository",
+      "name": "repository",
+      "placeholder": "github.com/owner/repository",
+      "submit": "preview project",
+      "action": "https://starboard.codevetter.com/project-preview",
+      "type": "text",
+      "required": true,
+      "hint": "Cataloged previews need no account. Uncataloged repositories use your signed-in GitHub session. Nothing is saved until you explicitly connect a project.",
+      "error": "Enter a public GitHub URL or owner/repository.",
+      "pattern": ".*\\S.*"
+    },
+    "card": {
+      "src": "route.webp",
+      "alt": "Recommendation route from one repository through a peer set to inspectable tool evidence",
+      "width": 1400,
+      "height": 1347
     }
   },
   "sections": [
@@ -103,15 +120,15 @@
               "title": "a recommendation *you can audit.*",
               "body": "Starboard uses visible language, topics, repository metadata, and detected tools. Semantic, lexical, language, topic, and tool signals produce a bounded peer set. Sparse results are labeled as broader fallbacks. Tool suggestions name their supporting repositories and detection confidence, with direct links for manual review.",
               "detail": {
-                "src": "route.webp",
-                "alt": "Recommendation route from one repository through a peer set to inspectable tool evidence",
-                "width": 1400,
-                "height": 1347,
+                "src": "discover.webp",
+                "alt": "Starboard Discover showing public repository search and tool filters",
+                "width": 2880,
+                "height": 1800,
                 "crop": {
                   "x": 0,
                   "y": 0,
-                  "w": 1400,
-                  "h": 1347
+                  "w": 2880,
+                  "h": 1800
                 }
               }
             }
