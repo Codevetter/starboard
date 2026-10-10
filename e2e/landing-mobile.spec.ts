@@ -75,8 +75,6 @@ test.describe('production Astro landing page', () => {
       .fill('https://github.com/vercel/next.js');
     await page.getByRole('button', { name: 'preview project', exact: true }).click();
 
-    await expect(page).toHaveURL(
-      /\/project-preview\?repository=https%3A%2F%2Fgithub.com%2Fvercel%2Fnext.js$/
-    );
+    await expect(page).toHaveURL(/\/project-preview\?repository=vercel%2Fnext.js$/);
   });
 });
