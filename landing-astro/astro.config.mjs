@@ -1,12 +1,12 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
 import tailwindcss from '@tailwindcss/vite';
+import react from '@astrojs/react';
 
 // Static Astro landing for starboard.
 //
-// LCP path is one round-trip: HTML → fonts → paint. CSS is inlined into
-// the HTML head (`build.inlineStylesheets: 'always'`) so no extra
-// stylesheet fetch. Tailwind v4 runs through its Vite plugin; lightningcss
+// The overlay copies /_astro assets, so Astro's default stylesheet policy
+// keeps substantial CSS external and cacheable. Tailwind v4 runs through its Vite plugin; lightningcss
 // is the minifier (Tailwind v4 already uses lightningcss internally for
 // transform, so no extra `css.transformer` config — keep just the
 // minifier to avoid double-processing).
@@ -18,9 +18,9 @@ export default defineConfig({
   site: 'https://starboard.codevetter.com',
   output: 'static',
   trailingSlash: 'never',
+  integrations: [react()],
   build: {
     format: 'file',
-    inlineStylesheets: 'always',
   },
   vite: {
     plugins: [tailwindcss()],
