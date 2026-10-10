@@ -52,6 +52,10 @@ if (content.hero.form) content.hero.form.action = new URL(content.hero.form.acti
     </script>
     <script>
       import '../scripts/app-health-flush';
+      import { initializeProjectPreviewForm } from '../scripts/project-preview-form';
+
+      const form = document.querySelector<HTMLFormElement>('[data-identity-form]');
+      if (form) initializeProjectPreviewForm(form);
     </script>
   </Fragment>
   <WorkbenchPage content={content} />

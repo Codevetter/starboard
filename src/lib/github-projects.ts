@@ -54,33 +54,28 @@ class GitHubProjectPaginationError extends Error {
 const OWNER_PATTERN = /^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
 const REPO_PATTERN = /^[a-z\d_.-]{1,100}$/i;
 
+function githubPathSegments(trimmed: string): string[] | null {
+  // Match the host explicitly before stripping it. Parsing as a URL first
+  // would silently repair malformed paths such as /owner/../other/repo.
+  const path = trimmed.replace(/^(?:https?:\/\/)?(?:www\.)?github\.com\//i, '').split(/[?#]/, 1)[0];
+  const segments = path.replace(/\/$/, '').split('/');
+  if (segments.some((segment) => !segment || segment === '.' || segment === '..')) return null;
+  if (segments.length !== 2 && !(segments.length >= 4 && segments[2] === 'tree')) return null;
+  return segments;
+}
+
 export function parseGitHubProjectInput(input: string): GitHubProjectSlug | null {
   const trimmed = input.trim();
-  if (!trimmed) return null;
+  if (!trimmed || /[\s\\]/.test(trimmed)) return null;
 
-  let path = trimmed;
-  if (/^https?:\/\//i.test(trimmed)) {
-    let url: URL;
-    try {
-      url = new URL(trimmed);
-    } catch {
-      return null;
-    }
-    if (url.hostname.toLowerCase() !== 'github.com') return null;
-    path = url.pathname;
-  } else if (trimmed.includes('://')) {
-    return null;
-  }
-
-  const segments = path
-    .replace(/^\/+|\/+$/g, '')
-    .split('/')
-    .filter(Boolean);
-  if (segments.length !== 2) return null;
+  const segments = githubPathSegments(trimmed);
+  if (!segments) return null;
 
   const owner = segments[0];
   const repo = segments[1].replace(/\.git$/i, '');
-  if (!OWNER_PATTERN.test(owner) || !REPO_PATTERN.test(repo)) return null;
+  if (!OWNER_PATTERN.test(owner) || !REPO_PATTERN.test(repo) || repo === '.' || repo === '..') {
+    return null;
+  }
 
   return { owner, repo, fullName: `${owner}/${repo}` };
 }

@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { trackRecommendationSetViewed, type RecommendationRetrievalMode } from '@/lib/analytics';
+import { parseGitHubProjectInput } from '@/lib/github-projects';
 import type { ProjectIntelligenceResult } from '@/lib/project-intelligence';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
 import { FetchHttpError, jsonFetcher } from '@/lib/swr-fetcher';
@@ -281,8 +282,10 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
   const router = useRouter();
   const [repository, setRepository] = useState(initialRepository);
   const [showAllPeers, setShowAllPeers] = useState(false);
-  const previewUrl = initialRepository
-    ? `/api/project-preview?repository=${encodeURIComponent(initialRepository)}`
+  const normalizedRepository =
+    parseGitHubProjectInput(initialRepository)?.fullName ?? initialRepository.trim();
+  const previewUrl = normalizedRepository
+    ? `/api/project-preview?repository=${encodeURIComponent(normalizedRepository)}`
     : null;
   const { data, error, isLoading } = useSWR<PreviewResponse>(previewUrl, jsonFetcher, {
     revalidateOnFocus: false,
@@ -299,7 +302,7 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const value = repository.trim();
+    const value = parseGitHubProjectInput(repository)?.fullName ?? repository.trim();
     if (!value) return;
     router.push(`/project-preview?repository=${encodeURIComponent(value)}`);
   }
@@ -309,7 +312,7 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
     : '/projects';
   const loginHref = `/login?callbackUrl=${encodeURIComponent(connectCallback)}`;
   const previewLoginHref = `/login?callbackUrl=${encodeURIComponent(
-    `/project-preview?repository=${encodeURIComponent(initialRepository)}`
+    `/project-preview?repository=${encodeURIComponent(normalizedRepository)}`
   )}`;
 
   return (
