@@ -56,7 +56,6 @@
     "@saas-maker/ui": "github:sass-maker/ui-library#v0.1.14&path:/packages/ui",
     "@tanstack/react-virtual": "3.14.8",
     "ai": "6.0.214",
-    "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "lucide-react": "1.27.0",
     "next": "16.3.8",
