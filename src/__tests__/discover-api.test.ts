@@ -84,6 +84,19 @@ describe('GET /api/discover', () => {
     expect(payload.facets.tools).toEqual([{ key: 'react', name: 'React', count: 1 }]);
   });
 
+  it.each([
+    ['stars', 'r.stargazers_count ASC'],
+    ['name', 'r.name DESC'],
+    ['updated', 'r.repo_updated_at ASC, r.stargazers_count ASC'],
+    ['growth', 'star_growth_30d IS NULL, star_growth_30d ASC'],
+  ])('reverses %s across the whole paginated catalog', async (sort, expectedOrder) => {
+    await GET(new NextRequest(`http://localhost/api/discover?sort=${sort}&reverse=true&offset=50`));
+    const mainQuery = mocks.execute.mock.calls[1]?.[0] as { sql: string; args: unknown[] };
+    expect(mainQuery.sql).toContain(expectedOrder);
+    expect(mainQuery.sql).toContain('r.id DESC');
+    expect(mainQuery.args).toContain(50);
+  });
+
   it('serves the public corpus to guests with null personalized state', async () => {
     mocks.auth.mockResolvedValueOnce(null);
 

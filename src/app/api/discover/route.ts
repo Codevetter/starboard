@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth';
 import { generateEmbeddings } from '@/lib/embeddings';
 import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { repoVectors } from '@/lib/repo-vectors';
+import { repoOrderBy } from '@/lib/repo-sort';
 import { expandedSearchQuery, ftsSearchQuery, rrfFuse } from '@/lib/search';
 
 const MIN_STARS_FLOOR = 5000;
@@ -56,6 +57,7 @@ interface DiscoverParams {
   toolKeys: string[];
   listId: string | null;
   sort: string;
+  reversed: boolean;
   limit: number;
   offset: number;
 }
@@ -73,6 +75,7 @@ function parseDiscoverParams(params: URLSearchParams): DiscoverParams {
         .filter((value) => /^[a-z0-9][a-z0-9-]{0,63}$/.test(value)) || [],
     listId: params.get('list_id'),
     sort: params.get('sort') || (q ? 'relevance' : 'stars'),
+    reversed: params.get('reverse') === 'true',
     limit: Math.min(Math.max(parseInt(params.get('limit') || '50', 10) || 50, 1), 200),
     offset: Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0),
   };
@@ -191,13 +194,13 @@ const ORDER_BY_MAP: Record<string, string> = {
   updated: 'r.repo_updated_at DESC, r.stargazers_count DESC',
   name: 'r.name ASC',
   starred: 'r.stargazers_count DESC',
-  growth: 'star_growth_30d DESC, r.stargazers_count DESC',
+  growth: 'star_growth_30d IS NULL, star_growth_30d DESC, r.stargazers_count DESC',
 };
 
 function buildOrderBy(sort: string, rankedRepoIds: number[] | null): string {
   if (rankedRepoIds && rankedRepoIds.length > 0 && sort === 'relevance') {
     const caseLines = rankedRepoIds.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
-    return `CASE r.id ${caseLines} ELSE 999999 END`;
+    return `CASE r.id ${caseLines} ELSE 999999 END ASC`;
   }
   return ORDER_BY_MAP[sort] || ORDER_BY_MAP.stars;
 }
@@ -289,7 +292,7 @@ export async function GET(request: NextRequest) {
   applyFilters(p, userId, whereClauses, whereArgs);
 
   const whereSQL = whereClauses.join(' AND ');
-  const orderBy = buildOrderBy(p.sort, rankedRepoIds);
+  const orderBy = repoOrderBy(buildOrderBy(p.sort, rankedRepoIds), p.reversed);
 
   try {
     const mainQuery: InStatement = {

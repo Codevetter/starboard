@@ -1,4 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
+import { encode } from 'next-auth/jwt';
 
 const repo = {
   id: 1,
@@ -87,6 +88,205 @@ test('Discover keeps the first search request alive and shows matching repositor
       page.getByText(/discover starts with public github repositories at 5,000\+ stars/i)
     ).toBeVisible();
   }
+});
+
+test('Discover reverses sorting and restores its default order', async ({ page }) => {
+  await page.route('**/discover/data**', (route) => {
+    const reversed = new URL(route.request().url()).searchParams.get('reverse') === 'true';
+    const repos = [
+      {
+        ...repo,
+        id: 1,
+        name: 'high',
+        full_name: 'acme/high',
+        owner: { ...repo.owner, login: 'acme' },
+        stargazers_count: 20_000,
+      },
+      {
+        ...repo,
+        id: 2,
+        name: 'low',
+        full_name: 'acme/low',
+        owner: { ...repo.owner, login: 'acme' },
+        stargazers_count: 5_000,
+      },
+    ];
+    return route.fulfill({
+      json: {
+        repos: reversed ? repos.reverse() : repos,
+        total: 2,
+        facets: { languages: [], lists: [], tags: [], tools: [] },
+        minStars: 5000,
+      },
+    });
+  });
+  await page.goto('/discover');
+  await page.getByPlaceholder('Search repos...').fill('sort-fixture');
+  const sort = page.getByRole('button', { name: /^Sort repositories:/ });
+  await sort.click();
+  await page.getByRole('menuitem', { name: 'Stars', exact: true }).click();
+  const results = page.getByRole('region', { name: 'Repository results' });
+  await expect(results.getByRole('link', { name: /^acme\// }).first()).toHaveText(/high/);
+  await sort.click();
+  await page.getByRole('menuitem', { name: 'Reverse order' }).click();
+  await expect(page).toHaveURL(/reverse=true/);
+  await expect(results.getByRole('link', { name: /^acme\// }).first()).toHaveText(/low/);
+  await sort.click();
+  await page.getByRole('menuitem', { name: 'Reverse order' }).click();
+  await expect(page).not.toHaveURL(/reverse=true/);
+  await expect(results.getByRole('link', { name: /^acme\// }).first()).toHaveText(/high/);
+  await expect(page.getByRole('link', { name: 'Catalog updates', exact: true })).toBeVisible();
+});
+
+test('loaded repositories stay visible during fast upward scrolling', async ({
+  page,
+}, testInfo) => {
+  await page.route('**/discover/data**', (route) =>
+    route.fulfill({
+      json: {
+        repos: Array.from({ length: 500 }, (_, index) => ({
+          ...repo,
+          id: index + 1,
+          name: `repo-${index}`,
+          full_name: `acme/repo-${index}`,
+          owner: { ...repo.owner, login: 'acme' },
+          description: 'Repository description with different card heights. '.repeat(
+            (index % 4) + 1
+          ),
+        })),
+        total: 500,
+        facets: { languages: [], lists: [], tags: [], tools: [] },
+        minStars: 5000,
+      },
+    })
+  );
+  await page.goto('/discover');
+  await page.getByPlaceholder('Search repos...').fill('scroll-fixture');
+  const results = page.getByRole('region', { name: 'Repository results' });
+  await expect(results.getByRole('link', { name: 'acme/repo-0', exact: true })).toBeVisible();
+  for (const mode of testInfo.project.name === 'desktop' ? ['grid', 'list'] : ['grid']) {
+    if (mode === 'list') await page.getByRole('radio', { name: 'List view' }).click();
+    for (const position of [18_000, 25_000, 12_000, 5_000, 0]) {
+      await results.evaluate((element, scrollTop) => {
+        element.scrollTop = scrollTop;
+      }, position);
+      await expect
+        .poll(
+          () =>
+            results.evaluate((element) => {
+              const viewport = element.getBoundingClientRect();
+              return Array.from(element.querySelectorAll('a[href^="/explore/"]')).some((link) => {
+                const rect = link.getBoundingClientRect();
+                return rect.bottom > viewport.top && rect.top < viewport.bottom;
+              });
+            }),
+          { timeout: 5000 }
+        )
+        .toBe(true);
+    }
+    await expect(results.getByRole('link', { name: 'acme/repo-0', exact: true })).toBeVisible();
+  }
+});
+
+test('GitHub picker finds a project and connects the selected repository', async ({
+  page,
+  context,
+}, testInfo) => {
+  const token = await encode({
+    secret: 'starboard-browser-test-secret-at-least-32-characters',
+    salt: 'authjs.session-token',
+    token: { sub: 'fixture-user', githubId: 'fixture-user', name: 'Fixture user' },
+  });
+  await context.addCookies([
+    { name: 'authjs.session-token', value: token, url: testInfo.project.use.baseURL as string },
+  ]);
+  await page.route('**/api/auth/session', (route) =>
+    route.fulfill({
+      json: {
+        user: { name: 'Fixture user', githubId: 'fixture-user' },
+        expires: '2099-01-01T00:00:00Z',
+      },
+    })
+  );
+  const project = {
+    id: 152,
+    name: 'performancedaddy',
+    fullName: 'acme/performancedaddy',
+    ownerLogin: 'acme',
+    language: 'Swift',
+    topics: ['macos'],
+    tools: [],
+    description: 'Investigate performance on your Mac.',
+    htmlUrl: 'https://github.com/acme/performancedaddy',
+  };
+  await page.route('**/api/projects', (route) => route.fulfill({ json: { projects: [] } }));
+  await page.route('**/api/projects/152/recommendations?**', (route) =>
+    route.fulfill({
+      json: {
+        project,
+        similarProjects: [],
+        recommendedTools: [],
+        fallback: false,
+        retrieval: {
+          mode: 'structured',
+          candidateCount: 0,
+          semanticCandidates: 0,
+          lexicalCandidates: 0,
+          structuredCandidates: 0,
+        },
+      },
+    })
+  );
+  await page.route('**/api/github/projects', (route) =>
+    route.fulfill({
+      json: {
+        repositories: [
+          ...Array.from({ length: 151 }, (_, index) => ({
+            ...project,
+            id: index + 1,
+            name: `repo-${index}`,
+            fullName: `acme/repo-${index}`,
+          })),
+          project,
+        ],
+        orgAccessUrl: null,
+      },
+    })
+  );
+  await page.goto('/projects');
+  if ((page.viewportSize()?.width ?? 0) < 768)
+    await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+  await page.getByRole('button', { name: 'Choose from GitHub' }).click();
+  const picker = page.getByRole('dialog', { name: 'Choose a GitHub project' });
+  await picker
+    .getByRole('textbox', { name: 'Search public GitHub repositories' })
+    .fill('performancedaddy');
+  await expect(picker.getByRole('option')).toHaveCount(1);
+  await expect(picker.getByRole('option')).toContainText('performancedaddy');
+  if (!process.env.CI && testInfo.project.name === 'desktop') {
+    for (const width of [390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.screenshot({ path: `.fleet-local/evidence/picker-${width}.png` });
+    }
+  }
+  await picker.getByRole('option').click();
+  await expect(page.getByRole('textbox', { name: 'Public GitHub repository' })).toHaveValue(
+    project.fullName
+  );
+  const connectRequest = page.waitForRequest(
+    (request) => request.url().endsWith('/api/projects') && request.method() === 'POST'
+  );
+  await page.route('**/api/projects', (route) =>
+    route.fulfill({
+      json: route.request().method() === 'POST' ? { project } : { projects: [project] },
+    })
+  );
+  await page.getByRole('button', { name: 'Connect', exact: true }).click();
+  expect((await connectRequest).postDataJSON()).toEqual({
+    repository: project.fullName,
+    source: 'picker',
+  });
+  await expect(page).toHaveURL(/\/projects\/152/);
 });
 
 test('Discover constrains unusually long repository metadata inside each card', async ({
@@ -195,13 +395,21 @@ test('tool intelligence renders one bounded page and loads more on demand', asyn
   await page.goto('/tools/vitest');
   await expect(page.getByRole('heading', { name: 'Vitest', level: 1 })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'How Tool Intelligence works' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Popular tools' })).toHaveAttribute(
+  const mobileFilters = (page.viewportSize()?.width ?? 0) < 768;
+  if (mobileFilters) await page.getByRole('button', { name: 'Toggle sidebar' }).click();
+  const toolFilters = mobileFilters
+    ? page.getByRole('dialog', { name: 'Tool filters' })
+    : page.getByRole('complementary');
+  await expect(toolFilters.getByRole('button', { name: 'Popular tools' })).toHaveAttribute(
     'aria-pressed',
     'true'
   );
   await expect(
-    page.getByText(/tools detected across public catalog repositories with at least 10,000 stars/i)
+    toolFilters.getByText(
+      /tools detected across public catalog repositories with at least 10,000 stars/i
+    )
   ).toBeVisible();
+  if (mobileFilters) await toolFilters.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByText(/combined does not double-count overlaps/i)).toBeVisible();
   await expect(page.getByText('Showing 48 of 49 matching repositories.')).toBeVisible();
   await expect(page.getByRole('link', { name: /^acme\/repo-/ })).toHaveCount(48);
@@ -211,7 +419,7 @@ test('tool intelligence renders one bounded page and loads more on demand', asyn
       await page.setViewportSize({ width, height: 900 });
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.screenshot({
-        path: `.fleet/evidence/discovery-entry-clarity/after-tools-${width}.png`,
+        path: `.fleet-local/evidence/tools-${width}.png`,
       });
     }
   }

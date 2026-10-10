@@ -2,9 +2,12 @@
 
 import {
   ArrowUpDown,
+  ArrowDown,
+  ArrowUp,
   Check,
   Database,
   FolderKanban,
+  History,
   LayoutGrid,
   List,
   Loader2,
@@ -49,9 +52,12 @@ interface TopBarProps {
   description?: string;
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  searchPlaceholder?: string;
   sortBy?: SortOption;
   onSortChange?: (sort: SortOption) => void;
   sortOptions?: readonly SortOption[];
+  sortReversed?: boolean;
+  onReverseSort?: () => void;
   viewMode?: 'grid' | 'list';
   onViewModeChange?: (mode: 'grid' | 'list') => void;
   onMenuClick?: () => void;
@@ -113,17 +119,30 @@ function SortMenu({
   sortBy,
   onSortChange,
   sortOptions,
+  reversed,
+  onReverse,
 }: {
   sortBy: SortOption;
   onSortChange: (s: SortOption) => void;
   sortOptions: readonly SortOption[];
+  reversed: boolean;
+  onReverse?: () => void;
 }) {
+  const ascending = (sortBy === 'name-az') !== reversed;
+  const DirectionIcon = ascending ? ArrowUp : ArrowDown;
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="hidden gap-2 sm:flex">
-          <ArrowUpDown className="size-3.5" />
-          <span className="hidden md:inline">{sortLabels[sortBy]}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-11 shrink-0 gap-2 px-3 sm:h-8"
+          aria-label={`Sort repositories: ${sortLabels[sortBy]}, ${reversed ? 'reversed' : 'default'} order`}
+        >
+          <DirectionIcon className="size-3.5" />
+          <span className="hidden md:inline">
+            {sortBy === 'name-az' && reversed ? 'Name Z-A' : sortLabels[sortBy]}
+          </span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-48">
@@ -137,6 +156,18 @@ function SortMenu({
             {sortBy === value && <Check className="size-4 text-primary" />}
           </DropdownMenuItem>
         ))}
+        {onReverse && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={onReverse} className="justify-between">
+              <span className="flex items-center gap-2">
+                <ArrowUpDown className="size-4" />
+                Reverse order
+              </span>
+              {reversed && <Check className="size-4 text-primary" />}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -207,18 +238,21 @@ function SearchOrTitle({
   description,
   searchQuery,
   onSearchChange,
+  searchPlaceholder = 'Search repos...',
 }: {
   title?: string;
   description?: string;
   searchQuery?: string;
   onSearchChange?: (q: string) => void;
+  searchPlaceholder?: string;
 }) {
   if (typeof searchQuery === 'string' && onSearchChange) {
     return (
-      <div className="relative min-w-0 flex-1">
+      <div className="relative order-last w-full min-w-0 flex-none sm:order-none sm:w-auto sm:min-w-48 sm:flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Search repos..."
+          placeholder={searchPlaceholder}
+          aria-label={searchPlaceholder}
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
           className="pl-9"
@@ -327,11 +361,12 @@ function ViewModeToggle({
 }
 
 function buildNavigationItems(pathname: string | null, status: string) {
-  const isDiscover = pathname?.startsWith('/discover') ?? false;
+  const isDiscover =
+    (pathname?.startsWith('/discover') ?? false) || pathname === '/catalog-updates';
   const isProjects = pathname?.startsWith('/projects') ?? false;
   const isTools = pathname?.startsWith('/tools') ?? false;
-  // Library owns only the starred-repos surface and shared lists. Repo detail
-  // pages (/explore/*) and catalog updates intentionally highlight nothing.
+  // Library owns starred repositories and shared lists; catalog history belongs
+  // to Discover. Repository detail pages (/explore/*) highlight nothing.
   const isLibrary =
     (pathname?.startsWith('/stars') ?? false) || (pathname?.startsWith('/lists') ?? false);
   const isAuthed = status === 'authenticated';
@@ -376,9 +411,12 @@ export function TopBar(props: TopBarProps) {
     description,
     searchQuery,
     onSearchChange,
+    searchPlaceholder,
     sortBy,
     onSortChange,
     sortOptions,
+    sortReversed = false,
+    onReverseSort,
     viewMode,
     onViewModeChange,
     onMenuClick,
@@ -415,6 +453,7 @@ export function TopBar(props: TopBarProps) {
         description={description}
         searchQuery={searchQuery}
         onSearchChange={onSearchChange}
+        searchPlaceholder={searchPlaceholder}
       />
 
       <MobileNavDropdown navigationItems={navigationItems} />
@@ -424,12 +463,27 @@ export function TopBar(props: TopBarProps) {
         <RepoCountDisplay repoCount={repoCount} repoCountDescription={repoCountDescription} />
       )}
 
+      {(pathname?.startsWith('/discover') || pathname === '/catalog-updates') && (
+        <Button asChild variant="outline" size="sm" className="h-11 shrink-0 gap-2 sm:h-8">
+          <Link href="/catalog-updates" prefetch={false} aria-label="Catalog updates">
+            <History className="size-3.5" />
+            <span className="hidden xl:inline">Catalog updates</span>
+          </Link>
+        </Button>
+      )}
+
       {onSync && <SyncButton syncing={syncing} onSync={onSync} />}
 
       {hasActiveFilters && onClearFilters && <ClearFiltersButton onClearFilters={onClearFilters} />}
 
       {sortBy && onSortChange && (
-        <SortMenu sortBy={sortBy} onSortChange={onSortChange} sortOptions={visibleSortOptions} />
+        <SortMenu
+          sortBy={sortBy}
+          onSortChange={onSortChange}
+          sortOptions={visibleSortOptions}
+          reversed={sortReversed}
+          onReverse={onReverseSort}
+        />
       )}
 
       {viewMode && onViewModeChange && (
