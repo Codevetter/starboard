@@ -6,6 +6,8 @@ import { workbenchContent } from '@saas-maker/templates/schema';
 import home from '../content/home.json';
 
 const content = workbenchContent.parse(home);
+// v0.1.13 validates absolute form URLs; keep the original same-origin GET route.
+if (content.hero.form) content.hero.form.action = new URL(content.hero.form.action).pathname;
 ---
 
 <Base {...baseProps(content)}>
@@ -33,6 +35,8 @@ const content = workbenchContent.parse(home);
       // contract in capture phase before the hosted logger handles the click.
       document.addEventListener('click', (event) => {
         if (!(event.target instanceof Element)) return;
+        const submit = event.target.closest('[data-identity-form] button[type="submit"]');
+        if (submit) submit.setAttribute('data-log', 'project_preview_cta_clicked');
         const link = event.target.closest('a[href]');
         if (!link) return;
         const events = {
@@ -50,3 +54,11 @@ const content = workbenchContent.parse(home);
   </Fragment>
   <WorkbenchPage content={content} />
 </Base>
+
+<style is:global>
+  .identity-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+  }
+</style>
