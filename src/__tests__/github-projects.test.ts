@@ -6,6 +6,11 @@ import {
   parseGitHubProjectInput,
 } from '@/lib/github-projects';
 
+import {
+  invalidGitHubProjectInputs,
+  validGitHubProjectInputs,
+} from './fixtures/github-project-inputs';
+
 const slug = { owner: 'openai', repo: 'openai-node', fullName: 'openai/openai-node' };
 
 afterEach(() => {
@@ -13,25 +18,20 @@ afterEach(() => {
 });
 
 describe('parseGitHubProjectInput', () => {
-  it.each([
-    ['openai/openai-node', 'openai/openai-node'],
-    ['https://github.com/openai/openai-node', 'openai/openai-node'],
-    ['https://github.com/openai/openai-node.git/', 'openai/openai-node'],
-  ])('normalizes %s', (input, fullName) => {
-    expect(parseGitHubProjectInput(input)?.fullName).toBe(fullName);
+  it.each(validGitHubProjectInputs)('normalizes %s', (input) => {
+    expect(parseGitHubProjectInput(input)).toEqual(slug);
   });
 
-  it.each([
-    '',
-    'openai',
-    'openai/openai-node/issues',
-    'https://example.com/openai/openai-node',
-    'git://github.com/openai/openai-node',
-    'http://[',
-    '-invalid/repo',
-    'valid-owner/',
-  ])('rejects invalid input %s', (input) => {
+  it.each(invalidGitHubProjectInputs)('rejects invalid input %s', (input) => {
     expect(parseGitHubProjectInput(input)).toBeNull();
+  });
+
+  it('preserves valid name casing and punctuation', () => {
+    expect(parseGitHubProjectInput(' HTTPS://WWW.GITHUB.COM/Acme/sdk_v2.js.git/ ')).toEqual({
+      owner: 'Acme',
+      repo: 'sdk_v2.js',
+      fullName: 'Acme/sdk_v2.js',
+    });
   });
 
   it('fetches and maps a public repository with authenticated GitHub headers', async () => {

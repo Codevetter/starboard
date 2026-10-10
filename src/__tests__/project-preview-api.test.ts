@@ -13,6 +13,8 @@ vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
 
 import { GET } from '@/app/api/project-preview/route';
 
+import { validGitHubProjectInputs } from './fixtures/github-project-inputs';
+
 describe('public project preview API', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -31,6 +33,21 @@ describe('public project preview API', () => {
       },
     });
   });
+
+  it.each(validGitHubProjectInputs)(
+    'forwards repository query %s intact to the shared resolver',
+    async (input) => {
+      mocks.resolve.mockResolvedValue({
+        status: 'resolved',
+        source: 'catalog',
+        project: { id: 1, fullName: 'openai/openai-node' },
+      });
+      const query = new URLSearchParams({ repository: input });
+      const response = await GET(new NextRequest(`http://localhost/api/project-preview?${query}`));
+      expect(response.status).toBe(200);
+      expect(mocks.resolve).toHaveBeenCalledWith(input, undefined);
+    }
+  );
 
   it('returns a format error without recommendation work', async () => {
     mocks.resolve.mockResolvedValue({ status: 'invalid' });
