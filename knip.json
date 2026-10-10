@@ -35,6 +35,9 @@
     "**/examples/**"
   ],
   "ignoreDependencies": [
+    "lucide-react",
+    "motion",
+    "radix-ui",
     "typescript",
     "@types/*",
     "biome",
