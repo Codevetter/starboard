@@ -54,16 +54,22 @@ class GitHubProjectPaginationError extends Error {
 const OWNER_PATTERN = /^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
 const REPO_PATTERN = /^[a-z\d_.-]{1,100}$/i;
 
-export function parseGitHubProjectInput(input: string): GitHubProjectSlug | null {
-  const trimmed = input.trim();
-  if (!trimmed || /[\s\\]/.test(trimmed)) return null;
-
+function githubPathSegments(trimmed: string): string[] | null {
   // Match the host explicitly before stripping it. Parsing as a URL first
   // would silently repair malformed paths such as /owner/../other/repo.
   const path = trimmed.replace(/^(?:https?:\/\/)?(?:www\.)?github\.com\//i, '').split(/[?#]/, 1)[0];
   const segments = path.replace(/\/$/, '').split('/');
   if (segments.some((segment) => !segment || segment === '.' || segment === '..')) return null;
   if (segments.length !== 2 && !(segments.length >= 4 && segments[2] === 'tree')) return null;
+  return segments;
+}
+
+export function parseGitHubProjectInput(input: string): GitHubProjectSlug | null {
+  const trimmed = input.trim();
+  if (!trimmed || /[\s\\]/.test(trimmed)) return null;
+
+  const segments = githubPathSegments(trimmed);
+  if (!segments) return null;
 
   const owner = segments[0];
   const repo = segments[1].replace(/\.git$/i, '');
