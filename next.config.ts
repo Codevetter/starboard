@@ -26,6 +26,7 @@ const privatePageHeaders = [{ key: 'Cache-Control', value: 'private, no-store, m
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  transpilePackages: ['@saas-maker/ui'],
   output: 'standalone',
   outputFileTracingRoot: projectRoot,
   async headers() {
