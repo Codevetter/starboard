@@ -1,17 +1,17 @@
 'use client';
 
-import { ArrowLeft, ArrowUpRight, ExternalLink, Loader2, Search, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useEffect, useMemo, useState } from 'react';
 import useSWRInfinite from 'swr/infinite';
 
-import { TopBar } from '@/components/top-bar';
+import { WorkspaceLayout } from '@/components/workspace-layout';
 import {
   ToolIntelligenceGuide,
   type ToolScope,
-  ToolScopeSelector,
+  ToolFiltersSidebar,
 } from '@/components/tool-intelligence-guide';
 import { formatCompactCount } from '@/lib/repo-display';
 import { jsonFetcher } from '@/lib/swr-fetcher';
@@ -19,7 +19,6 @@ import { jsonFetcher } from '@/lib/swr-fetcher';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 
 interface ToolSummary {
   toolKey: string;
@@ -195,59 +194,6 @@ function ToolDetailHeader({ tool, decodedToolKey }: ToolDetailHeaderProps) {
           </Link>
         </Button>
       )}
-    </div>
-  );
-}
-
-interface ScopeFilterProps {
-  scope: ToolScope;
-  minStars: number;
-  isAuthenticated: boolean;
-  onScopeChange: (scope: ToolScope) => void;
-}
-
-interface QueryFilterProps {
-  query: string;
-  onQueryChange: (value: string) => void;
-  minConfidence: number;
-  onToggleConfidence: () => void;
-}
-
-interface ToolFilterControlsProps {
-  scopeProps: ScopeFilterProps;
-  queryProps: QueryFilterProps;
-}
-
-function ToolFilterControls({ scopeProps, queryProps }: ToolFilterControlsProps) {
-  return (
-    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <ToolScopeSelector
-        scope={scopeProps.scope}
-        minStars={scopeProps.minStars}
-        isAuthenticated={scopeProps.isAuthenticated}
-        onScopeChange={scopeProps.onScopeChange}
-      />
-      <div className="flex flex-col gap-2 sm:flex-row lg:min-w-[520px]">
-        <div className="relative min-w-0 flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={queryProps.query}
-            onChange={(event) => queryProps.onQueryChange(event.target.value)}
-            placeholder="Filter repositories..."
-            aria-label="Filter repositories with this tool"
-            className="pl-9"
-          />
-        </div>
-        <Button
-          variant={queryProps.minConfidence >= 90 ? 'default' : 'outline'}
-          size="sm"
-          className="gap-2"
-          onClick={queryProps.onToggleConfidence}
-        >
-          <ShieldCheck className="size-4" />
-          High confidence
-        </Button>
-      </div>
     </div>
   );
 }
@@ -442,30 +388,27 @@ export default function ToolDetailPage() {
   } = useToolDetailState();
 
   return (
-    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-      <TopBar
-        title="Tool Intelligence"
-        description="Inspect tools and the repository evidence behind each detection."
-      />
-
-      <section className="space-y-4 p-4 md:p-6">
+    <WorkspaceLayout
+      title="Tools"
+      description="Inspect tools and the repository evidence behind each detection."
+      searchQuery={query}
+      onSearchChange={setQuery}
+      searchPlaceholder="Filter repositories..."
+      sidebarLabel="Tool filters"
+      sidebar={
+        <ToolFiltersSidebar
+          scope={scope}
+          minStars={pages?.[0]?.minStars ?? 10_000}
+          isAuthenticated={isAuthenticated}
+          onScopeChange={setScope}
+          minConfidence={minConfidence}
+          onToggleConfidence={() => setMinConfidence((value) => (value >= 90 ? 0 : 90))}
+        />
+      }
+    >
+      <section className="space-y-4">
         <ToolDetailHeader tool={tool} decodedToolKey={decodedToolKey} />
         <ToolIntelligenceGuide disclaimer={pages?.[0]?.disclaimer} />
-
-        <ToolFilterControls
-          scopeProps={{
-            scope,
-            minStars: pages?.[0]?.minStars ?? 10_000,
-            isAuthenticated,
-            onScopeChange: setScope,
-          }}
-          queryProps={{
-            query,
-            onQueryChange: setQuery,
-            minConfidence,
-            onToggleConfidence: () => setMinConfidence((value) => (value >= 90 ? 0 : 90)),
-          }}
-        />
 
         <ToolStatusMessages
           loading={{ isInitialLoading, isValidating, isLoadingMore }}
@@ -480,6 +423,6 @@ export default function ToolDetailPage() {
           onLoadMore={() => setSize((current) => current + 1)}
         />
       </section>
-    </main>
+    </WorkspaceLayout>
   );
 }

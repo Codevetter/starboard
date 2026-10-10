@@ -6,6 +6,7 @@ import { auth } from '@/lib/auth';
 import { trackSearchOutcome } from '@/lib/analytics';
 import { searchStarboardRagOrEmpty } from '@/lib/knowledgebase';
 import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
+import { repoOrderBy } from '@/lib/repo-sort';
 import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
 
 interface StarsParams {
@@ -13,6 +14,7 @@ interface StarsParams {
   languages: string[];
   listId: string | null;
   sort: string;
+  reversed: boolean;
   limit: number;
   offset: number;
 }
@@ -23,6 +25,7 @@ function parseStarsParams(params: URLSearchParams): StarsParams {
     languages: params.get('language')?.split(',').filter(Boolean) || [],
     listId: params.get('list_id'),
     sort: params.get('sort') || 'starred',
+    reversed: params.get('reverse') === 'true',
     limit: Math.min(Math.max(parseInt(params.get('limit') || '50', 10) || 50, 1), 200),
     offset: Math.max(parseInt(params.get('offset') || '0', 10) || 0, 0),
   };
@@ -111,7 +114,7 @@ const STAR_ORDER_BY_MAP: Record<string, string> = {
 function buildStarOrderBy(sort: string, rankedRepoIds: number[] | null): string {
   if (rankedRepoIds && rankedRepoIds.length > 0 && sort === 'relevance') {
     const caseLines = rankedRepoIds.map((id, i) => `WHEN ${id} THEN ${i}`).join(' ');
-    return `CASE r.id ${caseLines} ELSE 999999 END`;
+    return `CASE r.id ${caseLines} ELSE 999999 END ASC`;
   }
   return STAR_ORDER_BY_MAP[sort] || STAR_ORDER_BY_MAP.starred;
 }
@@ -176,7 +179,7 @@ export async function GET(request: NextRequest) {
   applyStarFilters(p, whereClauses, whereArgs);
 
   const whereSQL = whereClauses.join(' AND ');
-  const orderBy = buildStarOrderBy(p.sort, rankedRepoIds);
+  const orderBy = repoOrderBy(buildStarOrderBy(p.sort, rankedRepoIds), p.reversed);
 
   try {
     const mainQuery: InStatement = {

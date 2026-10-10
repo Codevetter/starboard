@@ -1,8 +1,10 @@
-import { ArrowUpRight, Library } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { Badge } from '@/components/ui/badge';
+import { AppShell } from '@/components/app-shell';
+import { TopBar } from '@/components/top-bar';
 import { db } from '@/db';
 import { getAvatarImageAttrs } from '@/lib/avatar';
 import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
@@ -178,74 +180,57 @@ export default async function CatalogUpdatesPage() {
   const groups = payload ? groupCatalogChangesByDate(payload.changes) : [];
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
-      <main className="mx-auto w-full max-w-3xl space-y-8 px-5 py-12 sm:px-6 sm:py-16">
-        <div>
-          <Link
-            href="/"
-            className="text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-          >
-            ← Starboard
-          </Link>
-          <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Catalogue
-              </p>
-              <h1 className="mt-2 flex items-center gap-2 text-3xl font-bold tracking-tight sm:text-4xl">
-                <Library className="size-8 text-muted-foreground" aria-hidden />
-                Catalog updates
-              </h1>
-              <p className="mt-3 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                Recently added popular repositories in the shared Discover corpus — not the product
-                release log. Product history lives on{' '}
-                <Link
-                  href="/changelog"
-                  className="font-medium text-foreground underline-offset-4 hover:underline"
-                >
-                  Changelog
-                </Link>
-                .
-              </p>
+    <AppShell>
+      <TopBar title="Catalog updates" description="Recently added repositories in Discover." />
+      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+        <div className="mx-auto max-w-3xl space-y-6">
+          <div>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h2 className="text-lg font-semibold">Recently added</h2>
+                <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted-foreground">
+                  Repositories grouped by the date they entered the catalog. Older entries may use
+                  backfilled first-seen dates.
+                </p>
+              </div>
+              <Link
+                href="/catalog-updates"
+                className="inline-flex h-8 items-center justify-center rounded-md border bg-background px-3 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                Refresh
+              </Link>
             </div>
-            <Link
-              href="/catalog-updates"
-              className="inline-flex h-8 items-center justify-center rounded-md border bg-background px-3 text-sm font-medium shadow-xs transition-colors hover:bg-accent hover:text-accent-foreground"
-            >
-              Refresh
-            </Link>
           </div>
+
+          {payload?.summary && <CatalogSummaryCards summary={payload.summary} />}
+
+          {payload?.summary?.refreshCadence && (
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              {payload.summary.refreshCadence}
+            </p>
+          )}
+
+          {loadError ? (
+            <div className="space-y-3 rounded-xl border border-red-500/25 bg-red-500/10 p-4">
+              <p className="text-sm text-red-200/90">Couldn&apos;t load catalogue updates.</p>
+              <Link
+                href="/catalog-updates"
+                className="inline-flex h-8 items-center rounded-md border bg-background px-3 text-sm font-medium"
+              >
+                Retry
+              </Link>
+            </div>
+          ) : groups.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No catalog additions recorded yet. Check back after the next refresh.
+            </p>
+          ) : (
+            <CatalogChangeGroups groups={groups} />
+          )}
+
+          <CatalogFooterNav />
         </div>
-
-        {payload?.summary && <CatalogSummaryCards summary={payload.summary} />}
-
-        {payload?.summary?.refreshCadence && (
-          <p className="text-xs leading-relaxed text-muted-foreground">
-            {payload.summary.refreshCadence}
-          </p>
-        )}
-
-        {loadError ? (
-          <div className="space-y-3 rounded-xl border border-red-500/25 bg-red-500/10 p-4">
-            <p className="text-sm text-red-200/90">Couldn&apos;t load catalogue updates.</p>
-            <p className="font-mono text-xs text-red-200/70">{loadError}</p>
-            <Link
-              href="/catalog-updates"
-              className="inline-flex h-8 items-center rounded-md border bg-background px-3 text-sm font-medium"
-            >
-              Retry
-            </Link>
-          </div>
-        ) : groups.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No catalogue entries yet. Run a seed-popular job to ingest popular repos.
-          </p>
-        ) : (
-          <CatalogChangeGroups groups={groups} />
-        )}
-
-        <CatalogFooterNav />
       </main>
-    </div>
+    </AppShell>
   );
 }

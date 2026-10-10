@@ -4,7 +4,13 @@ import { Bookmark, GitCompare, Search } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryState } from 'nuqs';
+import {
+  parseAsArrayOf,
+  parseAsBoolean,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryState,
+} from 'nuqs';
 import { Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ActiveFilterChips } from '@/components/active-filter-chips';
@@ -15,7 +21,6 @@ import { RepoGrid } from '@/components/repo-grid';
 import { Sidebar } from '@/components/sidebar';
 import { SyncAnimation, SyncProgressBar } from '@/components/sync-animation';
 import { TopBar } from '@/components/top-bar';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { useLists } from '@/hooks/use-lists';
 import { useStarredRepos } from '@/hooks/use-starred-repos';
@@ -62,6 +67,10 @@ function StarsContent() {
     'sort',
     parseAsStringLiteral(sortOptions).withDefault('recently-starred')
   );
+  const [sortReversed, setSortReversed] = useQueryState(
+    'reverse',
+    parseAsBoolean.withDefault(false)
+  );
   const [selectedLanguages, setSelectedLanguages] = useQueryState(
     'lang',
     parseAsArrayOf(parseAsString, ',').withDefault([])
@@ -94,6 +103,7 @@ function StarsContent() {
     selectedLanguages.join(','),
     selectedListId ?? '',
     sortBy,
+    sortReversed,
   ].join('|');
   const selectedRepoIds = useMemo(
     () => (selectedByFilter.filterKey === filterKey ? selectedByFilter.ids : new Set<number>()),
@@ -123,6 +133,7 @@ function StarsContent() {
     language: selectedLanguages,
     listId: selectedListId,
     sort: sortBy,
+    reversed: sortReversed,
     limit: 50,
   });
   const {
@@ -138,6 +149,7 @@ function StarsContent() {
     selectedLanguages.join(','),
     selectedListId ?? '',
     sortBy,
+    sortReversed,
   ].join('|');
   const [settledRequestKey, setSettledRequestKey] = useState(requestKey);
 
@@ -350,8 +362,13 @@ function StarsContent() {
         onSearchChange={setSearchQuery}
         sortBy={sortBy}
         onSortChange={(sort) => {
-          if (sort !== 'fastest-growing') setSortBy(sort);
+          if (sort !== 'fastest-growing') {
+            setSortBy(sort);
+            setSortReversed(false);
+          }
         }}
+        sortReversed={sortReversed}
+        onReverseSort={() => setSortReversed((previous) => !previous)}
         sortOptions={sortOptions}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
@@ -459,38 +476,36 @@ function StarsContent() {
           </SheetContent>
         </Sheet>
 
-        <ScrollArea className="flex-1">
-          <main className="p-4 md:p-6">
-            <ActiveFilterChips
-              searchQuery={searchQuery}
-              onClearSearch={() => setSearchQuery('')}
-              selectedLanguages={selectedLanguages}
-              onRemoveLanguage={handleRemoveLanguage}
-              selectedListId={selectedListId}
-              lists={lists}
-              onClearList={() => setSelectedListId(null)}
-              onClearAll={clearFilters}
-            />
-            <RepoGrid
-              repos={repos}
-              viewMode={viewMode}
-              isLoading={reposLoading}
-              isPending={isGridPending}
-              isValidating={isValidating}
-              lists={lists}
-              onAssignList={handleAssignList}
-              onToggleSave={handleToggleSave}
-              hasActiveFilters={hasActiveFilters}
-              onClearFilters={clearFilters}
-              hasMore={hasMore}
-              loadingMore={loadingMore}
-              onLoadMore={loadMore}
-              selectedRepoIds={selectedRepoIds}
-              onToggleSelect={handleToggleSelect}
-              selectionActive={selectedCount > 0}
-            />
-          </main>
-        </ScrollArea>
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col p-4 md:p-6">
+          <ActiveFilterChips
+            searchQuery={searchQuery}
+            onClearSearch={() => setSearchQuery('')}
+            selectedLanguages={selectedLanguages}
+            onRemoveLanguage={handleRemoveLanguage}
+            selectedListId={selectedListId}
+            lists={lists}
+            onClearList={() => setSelectedListId(null)}
+            onClearAll={clearFilters}
+          />
+          <RepoGrid
+            repos={repos}
+            viewMode={viewMode}
+            isLoading={reposLoading}
+            isPending={isGridPending}
+            isValidating={isValidating}
+            lists={lists}
+            onAssignList={handleAssignList}
+            onToggleSave={handleToggleSave}
+            hasActiveFilters={hasActiveFilters}
+            onClearFilters={clearFilters}
+            hasMore={hasMore}
+            loadingMore={loadingMore}
+            onLoadMore={loadMore}
+            selectedRepoIds={selectedRepoIds}
+            onToggleSelect={handleToggleSelect}
+            selectionActive={selectedCount > 0}
+          />
+        </main>
       </div>
 
       <BulkActionBar

@@ -19,10 +19,17 @@ import {
   GroundedToolRecommendationCard,
   ProjectRecommendationCard,
 } from '@/components/project-recommendation-cards';
-import { TopBar } from '@/components/top-bar';
+import { WorkspaceLayout } from '@/components/workspace-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   trackRecommendationSetViewed,
   type ProjectConnectionSource,
@@ -204,16 +211,14 @@ function ConnectProjectForm({
           Choose from GitHub
         </Button>
       </div>
-      {pickerOpen && (
-        <div
-          className="max-h-64 overflow-y-auto rounded-lg border bg-card p-1"
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              closePicker();
-            }
-          }}
-        >
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl">
+          <DialogHeader className="border-b p-4 pr-12">
+            <DialogTitle>Choose a GitHub project</DialogTitle>
+            <DialogDescription>
+              Select a public repository, then connect it to see recommendations.
+            </DialogDescription>
+          </DialogHeader>
           {pickerBusy && (
             <p className="p-3 text-sm text-muted-foreground">Loading public repositories…</p>
           )}
@@ -223,7 +228,7 @@ function ConnectProjectForm({
             </p>
           )}
           {pickerRepositories && !pickerError && (
-            <div className="sticky top-0 z-10 space-y-1 bg-card p-2">
+            <div className="space-y-2 border-b p-4">
               <Input
                 value={pickerQuery}
                 onChange={(event) => {
@@ -241,8 +246,7 @@ function ConnectProjectForm({
                 aria-controls="github-project-results"
               />
               <p className="px-1 text-xs text-muted-foreground" aria-live="polite">
-                {filteredRepositories.length}{' '}
-                {filteredRepositories.length === 1 ? 'repository' : 'repositories'}
+                {filteredRepositories.length} of {pickerRepositories.length} public repositories
               </p>
             </div>
           )}
@@ -262,6 +266,7 @@ function ConnectProjectForm({
           <div
             id="github-project-results"
             role="listbox"
+            className="max-h-[min(50svh,360px)] min-h-32 overflow-y-auto p-2"
             aria-label="Public GitHub repositories"
             onKeyDown={(event) => {
               if (event.key === 'ArrowDown') {
@@ -270,6 +275,11 @@ function ConnectProjectForm({
               } else if (event.key === 'ArrowUp') {
                 event.preventDefault();
                 movePickerFocus(-1);
+              } else if (event.key === 'Home' || event.key === 'End') {
+                event.preventDefault();
+                const index = event.key === 'Home' ? 0 : filteredRepositories.length - 1;
+                setActivePickerIndex(index);
+                pickerOptionRefs.current[index]?.focus();
               }
             }}
           >
@@ -282,6 +292,7 @@ function ConnectProjectForm({
                 type="button"
                 role="option"
                 aria-selected={repository === project.fullName}
+                title={project.fullName}
                 tabIndex={index === activePickerIndex ? 0 : -1}
                 className="flex w-full items-start justify-between gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onFocus={() => setActivePickerIndex(index)}
@@ -291,9 +302,10 @@ function ConnectProjectForm({
                   closePicker();
                 }}
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{project.fullName}</span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs text-muted-foreground">{project.ownerLogin}</span>
+                  <span className="block break-words font-medium">{project.name}</span>
+                  <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
                     {project.description ?? 'No description'}
                   </span>
                 </span>
@@ -303,9 +315,9 @@ function ConnectProjectForm({
               </button>
             ))}
           </div>
-          <div className="sticky bottom-0 border-t bg-card p-2">
-            <p className="px-1 pb-1.5 text-xs text-muted-foreground">
-              Missing an organization?{' '}
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t p-4">
+            <p className="text-xs text-muted-foreground">
+              Missing a repository?{' '}
               {orgAccessUrl ? (
                 <a
                   href={orgAccessUrl}
@@ -318,24 +330,23 @@ function ConnectProjectForm({
               ) : (
                 'Grant access in your GitHub app settings'
               )}
-              , then refresh this list.
             </p>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 w-full justify-start px-1 text-xs"
+              className="h-8 px-2 text-xs"
               disabled={pickerBusy}
               onClick={() => void loadPickerRepositories()}
             >
               <RefreshCw className={`size-3.5 ${pickerBusy ? 'animate-spin' : ''}`} />
-              Refresh repository list
+              Refresh list
             </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
       <p className="text-xs text-muted-foreground">
-        Free. Public repositories only, with the current minimal GitHub permission.
+        Public repositories only. You can also paste a GitHub URL.
       </p>
       {error && (
         <p className="text-sm text-destructive" role="alert">
@@ -581,7 +592,7 @@ function ProjectsSidebar({
   const { projects, error, initialRepository } = data;
   const { selectedProject, onConnected } = selection;
   return (
-    <aside className="space-y-5">
+    <div className="space-y-5">
       <section>
         <h2 className="mb-2 text-sm font-medium">Connect a GitHub project</h2>
         <ConnectProjectForm initialRepository={initialRepository} onConnected={onConnected} />
@@ -629,7 +640,7 @@ function ProjectsSidebar({
           </nav>
         )}
       </section>
-    </aside>
+    </div>
   );
 }
 
@@ -842,33 +853,35 @@ export function ProjectsWorkspace({
   if (status === 'unauthenticated') return <LoadingScreen />;
 
   return (
-    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-      <TopBar title="Projects" description="Discover tools for what you are building." />
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[18rem_minmax(0,1fr)] md:px-6">
+    <WorkspaceLayout
+      title="Projects"
+      description="Discover tools for what you are building."
+      sidebarLabel="Your projects"
+      sidebar={
         <ProjectsSidebar
           data={{ projects, error, initialRepository }}
           selection={{ selectedProject, onConnected: connected }}
         />
-
-        <section className="min-w-0">
-          {!selectedProject ? (
-            <EmptyProjectState initialRepository={initialRepository} />
-          ) : (
-            <ProjectDetailPanel
-              selectedProject={selectedProject}
-              recommendations={recommendations}
-              recommendationError={recommendationError}
-              recommendationsLoading={recommendationsLoading}
-              showAllPeers={showAllPeers}
-              setShowAllPeers={setShowAllPeers}
-              disconnectId={disconnectId}
-              disconnecting={disconnecting}
-              disconnectError={disconnectError}
-              onDisconnect={disconnect}
-            />
-          )}
-        </section>
-      </div>
-    </main>
+      }
+    >
+      <section className="min-w-0">
+        {!selectedProject ? (
+          <EmptyProjectState initialRepository={initialRepository} />
+        ) : (
+          <ProjectDetailPanel
+            selectedProject={selectedProject}
+            recommendations={recommendations}
+            recommendationError={recommendationError}
+            recommendationsLoading={recommendationsLoading}
+            showAllPeers={showAllPeers}
+            setShowAllPeers={setShowAllPeers}
+            disconnectId={disconnectId}
+            disconnecting={disconnecting}
+            disconnectError={disconnectError}
+            onDisconnect={disconnect}
+          />
+        )}
+      </section>
+    </WorkspaceLayout>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
-import { Database, GitBranch, ScanSearch } from 'lucide-react';
+import { Database, GitBranch, ScanSearch, ShieldCheck } from 'lucide-react';
+import { useId } from 'react';
 
 import { Button } from '@/components/ui/button';
 
@@ -35,15 +36,21 @@ interface ToolScopeSelectorProps {
   minStars: number;
   isAuthenticated: boolean;
   onScopeChange: (scope: ToolScope) => void;
+  vertical?: boolean;
 }
 
 export function ToolScopeSelector(props: ToolScopeSelectorProps) {
-  const { scope, minStars, isAuthenticated, onScopeChange } = props;
+  const { scope, minStars, isAuthenticated, onScopeChange, vertical } = props;
+  const descriptionId = useId();
   const selected = TOOL_SCOPES.find((option) => option.value === scope) ?? TOOL_SCOPES[0];
 
   return (
     <div className="min-w-0 space-y-2">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Repository scope">
+      <div
+        className={vertical ? 'flex flex-col gap-1' : 'flex flex-wrap gap-2'}
+        role="group"
+        aria-label="Repository scope"
+      >
         {TOOL_SCOPES.map((option) => {
           const requiresSignIn = option.value !== 'discover' && !isAuthenticated;
           return (
@@ -52,9 +59,10 @@ export function ToolScopeSelector(props: ToolScopeSelectorProps) {
               type="button"
               variant={scope === option.value ? 'default' : 'outline'}
               size="sm"
+              className={vertical ? 'justify-start' : undefined}
               disabled={requiresSignIn}
               aria-pressed={scope === option.value}
-              aria-describedby="tool-scope-description"
+              aria-describedby={descriptionId}
               title={
                 requiresSignIn
                   ? `Sign in to use ${option.label}. ${option.description(minStars)}`
@@ -67,14 +75,51 @@ export function ToolScopeSelector(props: ToolScopeSelectorProps) {
           );
         })}
       </div>
-      <p
-        id="tool-scope-description"
-        className="max-w-2xl text-xs leading-relaxed text-muted-foreground"
-      >
+      <p id={descriptionId} className="max-w-2xl text-xs leading-relaxed text-muted-foreground">
         <span className="font-medium text-foreground">{selected.label}:</span>{' '}
         {selected.description(minStars)}
         {!isAuthenticated && ' Sign in to compare this with My Library.'}
       </p>
+    </div>
+  );
+}
+
+export function ToolFiltersSidebar({
+  scope,
+  minStars,
+  isAuthenticated,
+  onScopeChange,
+  minConfidence,
+  onToggleConfidence,
+}: ToolScopeSelectorProps & { minConfidence: number; onToggleConfidence: () => void }) {
+  return (
+    <div className="space-y-5">
+      <section className="space-y-2">
+        <h2 className="text-sm font-medium">Repository scope</h2>
+        <ToolScopeSelector
+          scope={scope}
+          minStars={minStars}
+          isAuthenticated={isAuthenticated}
+          onScopeChange={onScopeChange}
+          vertical
+        />
+      </section>
+      <section className="space-y-2 border-t pt-4">
+        <h2 className="text-sm font-medium">Evidence</h2>
+        <Button
+          variant={minConfidence >= 90 ? 'secondary' : 'ghost'}
+          size="sm"
+          className="w-full justify-start gap-2"
+          aria-pressed={minConfidence >= 90}
+          onClick={onToggleConfidence}
+        >
+          <ShieldCheck className="size-4" />
+          High confidence only
+        </Button>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Show detections with at least 90% confidence.
+        </p>
+      </section>
     </div>
   );
 }

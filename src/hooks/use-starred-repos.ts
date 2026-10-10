@@ -79,6 +79,7 @@ export interface UseStarredReposOptions {
   language?: string[];
   listId?: number | null;
   sort?: SortOption;
+  reversed?: boolean;
   limit?: number;
 }
 
@@ -97,6 +98,7 @@ function buildStarsUrl(opts: UseStarredReposOptions, offset: number): string {
   if (opts.listId != null) params.set('list_id', String(opts.listId));
   const apiSort = sortMap[opts.sort ?? 'recently-starred'];
   appendParam(params, 'sort', apiSort !== 'starred' ? apiSort : undefined);
+  appendParam(params, 'reverse', opts.reversed ? 'true' : undefined);
   const limit = opts.limit ?? 50;
   appendParam(params, 'limit', limit !== 50 ? String(limit) : undefined);
   appendParam(params, 'offset', offset > 0 ? String(offset) : undefined);
@@ -112,6 +114,7 @@ function filterKey(opts: UseStarredReposOptions): string {
     lang: opts.language ?? [],
     list: opts.listId ?? null,
     sort: opts.sort ?? 'recently-starred',
+    reversed: opts.reversed ?? false,
   });
 }
 
