@@ -1,206 +1,52 @@
 ---
-import ProductFooter from '@/components/ProductFooter.astro';
-import Layout from '@/layouts/Layout.astro';
+import Base from '@saas-maker/templates/Base.astro';
+import { WorkbenchPage } from '@saas-maker/templates/workbench-page';
+import { baseProps } from '@saas-maker/templates/page';
+import { workbenchContent } from '@saas-maker/templates/schema';
+import home from '../content/home.json';
 
-// Static Astro landing overlaid at `/` during build:cf.
-// The public preview stays a native GET form with no client-side JavaScript.
-const TITLE = 'Starboard — project-aware tool discovery for GitHub';
-const DESCRIPTION =
-  'Start with a public GitHub project, find similar repositories, and evaluate open-source tools with visible source evidence.';
+const content = workbenchContent.parse(home);
 ---
 
-<Layout title={TITLE} description={DESCRIPTION}>
-  <div class="site-shell">
-    <header class="site-header">
-      <a href="/" class="brand" aria-label="Starboard home">
-        <span class="brand-mark" aria-hidden="true">★</span>
-        <span>
-          <strong>Starboard</strong>
-          <small>project-aware discovery</small>
-        </span>
-      </a>
-      <nav aria-label="Primary navigation">
-        <a href="/discover">Discover</a>
-        <a href="/tools">Tool intelligence</a>
-        <a href="/articles">Articles</a>
-        <a href="/about">How it works</a>
-        <a class="nav-sign-in" href="/login">Sign in</a>
-      </nav>
-    </header>
-
-    <main>
-      <section class="hero" aria-labelledby="hero-title">
-        <div class="hero-copy">
-          <p class="chart-kicker"><span>01</span> Project-aware GitHub discovery</p>
-          <h1 id="hero-title">Find open-source tools that fit the project in front of you.</h1>
-          <p class="hero-deck">
-            Paste a public GitHub repository. Starboard finds similar projects, then shows which
-            tools those peers use and the exact repository evidence behind each suggestion.
-          </p>
-
-          <form action="/project-preview" method="get" class="project-form">
-            <label for="hero-repository">Public GitHub repository</label>
-            <div>
-              <input
-                id="hero-repository"
-                name="repository"
-                required
-                autocomplete="off"
-                autocapitalize="none"
-                spellcheck="false"
-                placeholder="github.com/owner/repository"
-              />
-              <button type="submit" data-log="project_preview_cta_clicked">
-                Preview project <span aria-hidden="true">→</span>
-              </button>
-            </div>
-          </form>
-
-          <div class="hero-actions">
-            <a href="/discover" data-log="public_catalog_browsed">Browse the public catalog</a>
-            <span>Cataloged previews need no account</span>
-          </div>
-          <p class="boundary-note">
-            Uncataloged repositories use your signed-in GitHub session. Nothing is saved until you
-            explicitly connect a project.
-          </p>
-        </div>
-
-        <div class="route-chart" aria-label="How Starboard moves from a project to inspectable tool evidence">
-          <div class="chart-heading">
-            <span>Recommendation route</span>
-            <span>Evidence remains attached</span>
-          </div>
-          <div class="route-start">
-            <span class="route-index">01</span>
-            <div>
-              <small>Start with one repository</small>
-              <strong>owner / project</strong>
-              <p>Language · topics · metadata · detected tools</p>
-            </div>
-          </div>
-          <ol class="route-steps">
-            <li>
-              <span>02</span>
-              <div><strong>Build a peer set</strong><small>Retrieve broadly, then rerank with visible signals.</small></div>
-            </li>
-            <li>
-              <span>03</span>
-              <div><strong>Trace tool support</strong><small>Only detections found in those peers can support a suggestion.</small></div>
-            </li>
-            <li>
-              <span>04</span>
-              <div><strong>Inspect the source</strong><small>Open the peer repository and review the evidence yourself.</small></div>
-            </li>
-          </ol>
-          <p class="chart-caption"><span aria-hidden="true">↗</span> A route to investigate, not a claim that one tool is universally best.</p>
-        </div>
-      </section>
-
-      <section class="thesis" aria-labelledby="thesis-title">
-        <div>
-          <p class="chart-kicker"><span>02</span> Why project context matters</p>
-          <h2 id="thesis-title">Popular is easy to find. Relevant takes context.</h2>
-        </div>
-        <p>
-          Trending lists answer what is attracting attention. Starboard asks a narrower question:
-          what do projects like yours use, and what evidence supports taking a closer look?
-        </p>
-      </section>
-
-      <section class="evidence-section" aria-labelledby="evidence-title">
-        <header class="section-heading">
-          <p class="chart-kicker"><span>03</span> The evidence ledger</p>
-          <h2 id="evidence-title">A recommendation you can audit.</h2>
-          <p>Each layer narrows the search while keeping enough context for you to challenge the result.</p>
-        </header>
-
-        <div class="ledger">
-          <article>
-            <span class="ledger-number">A</span>
-            <p class="ledger-label">Project context</p>
-            <h3>Read the repository that is already in front of you.</h3>
-            <p>Starboard uses visible language, topics, repository metadata, and detected tools. It does not claim access to private code.</p>
-          </article>
-          <article>
-            <span class="ledger-number">B</span>
-            <p class="ledger-label">Grounded peers</p>
-            <h3>Compare against similar public repositories.</h3>
-            <p>Semantic, lexical, language, topic, and tool signals produce a bounded peer set. Sparse results are labeled as broader fallbacks.</p>
-          </article>
-          <article>
-            <span class="ledger-number">C</span>
-            <p class="ledger-label">Tool support</p>
-            <h3>See which peers supply the evidence.</h3>
-            <p>Tool suggestions name their supporting repositories and detection confidence, with direct links for manual review.</p>
-          </article>
-        </div>
-
-        <aside class="honesty-strip" aria-label="Recommendation limits">
-          <strong>What Starboard does not claim</strong>
-          <p>No universal best-tool ranking. No complete dependency audit. No benchmarked recommendation accuracy. The final judgment stays with you.</p>
-        </aside>
-      </section>
-
-      <section class="modes" aria-labelledby="modes-title">
-        <header class="section-heading compact">
-          <p class="chart-kicker"><span>04</span> Two useful modes</p>
-          <h2 id="modes-title">Explore in public. Add your context when it helps.</h2>
-        </header>
-
-        <div class="mode-grid">
-          <article class="mode-card public-mode">
-            <div class="mode-topline"><span>Public waters</span><strong>No account for cataloged projects</strong></div>
-            <h3>Discover repositories and inspect tool evidence.</h3>
-            <p>Search the seeded public catalog, open repository details, browse Tool Intelligence, and preview projects Starboard already knows.</p>
-            <ul>
-              <li>Semantic and lexical repository discovery</li>
-              <li>Language, tool, and growth filters</li>
-              <li>Visible detection source and confidence</li>
-            </ul>
-            <a href="/discover" data-log="public_catalog_browsed">Explore Discover <span aria-hidden="true">→</span></a>
-          </article>
-
-          <article class="mode-card personal-mode">
-            <div class="mode-topline"><span>Personal workspace</span><strong>GitHub sign-in</strong></div>
-            <h3>Connect a project or clean up a crowded star library.</h3>
-            <p>Choose your own public projects for saved recommendations, then search and organize the repositories you have starred over time.</p>
-            <ul>
-              <li>Saved public-project connections</li>
-              <li>Lists, tags, notes, and starred-repository sync</li>
-              <li>No GitHub write access</li>
-            </ul>
-            <a href="/login" data-log="github_connect_started">Connect GitHub <span aria-hidden="true">→</span></a>
-          </article>
-        </div>
-      </section>
-
-      <section class="access-section" aria-labelledby="access-title">
-        <div class="access-intro">
-          <p class="chart-kicker"><span>05</span> Access chart</p>
-          <h2 id="access-title">Know what happens before you click.</h2>
-          <p>Starboard is free today. Signing in adds your GitHub context; it does not unlock a paid tier.</p>
-        </div>
-        <dl class="access-list">
-          <div><dt>Browse Discover and tools</dt><dd><span class="status-dot public"></span>Public</dd></div>
-          <div><dt>Preview a cataloged project</dt><dd><span class="status-dot public"></span>Public</dd></div>
-          <div><dt>Look up an uncataloged project</dt><dd><span class="status-dot sign-in"></span>GitHub sign-in</dd></div>
-          <div><dt>Save project recommendations</dt><dd><span class="status-dot sign-in"></span>GitHub sign-in</dd></div>
-          <div><dt>Sync and organize your stars</dt><dd><span class="status-dot sign-in"></span>GitHub sign-in</dd></div>
-        </dl>
-      </section>
-
-      <section class="final-cta" aria-labelledby="final-title">
-        <p class="chart-kicker"><span>06</span> Set a course</p>
-        <h2 id="final-title">Start with one public project.</h2>
-        <p>See the peers, follow the evidence, and decide which tools deserve a closer look.</p>
-        <div>
-          <a class="primary-link" href="#hero-repository">Preview a project <span aria-hidden="true">↑</span></a>
-          <a class="secondary-link" href="/discover">Browse Discover</a>
-        </div>
-      </section>
-    </main>
-
-    <ProductFooter />
-  </div>
-</Layout>
+<Base {...baseProps(content)}>
+  <Fragment slot="head">
+    <meta name="application-name" content="Starboard" />
+    <meta name="theme-color" content="#f4efe4" />
+    <meta
+      name="keywords"
+      content="project-aware tool discovery, GitHub repository discovery, open source tools, GitHub stars organizer, tool intelligence"
+    />
+    <link rel="alternate" type="text/markdown" href="https://starboard.codevetter.com/index.md" />
+    <link rel="alternate" type="text/plain" href="https://starboard.codevetter.com/llms.txt" />
+    <script is:inline src="/app-health-log.js" defer></script>
+    <script
+      is:inline
+      defer
+      src="https://health.sassmaker.com/tracker.js"
+      data-key="ahk_pub_c51dbbf523477f116fa158a0f255be9e625a7626e91ec2c29a9c1890d430abe9"
+      data-project="app-cd5de47f-b205-4f47-aa3b-be88833bcf00"
+      data-identity="persistent"
+      data-endpoint="https://ingest.sassmaker.com/v1/browser"
+    ></script>
+    <script is:inline>
+      // Template links have no attribute field. Attach the existing logging
+      // contract in capture phase before the hosted logger handles the click.
+      document.addEventListener('click', (event) => {
+        if (!(event.target instanceof Element)) return;
+        const link = event.target.closest('a[href]');
+        if (!link) return;
+        const events = {
+          '/project-preview': 'project_preview_cta_clicked',
+          '/discover': 'public_catalog_browsed',
+          '/login': 'github_connect_started',
+        };
+        const name = events[link.getAttribute('href')];
+        if (name) link.setAttribute('data-log', name);
+      }, true);
+    </script>
+    <script>
+      import '../scripts/app-health-flush';
+    </script>
+  </Fragment>
+  <WorkbenchPage content={content} />
+</Base>

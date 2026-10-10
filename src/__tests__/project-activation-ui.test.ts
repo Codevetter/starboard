@@ -7,14 +7,13 @@ function source(path: string): string {
 }
 
 describe('project-first activation wiring', () => {
-  it('lets the static landing submit a public repository directly to preview', () => {
-    const landing = source('landing-astro/src/pages/index.astro');
+  it('sends the static landing hero to the repository preview', () => {
+    const landing = source('landing-astro/src/content/home.json');
 
-    expect(landing).toContain('action="/project-preview"');
-    expect(landing).toContain('name="repository"');
+    expect(landing).toContain('"href": "/project-preview"');
     expect(landing).toContain('Cataloged previews need no account');
     expect(landing).toContain('Uncataloged repositories use your signed-in GitHub session');
-    expect(landing).toContain('Browse the public catalog');
+    expect(landing).toContain('browse the public catalog');
     expect(landing).not.toContain('Library · this week');
     expect(landing).not.toContain('>Hot<');
     expect(landing).not.toContain('>Watch<');

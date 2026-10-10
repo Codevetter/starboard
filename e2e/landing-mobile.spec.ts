@@ -8,26 +8,26 @@ test.describe('production Astro landing page', () => {
 
     await expect(
       page.getByRole('heading', {
-        name: 'Find open-source tools that fit the project in front of you.',
+        name: /find open-source tools that fit the project in front of you/i,
         level: 1,
       })
     ).toBeVisible();
     await expect(
-      page.getByText(/paste a public github repository\. starboard finds similar projects/i)
+      page.getByText(/starboard finds similar projects, then shows which tools/i)
     ).toBeVisible();
 
-    const repository = page.getByRole('textbox', { name: /public github repository/i });
-    await expect(repository).toBeVisible();
-    await expect(page.getByRole('button', { name: /preview project/i })).toBeVisible();
-
-    await expect(page.getByRole('link', { name: /browse the public catalog/i })).toHaveAttribute(
+    await expect(page.getByRole('link', { name: /preview a project/i }).first()).toHaveAttribute(
       'href',
-      '/discover'
+      '/project-preview'
     );
+    await expect(
+      page.getByRole('link', { name: /browse the public catalog/i }).first()
+    ).toHaveAttribute('href', '/discover');
 
     await expect(page.getByText(/what starboard does not claim/i)).toBeVisible();
-    await expect(page.locator('portfolio-project-strip')).toHaveCount(1);
-    await expect(page.locator('ai-chat-footer')).toHaveCount(1);
+    await expect(
+      page.locator('footer[data-fleet-footer="studio"][data-catalog-id="starboard"]')
+    ).toHaveCount(1);
 
     // No horizontal scroll — the page must never scroll sideways.
     const overflow = await page.evaluate(
@@ -48,17 +48,19 @@ test.describe('production Astro landing page', () => {
 
   test('the primary CTA is a large enough touch target', async ({ page }) => {
     await page.goto('/');
-    const cta = page.getByRole('button', { name: /preview project/i });
+    const cta = page.getByRole('link', { name: /preview a project/i }).first();
     const box = await cta.boundingBox();
     expect(box).not.toBeNull();
     expect(box!.height).toBeGreaterThanOrEqual(44);
   });
 
-  test('submits a repository through the public preview route', async ({ page }) => {
+  test('opens the public preview route from the hero', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('textbox', { name: /public github repository/i }).fill('acme/store');
-    await page.getByRole('button', { name: /preview project/i }).click();
+    await page
+      .getByRole('link', { name: /preview a project/i })
+      .first()
+      .click();
 
-    await expect(page).toHaveURL(/\/project-preview\?repository=acme%2Fstore$/);
+    await expect(page).toHaveURL(/\/project-preview$/);
   });
 });
