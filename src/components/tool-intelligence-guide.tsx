@@ -39,7 +39,7 @@ interface ToolScopeSelectorProps {
   vertical?: boolean;
 }
 
-export function ToolScopeSelector(props: ToolScopeSelectorProps) {
+function ToolScopeSelector(props: ToolScopeSelectorProps) {
   const { scope, minStars, isAuthenticated, onScopeChange, vertical } = props;
   const descriptionId = useId();
   const selected = TOOL_SCOPES.find((option) => option.value === scope) ?? TOOL_SCOPES[0];

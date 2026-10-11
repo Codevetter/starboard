@@ -6,6 +6,7 @@ import {
   type ProjectRecommendationRepo,
   type ProjectRecommendationResult,
   rankProjectRecommendations,
+  isProjectCandidate,
   projectPurposeTerms,
   recommendToolsFromPeers,
 } from '@/lib/project-recommendations';
@@ -262,6 +263,67 @@ function retrievalMode(
   return 'structured';
 }
 
+async function reviewRanked(
+  project: ProjectRecommendationRepo,
+  candidates: ProjectRecommendationRepo[],
+  candidateIds: number[],
+  limit: number,
+  reviewCandidates: ProjectIntelligenceDependencies['reviewCandidates']
+) {
+  const ranked = rankProjectRecommendations(project, candidates, limit);
+  let quality: NonNullable<ProjectIntelligenceResult['quality']> = { status: 'evidence-only' };
+  if (reviewCandidates) {
+    const shortlistIds = new Set<number>();
+    const rankedIds = rankProjectRecommendations(project, candidates, 24).similarProjects.map(
+      (repo) => repo.id
+    );
+    for (const id of [...rankedIds, ...candidateIds.slice(0, 24)]) {
+      if (shortlistIds.size >= 40) break;
+      shortlistIds.add(id);
+    }
+    const byId = new Map(
+      candidates.filter((repo) => isProjectCandidate(project, repo)).map((repo) => [repo.id, repo])
+    );
+    const shortlist = [...shortlistIds].flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    let review: ProjectQualityReview;
+    try {
+      review = await reviewCandidates(project, shortlist);
+    } catch {
+      review = { status: 'unavailable', matches: [] };
+    }
+    quality = { status: review.status, ...(review.reason ? { reason: review.reason } : {}) };
+    // An unavailable reviewer must not turn weak lexical overlap into a
+    // confident product recommendation. The response exposes the outage.
+    ranked.similarProjects =
+      review.status === 'reviewed'
+        ? review.matches.slice(0, Math.max(1, Math.min(limit, 50))).flatMap((match, index) => {
+            const candidate = byId.get(match.repoId);
+            return candidate
+              ? [
+                  {
+                    ...candidate,
+                    score: review.matches.length - index,
+                    role: match.role,
+                    evidence: [
+                      `Project: “${match.projectEvidence}”`,
+                      `Candidate: “${match.candidateEvidence}”`,
+                    ],
+                  },
+                ]
+              : [];
+          })
+        : [];
+    ranked.fallback = ranked.similarProjects.length === 0;
+    ranked.recommendedTools = recommendToolsFromPeers(
+      project,
+      ranked.similarProjects.filter((repo) => repo.role === 'integration'),
+      ranked.fallback
+    );
+  }
+
+  return { ranked, quality };
+}
+
 export function createProjectIntelligence(
   dependencies: ProjectIntelligenceDependencies = defaultDependencies
 ) {
@@ -295,66 +357,13 @@ export function createProjectIntelligence(
     const candidates = usingFallback
       ? await fallbackCandidates(project.id, dependencies)
       : await hydrateCandidates(candidateIds, project.id, dependencies, similarityById);
-    const ranked = rankProjectRecommendations(project, candidates, limit);
-    let quality: NonNullable<ProjectIntelligenceResult['quality']> = { status: 'evidence-only' };
-    if (dependencies.reviewCandidates) {
-      const shortlistIds = new Set<number>();
-      const rankedIds = rankProjectRecommendations(project, candidates, 24).similarProjects.map(
-        (repo) => repo.id
-      );
-      for (const id of [...rankedIds, ...candidateIds.slice(0, 24)]) {
-        if (shortlistIds.size >= 40) break;
-        shortlistIds.add(id);
-      }
-      const byId = new Map(
-        candidates
-          .filter(
-            (repo) =>
-              !repo.archived &&
-              repo.id !== project.id &&
-              repo.fullName.toLowerCase() !== project.fullName.toLowerCase() &&
-              !/no longer (?:works|working|maintained|supported)|not being actively maintained|is (?:deprecated|unmaintained)/i.test(
-                repo.description ?? ''
-              )
-          )
-          .map((repo) => [repo.id, repo])
-      );
-      const shortlist = [...shortlistIds].flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
-      let review: ProjectQualityReview;
-      try {
-        review = await dependencies.reviewCandidates(project, shortlist);
-      } catch {
-        review = { status: 'unavailable', matches: [] };
-      }
-      quality = { status: review.status, ...(review.reason ? { reason: review.reason } : {}) };
-      // An unavailable reviewer must not turn weak lexical overlap into a
-      // confident product recommendation. The response exposes the outage.
-      ranked.similarProjects =
-        review.status === 'reviewed'
-          ? review.matches.slice(0, Math.max(1, Math.min(limit, 50))).flatMap((match, index) => {
-              const candidate = byId.get(match.repoId);
-              return candidate
-                ? [
-                    {
-                      ...candidate,
-                      score: review.matches.length - index,
-                      role: match.role,
-                      evidence: [
-                        `Project: “${match.projectEvidence}”`,
-                        `Candidate: “${match.candidateEvidence}”`,
-                      ],
-                    },
-                  ]
-                : [];
-            })
-          : [];
-      ranked.fallback = ranked.similarProjects.length === 0;
-      ranked.recommendedTools = recommendToolsFromPeers(
-        project,
-        ranked.similarProjects.filter((repo) => repo.role === 'integration'),
-        ranked.fallback
-      );
-    }
+    const { ranked, quality } = await reviewRanked(
+      project,
+      candidates,
+      candidateIds,
+      limit,
+      dependencies.reviewCandidates
+    );
 
     return {
       ...ranked,

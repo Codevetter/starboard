@@ -368,6 +368,45 @@ interface RecommendationsUI {
   setShowAllPeers: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+function RecommendationStatus({
+  recommendations,
+  recommendationError,
+  recommendationsLoading,
+}: RecommendationsData) {
+  return (
+    <>
+      {' '}
+      {recommendations?.fallback && (
+        <p className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
+          {recommendations.quality?.status === 'unavailable'
+            ? recommendations.quality.reason === 'insufficient-context'
+              ? 'There is not enough project context to review matches. Add a README describing the product, or choose a folder with its own README.'
+              : 'Relevance review is temporarily unavailable. Try again shortly; unreviewed matches are withheld.'
+            : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
+        </p>
+      )}
+      {recommendationError && (
+        <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          Recommendations could not load. Try again shortly.
+        </p>
+      )}
+      {recommendationsLoading && !recommendations && (
+        <div className="flex min-h-56 items-center justify-center" aria-busy="true">
+          <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          <span className="sr-only" role="status">
+            Loading project recommendations
+          </span>
+        </div>
+      )}
+      {recommendations && recommendations.similarProjects.length === 0 && (
+        <div className="mt-4 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+          No eligible catalog matches yet. Browse Discover while the public corpus grows.
+        </div>
+      )}
+    </>
+  );
+}
+
 function RecommendationsSection({
   data,
   ui,
@@ -375,7 +414,7 @@ function RecommendationsSection({
   data: RecommendationsData;
   ui: RecommendationsUI;
 }) {
-  const { recommendations, recommendationError, recommendationsLoading } = data;
+  const { recommendations } = data;
   const { showAllPeers, setShowAllPeers } = ui;
   return (
     <section>
@@ -405,33 +444,7 @@ function RecommendationsSection({
         </Button>
       </div>
 
-      {recommendations?.fallback && (
-        <p className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-          {recommendations.quality?.status === 'unavailable'
-            ? recommendations.quality.reason === 'insufficient-context'
-              ? 'There is not enough project context to review matches. Add a README describing the product, or choose a folder with its own README.'
-              : 'Relevance review is temporarily unavailable. Try again shortly; unreviewed matches are withheld.'
-            : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
-        </p>
-      )}
-      {recommendationError && (
-        <p className="mt-4 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          Recommendations could not load. Try again shortly.
-        </p>
-      )}
-      {recommendationsLoading && !recommendations && (
-        <div className="flex min-h-56 items-center justify-center" aria-busy="true">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          <span className="sr-only" role="status">
-            Loading project recommendations
-          </span>
-        </div>
-      )}
-      {recommendations && recommendations.similarProjects.length === 0 && (
-        <div className="mt-4 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No eligible catalog matches yet. Browse Discover while the public corpus grows.
-        </div>
-      )}
+      <RecommendationStatus {...data} />
       {recommendations && recommendations.similarProjects.length > 0 && (
         <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
           {(showAllPeers
@@ -520,6 +533,74 @@ function ProjectFolderForm({
   );
 }
 
+function ProjectDetailHeader({
+  selectedProject,
+  recommendations,
+  disconnectId,
+  disconnecting,
+  onDisconnect,
+}: Pick<
+  ProjectDetailPanelProps,
+  'selectedProject' | 'recommendations' | 'disconnectId' | 'disconnecting' | 'onDisconnect'
+>) {
+  const inspectedProject = recommendations?.project ?? selectedProject;
+  return (
+    <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="break-words text-xl font-semibold">{selectedProject.fullName}</h2>
+          {inspectedProject.language && (
+            <Badge variant="secondary">{inspectedProject.language}</Badge>
+          )}
+        </div>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+          {inspectedProject.description ?? 'No repository description is available.'}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {inspectedProject.topics.slice(0, 6).map((topic) => (
+            <Badge key={topic} variant="outline">
+              {topic}
+            </Badge>
+          ))}
+          {(recommendations?.context.tools ?? selectedProject.tools).slice(0, 8).map((tool) => (
+            <Badge key={tool.key} variant="outline">
+              {tool.name}
+            </Badge>
+          ))}
+        </div>
+        {recommendations?.context.sourceContext && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {recommendations.context.sourceContext.status === 'unavailable'
+              ? 'Project files could not be checked. Matches use catalog metadata; tool suggestions are withheld.'
+              : `Checked ${recommendations.context.sourceContext.files.length} public README and manifest files${recommendations.context.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`}
+          </p>
+        )}
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href={selectedProject.htmlUrl} target="_blank" rel="noreferrer">
+            GitHub
+            <ArrowUpRight className="size-4" />
+          </Link>
+        </Button>
+        <Button
+          variant={disconnectId === selectedProject.id ? 'destructive' : 'outline'}
+          size="sm"
+          disabled={disconnecting}
+          onClick={() => onDisconnect(selectedProject)}
+        >
+          {disconnecting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Trash2 className="size-4" />
+          )}
+          {disconnectId === selectedProject.id ? 'Confirm' : 'Disconnect'}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function ProjectDetailPanel(props: ProjectDetailPanelProps) {
   const {
     selectedProject,
@@ -535,62 +616,9 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
     scope,
     onScopeChange,
   } = props;
-  const inspectedProject = recommendations?.project ?? selectedProject;
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="break-words text-xl font-semibold">{selectedProject.fullName}</h2>
-            {inspectedProject.language && (
-              <Badge variant="secondary">{inspectedProject.language}</Badge>
-            )}
-          </div>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            {inspectedProject.description ?? 'No repository description is available.'}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {inspectedProject.topics.slice(0, 6).map((topic) => (
-              <Badge key={topic} variant="outline">
-                {topic}
-              </Badge>
-            ))}
-            {(recommendations?.context.tools ?? selectedProject.tools).slice(0, 8).map((tool) => (
-              <Badge key={tool.key} variant="outline">
-                {tool.name}
-              </Badge>
-            ))}
-          </div>
-          {recommendations?.context.sourceContext && (
-            <p className="mt-3 text-xs text-muted-foreground">
-              {recommendations.context.sourceContext.status === 'unavailable'
-                ? 'Project files could not be checked. Matches use catalog metadata; tool suggestions are withheld.'
-                : `Checked ${recommendations.context.sourceContext.files.length} public README and manifest files${recommendations.context.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`}
-            </p>
-          )}
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={selectedProject.htmlUrl} target="_blank" rel="noreferrer">
-              GitHub
-              <ArrowUpRight className="size-4" />
-            </Link>
-          </Button>
-          <Button
-            variant={disconnectId === selectedProject.id ? 'destructive' : 'outline'}
-            size="sm"
-            disabled={disconnecting}
-            onClick={() => onDisconnect(selectedProject)}
-          >
-            {disconnecting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Trash2 className="size-4" />
-            )}
-            {disconnectId === selectedProject.id ? 'Confirm' : 'Disconnect'}
-          </Button>
-        </div>
-      </div>
+      <ProjectDetailHeader {...props} />
       <ProjectFolderForm
         key={`${selectedProject.id}:${scope}`}
         scope={scope}
@@ -775,6 +803,22 @@ async function executeDisconnect(
   }
 }
 
+function createScopeHandler(
+  scope: string,
+  project: ConnectedProject | undefined,
+  router: ReturnType<typeof useRouter>,
+  mutate: () => unknown
+) {
+  return (path: string) => {
+    if (path === scope) {
+      void mutate();
+      return;
+    }
+    if (project)
+      router.replace(`/projects/${project.id}${path ? `?path=${encodeURIComponent(path)}` : ''}`);
+  };
+}
+
 function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepository: string) {
   const { status } = useSession();
   const router = useRouter();
@@ -870,16 +914,7 @@ function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepo
     disconnect,
     connected,
     scope,
-    applyScope: (path: string) => {
-      if (path === scope) {
-        void mutateRecommendations();
-        return;
-      }
-      if (selectedProject)
-        router.replace(
-          `/projects/${selectedProject.id}${path ? `?path=${encodeURIComponent(path)}` : ''}`
-        );
-    },
+    applyScope: createScopeHandler(scope, selectedProject, router, mutateRecommendations),
   };
 }
 

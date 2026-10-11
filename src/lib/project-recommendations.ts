@@ -333,25 +333,24 @@ export function projectPurposeTerms(project: ProjectRecommendationRepo): string[
   ];
 }
 
+const RUNTIME_SIGNALS = [
+  { family: 'js', languages: ['typescript', 'javascript'], manifest: /package\.json$/ },
+  { family: 'swift', languages: ['swift'], manifest: /Package\.swift$/ },
+  { family: 'python', languages: ['python'], manifest: /(?:pyproject\.toml|requirements\.txt)$/ },
+  { family: 'rust', languages: ['rust'], manifest: /Cargo\.toml$/ },
+  { family: 'go', languages: ['go'], manifest: /go\.mod$/ },
+];
 function runtimeFamilies(project: ProjectRecommendationRepo): Set<string> {
   const families = new Set<string>();
   const language = project.language?.toLowerCase();
   const files = project.sourceContext?.files ?? [];
-  if (
-    ['typescript', 'javascript'].includes(language ?? '') ||
-    files.some((file) => file.endsWith('package.json'))
-  )
-    families.add('js');
-  if (language === 'swift' || files.some((file) => file.endsWith('Package.swift')))
-    families.add('swift');
-  if (
-    language === 'python' ||
-    files.some((file) => /(?:pyproject.toml|requirements.txt)$/.test(file))
-  )
-    families.add('python');
-  if (language === 'rust' || files.some((file) => file.endsWith('Cargo.toml')))
-    families.add('rust');
-  if (language === 'go' || files.some((file) => file.endsWith('go.mod'))) families.add('go');
+  for (const signal of RUNTIME_SIGNALS) {
+    if (
+      signal.languages.includes(language ?? '') ||
+      files.some((file) => signal.manifest.test(file))
+    )
+      families.add(signal.family);
+  }
   if (language && families.size === 0) families.add(language);
   return families;
 }
@@ -421,6 +420,39 @@ function canRetainCandidate(
   );
 }
 
+function eligibleTool(
+  tool: ProjectToolSignal,
+  existingKeys: Set<string>,
+  existingCategories: Set<string>
+): boolean {
+  const key = tool.key.trim().toLowerCase();
+  const category = tool.category.trim().toLowerCase();
+  return Boolean(
+    key &&
+      !existingKeys.has(key) &&
+      category !== 'language' &&
+      tool.confidence >= MIN_GROUNDED_TOOL_CONFIDENCE &&
+      !ALTERNATIVE_TOOL_GROUPS.some(
+        (group) => group.includes(key) && group.some((existing) => existingKeys.has(existing))
+      ) &&
+      !(COMPETING_TOOL_CATEGORIES.has(category) && existingCategories.has(category))
+  );
+}
+
+export function isProjectCandidate(
+  project: ProjectRecommendationRepo,
+  candidate: ProjectRecommendationRepo
+): boolean {
+  return (
+    candidate.id !== project.id &&
+    candidate.fullName.toLowerCase() !== project.fullName.toLowerCase() &&
+    !candidate.archived &&
+    !/no longer (?:works|working|maintained|supported)|not being actively maintained|is (?:deprecated|unmaintained)|discontinued project/i.test(
+      candidate.description ?? ''
+    )
+  );
+}
+
 export function recommendToolsFromPeers(
   project: ProjectRecommendationRepo,
   peers: ProjectRecommendation[],
@@ -441,18 +473,7 @@ export function recommendToolsFromPeers(
     for (const tool of peer.tools) {
       const key = tool.key.trim().toLowerCase();
       const category = tool.category.trim().toLowerCase();
-      if (
-        !key ||
-        existingToolKeys.has(key) ||
-        category === 'language' ||
-        tool.confidence < MIN_GROUNDED_TOOL_CONFIDENCE ||
-        ALTERNATIVE_TOOL_GROUPS.some(
-          (group) => group.includes(key) && group.some((existing) => existingToolKeys.has(existing))
-        ) ||
-        (COMPETING_TOOL_CATEGORIES.has(category) && existingToolCategories.has(category))
-      ) {
-        continue;
-      }
+      if (!eligibleTool(tool, existingToolKeys, existingToolCategories)) continue;
 
       const current = recommendations.get(key) ?? {
         key: tool.key,
@@ -671,15 +692,7 @@ export function rankProjectRecommendations(
   let hasSpecificMatches = false;
   const specificCandidates: ScoredProjectCandidate[] = [];
   for (const candidate of candidates) {
-    if (
-      candidate.id === project.id ||
-      candidate.fullName.toLowerCase() === project.fullName.toLowerCase() ||
-      candidate.archived ||
-      /no longer (?:works|working|maintained|supported)|is (?:deprecated|unmaintained)|discontinued project/i.test(
-        candidate.description ?? ''
-      )
-    )
-      continue;
+    if (!isProjectCandidate(project, candidate)) continue;
 
     const scored = scoreCandidate(project, candidate, {
       projectTopics,

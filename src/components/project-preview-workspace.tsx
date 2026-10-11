@@ -69,42 +69,51 @@ interface PreviewResultsProps {
   setShowAllPeers: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
+function PreviewProjectHeader({
+  data,
+  loginHref,
+}: Pick<PreviewResultsProps, 'data' | 'loginHref'>) {
+  return (
+    <section className="flex flex-col gap-5 border-b pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="truncate text-2xl font-semibold">{data.project.fullName}</h2>
+          {data.project.language && <Badge variant="secondary">{data.project.language}</Badge>}
+          <Badge variant="outline">
+            {data.quality?.status === 'reviewed'
+              ? data.similarProjects.length
+                ? 'Reviewed matches'
+                : 'No relevant matches'
+              : retrievalCopy(data.retrieval.mode)}
+          </Badge>
+        </div>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+          {data.project.description ?? 'No repository description is available.'}
+        </p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          {data.project.sourceContext?.files.length
+            ? `Checked ${data.project.sourceContext.files.length} public README and manifest files${data.project.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`
+            : 'Project files could not be checked. Matches use repository metadata; tool suggestions are withheld.'}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {data.project.tools.slice(0, 8).map((tool) => (
+            <Badge key={tool.key} variant="outline">
+              {tool.name}
+            </Badge>
+          ))}
+        </div>
+      </div>
+      <Button asChild className="shrink-0">
+        <Link href={loginHref}>Sign in to connect</Link>
+      </Button>
+    </section>
+  );
+}
+
 function PreviewResults({ data, loginHref, showAllPeers, setShowAllPeers }: PreviewResultsProps) {
   return (
     <div className="space-y-10">
-      <section className="flex flex-col gap-5 border-b pb-6 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="truncate text-2xl font-semibold">{data.project.fullName}</h2>
-            {data.project.language && <Badge variant="secondary">{data.project.language}</Badge>}
-            <Badge variant="outline">
-              {data.quality?.status === 'reviewed'
-                ? data.similarProjects.length
-                  ? 'Reviewed matches'
-                  : 'No relevant matches'
-                : retrievalCopy(data.retrieval.mode)}
-            </Badge>
-          </div>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            {data.project.description ?? 'No repository description is available.'}
-          </p>
-          <p className="mt-3 text-xs text-muted-foreground">
-            {data.project.sourceContext?.files.length
-              ? `Checked ${data.project.sourceContext.files.length} public README and manifest files${data.project.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`
-              : 'Project files could not be checked. Matches use repository metadata; tool suggestions are withheld.'}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {data.project.tools.slice(0, 8).map((tool) => (
-              <Badge key={tool.key} variant="outline">
-                {tool.name}
-              </Badge>
-            ))}
-          </div>
-        </div>
-        <Button asChild className="shrink-0">
-          <Link href={loginHref}>Sign in to connect</Link>
-        </Button>
-      </section>
+      <PreviewProjectHeader data={data} loginHref={loginHref} />
 
       {data.fallback && (
         <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">

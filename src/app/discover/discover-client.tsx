@@ -179,29 +179,24 @@ function useDiscoverFilters(
     serialize: (v) => (v != null ? String(v) : ''),
     defaultValue: null,
   });
-
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [debouncedSearch, setDebouncedSearch] = useState(searchQuery);
   const activeListId = isAuthenticated ? selectedListId : null;
-
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(searchQuery), 200);
     return () => clearTimeout(t);
   }, [searchQuery]);
-
   useEffect(() => {
     if (!isAuthenticated && selectedListId !== null) {
       setSelectedListId(null);
     }
   }, [isAuthenticated, selectedListId, setSelectedListId]);
-
   const hasActiveFilters =
     searchQuery.trim().length > 0 ||
     selectedLanguages.length > 0 ||
     selectedTools.length > 0 ||
     activeListId !== null;
-
   const handlers = useDiscoverHandlers({
     searchQuery,
     sortBy,
@@ -211,7 +206,6 @@ function useDiscoverFilters(
     setSelectedTools,
     setSelectedListId,
   });
-
   return {
     searchQuery,
     sortBy,

@@ -4,7 +4,7 @@ import { generateText } from 'ai';
 import { createFleetGatewayFetch, getFreeAiBinding } from '@/lib/embeddings';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
 
-export interface ReviewedProjectMatch {
+interface ReviewedProjectMatch {
   repoId: number;
   role: 'reference' | 'integration';
   projectEvidence: string;
@@ -85,24 +85,7 @@ export function validateProjectQualityReview(
     if (!row || typeof row !== 'object') continue;
     const match = row as ReviewedProjectMatch;
     const candidate = allowed.get(match.repoId);
-    if (
-      !candidate ||
-      seen.has(match.repoId) ||
-      !['reference', 'integration'].includes(match.role) ||
-      typeof match.projectEvidence !== 'string' ||
-      typeof match.candidateEvidence !== 'string' ||
-      [match.projectEvidence, match.candidateEvidence].some(
-        (quote) => quote.trim().length < 12 || quote.length > 180
-      ) ||
-      !normalizeEvidence(projectEvidenceText(project)).includes(
-        normalizeEvidence(match.projectEvidence)
-      ) ||
-      !normalizeEvidence(candidateEvidenceText(candidate)).includes(
-        normalizeEvidence(match.candidateEvidence)
-      )
-    ) {
-      continue;
-    }
+    if (!supportedMatch(match, candidate, project, seen)) continue;
     seen.add(match.repoId);
     matches.push(
       match.role === 'integration' &&
@@ -117,6 +100,30 @@ export function validateProjectQualityReview(
     throw new Error('Project quality review contains unsupported evidence');
   }
   return { status: 'reviewed', matches };
+}
+
+function supportedQuote(quote: unknown, source: string): boolean {
+  return (
+    typeof quote === 'string' &&
+    quote.trim().length >= 12 &&
+    quote.length <= 180 &&
+    normalizeEvidence(source).includes(normalizeEvidence(quote))
+  );
+}
+
+function supportedMatch(
+  match: ReviewedProjectMatch,
+  candidate: ProjectRecommendationRepo | undefined,
+  project: ProjectRecommendationRepo,
+  seen: Set<number>
+): boolean {
+  return Boolean(
+    candidate &&
+      !seen.has(match.repoId) &&
+      ['reference', 'integration'].includes(match.role) &&
+      supportedQuote(match.projectEvidence, projectEvidenceText(project)) &&
+      supportedQuote(match.candidateEvidence, candidateEvidenceText(candidate))
+  );
 }
 
 function normalizeEvidence(text: string): string {

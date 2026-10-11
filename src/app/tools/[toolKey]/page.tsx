@@ -152,7 +152,6 @@ interface ToolDetailHeaderProps {
   tool: ToolSummary | undefined;
   decodedToolKey: string;
 }
-
 function ToolDetailHeader({ tool, decodedToolKey }: ToolDetailHeaderProps) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-4">
@@ -197,13 +196,11 @@ function ToolDetailHeader({ tool, decodedToolKey }: ToolDetailHeaderProps) {
     </div>
   );
 }
-
 interface ToolLoadMoreButtonProps {
   canLoadMore: boolean;
   isLoadingMore: boolean;
   onLoadMore: () => void;
 }
-
 function ToolLoadMoreButton({ canLoadMore, isLoadingMore, onLoadMore }: ToolLoadMoreButtonProps) {
   if (!canLoadMore) return null;
   return (
@@ -215,20 +212,17 @@ function ToolLoadMoreButton({ canLoadMore, isLoadingMore, onLoadMore }: ToolLoad
     </div>
   );
 }
-
 interface LoadingState {
   isInitialLoading: boolean;
   isValidating: boolean;
   isLoadingMore: boolean;
 }
-
 interface DataState {
   error: Error | undefined;
   pages: ToolReposResponse[] | undefined;
   tool: ToolSummary | undefined;
   repos: ToolRepo[];
 }
-
 function ToolStatusMessages({ loading, data }: { loading: LoadingState; data: DataState }) {
   const { isInitialLoading, isValidating, isLoadingMore } = loading;
   const { error, pages, tool, repos } = data;

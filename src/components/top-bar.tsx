@@ -16,7 +16,6 @@ import {
   Info,
   PanelLeft,
   RefreshCw,
-  Search,
   Star,
   Wrench,
   X,
@@ -33,7 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
+import { SearchOrTitle } from '@/components/top-bar-search';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import type { SortOption } from '@/hooks/use-starred-repos';
 import { getAvatarImageAttrs } from '@/lib/avatar';
@@ -115,19 +114,15 @@ function SyncButton({ syncing, onSync }: { syncing?: boolean; onSync: () => void
   );
 }
 
-function SortMenu({
-  sortBy,
-  onSortChange,
-  sortOptions,
-  reversed,
-  onReverse,
-}: {
+interface SortMenuProps {
   sortBy: SortOption;
   onSortChange: (s: SortOption) => void;
   sortOptions: readonly SortOption[];
   reversed: boolean;
   onReverse?: () => void;
-}) {
+}
+
+function SortMenu({ sortBy, onSortChange, sortOptions, reversed, onReverse }: SortMenuProps) {
   const ascending = (sortBy === 'name-az') !== reversed;
   const DirectionIcon = ascending ? ArrowUp : ArrowDown;
   return (
@@ -230,41 +225,6 @@ function UserMenu({
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
-  );
-}
-
-function SearchOrTitle({
-  title,
-  description,
-  searchQuery,
-  onSearchChange,
-  searchPlaceholder = 'Search repos...',
-}: {
-  title?: string;
-  description?: string;
-  searchQuery?: string;
-  onSearchChange?: (q: string) => void;
-  searchPlaceholder?: string;
-}) {
-  if (typeof searchQuery === 'string' && onSearchChange) {
-    return (
-      <div className="relative order-last w-full min-w-0 flex-none sm:order-none sm:w-auto sm:min-w-48 sm:flex-1">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder={searchPlaceholder}
-          aria-label={searchPlaceholder}
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="pl-9"
-        />
-      </div>
-    );
-  }
-  return (
-    <div className="min-w-0 flex-1">
-      <h1 className="truncate text-sm font-semibold">{title}</h1>
-      {description && <p className="truncate text-xs text-muted-foreground">{description}</p>}
-    </div>
   );
 }
 
@@ -405,6 +365,18 @@ function ClearFiltersButton({ onClearFilters }: { onClearFilters: () => void }) 
   );
 }
 
+function CatalogUpdatesButton({ pathname }: { pathname: string | null }) {
+  if (!pathname?.startsWith('/discover') && pathname !== '/catalog-updates') return null;
+  return (
+    <Button asChild variant="outline" size="sm" className="h-11 shrink-0 gap-2 sm:h-8">
+      <Link href="/catalog-updates" prefetch={false} aria-label="Catalog updates">
+        <History className="size-3.5" />
+        <span className="hidden xl:inline">Catalog updates</span>
+      </Link>
+    </Button>
+  );
+}
+
 export function TopBar(props: TopBarProps) {
   const {
     title,
@@ -463,14 +435,7 @@ export function TopBar(props: TopBarProps) {
         <RepoCountDisplay repoCount={repoCount} repoCountDescription={repoCountDescription} />
       )}
 
-      {(pathname?.startsWith('/discover') || pathname === '/catalog-updates') && (
-        <Button asChild variant="outline" size="sm" className="h-11 shrink-0 gap-2 sm:h-8">
-          <Link href="/catalog-updates" prefetch={false} aria-label="Catalog updates">
-            <History className="size-3.5" />
-            <span className="hidden xl:inline">Catalog updates</span>
-          </Link>
-        </Button>
-      )}
+      <CatalogUpdatesButton pathname={pathname} />
 
       {onSync && <SyncButton syncing={syncing} onSync={onSync} />}
 

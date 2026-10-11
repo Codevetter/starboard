@@ -259,10 +259,8 @@ function RepoGridVirtualList(props: RepoGridVirtualListProps) {
     </div>
   );
 }
-
 export function RepoGrid(props: RepoGridProps) {
   'use no memo';
-
   // The virtualizer mutates one stable instance on scroll. Read its current
   // range on every render and pass snapshots to children so compiler memoization
   // cannot retain the old rows when scrolling back through loaded repositories.
@@ -287,7 +285,6 @@ export function RepoGrid(props: RepoGridProps) {
   const parentRef = useRef<HTMLDivElement>(null);
   const [columns, setColumns] = useState(1);
   const hasRepos = repos.length > 0;
-
   useEffect(() => {
     if (viewMode !== 'grid') {
       setColumns(1);
@@ -303,7 +300,6 @@ export function RepoGrid(props: RepoGridProps) {
     setColumns(widthToColumns(el.clientWidth));
     return () => ro.disconnect();
   }, [viewMode, isLoading, hasRepos]);
-
   const rows = useMemo(() => {
     if (viewMode === 'list') return repos.map((r) => [r]);
     const result: UserRepo[][] = [];
@@ -312,13 +308,11 @@ export function RepoGrid(props: RepoGridProps) {
     }
     return result;
   }, [repos, viewMode, columns]);
-
   const estimateSize = useCallback(() => (viewMode === 'grid' ? 224 : 100), [viewMode]);
   const getItemKey = useCallback(
     (index: number) => `${viewMode}:${columns}:${rows[index][0].id}`,
     [viewMode, columns, rows]
   );
-
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
@@ -327,13 +321,10 @@ export function RepoGrid(props: RepoGridProps) {
     overscan: 12,
   });
   const showPending = Boolean(isPending || isValidating);
-
   useInfiniteScroll(parentRef, onLoadMore, hasMore, loadingMore);
-
   if (isLoading) return <RepoGridLoading viewMode={viewMode} />;
   if (repos.length === 0)
     return <RepoGridEmpty hasActiveFilters={hasActiveFilters} onClearFilters={onClearFilters} />;
-
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       {showPending && (
