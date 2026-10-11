@@ -145,7 +145,7 @@ export async function POST(request: Request) {
       batch.map((item, index) => ({
         repoId: item.id,
         values: embeddings[index],
-        content: item.text,
+        ...(knowledgePipelineEnabled() ? { content: item.text } : {}),
       })),
       admission
     );

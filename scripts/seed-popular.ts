@@ -305,7 +305,11 @@ async function embedPending(db: Client, limit: number): Promise<number> {
           generateEmbeddings(batch.map((r) => r.text))
         );
     await vectors.upsert(
-      batch.map((item, j) => ({ repoId: item.id, values: embeddings[j], content: item.text }))
+      batch.map((item, j) => ({
+        repoId: item.id,
+        values: embeddings[j],
+        ...(knowledgePipelineEnabled() ? { content: item.text } : {}),
+      }))
     );
     const stmts: InStatement[] = batch.map((item) => ({
       sql: `INSERT INTO repo_embeddings (repo_id, text_hash)

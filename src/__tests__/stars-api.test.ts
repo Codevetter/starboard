@@ -17,6 +17,7 @@ vi.mock('@/db', () => ({
   },
 }));
 vi.mock('@/lib/knowledgebase', () => ({
+  knowledgePipelineEnabled: () => false,
   searchStarboardRagOrEmpty: mocks.searchStarboardRagOrEmpty,
 }));
 vi.mock('@/lib/analytics', () => ({

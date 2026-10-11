@@ -74,7 +74,11 @@ async function seed() {
       ? batch.map(() => [])
       : await runOnlyIfVectorizeStorageGrowthAllowed(() => generateEmbeddings(texts));
     await vectors.upsert(
-      batch.map((item, j) => ({ repoId: item.id, values: embeddings[j], content: item.text }))
+      batch.map((item, j) => ({
+        repoId: item.id,
+        values: embeddings[j],
+        ...(knowledgePipelineEnabled() ? { content: item.text } : {}),
+      }))
     );
 
     const stmts: InStatement[] = batch.map((item) => ({

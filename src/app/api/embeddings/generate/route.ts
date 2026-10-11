@@ -68,7 +68,7 @@ export async function POST() {
         toEmbed.map((item, i) => ({
           repoId: item.repoId,
           values: embeddings[i],
-          content: item.text,
+          ...(knowledgePipelineEnabled() ? { content: item.text } : {}),
         }))
       );
 
