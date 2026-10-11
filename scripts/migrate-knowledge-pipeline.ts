@@ -3,6 +3,11 @@ import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { createD1RestClientFromEnv } from '../src/db/rest-client';
 import {
+  assertKnowledgeMigrationReady,
+  catalogMembershipHash,
+  KNOWLEDGE_DERIVED_TABLES,
+} from './knowledge-migration-readiness';
+import {
   refreshKnowledgeRepository,
   findKnowledgeDocument,
   ingestKnowledgeDocuments,
@@ -18,18 +23,7 @@ const MODE = process.argv[2] || 'plan';
 const AFTER = Number(process.env.KNOWLEDGE_MIGRATION_AFTER || '0');
 const LIMIT = Math.min(250, Math.max(1, Number(process.env.KNOWLEDGE_MIGRATION_LIMIT || '50')));
 const OUTPUT = resolve(`.fleet-local/knowledge-migration/manifest-${MODE}.json`);
-const DERIVED_TABLES = [
-  'repo_ai_metadata',
-  'repo_tools',
-  'repo_tool_enrichment_state',
-  'repo_capability_cards',
-  'project_fingerprints',
-  'project_needs',
-  'need_candidate_pools',
-  'project_draft_reports',
-  'project_reviewed_reports',
-  'external_review_requests',
-] as const;
+const DERIVED_TABLES = KNOWLEDGE_DERIVED_TABLES;
 interface Entry {
   repoId: number;
   fullName: string;
@@ -237,7 +231,7 @@ async function recordMembership(
 ) {
   const membership = await database.execute({ sql: 'SELECT id FROM repos ORDER BY id', args: [] });
   const catalogIds = membership.rows.map((row) => Number(row.id));
-  const membershipHash = createHash('sha256').update(JSON.stringify(catalogIds)).digest('hex');
+  const membershipHash = catalogMembershipHash(catalogIds);
   if (
     process.env.KNOWLEDGE_MIGRATION_RESUME === 'true' &&
     manifest.catalogIdsHash &&
@@ -250,11 +244,15 @@ async function recordMembership(
 }
 
 async function main() {
-  if (!['plan', 'apply', 'reconcile'].includes(MODE))
-    throw new Error('Use plan, apply, or reconcile');
+  if (!['plan', 'apply', 'reconcile', 'finalize'].includes(MODE))
+    throw new Error('Use plan, apply, reconcile, or finalize');
   if (!Number.isSafeInteger(AFTER) || AFTER < 0 || !Number.isInteger(LIMIT))
     throw new Error('Invalid migration bounds');
   const database = createD1RestClientFromEnv();
+  if (MODE === 'finalize') {
+    await finalize(database);
+    return;
+  }
   const manifest = await loadManifest();
   manifest.derivedExpected ||= {};
   await recordMembership(database, manifest);
@@ -302,6 +300,38 @@ async function main() {
     `Catalog size=${manifest.catalogSize}; derived tables with mismatches=${derivedMissing.length}. This command never enables cutover.`
   );
   if (failed.length || (MODE !== 'plan' && derivedMissing.length)) process.exitCode = 1;
+}
+async function finalize(database: ReturnType<typeof createD1RestClientFromEnv>) {
+  const directory = resolve('.fleet-local/knowledge-migration');
+  const reconciled = JSON.parse(
+    await readFile(resolve(directory, 'manifest-reconcile.json'), 'utf8')
+  ) as Manifest;
+  const applied = JSON.parse(
+    await readFile(resolve(directory, 'manifest-apply.json'), 'utf8')
+  ) as Manifest;
+  const membership = await database.execute({ sql: 'SELECT id FROM repos ORDER BY id', args: [] });
+  const counts: Record<string, number> = {};
+  for (const table of DERIVED_TABLES) {
+    const result = await database.execute({
+      sql: `SELECT COUNT(*) AS count FROM ${table}`,
+      args: [],
+    });
+    counts[table] = Number(result.rows[0]?.count);
+  }
+  const library = await database.execute({
+    sql: 'SELECT COUNT(*) AS count FROM user_repos WHERE is_starred = 1 OR is_saved = 1',
+    args: [],
+  });
+  counts.library_documents = Number(library.rows[0]?.count);
+  assertKnowledgeMigrationReady(
+    reconciled,
+    applied,
+    membership.rows.map((row) => Number(row.id)),
+    counts
+  );
+  console.info(
+    'The complete catalog, derived snapshots and private library are reconciled. No runtime flag has been changed.'
+  );
 }
 main().catch(() => {
   console.error(

@@ -96,6 +96,7 @@ and `KNOWLEDGE_MIGRATION_LIMIT=1`; do not discard failures when advancing the cu
 KNOWLEDGE_MIGRATION_LIMIT=50 pnpm db:knowledge-migrate reconcile
 KNOWLEDGE_MIGRATION_RESUME=true pnpm db:knowledge-migrate reconcile
 KNOWLEDGE_MIGRATION_DERIVED=true pnpm db:knowledge-migrate reconcile
+pnpm db:knowledge-migrate finalize
 ```
 
 Walk the complete catalog. Require each current repository ID, exact published source
@@ -103,6 +104,9 @@ content, pinned revision/coverage, and a profile referencing the current documen
 Review partial coverage separately. Compare derived counts/content and private
 library source pointers. Resolve failed, missing, and stale entries before cutover.
 The job never sets a runtime flag or deploys an application.
+`finalize` requires the exact complete catalog ID set, matching applied/reconciled
+source IDs and hashes, and every derived/private-library count against fresh D1
+counts. A successful individual batch is insufficient for cutover.
 
 After reconciliation, deploy Starboard with the knowledge pipeline flag enabled.
 Discover, Library, Similar, project recommendations, and need-driven decisions use

@@ -633,11 +633,13 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
         data={{ recommendations, recommendationError, recommendationsLoading }}
         ui={{ showAllPeers, setShowAllPeers }}
       />
-      <ProjectModelComparison
-        key={`comparison:${selectedProject.id}:${scope}`}
-        projectId={selectedProject.id}
-        scope={scope}
-      />
+      {recommendations?.retrieval.mode === 'knowledgebase' && (
+        <ProjectModelComparison
+          key={`comparison:${selectedProject.id}:${scope}`}
+          projectId={selectedProject.id}
+          scope={scope}
+        />
+      )}
       {disconnectError && (
         <p
           className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
