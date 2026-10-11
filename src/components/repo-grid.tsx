@@ -30,6 +30,7 @@ interface RepoGridProps {
   selectedRepoIds?: Set<number>;
   onToggleSelect?: (repoId: number, selected: boolean) => void;
   selectionActive?: boolean;
+  resetKey?: string;
 }
 
 const WIDTH_BREAKPOINTS = [
@@ -306,6 +307,7 @@ export function RepoGrid(props: RepoGridProps) {
     selectedRepoIds,
     onToggleSelect,
     selectionActive = false,
+    resetKey,
   } = props;
   const parentRef = useRef<HTMLDivElement>(null);
   const columns = useRepoGridColumns(parentRef, viewMode, isLoading, repos.length > 0);
@@ -333,7 +335,7 @@ export function RepoGrid(props: RepoGridProps) {
   useEffect(() => {
     // A new sort, filter or layout must not retain a deep offset from the old results.
     parentRef.current?.scrollTo({ top: 0 });
-  }, [firstRepoId, viewMode, columns]);
+  }, [firstRepoId, viewMode, columns, resetKey]);
   const showPending = Boolean(isPending || isValidating);
   useInfiniteScroll(parentRef, onLoadMore, hasMore, loadingMore);
   return (

@@ -182,7 +182,7 @@ export default async function CatalogUpdatesPage() {
   return (
     <AppShell>
       <TopBar title="Catalog updates" description="Recently added repositories in Discover." />
-      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-none p-4 md:p-6">
         <div className="mx-auto max-w-3xl space-y-6">
           <div>
             <div className="flex flex-wrap items-start justify-between gap-4">

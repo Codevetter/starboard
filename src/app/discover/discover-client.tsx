@@ -231,6 +231,7 @@ function useDiscoverFilters(
 }
 
 interface DiscoverMainContentProps {
+  resetKey: string;
   discoverError: unknown;
   reposLoading: boolean;
   isValidating: boolean;
@@ -284,6 +285,7 @@ function DiscoverMainContent(props: DiscoverMainContentProps) {
         </div>
       )}
       <RepoGrid
+        resetKey={props.resetKey}
         repos={repos}
         viewMode={viewMode}
         isLoading={reposLoading}
@@ -303,6 +305,7 @@ function DiscoverMainContent(props: DiscoverMainContentProps) {
 }
 
 interface DiscoverDataAndHandlers {
+  requestKey: string;
   repos: UserRepo[];
   total: number;
   facets: Facets & { tools: { key: string; name: string; count: number }[] };
@@ -454,6 +457,7 @@ function useDiscoverData(
 
   return {
     repos,
+    requestKey,
     total,
     facets,
     discoverError,
@@ -580,6 +584,7 @@ function DiscoverContent(props: DiscoverContentProps) {
         </Sheet>
 
         <DiscoverMainContent
+          resetKey={data.requestKey}
           discoverError={discoverError}
           reposLoading={reposLoading}
           isValidating={isValidating}

@@ -212,8 +212,8 @@ function ConnectProjectForm({
         </Button>
       </div>
       <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
-        <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-xl">
-          <DialogHeader className="border-b p-4 pr-12">
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+          <DialogHeader className="shrink-0 border-b p-4 pr-12">
             <DialogTitle>Choose a GitHub project</DialogTitle>
             <DialogDescription>
               Select a public repository, then connect it to see recommendations.
@@ -228,7 +228,7 @@ function ConnectProjectForm({
             </p>
           )}
           {pickerRepositories && !pickerError && (
-            <div className="space-y-2 border-b p-4">
+            <div className="shrink-0 space-y-2 border-b p-4">
               <Input
                 value={pickerQuery}
                 onChange={(event) => {
@@ -266,7 +266,7 @@ function ConnectProjectForm({
           <div
             id="github-project-results"
             role="listbox"
-            className="max-h-[min(50svh,360px)] min-h-32 overflow-y-auto p-2"
+            className="max-h-[min(50dvh,360px)] min-h-0 flex-1 overflow-y-auto overscroll-contain p-2"
             aria-label="Public GitHub repositories"
             onKeyDown={(event) => {
               if (event.key === 'ArrowDown') {
@@ -315,7 +315,7 @@ function ConnectProjectForm({
               </button>
             ))}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-2 border-t p-4">
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t p-4">
             <p className="text-xs text-muted-foreground">
               Missing a repository?{' '}
               {orgAccessUrl ? (
