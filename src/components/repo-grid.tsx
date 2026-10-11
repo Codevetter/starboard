@@ -30,6 +30,7 @@ interface RepoGridProps {
   selectedRepoIds?: Set<number>;
   onToggleSelect?: (repoId: number, selected: boolean) => void;
   selectionActive?: boolean;
+  resetKey?: string;
 }
 
 const WIDTH_BREAKPOINTS = [
@@ -133,6 +134,7 @@ interface RepoGridVirtualRowProps {
   onToggleSave: ((repoId: number, saved: boolean) => void) | undefined;
   selectedRepoIds: Set<number> | undefined;
   onToggleSelect: ((repoId: number, selected: boolean) => void) | undefined;
+  measureElement: (element: Element | null) => void;
 }
 
 function RepoGridVirtualRow(props: RepoGridVirtualRowProps) {
@@ -146,17 +148,19 @@ function RepoGridVirtualRow(props: RepoGridVirtualRowProps) {
     onToggleSave,
     selectedRepoIds,
     onToggleSelect,
+    measureElement,
   } = props;
   const rowRepos = rows[virtualRow.index];
   return (
     <div
       key={virtualRow.key}
+      ref={measureElement}
+      data-index={virtualRow.index}
       style={{
         position: 'absolute',
         top: 0,
         left: 0,
         width: '100%',
-        height: `${virtualRow.size}px`,
         transform: `translateY(${virtualRow.start}px)`,
         ...(viewMode === 'grid'
           ? { gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }
@@ -203,7 +207,8 @@ function useInfiniteScroll(
 }
 
 interface RepoGridVirtualListProps {
-  virtualizer: ReturnType<typeof useVirtualizer>;
+  virtualRows: RepoGridVirtualRowProps['virtualRow'][];
+  totalSize: number;
   rows: UserRepo[][];
   viewMode: ViewMode;
   columns: number;
@@ -212,11 +217,13 @@ interface RepoGridVirtualListProps {
   onToggleSave: ((repoId: number, saved: boolean) => void) | undefined;
   selectedRepoIds: Set<number> | undefined;
   onToggleSelect: ((repoId: number, selected: boolean) => void) | undefined;
+  measureElement: (element: Element | null) => void;
 }
 
 function RepoGridVirtualList(props: RepoGridVirtualListProps) {
   const {
-    virtualizer,
+    virtualRows,
+    totalSize,
     rows,
     viewMode,
     columns,
@@ -225,16 +232,17 @@ function RepoGridVirtualList(props: RepoGridVirtualListProps) {
     onToggleSave,
     selectedRepoIds,
     onToggleSelect,
+    measureElement,
   } = props;
   return (
     <div
       style={{
-        height: `${virtualizer.getTotalSize()}px`,
+        height: `${totalSize}px`,
         width: '100%',
         position: 'relative',
       }}
     >
-      {virtualizer.getVirtualItems().map((virtualRow) => (
+      {virtualRows.map((virtualRow) => (
         <RepoGridVirtualRow
           key={virtualRow.key}
           virtualRow={virtualRow}
@@ -246,13 +254,42 @@ function RepoGridVirtualList(props: RepoGridVirtualListProps) {
           onToggleSave={onToggleSave}
           selectedRepoIds={selectedRepoIds}
           onToggleSelect={onToggleSelect}
+          measureElement={measureElement}
         />
       ))}
     </div>
   );
 }
+function useRepoGridColumns(
+  parentRef: React.RefObject<HTMLDivElement | null>,
+  viewMode: ViewMode,
+  isLoading: boolean,
+  hasRepos: boolean
+) {
+  const [columns, setColumns] = useState(1);
+  useEffect(() => {
+    if (viewMode !== 'grid') {
+      setColumns(1);
+      return;
+    }
+    const el = parentRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      setColumns(widthToColumns(width));
+    });
+    ro.observe(el);
+    setColumns(widthToColumns(el.clientWidth));
+    return () => ro.disconnect();
+  }, [viewMode, isLoading, hasRepos]);
+  return columns;
+}
 
 export function RepoGrid(props: RepoGridProps) {
+  'use no memo';
+  // The virtualizer mutates one stable instance on scroll. Read its current
+  // range on every render and pass snapshots to children so compiler memoization
+  // cannot retain the old rows when scrolling back through loaded repositories.
   const {
     repos,
     viewMode,
@@ -270,26 +307,10 @@ export function RepoGrid(props: RepoGridProps) {
     selectedRepoIds,
     onToggleSelect,
     selectionActive = false,
+    resetKey,
   } = props;
   const parentRef = useRef<HTMLDivElement>(null);
-  const [columns, setColumns] = useState(1);
-
-  useEffect(() => {
-    if (viewMode !== 'grid') {
-      setColumns(1);
-      return;
-    }
-    const el = parentRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver((entries) => {
-      const width = entries[0]?.contentRect.width ?? 0;
-      setColumns(widthToColumns(width));
-    });
-    ro.observe(el);
-    setColumns(widthToColumns(el.clientWidth));
-    return () => ro.disconnect();
-  }, [viewMode]);
-
+  const columns = useRepoGridColumns(parentRef, viewMode, isLoading, repos.length > 0);
   const rows = useMemo(() => {
     if (viewMode === 'list') return repos.map((r) => [r]);
     const result: UserRepo[][] = [];
@@ -298,25 +319,27 @@ export function RepoGrid(props: RepoGridProps) {
     }
     return result;
   }, [repos, viewMode, columns]);
-
   const estimateSize = useCallback(() => (viewMode === 'grid' ? 224 : 100), [viewMode]);
-
+  const getItemKey = useCallback(
+    (index: number) => `${viewMode}:${columns}:${rows[index][0].id}`,
+    [viewMode, columns, rows]
+  );
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize,
-    overscan: 5,
+    getItemKey,
+    overscan: 12,
   });
+  const firstRepoId = repos[0]?.id;
+  useEffect(() => {
+    // A new sort, filter or layout must not retain a deep offset from the old results.
+    parentRef.current?.scrollTo({ top: 0 });
+  }, [firstRepoId, viewMode, columns, resetKey]);
   const showPending = Boolean(isPending || isValidating);
-
   useInfiniteScroll(parentRef, onLoadMore, hasMore, loadingMore);
-
-  if (isLoading) return <RepoGridLoading viewMode={viewMode} />;
-  if (repos.length === 0)
-    return <RepoGridEmpty hasActiveFilters={hasActiveFilters} onClearFilters={onClearFilters} />;
-
   return (
-    <div className="relative">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       {showPending && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-0.5 overflow-hidden bg-primary/10">
           <div className="h-full w-full animate-pulse bg-primary" />
@@ -324,19 +347,30 @@ export function RepoGrid(props: RepoGridProps) {
       )}
       <div
         ref={parentRef}
-        className={`h-[calc(100svh-65px)] overflow-auto transition-opacity duration-100${showPending ? ' opacity-75' : ''}${selectionActive ? ' pb-24' : ''}`}
+        role="region"
+        aria-label="Repository results"
+        aria-busy={isLoading || showPending}
+        className={`min-h-0 flex-1 overflow-auto overscroll-none [overflow-anchor:none] transition-opacity duration-100${showPending ? ' opacity-75' : ''}${selectionActive ? ' pb-24' : ''}`}
       >
-        <RepoGridVirtualList
-          virtualizer={virtualizer}
-          rows={rows}
-          viewMode={viewMode}
-          columns={columns}
-          lists={lists}
-          onAssignList={onAssignList}
-          onToggleSave={onToggleSave}
-          selectedRepoIds={selectedRepoIds}
-          onToggleSelect={onToggleSelect}
-        />
+        {isLoading ? (
+          <RepoGridLoading viewMode={viewMode} />
+        ) : repos.length === 0 ? (
+          <RepoGridEmpty hasActiveFilters={hasActiveFilters} onClearFilters={onClearFilters} />
+        ) : (
+          <RepoGridVirtualList
+            virtualRows={virtualizer.getVirtualItems()}
+            totalSize={virtualizer.getTotalSize()}
+            rows={rows}
+            viewMode={viewMode}
+            columns={columns}
+            lists={lists}
+            onAssignList={onAssignList}
+            onToggleSave={onToggleSave}
+            selectedRepoIds={selectedRepoIds}
+            onToggleSelect={onToggleSelect}
+            measureElement={virtualizer.measureElement}
+          />
+        )}
         {loadingMore && (
           <div className="flex items-center justify-center py-4">
             <Loader2 className="size-5 animate-spin text-muted-foreground" />

@@ -76,6 +76,18 @@ describe('GET /api/stars', () => {
     expect(mocks.searchStarboardRagOrEmpty).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['starred', 'ur.starred_at ASC'],
+    ['stars', 'r.stargazers_count ASC'],
+    ['name', 'r.name DESC'],
+  ])('reverses %s without reversing just the loaded page', async (sort, expectedOrder) => {
+    await GET(new NextRequest(`http://localhost/api/stars?sort=${sort}&reverse=true&offset=50`));
+    const mainQuery = queryArg(mocks.execute.mock.calls[0]?.[0]);
+    expect(mainQuery.sql).toContain(expectedOrder);
+    expect(mainQuery.sql).toContain('r.id DESC');
+    expect(mainQuery.args).toContain(50);
+  });
+
   it('treats a signed-in session without githubId as unauthorized', async () => {
     mocks.auth.mockResolvedValueOnce({ user: {} });
 

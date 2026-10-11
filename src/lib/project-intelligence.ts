@@ -6,7 +6,11 @@ import {
   type ProjectRecommendationRepo,
   type ProjectRecommendationResult,
   rankProjectRecommendations,
+  isProjectCandidate,
+  projectPurposeTerms,
+  recommendToolsFromPeers,
 } from '@/lib/project-recommendations';
+import { reviewProjectQuality, type ProjectQualityReview } from '@/lib/project-quality-review';
 import { repoVectors, type RepoVectorMatch } from '@/lib/repo-vectors';
 import { ftsSearchQuery, rrfFuse } from '@/lib/search';
 
@@ -38,6 +42,10 @@ interface ProjectRetrievalSummary {
 
 export interface ProjectIntelligenceResult extends ProjectRecommendationResult {
   retrieval: ProjectRetrievalSummary;
+  quality?: {
+    status: 'reviewed' | 'unavailable' | 'evidence-only';
+    reason?: ProjectQualityReview['reason'];
+  };
 }
 
 interface VectorStore {
@@ -49,16 +57,21 @@ export interface ProjectIntelligenceDependencies {
   database: Pick<DbClient, 'execute'>;
   vectorStore: () => VectorStore;
   embed: (texts: string[]) => Promise<number[][]>;
+  reviewCandidates?: (
+    project: ProjectRecommendationRepo,
+    candidates: ProjectRecommendationRepo[]
+  ) => Promise<ProjectQualityReview>;
 }
 
 const defaultDependencies: ProjectIntelligenceDependencies = {
   database: db,
   vectorStore: repoVectors,
   embed: generateEmbeddings,
+  reviewCandidates: reviewProjectQuality,
 };
 
 function projectText(project: ProjectRecommendationRepo): string {
-  return buildRepoEmbeddingText({
+  const metadata = buildRepoEmbeddingText({
     full_name: project.fullName,
     description: project.description,
     language: project.language,
@@ -69,6 +82,8 @@ function projectText(project: ProjectRecommendationRepo): string {
       keywords: project.aiKeywords,
     },
   });
+  const documents = project.sourceContext?.documents?.map((document) => document.text).join(' | ');
+  return [documents || project.sourceContext?.readme, metadata].filter(Boolean).join(' | ');
 }
 
 async function semanticCandidates(
@@ -78,7 +93,12 @@ async function semanticCandidates(
 ): Promise<RepoVectorMatch[]> {
   try {
     const store = dependencies.vectorStore();
-    let matches = await store.queryByRepoId(project.id, VECTOR_TOP_K);
+    // Stored vectors predate request-time README context. Embed the current
+    // purpose rather than silently reusing the metadata-only vector.
+    let matches =
+      project.sourceContext?.readme || project.sourceContext?.documents?.length
+        ? []
+        : await store.queryByRepoId(project.id, VECTOR_TOP_K);
     if (matches.length === 0) {
       const [embedding] = await dependencies.embed([text]);
       if (!embedding) return [];
@@ -98,7 +118,8 @@ async function lexicalCandidates(
   text: string,
   dependencies: ProjectIntelligenceDependencies
 ): Promise<number[]> {
-  const query = ftsSearchQuery(text);
+  const purpose = projectPurposeTerms(project).slice(0, 24).join(' ');
+  const query = ftsSearchQuery(purpose || text);
   if (!query) return [];
   const result = await dependencies.database.execute({
     sql: `SELECT r.id, MIN(matches.rank) AS best_rank
@@ -114,11 +135,11 @@ async function lexicalCandidates(
             WHERE repo_ai_metadata_fts MATCH ?
           ) matches
           JOIN repos r ON r.id = matches.id
-          WHERE r.id != ? AND ${ELIGIBLE_REPO_SQL}
+          WHERE r.id != ? AND r.archived = 0
           GROUP BY r.id
           ORDER BY best_rank ASC, r.stargazers_count DESC
           LIMIT ?`,
-    args: [query, query, project.id, MIN_STARS_FLOOR, LEXICAL_LIMIT],
+    args: [query, query, project.id, LEXICAL_LIMIT],
   });
   return result.rows.map((row) => Number(row.id)).filter(Number.isSafeInteger);
 }
@@ -175,9 +196,8 @@ async function hydrateCandidates(
           LEFT JOIN repo_ai_metadata aim ON aim.repo_id = r.id
           WHERE r.id != ?
             AND r.archived = 0
-            AND ${ELIGIBLE_REPO_SQL}
             AND r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
-    args: [projectId, MIN_STARS_FLOOR, JSON.stringify(ids)],
+    args: [projectId, JSON.stringify(ids)],
   });
   const byId = new Map(
     result.rows.map((row) => {
@@ -245,6 +265,67 @@ function retrievalMode(
   return 'structured';
 }
 
+async function reviewRanked(
+  project: ProjectRecommendationRepo,
+  candidates: ProjectRecommendationRepo[],
+  candidateIds: number[],
+  limit: number,
+  reviewCandidates: ProjectIntelligenceDependencies['reviewCandidates']
+) {
+  const ranked = rankProjectRecommendations(project, candidates, limit);
+  let quality: NonNullable<ProjectIntelligenceResult['quality']> = { status: 'evidence-only' };
+  if (reviewCandidates) {
+    const shortlistIds = new Set<number>();
+    const rankedIds = rankProjectRecommendations(project, candidates, 24).similarProjects.map(
+      (repo) => repo.id
+    );
+    for (const id of [...rankedIds, ...candidateIds.slice(0, 24)]) {
+      if (shortlistIds.size >= 40) break;
+      shortlistIds.add(id);
+    }
+    const byId = new Map(
+      candidates.filter((repo) => isProjectCandidate(project, repo)).map((repo) => [repo.id, repo])
+    );
+    const shortlist = [...shortlistIds].flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    let review: ProjectQualityReview;
+    try {
+      review = await reviewCandidates(project, shortlist);
+    } catch {
+      review = { status: 'unavailable', matches: [] };
+    }
+    quality = { status: review.status, ...(review.reason ? { reason: review.reason } : {}) };
+    // An unavailable reviewer must not turn weak lexical overlap into a
+    // confident product recommendation. The response exposes the outage.
+    ranked.similarProjects =
+      review.status === 'reviewed'
+        ? review.matches.slice(0, Math.max(1, Math.min(limit, 50))).flatMap((match, index) => {
+            const candidate = byId.get(match.repoId);
+            return candidate
+              ? [
+                  {
+                    ...candidate,
+                    score: review.matches.length - index,
+                    role: match.role,
+                    evidence: [
+                      `Project: “${match.projectEvidence}”`,
+                      `Candidate: “${match.candidateEvidence}”`,
+                    ],
+                  },
+                ]
+              : [];
+          })
+        : [];
+    ranked.fallback = ranked.similarProjects.length === 0;
+    ranked.recommendedTools = recommendToolsFromPeers(
+      project,
+      ranked.similarProjects.filter((repo) => repo.role === 'integration'),
+      ranked.fallback
+    );
+  }
+
+  return { ranked, quality };
+}
+
 export function createProjectIntelligence(
   dependencies: ProjectIntelligenceDependencies = defaultDependencies
 ) {
@@ -278,10 +359,17 @@ export function createProjectIntelligence(
     const candidates = usingFallback
       ? await fallbackCandidates(project.id, dependencies)
       : await hydrateCandidates(candidateIds, project.id, dependencies, similarityById);
-    const ranked = rankProjectRecommendations(project, candidates, limit);
+    const { ranked, quality } = await reviewRanked(
+      project,
+      candidates,
+      candidateIds,
+      limit,
+      dependencies.reviewCandidates
+    );
 
     return {
       ...ranked,
+      quality,
       retrieval: {
         mode: retrievalMode(
           semanticIds.length,

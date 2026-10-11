@@ -5,10 +5,12 @@ const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
   execute: vi.fn(),
   retrieveProjectIntelligence: vi.fn(),
+  enrichProjectContext: vi.fn(async (project) => project),
 }));
 
 vi.mock('@/lib/auth', () => ({ auth: mocks.auth }));
 vi.mock('@/db', () => ({ db: { execute: mocks.execute } }));
+vi.mock('@/lib/project-context', () => ({ enrichProjectContext: mocks.enrichProjectContext }));
 vi.mock('@/lib/project-intelligence', () => ({
   retrieveProjectIntelligence: mocks.retrieveProjectIntelligence,
 }));

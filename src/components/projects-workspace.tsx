@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -19,10 +19,17 @@ import {
   GroundedToolRecommendationCard,
   ProjectRecommendationCard,
 } from '@/components/project-recommendation-cards';
-import { TopBar } from '@/components/top-bar';
+import { WorkspaceLayout } from '@/components/workspace-layout';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import {
   trackRecommendationSetViewed,
   type ProjectConnectionSource,
@@ -204,16 +211,14 @@ function ConnectProjectForm({
           Choose from GitHub
         </Button>
       </div>
-      {pickerOpen && (
-        <div
-          className="max-h-64 overflow-y-auto rounded-lg border bg-card p-1"
-          onKeyDown={(event) => {
-            if (event.key === 'Escape') {
-              event.preventDefault();
-              closePicker();
-            }
-          }}
-        >
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="flex max-h-[calc(100dvh-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-xl">
+          <DialogHeader className="shrink-0 border-b p-4 pr-12">
+            <DialogTitle>Choose a GitHub project</DialogTitle>
+            <DialogDescription>
+              Select a public repository, then connect it to see recommendations.
+            </DialogDescription>
+          </DialogHeader>
           {pickerBusy && (
             <p className="p-3 text-sm text-muted-foreground">Loading public repositories…</p>
           )}
@@ -223,7 +228,7 @@ function ConnectProjectForm({
             </p>
           )}
           {pickerRepositories && !pickerError && (
-            <div className="sticky top-0 z-10 space-y-1 bg-card p-2">
+            <div className="shrink-0 space-y-2 border-b p-4">
               <Input
                 value={pickerQuery}
                 onChange={(event) => {
@@ -241,8 +246,7 @@ function ConnectProjectForm({
                 aria-controls="github-project-results"
               />
               <p className="px-1 text-xs text-muted-foreground" aria-live="polite">
-                {filteredRepositories.length}{' '}
-                {filteredRepositories.length === 1 ? 'repository' : 'repositories'}
+                {filteredRepositories.length} of {pickerRepositories.length} public repositories
               </p>
             </div>
           )}
@@ -262,6 +266,7 @@ function ConnectProjectForm({
           <div
             id="github-project-results"
             role="listbox"
+            className="max-h-[min(50dvh,360px)] min-h-0 flex-1 overflow-y-auto overscroll-contain p-2"
             aria-label="Public GitHub repositories"
             onKeyDown={(event) => {
               if (event.key === 'ArrowDown') {
@@ -270,6 +275,11 @@ function ConnectProjectForm({
               } else if (event.key === 'ArrowUp') {
                 event.preventDefault();
                 movePickerFocus(-1);
+              } else if (event.key === 'Home' || event.key === 'End') {
+                event.preventDefault();
+                const index = event.key === 'Home' ? 0 : filteredRepositories.length - 1;
+                setActivePickerIndex(index);
+                pickerOptionRefs.current[index]?.focus();
               }
             }}
           >
@@ -282,6 +292,7 @@ function ConnectProjectForm({
                 type="button"
                 role="option"
                 aria-selected={repository === project.fullName}
+                title={project.fullName}
                 tabIndex={index === activePickerIndex ? 0 : -1}
                 className="flex w-full items-start justify-between gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onFocus={() => setActivePickerIndex(index)}
@@ -291,9 +302,10 @@ function ConnectProjectForm({
                   closePicker();
                 }}
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{project.fullName}</span>
-                  <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs text-muted-foreground">{project.ownerLogin}</span>
+                  <span className="block break-words font-medium">{project.name}</span>
+                  <span className="mt-1 line-clamp-2 block text-xs text-muted-foreground">
                     {project.description ?? 'No description'}
                   </span>
                 </span>
@@ -303,9 +315,9 @@ function ConnectProjectForm({
               </button>
             ))}
           </div>
-          <div className="sticky bottom-0 border-t bg-card p-2">
-            <p className="px-1 pb-1.5 text-xs text-muted-foreground">
-              Missing an organization?{' '}
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t p-4">
+            <p className="text-xs text-muted-foreground">
+              Missing a repository?{' '}
               {orgAccessUrl ? (
                 <a
                   href={orgAccessUrl}
@@ -318,24 +330,23 @@ function ConnectProjectForm({
               ) : (
                 'Grant access in your GitHub app settings'
               )}
-              , then refresh this list.
             </p>
             <Button
               type="button"
               variant="ghost"
               size="sm"
-              className="h-8 w-full justify-start px-1 text-xs"
+              className="h-8 px-2 text-xs"
               disabled={pickerBusy}
               onClick={() => void loadPickerRepositories()}
             >
               <RefreshCw className={`size-3.5 ${pickerBusy ? 'animate-spin' : ''}`} />
-              Refresh repository list
+              Refresh list
             </Button>
           </div>
-        </div>
-      )}
+        </DialogContent>
+      </Dialog>
       <p className="text-xs text-muted-foreground">
-        Free. Public repositories only, with the current minimal GitHub permission.
+        Public repositories only. You can also paste a GitHub URL.
       </p>
       {error && (
         <p className="text-sm text-destructive" role="alert">
@@ -357,41 +368,21 @@ interface RecommendationsUI {
   setShowAllPeers: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-function RecommendationsSection({
-  data,
-  ui,
-}: {
-  data: RecommendationsData;
-  ui: RecommendationsUI;
-}) {
-  const { recommendations, recommendationError, recommendationsLoading } = data;
-  const { showAllPeers, setShowAllPeers } = ui;
+function RecommendationStatus({
+  recommendations,
+  recommendationError,
+  recommendationsLoading,
+}: RecommendationsData) {
   return (
-    <section>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="text-base font-semibold">Similar projects</h3>
-            {recommendations && (
-              <Badge variant="outline">{retrievalLabel(recommendations.retrieval.mode)}</Badge>
-            )}
-          </div>
-          <p className="mt-1 text-sm text-muted-foreground">
-            The grounding set for recommendations, retrieved from the public catalog and reranked by
-            visible evidence.
-          </p>
-        </div>
-        <Button asChild variant="outline" size="sm">
-          <Link href="/discover" prefetch={false}>
-            Browse all
-          </Link>
-        </Button>
-      </div>
-
+    <>
+      {' '}
       {recommendations?.fallback && (
         <p className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-          This project has limited context, so these are broad catalog picks. No tool is presented
-          as a grounded recommendation in this state.
+          {recommendations.quality?.status === 'unavailable'
+            ? recommendations.quality.reason === 'insufficient-context'
+              ? 'There is not enough project context to review matches. Add a README describing the product, or choose a folder with its own README.'
+              : 'Relevance review is temporarily unavailable. Try again shortly; unreviewed matches are withheld.'
+            : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
         </p>
       )}
       {recommendationError && (
@@ -412,6 +403,48 @@ function RecommendationsSection({
           No eligible catalog matches yet. Browse Discover while the public corpus grows.
         </div>
       )}
+    </>
+  );
+}
+
+function RecommendationsSection({
+  data,
+  ui,
+}: {
+  data: RecommendationsData;
+  ui: RecommendationsUI;
+}) {
+  const { recommendations } = data;
+  const { showAllPeers, setShowAllPeers } = ui;
+  return (
+    <section>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold">Similar projects</h3>
+            {recommendations && (
+              <Badge variant="outline">
+                {recommendations.quality?.status === 'reviewed'
+                  ? recommendations.similarProjects.length
+                    ? 'Reviewed matches'
+                    : 'No relevant matches'
+                  : retrievalLabel(recommendations.retrieval.mode)}
+              </Badge>
+            )}
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            The grounding set for recommendations, retrieved from the public catalog and reranked by
+            visible evidence.
+          </p>
+        </div>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/discover" prefetch={false}>
+            Browse all
+          </Link>
+        </Button>
+      </div>
+
+      <RecommendationStatus {...data} />
       {recommendations && recommendations.similarProjects.length > 0 && (
         <div className="mt-4 grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
           {(showAllPeers
@@ -454,6 +487,118 @@ interface ProjectDetailPanelProps {
   disconnecting: boolean;
   disconnectError: string | null;
   onDisconnect: (project: ConnectedProject) => void;
+  scope: string;
+  onScopeChange: (scope: string) => void;
+}
+
+function ProjectFolderForm({
+  scope,
+  onScopeChange,
+  loading,
+}: {
+  scope: string;
+  onScopeChange: (scope: string) => void;
+  loading: boolean;
+}) {
+  const [folder, setFolder] = useState(scope);
+  return (
+    <form
+      className="max-w-xl space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onScopeChange(folder.trim());
+      }}
+    >
+      <label htmlFor="project-folder" className="text-sm font-medium">
+        Focus on a folder
+      </label>
+      <div className="flex gap-2">
+        <Input
+          id="project-folder"
+          value={folder}
+          onChange={(event) => setFolder(event.target.value)}
+          placeholder="Optional, e.g. apps/memory-map"
+          maxLength={180}
+          autoCapitalize="none"
+          spellCheck={false}
+        />
+        <Button type="submit" variant="outline" disabled={loading}>
+          {scope === folder.trim() ? 'Refresh' : 'Apply'}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Use a subapp’s README and dependencies. Leave blank for the whole repository.
+      </p>
+    </form>
+  );
+}
+
+function ProjectDetailHeader({
+  selectedProject,
+  recommendations,
+  disconnectId,
+  disconnecting,
+  onDisconnect,
+}: Pick<
+  ProjectDetailPanelProps,
+  'selectedProject' | 'recommendations' | 'disconnectId' | 'disconnecting' | 'onDisconnect'
+>) {
+  const inspectedProject = recommendations?.project ?? selectedProject;
+  return (
+    <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-start lg:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="break-words text-xl font-semibold">{selectedProject.fullName}</h2>
+          {inspectedProject.language && (
+            <Badge variant="secondary">{inspectedProject.language}</Badge>
+          )}
+        </div>
+        <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
+          {inspectedProject.description ?? 'No repository description is available.'}
+        </p>
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {inspectedProject.topics.slice(0, 6).map((topic) => (
+            <Badge key={topic} variant="outline">
+              {topic}
+            </Badge>
+          ))}
+          {(recommendations?.context.tools ?? selectedProject.tools).slice(0, 8).map((tool) => (
+            <Badge key={tool.key} variant="outline">
+              {tool.name}
+            </Badge>
+          ))}
+        </div>
+        {recommendations?.context.sourceContext && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            {recommendations.context.sourceContext.status === 'unavailable'
+              ? 'Project files could not be checked. Matches use catalog metadata; tool suggestions are withheld.'
+              : `Checked ${recommendations.context.sourceContext.files.length} public product documents and manifest files${recommendations.context.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`}
+          </p>
+        )}
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <Button asChild variant="outline" size="sm">
+          <Link href={selectedProject.htmlUrl} target="_blank" rel="noreferrer">
+            GitHub
+            <ArrowUpRight className="size-4" />
+          </Link>
+        </Button>
+        <Button
+          variant={disconnectId === selectedProject.id ? 'destructive' : 'outline'}
+          size="sm"
+          disabled={disconnecting}
+          onClick={() => onDisconnect(selectedProject)}
+        >
+          {disconnecting ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <Trash2 className="size-4" />
+          )}
+          {disconnectId === selectedProject.id ? 'Confirm' : 'Disconnect'}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 function ProjectDetailPanel(props: ProjectDetailPanelProps) {
@@ -468,55 +613,18 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
     disconnecting,
     disconnectError,
     onDisconnect,
+    scope,
+    onScopeChange,
   } = props;
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-start lg:justify-between">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <h2 className="break-words text-xl font-semibold">{selectedProject.fullName}</h2>
-            {selectedProject.language && (
-              <Badge variant="secondary">{selectedProject.language}</Badge>
-            )}
-          </div>
-          <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            {selectedProject.description ?? 'No repository description is available.'}
-          </p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {selectedProject.topics.slice(0, 6).map((topic) => (
-              <Badge key={topic} variant="outline">
-                {topic}
-              </Badge>
-            ))}
-            {selectedProject.tools.slice(0, 5).map((tool) => (
-              <Badge key={tool.key} variant="outline">
-                {tool.name}
-              </Badge>
-            ))}
-          </div>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={selectedProject.htmlUrl} target="_blank" rel="noreferrer">
-              GitHub
-              <ArrowUpRight className="size-4" />
-            </Link>
-          </Button>
-          <Button
-            variant={disconnectId === selectedProject.id ? 'destructive' : 'outline'}
-            size="sm"
-            disabled={disconnecting}
-            onClick={() => onDisconnect(selectedProject)}
-          >
-            {disconnecting ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Trash2 className="size-4" />
-            )}
-            {disconnectId === selectedProject.id ? 'Confirm' : 'Disconnect'}
-          </Button>
-        </div>
-      </div>
+      <ProjectDetailHeader {...props} />
+      <ProjectFolderForm
+        key={`${selectedProject.id}:${scope}`}
+        scope={scope}
+        onScopeChange={onScopeChange}
+        loading={recommendationsLoading}
+      />
       <RecommendationsSection
         data={{ recommendations, recommendationError, recommendationsLoading }}
         ui={{ showAllPeers, setShowAllPeers }}
@@ -534,8 +642,8 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
           <div>
             <h3 className="text-base font-semibold">Tools to evaluate</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Free recommendations derived only from detected tools in the grounded peers above,
-              with support and source confidence visible.
+              Tools used by related projects with a compatible runtime, excluding tools already
+              detected here. These are candidates to evaluate, not verified missing capabilities.
             </p>
           </div>
           {recommendations.recommendedTools.length === 0 ? (
@@ -581,7 +689,7 @@ function ProjectsSidebar({
   const { projects, error, initialRepository } = data;
   const { selectedProject, onConnected } = selection;
   return (
-    <aside className="space-y-5">
+    <div className="space-y-5">
       <section>
         <h2 className="mb-2 text-sm font-medium">Connect a GitHub project</h2>
         <ConnectProjectForm initialRepository={initialRepository} onConnected={onConnected} />
@@ -629,7 +737,7 @@ function ProjectsSidebar({
           </nav>
         )}
       </section>
-    </aside>
+    </div>
   );
 }
 
@@ -695,9 +803,26 @@ async function executeDisconnect(
   }
 }
 
+function createScopeHandler(
+  scope: string,
+  project: ConnectedProject | undefined,
+  router: ReturnType<typeof useRouter>,
+  mutate: () => unknown
+) {
+  return (path: string) => {
+    if (path === scope) {
+      void mutate();
+      return;
+    }
+    if (project)
+      router.replace(`/projects/${project.id}${path ? `?path=${encodeURIComponent(path)}` : ''}`);
+  };
+}
+
 function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepository: string) {
   const { status } = useSession();
   const router = useRouter();
+  const scope = useSearchParams().get('path') ?? '';
   const trackedSet = useRef<string | null>(null);
   const { data, error, isLoading, mutate } = useSWR<ProjectsResponse>(
     status === 'authenticated' ? '/api/projects' : null,
@@ -717,12 +842,13 @@ function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepo
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [showAllPeers, setShowAllPeers] = useState(false);
   const recommendationUrl = selectedProject
-    ? `/api/projects/${selectedProject.id}/recommendations?limit=24`
+    ? `/api/projects/${selectedProject.id}/recommendations?limit=24${scope ? `&path=${encodeURIComponent(scope)}` : ''}`
     : null;
   const {
     data: recommendations,
     error: recommendationError,
     isLoading: recommendationsLoading,
+    mutate: mutateRecommendations,
   } = useSWR<RecommendationsResponse>(recommendationUrl, jsonFetcher, {
     revalidateOnFocus: false,
   });
@@ -767,7 +893,7 @@ function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepo
       setDisconnecting,
       setDisconnectError,
     },
-    { projects, mutate, router }
+    { projects, mutate, router, scope }
   );
 
   return {
@@ -787,6 +913,8 @@ function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepo
     recommendationsLoading,
     disconnect,
     connected,
+    scope,
+    applyScope: createScopeHandler(scope, selectedProject, router, mutateRecommendations),
   };
 }
 
@@ -796,6 +924,7 @@ function useProjectCallbacks(
     projects: ConnectedProject[];
     mutate: ReturnType<typeof useSWR<ProjectsResponse>>['mutate'];
     router: ReturnType<typeof useRouter>;
+    scope: string;
   }
 ) {
   const disconnect = (project: ConnectedProject) => executeDisconnect(project, state, ctx);
@@ -804,7 +933,9 @@ function useProjectCallbacks(
       { projects: [project, ...ctx.projects.filter((i) => i.id !== project.id)] },
       { revalidate: false }
     );
-    ctx.router.push(`/projects/${project.id}`);
+    ctx.router.push(
+      `/projects/${project.id}${ctx.scope ? `?path=${encodeURIComponent(ctx.scope)}` : ''}`
+    );
   };
   return { disconnect, connected };
 }
@@ -834,6 +965,8 @@ export function ProjectsWorkspace({
     recommendationsLoading,
     disconnect,
     connected,
+    scope,
+    applyScope,
   } = state;
 
   if (status === 'loading' || (status === 'authenticated' && isLoading && !data)) {
@@ -842,33 +975,37 @@ export function ProjectsWorkspace({
   if (status === 'unauthenticated') return <LoadingScreen />;
 
   return (
-    <main className="min-h-0 flex-1 overflow-y-auto bg-background">
-      <TopBar title="Projects" description="Discover tools for what you are building." />
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 md:grid-cols-[18rem_minmax(0,1fr)] md:px-6">
+    <WorkspaceLayout
+      title="Projects"
+      description="Discover tools for what you are building."
+      sidebarLabel="Your projects"
+      sidebar={
         <ProjectsSidebar
           data={{ projects, error, initialRepository }}
           selection={{ selectedProject, onConnected: connected }}
         />
-
-        <section className="min-w-0">
-          {!selectedProject ? (
-            <EmptyProjectState initialRepository={initialRepository} />
-          ) : (
-            <ProjectDetailPanel
-              selectedProject={selectedProject}
-              recommendations={recommendations}
-              recommendationError={recommendationError}
-              recommendationsLoading={recommendationsLoading}
-              showAllPeers={showAllPeers}
-              setShowAllPeers={setShowAllPeers}
-              disconnectId={disconnectId}
-              disconnecting={disconnecting}
-              disconnectError={disconnectError}
-              onDisconnect={disconnect}
-            />
-          )}
-        </section>
-      </div>
-    </main>
+      }
+    >
+      <section className="min-w-0">
+        {!selectedProject ? (
+          <EmptyProjectState initialRepository={initialRepository} />
+        ) : (
+          <ProjectDetailPanel
+            selectedProject={selectedProject}
+            scope={scope}
+            onScopeChange={applyScope}
+            recommendations={recommendations}
+            recommendationError={recommendationError}
+            recommendationsLoading={recommendationsLoading}
+            showAllPeers={showAllPeers}
+            setShowAllPeers={setShowAllPeers}
+            disconnectId={disconnectId}
+            disconnecting={disconnecting}
+            disconnectError={disconnectError}
+            onDisconnect={disconnect}
+          />
+        )}
+      </section>
+    </WorkspaceLayout>
   );
 }

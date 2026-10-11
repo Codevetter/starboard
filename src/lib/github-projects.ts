@@ -54,10 +54,12 @@ class GitHubProjectPaginationError extends Error {
 const OWNER_PATTERN = /^[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?$/i;
 const REPO_PATTERN = /^[a-z\d_.-]{1,100}$/i;
 
+const GITHUB_HOST_PATTERN = /^(?:https?:\/\/)?(?:www\.)?github\.com\//i;
+
 function githubPathSegments(trimmed: string): string[] | null {
   // Match the host explicitly before stripping it. Parsing as a URL first
   // would silently repair malformed paths such as /owner/../other/repo.
-  const path = trimmed.replace(/^(?:https?:\/\/)?(?:www\.)?github\.com\//i, '').split(/[?#]/, 1)[0];
+  const path = trimmed.replace(GITHUB_HOST_PATTERN, '').split(/[?#]/, 1)[0];
   const segments = path.replace(/\/$/, '').split('/');
   if (segments.some((segment) => !segment || segment === '.' || segment === '..')) return null;
   if (segments.length !== 2 && !(segments.length >= 4 && segments[2] === 'tree')) return null;
@@ -78,6 +80,14 @@ export function parseGitHubProjectInput(input: string): GitHubProjectSlug | null
   }
 
   return { owner, repo, fullName: `${owner}/${repo}` };
+}
+
+/** Preserve a branch/folder selection while normalizing the repository URL. */
+export function normalizeGitHubProjectLocation(input: string): string {
+  const slug = parseGitHubProjectInput(input);
+  if (!slug) return input.trim();
+  const tree = input.trim().split('/tree/')[1]?.split(/[?#]/, 1)[0].replace(/\/$/, '');
+  return tree ? `${slug.fullName}/tree/${tree}` : slug.fullName;
 }
 
 export async function fetchPublicGitHubProject(

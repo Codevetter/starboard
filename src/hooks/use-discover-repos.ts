@@ -38,6 +38,7 @@ export interface UseDiscoverReposOptions {
   listId?: number | null;
   tools?: string[];
   sort?: SortOption;
+  reversed?: boolean;
   limit?: number;
 }
 
@@ -63,7 +64,8 @@ function buildDiscoverUrl(opts: UseDiscoverReposOptions, offset: number): string
   if (opts.listId != null) params.set('list_id', String(opts.listId));
   appendParam(params, 'tool', opts.tools?.length ? opts.tools.join(',') : undefined);
   const apiSort = sortMap[opts.sort ?? 'most-stars'];
-  appendParam(params, 'sort', apiSort !== 'stars' ? apiSort : undefined);
+  appendParam(params, 'sort', apiSort !== 'stars' || opts.q ? apiSort : undefined);
+  appendParam(params, 'reverse', opts.reversed ? 'true' : undefined);
   const limit = opts.limit ?? 50;
   appendParam(params, 'limit', limit !== 50 ? String(limit) : undefined);
   appendParam(params, 'offset', offset > 0 ? String(offset) : undefined);
@@ -79,6 +81,7 @@ function filterKey(opts: UseDiscoverReposOptions): string {
     list: opts.listId ?? null,
     tools: opts.tools ?? [],
     sort: opts.sort ?? 'most-stars',
+    reversed: opts.reversed ?? false,
   });
 }
 

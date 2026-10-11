@@ -149,8 +149,11 @@ async function loadPending(db: Client): Promise<PendingRepo[]> {
             SELECT ur.repo_id
             FROM user_repos ur
             WHERE ur.is_starred = 1 OR ur.is_saved = 1
+            UNION
+            SELECT up.repo_id FROM user_projects up
           )
           ORDER BY
+            CASE WHEN r.id IN (SELECT repo_id FROM user_projects) THEN 0 ELSE 1 END ASC,
             CASE WHEN state.repo_id IS NULL THEN 0 ELSE 1 END ASC,
             r.stargazers_count DESC
           LIMIT ?`,

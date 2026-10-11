@@ -110,6 +110,11 @@ export function ProjectRecommendationCard({
             </CardTitle>
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Badge variant="outline">#{rank}</Badge>
+              {recommendation.role && (
+                <Badge variant="outline">
+                  {recommendation.role === 'reference' ? 'Reference' : 'Integration candidate'}
+                </Badge>
+              )}
               {recommendation.language && (
                 <Badge variant="secondary">{recommendation.language}</Badge>
               )}
@@ -201,6 +206,9 @@ export function GroundedToolRecommendationCard({
           {recommendation.supportCount === 1 ? 'peer' : 'peers'} with an average detection
           confidence of {Math.round(signal.averageConfidence)}%.
         </p>
+        {recommendation.reason && (
+          <p className="text-sm text-muted-foreground">{recommendation.reason}</p>
+        )}
         <div>
           <p className="text-xs font-medium text-muted-foreground">Repository evidence</p>
           <ul className="mt-2 space-y-1.5 text-sm">

@@ -16,6 +16,7 @@ type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 const sortMap: Record<string, string> = {
   relevance: 'relevance',
+  'most-stars': 'stars',
   'fastest-growing': 'growth',
   'recently-updated': 'updated',
   'name-az': 'name',
@@ -37,7 +38,8 @@ function discoverDataUrl(searchParams: Record<string, string | string[] | undefi
   if (language) params.set('language', language);
   if (tool) params.set('tool', tool);
   if (listId) params.set('list_id', listId);
-  if (sort) params.set('sort', sort);
+  if (sort && (sort !== 'stars' || q)) params.set('sort', sort);
+  if (first(searchParams.reverse) === 'true') params.set('reverse', 'true');
 
   const query = params.toString();
   return `/discover/data${query ? `?${query}` : ''}`;

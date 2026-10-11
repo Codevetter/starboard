@@ -11,9 +11,9 @@ import {
 const SIZES = [1000, 10_000, 50_000];
 const ITERATIONS = 10;
 const EXPECTED_DIGESTS = new Map([
-  [1000, 'e0d69564422b1c2001a1cf8a95988e5cc17343aca618cce3a55722cbea4028d2'],
-  [10_000, '37d8530331d21849e958ca398a7c57279fdb9491758aaf31f7a6766cc9e01ac3'],
-  [50_000, '241e9f5bbb8b97241f38214cd25fc937e75a853fc2b09c78fc23b5d1939302ee'],
+  [1000, '1b577bf67bb91e137069bae87983748c012b58a5beedbf64fe5290c428691abd'],
+  [10_000, 'af210cdebcbeda6e041bbec9535d533cfe470ec031f07153b5d858950c0305a2'],
+  [50_000, '879f10c06f6197d5a38ee8065e11f4e6a694c32d6f78a5d20b376e3a9da42507'],
 ]);
 
 test('project recommendations scale across local catalog sizes', { timeout: 30_000 }, () => {

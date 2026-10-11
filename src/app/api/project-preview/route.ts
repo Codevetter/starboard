@@ -47,7 +47,10 @@ export async function GET(request: NextRequest) {
       },
       {
         headers: {
-          'Cache-Control': 'public, max-age=300, s-maxage=1800, stale-while-revalidate=3600',
+          'Cache-Control':
+            recommendations.quality?.status === 'unavailable'
+              ? 'no-store'
+              : 'public, max-age=300, s-maxage=1800, stale-while-revalidate=3600',
         },
       }
     );
