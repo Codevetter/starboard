@@ -351,7 +351,9 @@ test('public API routes are reachable through the Worker edge on GET', async ({ 
 test('repository HTML includes public content without JavaScript and malformed paths return 404', async ({
   request,
 }) => {
-  const response = await request.get('/explore/codevetter/starboard');
+  const response = await request.get('/explore/codevetter/starboard', {
+    headers: { 'user-agent': 'Googlebot' },
+  });
   expect(response.status()).toBe(200);
   const visibleHtml = (await response.text()).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, '');
   expect(visibleHtml).toMatch(/<h1[^>]*>starboard<\/h1>/);
@@ -359,7 +361,9 @@ test('repository HTML includes public content without JavaScript and malformed p
   expect(visibleHtml).toContain('TypeScript');
   expect(visibleHtml).not.toContain('accessToken');
 
-  const malformed = await request.get('/explore/codevetter/starboard/extra');
+  const malformed = await request.get('/explore/codevetter/starboard/extra', {
+    headers: { 'user-agent': 'Googlebot' },
+  });
   expect(malformed.status()).toBe(404);
   expect(await malformed.text()).toMatch(/name="robots"[^>]*content="noindex"/);
 });
