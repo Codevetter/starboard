@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 const appPort = process.env.STARBOARD_E2E_PORT ?? '8787';
 const appURL = `http://127.0.0.1:${appPort}`;
-const browserPreview = `pnpm exec wrangler d1 migrations apply starboard-e2e --local --config wrangler.e2e.jsonc --persist-to .wrangler/e2e-state --env-file /dev/null && pnpm exec wrangler dev --config wrangler.e2e.jsonc --port ${appPort} --persist-to .wrangler/e2e-state --env-file /dev/null --var AUTH_SECRET:starboard-browser-test-secret-at-least-32-characters --var AUTH_GITHUB_ID:browser-test-client --var AUTH_GITHUB_SECRET:browser-test-secret`;
+const browserPreview = `pnpm exec wrangler d1 migrations apply starboard-e2e --local --config wrangler.e2e.jsonc --persist-to .wrangler/e2e-state --env-file /dev/null && pnpm exec wrangler d1 execute starboard-e2e --local --config wrangler.e2e.jsonc --persist-to .wrangler/e2e-state --env-file /dev/null --file e2e/fixtures/public-repo.sql && pnpm exec wrangler dev --config wrangler.e2e.jsonc --port ${appPort} --persist-to .wrangler/e2e-state --env-file /dev/null --var AUTH_SECRET:starboard-browser-test-secret-at-least-32-characters --var AUTH_GITHUB_ID:browser-test-client --var AUTH_GITHUB_SECRET:browser-test-secret`;
 
 export default defineConfig({
   testDir: './e2e',
