@@ -92,7 +92,7 @@ function PreviewProjectHeader({
         </p>
         <p className="mt-3 text-xs text-muted-foreground">
           {data.project.sourceContext?.files.length
-            ? `Checked ${data.project.sourceContext.files.length} public README and manifest files${data.project.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`
+            ? `Checked ${data.project.sourceContext.files.length} public product documents and manifest files${data.project.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`
             : 'Project files could not be checked. Matches use repository metadata; tool suggestions are withheld.'}
         </p>
         <div className="mt-3 flex flex-wrap gap-1.5">

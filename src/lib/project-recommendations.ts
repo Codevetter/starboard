@@ -324,8 +324,9 @@ export function projectPurposeTerms(project: ProjectRecommendationRepo): string[
   return [
     ...meaningfulTokens(
       project.description,
-      ...project.topics.filter((topic) => !GENERIC_TOPICS.has(topic)),
+      ...(project.sourceContext?.documents?.map((document) => document.text) ?? []),
       project.sourceContext?.readme,
+      ...project.topics.filter((topic) => !GENERIC_TOPICS.has(topic)),
       project.aiSummary,
       project.aiCategory,
       ...(project.aiKeywords ?? [])

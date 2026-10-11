@@ -366,12 +366,13 @@ function ClearFiltersButton({ onClearFilters }: { onClearFilters: () => void }) 
 }
 
 function CatalogUpdatesButton({ pathname }: { pathname: string | null }) {
-  if (!pathname?.startsWith('/discover') && pathname !== '/catalog-updates') return null;
+  if (!pathname?.startsWith('/discover')) return null;
   return (
     <Button asChild variant="outline" size="sm" className="h-11 shrink-0 gap-2 sm:h-8">
       <Link href="/catalog-updates" prefetch={false} aria-label="Catalog updates">
         <History className="size-3.5" />
-        <span className="hidden xl:inline">Catalog updates</span>
+        <span className="sm:hidden">Updates</span>
+        <span className="hidden sm:inline">Catalog updates</span>
       </Link>
     </Button>
   );

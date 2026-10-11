@@ -82,7 +82,8 @@ function projectText(project: ProjectRecommendationRepo): string {
       keywords: project.aiKeywords,
     },
   });
-  return [project.description, project.sourceContext?.readme, metadata].filter(Boolean).join(' | ');
+  const documents = project.sourceContext?.documents?.map((document) => document.text).join(' | ');
+  return [documents || project.sourceContext?.readme, metadata].filter(Boolean).join(' | ');
 }
 
 async function semanticCandidates(
@@ -94,9 +95,10 @@ async function semanticCandidates(
     const store = dependencies.vectorStore();
     // Stored vectors predate request-time README context. Embed the current
     // purpose rather than silently reusing the metadata-only vector.
-    let matches = project.sourceContext?.readme
-      ? []
-      : await store.queryByRepoId(project.id, VECTOR_TOP_K);
+    let matches =
+      project.sourceContext?.readme || project.sourceContext?.documents?.length
+        ? []
+        : await store.queryByRepoId(project.id, VECTOR_TOP_K);
     if (matches.length === 0) {
       const [embedding] = await dependencies.embed([text]);
       if (!embedding) return [];

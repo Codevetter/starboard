@@ -220,7 +220,8 @@ describe('GET /api/repos/[repoId]', () => {
     });
 
     expect(response.status).toBe(200);
-    expect((await response.json()).repo.stargazers_count).toBe(9000);
+    const body = (await response.json()) as { repo: { stargazers_count: number } };
+    expect(body.repo.stargazers_count).toBe(9000);
     expect(mocks.execute).toHaveBeenCalledTimes(1);
     await Promise.resolve();
     expect(mocks.refreshRepoFromGitHub).toHaveBeenCalledTimes(1);

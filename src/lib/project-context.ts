@@ -13,6 +13,7 @@ export interface ProjectSourceContext {
   files: string[];
   scope?: string;
   dependencies?: string[];
+  documents?: { path: string; text: string }[];
 }
 
 export function parseProjectFolder(path: string): string | null {
@@ -39,6 +40,8 @@ const EXCLUDED =
   /(?:^|\/)(?:node_modules|vendor|dist|build|target|coverage|\.next|\.git|\.claude|\.codex|examples?|fixtures?|tests?|docs)(?:\/|$)/i;
 const MAX_FILES = 10;
 const MAX_FILE_BYTES = 100_000;
+const PRODUCT_DOCUMENT =
+  /^(?:PRODUCT\.md|README(?:\.md|\.markdown|\.rst|\.txt)?|docs\/product\/(?:overview|features)\.md)$/i;
 
 /** Keep product/features prose; install commands and dependency tables drown out purpose. */
 export function projectReadmeContext(markdown: string): string {
@@ -52,7 +55,7 @@ export function projectReadmeContext(markdown: string): string {
       if (skipLevel && heading[1].length <= skipLevel) skipLevel = 0;
       if (heading[1].length <= 2 && heading[1].length > 1) {
         productSection =
-          /^(?:what (?:it|this|you)|features|capabilities|overview|about|why|products|use cases|how .*works|purpose)\b/i.test(
+          /^(?:what (?:it|this|you)|features|capabilities|overview|about|why|products?|use cases|how .*works|purpose|audience|users?|scope|non-goals|out of scope|constraints|boundaries|inputs?|outputs?|workflows?|current|pack your|supported|memory chat)\b/i.test(
             heading[2]
           );
       }
@@ -62,8 +65,8 @@ export function projectReadmeContext(markdown: string): string {
     }
     if (!skipLevel && !/^\s*[|>]/.test(line)) {
       // Long opening sections can contain dated operations receipts too.
-      if (!productSection && introLength >= 1000) continue;
-      const text = productSection ? line : line.slice(0, 1000 - introLength);
+      if (!productSection && introLength >= 3000) continue;
+      const text = productSection ? line : line.slice(0, 3000 - introLength);
       lines.push(text);
       if (!productSection) introLength += text.length;
     }
@@ -116,8 +119,12 @@ function inProject(entry: TreeEntry, scope: string) {
   return (
     entry.type === 'blob' &&
     (!scope || entry.path.startsWith(`${scope}/`)) &&
-    !EXCLUDED.test(entry.path)
+    (!EXCLUDED.test(entry.path) || PRODUCT_DOCUMENT.test(projectPath(entry.path, scope)))
   );
+}
+
+function projectPath(path: string, scope: string) {
+  return scope ? path.slice(scope.length + 1) : path;
 }
 
 function selectSource(tree: SourceTree, scope: string) {
@@ -133,14 +140,21 @@ function selectSource(tree: SourceTree, scope: string) {
     .sort(
       (a, b) => a.path.split('/').length - b.path.split('/').length || a.path.localeCompare(b.path)
     );
-  const all = [...(readme ? [readme] : []), ...manifests];
+  const documents = available
+    .filter((entry) => PRODUCT_DOCUMENT.test(projectPath(entry.path, scope)))
+    .sort((a, b) => a.path.localeCompare(b.path));
+  const all = [...documents, ...manifests];
   return {
     readme,
     selected: all.slice(0, MAX_FILES),
     partial:
       Boolean(tree.truncated) ||
       all.length > MAX_FILES ||
-      entries.some((entry) => MANIFEST.test(entry.path) && (entry.size ?? 0) > MAX_FILE_BYTES),
+      entries.some(
+        (entry) =>
+          (MANIFEST.test(entry.path) || PRODUCT_DOCUMENT.test(projectPath(entry.path, scope))) &&
+          (entry.size ?? MAX_FILE_BYTES + 1) > MAX_FILE_BYTES
+      ),
   };
 }
 
@@ -243,10 +257,31 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
     files.loaded.find((file) => file.path === source.readme?.path)?.content ?? ''
   );
   const dependencies = manifestDependencies(files.loaded);
-  const partial = source.partial || files.failed || dependencies.failed;
+  const documents = files.loaded
+    .filter((file) => PRODUCT_DOCUMENT.test(projectPath(file.path, scope)))
+    .map((file) => ({ path: file.path, text: projectReadmeContext(file.content) }))
+    .filter((document) => document.text);
+  const purpose =
+    documents.find((document) => /^PRODUCT\.md$/i.test(projectPath(document.path, scope)))?.text ||
+    readme ||
+    documents[0]?.text;
+  const partial =
+    source.partial ||
+    files.failed ||
+    dependencies.failed ||
+    !documents.length ||
+    documents.some((document) => document.text.length >= 4000);
   return {
     ...project,
-    ...(scope ? { description: readme.slice(0, 300) || null } : {}),
+    ...(purpose
+      ? {
+          description: purpose.slice(0, 300),
+          topics: [],
+          aiSummary: null,
+          aiCategory: null,
+          aiKeywords: [],
+        }
+      : {}),
     tools: sourceTools(project, files.loaded, readme),
     sourceContext: {
       status: files.loaded.length === 0 ? 'unavailable' : partial ? 'partial' : 'complete',
@@ -255,6 +290,7 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
       files: files.loaded.map((file) => file.path),
       ...(scope ? { scope } : {}),
       dependencies: dependencies.names,
+      documents,
     },
   };
 }

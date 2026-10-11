@@ -572,7 +572,7 @@ function ProjectDetailHeader({
           <p className="mt-3 text-xs text-muted-foreground">
             {recommendations.context.sourceContext.status === 'unavailable'
               ? 'Project files could not be checked. Matches use catalog metadata; tool suggestions are withheld.'
-              : `Checked ${recommendations.context.sourceContext.files.length} public README and manifest files${recommendations.context.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`}
+              : `Checked ${recommendations.context.sourceContext.files.length} public product documents and manifest files${recommendations.context.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`}
           </p>
         )}
       </div>
