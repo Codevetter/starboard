@@ -40,12 +40,26 @@ test.beforeEach(async ({ page }) => {
 
 test('protected HTML is private and contains no serialized session credentials', async ({
   request,
+  page,
 }) => {
   const projects = await request.get('/projects', { maxRedirects: 0 });
-  expect([302, 303, 307, 308]).toContain(projects.status());
+  const projectsHtml = await projects.text();
+  // Next.js can flush a 200 before auth resolves, then emit the redirect in HTML.
+  if (projects.status() === 200) {
+    expect(projectsHtml).toMatch(
+      /<meta(?=[^>]*http-equiv="refresh")(?=[^>]*content="[^"]*url=\/login\?callbackUrl=%2Fprojects")[^>]*>/
+    );
+  } else {
+    expect([302, 303, 307, 308]).toContain(projects.status());
+    expect(projects.headers().location).toContain('/login?callbackUrl=%2Fprojects');
+  }
   expect(projects.headers()['cache-control']).toContain('private');
   expect(projects.headers()['cache-control']).toContain('no-store');
-  expect(await projects.text()).not.toContain('accessToken');
+  expect(projectsHtml).not.toContain('accessToken');
+
+  await page.goto('/projects');
+  await expect(page).toHaveURL(/\/login\?callbackUrl=%2Fprojects/);
+  await expect(page.getByRole('heading', { name: 'Continue to Starboard' })).toBeVisible();
 
   const login = await request.get('/login');
   expect(login.headers()['cache-control']).toContain('private');
