@@ -10,7 +10,8 @@ import {
   fetchPublicStarLists,
   type GitHubStarList,
 } from '@/lib/github-lists';
-import { ingestStarboardRagDocuments } from '@/lib/knowledgebase';
+import { knowledgePipelineEnabled, ingestStarboardRagDocuments } from '@/lib/knowledgebase';
+import { createKnowledgebaseRepoVectorStore, findKnowledgeDocument } from '@/lib/knowledge-catalog';
 import { buildStarboardRagDocument, fetchRepoReadmes } from '@/lib/starboard-rag-documents';
 import { selectSyncReadmeRepos } from '@/lib/sync-performance';
 
@@ -123,6 +124,30 @@ async function ingestAddedRepos(
   userId: string,
   added: StarredRepo[]
 ): Promise<{ ragIngested: number; ragReadmesFetched: number }> {
+  if (knowledgePipelineEnabled()) {
+    try {
+      const bounded = selectSyncReadmeRepos(added);
+      await createKnowledgebaseRepoVectorStore(db).upsert(
+        bounded.map((repo) => ({ repoId: repo.id, values: [] }))
+      );
+      const documents = await Promise.all(
+        bounded.map(async (repo) => {
+          const source = await findKnowledgeDocument(`repo:${repo.id}`);
+          const document = buildStarboardRagDocument(userId, repo as never);
+          if (source) {
+            document.content = source.document.content;
+            document.metadata.source_document_id = source.document.id;
+            document.metadata.source = 'knowledgebase_catalog_snapshot';
+          }
+          return document;
+        })
+      );
+      const count = await ingestStarboardRagDocuments(documents);
+      return { ragIngested: count, ragReadmesFetched: 0 };
+    } catch {
+      return { ragIngested: 0, ragReadmesFetched: 0 };
+    }
+  }
   if (added.length === 0) return { ragIngested: 0, ragReadmesFetched: 0 };
   const readmeRepos = selectSyncReadmeRepos(added);
   const readmesPromise = fetchRepoReadmes(accessToken, readmeRepos, {
@@ -204,7 +229,7 @@ export async function POST() {
     const { ragIngested, ragReadmesFetched } = await ingestAddedRepos(
       session.accessToken,
       userId,
-      added
+      knowledgePipelineEnabled() ? freshRepos : added
     );
 
     return NextResponse.json({

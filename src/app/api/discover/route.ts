@@ -6,6 +6,8 @@ import { auth } from '@/lib/auth';
 import { generateEmbeddings } from '@/lib/embeddings';
 import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { repoVectors } from '@/lib/repo-vectors';
+import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
+import { queryKnowledgeCatalog } from '@/lib/knowledge-catalog';
 import { repoOrderBy } from '@/lib/repo-sort';
 import { expandedSearchQuery, ftsSearchQuery, rrfFuse } from '@/lib/search';
 
@@ -87,6 +89,12 @@ async function resolveSearchIds(
   whereClauses: string[],
   whereArgs: InValue[]
 ): Promise<number[] | null> {
+  if (knowledgePipelineEnabled()) {
+    const ids = (await queryKnowledgeCatalog(q, SEMANTIC_TOP_K)).map((match) => match.repoId);
+    whereClauses.push('r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))');
+    whereArgs.push(JSON.stringify(ids));
+    return ids.length ? ids : null;
+  }
   const lexicalQuery = ftsSearchQuery(q);
   const lexIdsPromise = lexicalQuery
     ? db

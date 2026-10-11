@@ -53,6 +53,7 @@ The `--webpack` flag remains the verified OpenNext production build path.
 | `pnpm test:coverage` | `vitest run --coverage` (v8; thresholds 80/80/80/70 on core modules) |
 | `pnpm test:e2e` | `playwright test` |
 | `pnpm test:e2e:mobile` | `playwright test --project=mobile` |
+| `pnpm db:knowledge-migrate plan` | Bounded full-pipeline export plan; see the [migration runbook](../operations/runbooks/knowledge-pipeline-migration.md) for apply and reconcile |
 | `pnpm smoke:knowledgebase` | `node scripts/smoke-knowledgebase.mjs` — smoke the shared RAG Worker |
 
 ## Docs

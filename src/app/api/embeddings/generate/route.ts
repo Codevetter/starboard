@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { buildRepoEmbeddingText, generateEmbeddings, textHash } from '@/lib/embeddings';
+import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 import { repoVectors } from '@/lib/repo-vectors';
 import { denyVectorizeStorageGrowth, SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
 
@@ -23,7 +24,7 @@ export async function POST() {
   }
 
   try {
-    denyVectorizeStorageGrowth();
+    if (!knowledgePipelineEnabled()) denyVectorizeStorageGrowth();
   } catch (error) {
     if (error instanceof SharedBudgetDeniedError) {
       return NextResponse.json({ error: error.message }, { status: 503 });
@@ -59,10 +60,16 @@ export async function POST() {
     }
 
     if (toEmbed.length > 0) {
-      const embeddings = await generateEmbeddings(toEmbed.map((r) => r.text));
+      const embeddings = knowledgePipelineEnabled()
+        ? toEmbed.map(() => [])
+        : await generateEmbeddings(toEmbed.map((r) => r.text));
 
       await repoVectors().upsert(
-        toEmbed.map((item, i) => ({ repoId: item.repoId, values: embeddings[i] }))
+        toEmbed.map((item, i) => ({
+          repoId: item.repoId,
+          values: embeddings[i],
+          content: item.text,
+        }))
       );
 
       const statements: InStatement[] = toEmbed.map((item) => ({

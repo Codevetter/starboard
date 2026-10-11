@@ -1,3 +1,5 @@
+import { knowledgeProjectNeeds, knowledgeCapabilityCard } from '@/lib/knowledge-project-profile';
+import { ingestKnowledgeDocuments } from '@/lib/knowledge-catalog';
 /**
  * Need-driven project intelligence pipeline.
  *
@@ -22,6 +24,9 @@ import { createHash } from 'node:crypto';
 
 import type { DbClient, InStatement } from '@/db/client';
 import { buildRepoEmbeddingText, generateEmbeddings } from '@/lib/embeddings';
+import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
+import { queryKnowledgeCatalog } from '@/lib/knowledge-catalog';
+import { reviewKnowledgeProject } from '@/lib/knowledge-decisions';
 import type { ProjectRecommendationRepo, ProjectToolSignal } from '@/lib/project-recommendations';
 import { repoVectors, type RepoVectorMatch } from '@/lib/repo-vectors';
 import { ftsSearchQuery, rrfFuse } from '@/lib/search';
@@ -436,7 +441,8 @@ async function refreshCapabilityCards(
 
   for (const row of metaResult.rows) {
     const meta = rowToMetadata(row);
-    const card = buildCapabilityCard(meta);
+    const local = buildCapabilityCard(meta);
+    const card = knowledgePipelineEnabled() ? await knowledgeCapabilityCard(local) : local;
     cards.push(card);
 
     const existing = await dependencies.database.execute({
@@ -493,6 +499,9 @@ export async function computeProjectFingerprint(
   dependencies: NeedDrivenIntelligenceDependencies
 ): Promise<ProjectFingerprint> {
   const evidence: string[] = [
+    `knowledge-pipeline:${knowledgePipelineEnabled() ? 'knowledgebase-v1' : 'local'}`,
+    `source:${project.sourceContext?.revision || ''}:${project.sourceContext?.scope || ''}`,
+    JSON.stringify(project.sourceContext?.documents || []),
     `repo:${project.fullName}`,
     `desc:${project.description ?? ''}`,
     `lang:${project.language ?? ''}`,
@@ -943,9 +952,11 @@ async function hydrateCandidates(
           LEFT JOIN repo_ai_metadata aim ON aim.repo_id = r.id
           WHERE r.id != ?
             AND r.archived = 0
-            AND ${ELIGIBLE_REPO_SQL}
+            AND ${knowledgePipelineEnabled() ? '1 = 1' : ELIGIBLE_REPO_SQL}
             AND r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
-    args: [projectId, MIN_STARS_FLOOR, JSON.stringify(ids)],
+    args: knowledgePipelineEnabled()
+      ? [projectId, JSON.stringify(ids)]
+      : [projectId, MIN_STARS_FLOOR, JSON.stringify(ids)],
   });
   const byId = new Map<number, ProjectRecommendationRepo>();
   for (const row of result.rows) {
@@ -1169,6 +1180,20 @@ async function persistDraftReport(
   report: DraftReport,
   dependencies: NeedDrivenIntelligenceDependencies
 ): Promise<number> {
+  if (knowledgePipelineEnabled())
+    await ingestKnowledgeDocuments([
+      {
+        external_id: `project:${report.repoId}:draft:${report.fingerprint}`,
+        content: JSON.stringify(report),
+        metadata: {
+          kind: 'project_report',
+          repo_id: report.repoId,
+          visibility: 'public',
+          validation: 'model_evidence_checked',
+          human_validated: false,
+        },
+      },
+    ]);
   await markPreviousLatestDraft(report.repoId, dependencies);
   const result = await dependencies.database.execute({
     sql: `INSERT INTO project_draft_reports
@@ -1196,9 +1221,9 @@ export async function loadLatestDraftReport(
 ): Promise<DraftReport | null> {
   const result = await dependencies.database.execute({
     sql: `SELECT report FROM project_draft_reports
-          WHERE repo_id = ? AND is_latest = 1
+          WHERE repo_id = ? AND is_latest = 1 AND retrieval_version = ?
           ORDER BY created_at DESC LIMIT 1`,
-    args: [repoId],
+    args: [repoId, knowledgePipelineEnabled() ? 'knowledgebase-v1' : RETRIEVAL_VERSION],
   });
   const raw = result.rows[0]?.report;
   if (typeof raw !== 'string') return null;
@@ -1324,6 +1349,21 @@ export async function ingestExternalReview(
 
   // Apply verdicts to the draft
   const appliedReport = applyReviewVerdicts(draft, result.verdicts);
+
+  if (knowledgePipelineEnabled())
+    await ingestKnowledgeDocuments([
+      {
+        external_id: `project:${repoId}:review:${result.idempotencyKey}`,
+        content: JSON.stringify({ report: appliedReport, review: result }),
+        metadata: {
+          kind: 'project_reviewed_report',
+          repo_id: repoId,
+          visibility: 'public',
+          validation: 'external_review',
+          human_validated: false,
+        },
+      },
+    ]);
 
   // Mark previous reviewed reports as non-latest
   await dependencies.database.execute({
@@ -1473,6 +1513,11 @@ async function resolveNeeds(
   storedFingerprint: string | null,
   deps: NeedDrivenIntelligenceDependencies
 ): Promise<ProjectNeed[]> {
+  if (knowledgePipelineEnabled()) {
+    const needs = await knowledgeProjectNeeds(project);
+    await persistNeeds(project.id, fingerprint, needs, deps);
+    return needs;
+  }
   let needs = extractNeeds(project);
   const merged = mergeNeeds(needs);
   const { retained } = rejectUnsupportedNeeds(merged);
@@ -1523,6 +1568,21 @@ async function retrieveCandidatesForNeed(
   params: RetrieveCandidatesParams
 ): Promise<CandidateRetrievalResult> {
   const { need, project, projectConstraintsHash, catalogGeneration, deps } = params;
+  if (knowledgePipelineEnabled()) {
+    try {
+      const matches = await queryKnowledgeCatalog(
+        `${need.title} ${need.desiredOutcome} ${need.searchIntents.join(' ')}`
+      );
+      return {
+        candidateIds: matches.map((match) => match.repoId).filter((id) => id !== project.id),
+        mode: 'hybrid',
+        cached: false,
+        degradation: false,
+      };
+    } catch {
+      return { candidateIds: [], mode: 'fallback', cached: false, degradation: true };
+    }
+  }
   const cached = await loadCachedCandidatePool(
     need,
     projectConstraintsHash,
@@ -1570,6 +1630,41 @@ interface ClassifyAndRankParams {
 async function classifyAndRank(params: ClassifyAndRankParams): Promise<NeedCandidate[]> {
   const { project, need, candidateIds, deps, candidatesPerNeed } = params;
   const candidates = await hydrateCandidates(candidateIds, project.id, deps.database);
+  if (knowledgePipelineEnabled()) {
+    const review = await reviewKnowledgeProject(project, candidates.slice(0, 20), need);
+    if (review.status !== 'reviewed') throw new Error('Knowledgebase decision review unavailable');
+    const matches = new Map(review.matches.map((match) => [match.repoId, match]));
+    const ordered = review.matches.flatMap(
+      (match) => candidates.find((candidate) => candidate.id === match.repoId) || []
+    );
+    return ordered
+      .flatMap((repo) => {
+        const match = matches.get(repo.id);
+        return match
+          ? [
+              {
+                repoId: repo.id,
+                fullName: repo.fullName,
+                htmlUrl: repo.htmlUrl,
+                description: repo.description,
+                language: repo.language,
+                stargazersCount: repo.stargazersCount,
+                archived: repo.archived,
+                topics: repo.topics,
+                tools: repo.tools,
+                classification:
+                  match.role === 'integration'
+                    ? ('adopt_or_integrate' as const)
+                    : ('reference_implementation' as const),
+                confidence: 'medium' as const,
+                evidence: [match.projectEvidence, match.candidateEvidence],
+                score: 1,
+              },
+            ]
+          : [];
+      })
+      .slice(0, candidatesPerNeed);
+  }
   return candidates
     .map((repo) => {
       const result = classifyCandidate(project, need, repo);
@@ -1591,6 +1686,22 @@ async function classifyAndRank(params: ClassifyAndRankParams): Promise<NeedCandi
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, candidatesPerNeed);
+}
+
+async function refreshReportCapabilities(
+  ids: number[],
+  dependencies: NeedDrivenIntelligenceDependencies,
+  provenance: string[]
+): Promise<boolean> {
+  if (!ids.length) return false;
+  try {
+    await refreshCapabilityCards(ids, dependencies);
+    provenance.push('capability-cards:refreshed');
+    return false;
+  } catch {
+    provenance.push('capability-cards:skipped');
+    return true;
+  }
 }
 
 export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenceDependencies) {
@@ -1655,23 +1766,15 @@ export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenc
       needReports.push({ need, candidates: classified, retrievalMode: retrieval.mode });
     }
 
-    // Stage 1: Refresh capability cards for all candidates
-    if (allCandidateIds.size > 0) {
-      try {
-        await refreshCapabilityCards([...allCandidateIds], dependencies);
-        provenance.push('capability-cards:refreshed');
-      } catch {
-        hasDegradation = true;
-        provenance.push('capability-cards:skipped');
-      }
-    }
+    if (await refreshReportCapabilities([...allCandidateIds], dependencies, provenance))
+      hasDegradation = true;
 
     const status: ReportStatus = hasDegradation ? 'degraded' : 'complete';
     const report: DraftReport = {
       repoId: project.id,
       fingerprint: fingerprint.fingerprint,
       catalogGeneration,
-      retrievalVersion: RETRIEVAL_VERSION,
+      retrievalVersion: knowledgePipelineEnabled() ? 'knowledgebase-v1' : RETRIEVAL_VERSION,
       status,
       needs: needReports,
       needsCount: needReports.length,

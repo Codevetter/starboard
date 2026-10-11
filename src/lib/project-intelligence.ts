@@ -13,6 +13,8 @@ import {
 import { reviewProjectQuality, type ProjectQualityReview } from '@/lib/project-quality-review';
 import { repoVectors, type RepoVectorMatch } from '@/lib/repo-vectors';
 import { ftsSearchQuery, rrfFuse } from '@/lib/search';
+import { queryKnowledgeCatalog } from '@/lib/knowledge-catalog';
+import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 
 const MIN_STARS_FLOOR = 5000;
 const VECTOR_TOP_K = 100;
@@ -26,6 +28,7 @@ const ELIGIBLE_REPO_SQL =
   'r.id IN (SELECT r2.id FROM repos r2 WHERE r2.stargazers_count >= ? UNION SELECT community_ur.repo_id FROM user_repos community_ur WHERE community_ur.is_starred = 1)';
 
 export type ProjectRetrievalMode =
+  | 'knowledgebase'
   | 'hybrid'
   | 'semantic'
   | 'lexical-structured'
@@ -286,7 +289,9 @@ async function reviewRanked(
     const byId = new Map(
       candidates.filter((repo) => isProjectCandidate(project, repo)).map((repo) => [repo.id, repo])
     );
-    const shortlist = [...shortlistIds].flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    const shortlist = knowledgePipelineEnabled()
+      ? candidates.filter((repo) => byId.has(repo.id)).slice(0, 20)
+      : [...shortlistIds].flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
     let review: ProjectQualityReview;
     try {
       review = await reviewCandidates(project, shortlist);
@@ -326,6 +331,42 @@ async function reviewRanked(
   return { ranked, quality };
 }
 
+export async function knowledgeProjectCandidates(
+  project: ProjectRecommendationRepo,
+  dependencies = defaultDependencies
+): Promise<ProjectRecommendationRepo[]> {
+  const matches = await queryKnowledgeCatalog(projectText(project), 100);
+  const ids = matches.map((match) => match.repoId).filter((id) => id !== project.id);
+  return hydrateCandidates(ids, project.id, dependencies, new Map());
+}
+
+async function retrieveKnowledgeIntelligence(
+  project: ProjectRecommendationRepo,
+  limit: number,
+  dependencies: ProjectIntelligenceDependencies
+): Promise<ProjectIntelligenceResult> {
+  const candidates = await knowledgeProjectCandidates(project, dependencies);
+  const ids = candidates.map((candidate) => candidate.id);
+  const { ranked, quality } = await reviewRanked(
+    project,
+    candidates,
+    ids,
+    limit,
+    dependencies.reviewCandidates
+  );
+  return {
+    ...ranked,
+    quality,
+    retrieval: {
+      mode: 'knowledgebase',
+      candidateCount: candidates.length,
+      semanticCandidates: 0,
+      lexicalCandidates: 0,
+      structuredCandidates: 0,
+    },
+  };
+}
+
 export function createProjectIntelligence(
   dependencies: ProjectIntelligenceDependencies = defaultDependencies
 ) {
@@ -334,6 +375,8 @@ export function createProjectIntelligence(
     limit = 24
   ): Promise<ProjectIntelligenceResult> {
     const text = projectText(project);
+    if (knowledgePipelineEnabled())
+      return retrieveKnowledgeIntelligence(project, limit, dependencies);
     const [semanticResult, lexicalResult, structuredResult] = await Promise.allSettled([
       semanticCandidates(project, text, dependencies),
       lexicalCandidates(project, text, dependencies),

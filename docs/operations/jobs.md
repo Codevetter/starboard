@@ -95,3 +95,7 @@ Do not rerun migrations or production jobs merely to validate the source fix.
 
 **None configured.** `wrangler.jsonc` has no `[[triggers]] crons` entry. All
 scheduling is via GitHub Actions.
+
+## Knowledge pipeline cutover
+
+The full migration remains gated. See the [migration runbook](runbooks/knowledge-pipeline-migration.md) for bounded imports, reconciliation, capacity, and rollback. Existing schedules have not been changed.

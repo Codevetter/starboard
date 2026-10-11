@@ -4,7 +4,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { trackSearchOutcome } from '@/lib/analytics';
-import { searchStarboardRagOrEmpty } from '@/lib/knowledgebase';
+import { knowledgePipelineEnabled, searchStarboardRagOrEmpty } from '@/lib/knowledgebase';
 import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { repoOrderBy } from '@/lib/repo-sort';
 import { blendSearchIds, expandedSearchQuery, ftsSearchQuery } from '@/lib/search';
@@ -37,6 +37,12 @@ async function resolveStarSearchIds(
   whereClauses: string[],
   whereArgs: InValue[]
 ): Promise<number[] | null> {
+  if (knowledgePipelineEnabled()) {
+    const ids = await searchStarboardRagOrEmpty(userId, p.q!, 500);
+    whereClauses.push('r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))');
+    whereArgs.push(JSON.stringify(ids));
+    return ids.length ? ids : null;
+  }
   const lexicalQuery = ftsSearchQuery(p.q!);
   const RRF_K = 60;
   const VEC_TOP_K = 500;

@@ -3,6 +3,8 @@ import { generateText } from 'ai';
 
 import { createFleetGatewayFetch, getFreeAiBinding } from '@/lib/embeddings';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
+import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
+import { reviewKnowledgeProject } from '@/lib/knowledge-decisions';
 
 interface ReviewedProjectMatch {
   repoId: number;
@@ -233,10 +235,18 @@ export function createCachedProjectQualityReviewer(
   };
 }
 
-export const reviewProjectQuality = createCachedProjectQualityReviewer(
+const reviewLocalProjectQuality = createCachedProjectQualityReviewer(
   createProjectQualityReviewer(generateReview),
   () => (globalThis as unknown as { caches?: { default?: QualityCache } }).caches?.default
 );
+
+export const reviewProjectQuality = (
+  project: ProjectRecommendationRepo,
+  candidates: ProjectRecommendationRepo[]
+) =>
+  knowledgePipelineEnabled()
+    ? reviewKnowledgeProject(project, candidates)
+    : reviewLocalProjectQuality(project, candidates);
 
 async function generateReview(prompt: string): Promise<string> {
   const gateway = await getFreeAiBinding();

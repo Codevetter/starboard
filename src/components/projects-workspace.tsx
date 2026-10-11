@@ -38,6 +38,7 @@ import {
 import type { ConnectedProject } from '@/lib/connected-projects';
 import type { PublicGitHubProject } from '@/lib/github-projects';
 import type { ProjectIntelligenceResult } from '@/lib/project-intelligence';
+import { ProjectModelComparison } from '@/components/project-model-comparison';
 import { jsonFetcher } from '@/lib/swr-fetcher';
 
 interface ProjectsResponse {
@@ -54,6 +55,7 @@ interface GitHubProjectsResponse {
 }
 
 function retrievalLabel(mode: RecommendationRetrievalMode): string {
+  if (mode === 'knowledgebase') return 'Knowledgebase match';
   if (mode === 'hybrid') return 'Broad evidence match';
   if (mode === 'semantic') return 'Meaning-based match';
   if (mode === 'lexical-structured') return 'Catalog-context match';
@@ -398,11 +400,13 @@ function RecommendationStatus({
           </span>
         </div>
       )}
-      {recommendations && recommendations.similarProjects.length === 0 && (
-        <div className="mt-4 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
-          No eligible catalog matches yet. Browse Discover while the public corpus grows.
-        </div>
-      )}
+      {recommendations &&
+        !recommendations.fallback &&
+        recommendations.similarProjects.length === 0 && (
+          <div className="mt-4 rounded-lg border border-dashed p-8 text-center text-sm text-muted-foreground">
+            No reviewed matches are available.
+          </div>
+        )}
     </>
   );
 }
@@ -628,6 +632,11 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
       <RecommendationsSection
         data={{ recommendations, recommendationError, recommendationsLoading }}
         ui={{ showAllPeers, setShowAllPeers }}
+      />
+      <ProjectModelComparison
+        key={`comparison:${selectedProject.id}:${scope}`}
+        projectId={selectedProject.id}
+        scope={scope}
       />
       {disconnectError && (
         <p

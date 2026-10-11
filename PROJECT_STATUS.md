@@ -344,3 +344,7 @@ provenance. The workflow is free and has no billing or entitlement gate.
 Open work is tracked only in [GitHub Issues](https://github.com/Codevetter/starboard/issues).
 An open issue is a to-do, a linked pull request is in progress, and merge plus
 issue closure makes the work done.
+
+## Knowledge pipeline migration (prepared, not active)
+
+Starboard has a gated Knowledgebase path for documents, enrichment, embeddings, retrieval, needs, capability profiles and recommendation decisions. Projects includes an authenticated current-model/Jev comparison on identical evidence. Jev is disabled by default; no paid comparison or production cutover has run. See the [migration runbook](docs/operations/runbooks/knowledge-pipeline-migration.md). Accounts, collections and catalog IDs remain in Starboard. Meme Lab migration is deferred.

@@ -5,6 +5,7 @@ import { auth } from '@/lib/auth';
 import { chunkForD1 } from '@/lib/d1-limits';
 import { mapRepoBaseRow } from '@/lib/repo-row-mapper';
 import { repoVectors } from '@/lib/repo-vectors';
+import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 
 const VEC_TOP_K = 100;
 const DIST_MAX = 0.62;
@@ -68,9 +69,8 @@ export async function GET(
                    r.description,
                    r.language,
                    r.topics
-            FROM repo_embeddings re
-            JOIN repos r ON r.id = re.repo_id
-            WHERE re.repo_id = ?`,
+            FROM repos r
+            WHERE r.id = ? ${knowledgePipelineEnabled() ? '' : 'AND EXISTS (SELECT 1 FROM repo_embeddings re WHERE re.repo_id = r.id)'}`,
       args: [repoId],
     });
     if (seed.rows.length === 0) {

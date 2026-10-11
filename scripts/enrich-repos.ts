@@ -21,6 +21,7 @@
 
 import type { DbClient as Client, InStatement } from '../src/db/client';
 import { createD1RestClientFromEnv } from '../src/db/rest-client';
+import { knowledgePipelineEnabled } from '../src/lib/knowledgebase';
 
 import {
   generateRepoAiMetadata,
@@ -118,6 +119,7 @@ async function generateMetadataSafely(
   try {
     return generateRepoAiMetadata(repo);
   } catch (error) {
+    if (knowledgePipelineEnabled()) throw error;
     if (!ALLOW_HEURISTIC_FALLBACK) throw error;
     const message = error instanceof Error ? error.message : String(error);
     console.warn(

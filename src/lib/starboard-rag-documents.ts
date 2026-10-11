@@ -10,6 +10,7 @@ export interface StarboardRagRepo {
 }
 
 interface RagDocument {
+  external_id?: string;
   content: string;
   metadata: Record<string, unknown>;
 }
@@ -90,8 +91,11 @@ export function buildStarboardRagDocument(
     .join('\n\n');
 
   return {
+    external_id: `user:${userId}:repo:${repo.id}`,
     content,
     metadata: {
+      kind: 'starred_repo',
+      visibility: 'private',
       user_id: userId,
       repo_id: repo.id,
       full_name: repo.full_name,
