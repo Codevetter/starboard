@@ -47,7 +47,7 @@ describe('project-first activation wiring', () => {
     expect(projectsLayout).toContain('<AppShell>');
     expect(starsLayout).toContain('<AppShell>');
     expect(appShell).toContain('<SessionTracker />');
-    expect(appShell).toContain('flex h-svh flex-col');
+    expect(appShell).toContain('flex h-dvh flex-col overflow-hidden');
     expect(topBar).toContain('aria-label="Open product navigation"');
     expect(topBar).toContain('className="size-11 shrink-0 sm:hidden"');
   });
