@@ -8,6 +8,15 @@ import home from '../content/home.json';
 const content = workbenchContent.parse(home);
 // v0.1.13 validates absolute form URLs; keep the original same-origin GET route.
 if (content.hero.form) content.hero.form.action = new URL(content.hero.form.action).pathname;
+// The template spreads card attributes; add delivery hints after schema validation.
+// Match the shared hero's 48rem breakpoint, padding, gap, and 80rem maximum.
+if (content.hero.card) Object.assign(content.hero.card, {
+  src: '/images/route-800.webp',
+  srcSet: '/images/route-400.webp 400w, /images/route-800.webp 800w, /images/route-1200.webp 1200w, /images/route.webp 1400w',
+  sizes: '(min-width: 48rem) calc((min(100vw, 80rem) - clamp(2.5rem, 6vw, 6rem) - 2 * clamp(1.25rem, 4vw, 3.5rem)) / 2), calc(100vw - 2 * clamp(1.25rem, 4vw, 3.5rem))',
+  loading: 'eager',
+  decoding: 'async',
+});
 ---
 
 <Base {...baseProps(content)}>
