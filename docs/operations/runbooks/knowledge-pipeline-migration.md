@@ -15,6 +15,8 @@ D1 mirror writes follow Knowledgebase publication. A failed publication must not
 checkpoint fresh hashes or silently replace the service with a local model.
 Legacy knowledge copied from D1 is labelled `legacy_unvalidated`; it is not promoted
 into the evidence used for current recommendations.
+After cutover, saved draft and reviewed reports must carry `knowledgebase-v1` before
+they can appear in project intelligence. Legacy reports remain available for rollback.
 
 ## Service prerequisites
 
