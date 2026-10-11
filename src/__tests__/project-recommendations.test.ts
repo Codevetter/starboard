@@ -55,16 +55,14 @@ describe('rankProjectRecommendations', () => {
     expect(result.similarProjects.some((item) => item.id === popular.id)).toBe(false);
   });
 
-  it('labels sparse-context results as broad discovery', () => {
+  it('returns no recommendation when context cannot establish relevance', () => {
     const project = repo({ id: 1, fullName: 'acme/empty' });
     const candidate = repo({ id: 2, fullName: 'oss/popular', stargazersCount: 10_000 });
 
     const result = rankProjectRecommendations(project, [candidate]);
 
     expect(result.fallback).toBe(true);
-    expect(result.similarProjects[0].evidence).toEqual([
-      'Broad discovery fallback from the public catalog',
-    ]);
+    expect(result.similarProjects).toEqual([]);
     expect(result.recommendedTools).toEqual([]);
   });
 
@@ -86,7 +84,7 @@ describe('rankProjectRecommendations', () => {
       fullName: 'oss/same-idea-different-words',
       language: 'Rust',
       stargazersCount: 4_000,
-      semanticSimilarity: 0.7,
+      semanticSimilarity: 0.9,
     });
 
     const result = rankProjectRecommendations(project, [semanticPeer]);
@@ -341,11 +339,17 @@ describe('rankProjectRecommendations', () => {
   });
 
   it('orders grounded tools by support, evidence score, then stable name', () => {
-    const project = repo({ id: 1, fullName: 'acme/app', topics: ['testing'] });
+    const project = repo({
+      id: 1,
+      fullName: 'acme/app',
+      language: 'TypeScript',
+      topics: ['testing'],
+    });
     const peers = [2, 3, 4].map((id) =>
       repo({
         id,
         fullName: `oss/peer-${id}`,
+        language: 'TypeScript',
         topics: ['testing'],
         tools: [
           { key: 'zulu', name: 'Zulu', category: 'testing', confidence: 90 },
@@ -368,10 +372,90 @@ describe('rankProjectRecommendations', () => {
   it('handles empty metadata and clamps the requested peer limit', () => {
     const project = repo({ id: 1, fullName: 'acme/empty', name: '' });
     const peers = Array.from({ length: 60 }, (_, index) =>
-      repo({ id: index + 2, fullName: `oss/repo-${String(index).padStart(2, '0')}` })
+      repo({
+        id: index + 2,
+        fullName: `oss/repo-${String(index).padStart(2, '0')}`,
+        topics: ['payments'],
+      })
     );
 
-    expect(rankProjectRecommendations(project, peers, 0).similarProjects).toHaveLength(1);
-    expect(rankProjectRecommendations(project, peers, 100).similarProjects).toHaveLength(50);
+    expect(
+      rankProjectRecommendations({ ...project, topics: ['payments'] }, peers, 0).similarProjects
+    ).toHaveLength(1);
+    expect(
+      rankProjectRecommendations({ ...project, topics: ['payments'] }, peers, 100).similarProjects
+    ).toHaveLength(50);
+  });
+
+  it('rejects shared generic platform, frameworks and moderate embedding proximity', () => {
+    const project = repo({
+      id: 1,
+      fullName: 'acme/relationships',
+      language: 'Swift',
+      topics: ['macos', 'swift'],
+      description: 'Contact reminders for friends and family',
+      tools: [{ key: 'swiftui', name: 'SwiftUI', category: 'framework', confidence: 95 }],
+    });
+    const peer = repo({
+      id: 2,
+      fullName: 'oss/menu-cleaner',
+      language: 'Swift',
+      topics: ['macos', 'swift'],
+      description: 'Menu bar cleanup utility',
+      semanticSimilarity: 0.6,
+      tools: project.tools,
+    });
+    expect(rankProjectRecommendations(project, [peer])).toMatchObject({
+      fallback: true,
+      similarProjects: [],
+      recommendedTools: [],
+    });
+  });
+
+  it('uses current product prose and keeps cross-runtime references out of tool suggestions', () => {
+    const project = repo({
+      id: 1,
+      fullName: 'acme/contacts',
+      language: 'Swift',
+      sourceContext: {
+        status: 'complete',
+        revision: 'a'.repeat(40),
+        files: ['README.md'],
+        readme: 'Contact reminders for friends and family',
+      },
+    });
+    const peers = [2, 3].map((id) =>
+      repo({
+        id,
+        fullName: `oss/contact-${id}`,
+        language: 'PHP',
+        description: 'Contact reminders for friends and family',
+        tools: [{ key: 'laravel', name: 'Laravel', category: 'framework', confidence: 95 }],
+      })
+    );
+    const result = rankProjectRecommendations(project, peers);
+    expect(result.fallback).toBe(false);
+    expect(result.similarProjects).toHaveLength(2);
+    expect(result.recommendedTools).toEqual([]);
+  });
+
+  it('does not infer product similarity from operations details or a missing source inspection', () => {
+    const project = repo({
+      id: 1,
+      fullName: 'acme/contacts',
+      description: 'Relationship reminders',
+      language: 'TypeScript',
+      sourceContext: { status: 'unavailable', revision: null, files: [], readme: '' },
+    });
+    const peers = [2, 3].map((id) =>
+      repo({
+        id,
+        fullName: `oss/contacts-${id}`,
+        description: 'Relationship reminders',
+        language: 'TypeScript',
+        tools: [{ key: 'vitest', name: 'Vitest', category: 'testing', confidence: 95 }],
+      })
+    );
+    expect(rankProjectRecommendations(project, peers).recommendedTools).toEqual([]);
   });
 });

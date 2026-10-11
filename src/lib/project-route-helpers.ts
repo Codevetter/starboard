@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { auth } from '@/lib/auth';
 import { type ConnectedProject, PROJECT_SELECT, projectFromRow } from '@/lib/connected-projects';
+import { enrichProjectContext } from '@/lib/project-context';
 
 /**
  * Authenticate the current user and load one of their connected projects by
@@ -10,7 +11,9 @@ import { type ConnectedProject, PROJECT_SELECT, projectFromRow } from '@/lib/con
  * or the project does not belong to them.
  */
 export async function loadOwnedProject(
-  slug: string
+  slug: string,
+  inspectSource = false,
+  scope?: string
 ): Promise<{ error: NextResponse } | { repoId: number; project: ConnectedProject }> {
   const session = await auth();
   if (!session?.user?.githubId) {
@@ -31,5 +34,11 @@ export async function loadOwnedProject(
     return { error: NextResponse.json({ error: 'Project not found' }, { status: 404 }) };
   }
 
-  return { repoId, project: projectFromRow(projectResult.rows[0]) };
+  const project = projectFromRow(projectResult.rows[0]);
+  return {
+    repoId,
+    project: inspectSource
+      ? await enrichProjectContext(project, session.accessToken, { scope })
+      : project,
+  };
 }

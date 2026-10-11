@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { trackRecommendationSetViewed, type RecommendationRetrievalMode } from '@/lib/analytics';
-import { parseGitHubProjectInput } from '@/lib/github-projects';
+import { normalizeGitHubProjectLocation } from '@/lib/github-projects';
 import type { ProjectIntelligenceResult } from '@/lib/project-intelligence';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
 import { FetchHttpError, jsonFetcher } from '@/lib/swr-fetcher';
@@ -77,15 +77,29 @@ function PreviewResults({ data, loginHref, showAllPeers, setShowAllPeers }: Prev
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="truncate text-2xl font-semibold">{data.project.fullName}</h2>
             {data.project.language && <Badge variant="secondary">{data.project.language}</Badge>}
-            <Badge variant="outline">{retrievalCopy(data.retrieval.mode)}</Badge>
+            <Badge variant="outline">
+              {data.quality?.status === 'reviewed'
+                ? data.similarProjects.length
+                  ? 'Reviewed matches'
+                  : 'No relevant matches'
+                : retrievalCopy(data.retrieval.mode)}
+            </Badge>
           </div>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             {data.project.description ?? 'No repository description is available.'}
           </p>
           <p className="mt-3 text-xs text-muted-foreground">
-            Context source:{' '}
-            {data.source === 'catalog' ? 'Starboard catalog evidence' : 'public GitHub metadata'}
+            {data.project.sourceContext?.files.length
+              ? `Checked ${data.project.sourceContext.files.length} public README and manifest files${data.project.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`
+              : 'Project files could not be checked. Matches use repository metadata; tool suggestions are withheld.'}
           </p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {data.project.tools.slice(0, 8).map((tool) => (
+              <Badge key={tool.key} variant="outline">
+                {tool.name}
+              </Badge>
+            ))}
+          </div>
         </div>
         <Button asChild className="shrink-0">
           <Link href={loginHref}>Sign in to connect</Link>
@@ -94,8 +108,11 @@ function PreviewResults({ data, loginHref, showAllPeers, setShowAllPeers }: Prev
 
       {data.fallback && (
         <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-          This project has limited matching context. These are broad catalog picks, and no tool
-          recommendation is presented as grounded.
+          {data.quality?.status === 'unavailable'
+            ? data.quality.reason === 'insufficient-context'
+              ? 'There is not enough project context to review matches. Add a README describing the product, or choose a folder with its own README.'
+              : 'Relevance review is temporarily unavailable. Try again shortly; unreviewed matches are withheld.'
+            : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
         </p>
       )}
 
@@ -144,7 +161,8 @@ function PreviewResults({ data, loginHref, showAllPeers, setShowAllPeers }: Prev
           <div>
             <h2 className="text-lg font-semibold">Tools to evaluate</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Each suggestion comes only from detected tools in the similar projects above.
+              Tools from related projects with a compatible runtime, excluding tools detected here.
+              Evaluate fit before adopting.
             </p>
           </div>
           {data.recommendedTools.length === 0 ? (
@@ -282,12 +300,11 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
   const router = useRouter();
   const [repository, setRepository] = useState(initialRepository);
   const [showAllPeers, setShowAllPeers] = useState(false);
-  const normalizedRepository =
-    parseGitHubProjectInput(initialRepository)?.fullName ?? initialRepository.trim();
+  const normalizedRepository = normalizeGitHubProjectLocation(initialRepository);
   const previewUrl = normalizedRepository
     ? `/api/project-preview?repository=${encodeURIComponent(normalizedRepository)}`
     : null;
-  const { data, error, isLoading } = useSWR<PreviewResponse>(previewUrl, jsonFetcher, {
+  const { data, error, isLoading, mutate } = useSWR<PreviewResponse>(previewUrl, jsonFetcher, {
     revalidateOnFocus: false,
   });
 
@@ -302,13 +319,16 @@ export function ProjectPreviewWorkspace({ initialRepository }: { initialReposito
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const value = parseGitHubProjectInput(repository)?.fullName ?? repository.trim();
+    const value = normalizeGitHubProjectLocation(repository);
     if (!value) return;
+    if (value === normalizedRepository) {
+      void mutate();
+    }
     router.push(`/project-preview?repository=${encodeURIComponent(value)}`);
   }
 
   const connectCallback = data
-    ? `/projects?repository=${encodeURIComponent(data.project.fullName)}`
+    ? `/projects?repository=${encodeURIComponent(data.project.fullName)}${data.project.sourceContext?.scope ? `&path=${encodeURIComponent(data.project.sourceContext.scope)}` : ''}`
     : '/projects';
   const loginHref = `/login?callbackUrl=${encodeURIComponent(connectCallback)}`;
   const previewLoginHref = `/login?callbackUrl=${encodeURIComponent(

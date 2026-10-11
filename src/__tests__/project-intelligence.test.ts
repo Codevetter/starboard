@@ -69,6 +69,75 @@ function dependencies(
 }
 
 describe('project intelligence retrieval', () => {
+  it('uses reviewed capability evidence and withholds results on a review outage', async () => {
+    const execute = vi.fn(async (statement: string | { sql: string }) => {
+      const sql = typeof statement === 'string' ? statement : statement.sql;
+      if (sql.includes('repos_fts MATCH')) return result([{ id: 2 }]);
+      if (sql.includes('json_each(?)'))
+        return result([
+          row(2, 'oss/reminders', {
+            description: 'Payments orchestration toolkit',
+            topics: '["payments"]',
+          }),
+        ]);
+      return result([]);
+    });
+    const reviewCandidates = vi.fn().mockResolvedValue({
+      status: 'reviewed',
+      matches: [
+        {
+          repoId: 2,
+          role: 'reference',
+          projectEvidence: 'Payments orchestration',
+          candidateEvidence: 'Payments orchestration toolkit',
+        },
+      ],
+    });
+    const retrieve = createProjectIntelligence({ ...dependencies(execute), reviewCandidates });
+    const reviewed = await retrieve(project());
+    expect(reviewed.quality?.status).toBe('reviewed');
+    expect(reviewed.similarProjects[0]).toMatchObject({
+      id: 2,
+      role: 'reference',
+      evidence: [
+        'Project: “Payments orchestration”',
+        'Candidate: “Payments orchestration toolkit”',
+      ],
+    });
+    expect(reviewed.recommendedTools).toEqual([]);
+    reviewCandidates.mockResolvedValueOnce({ status: 'unavailable', matches: [] });
+    expect(await retrieve(project())).toMatchObject({
+      quality: { status: 'unavailable' },
+      similarProjects: [],
+      recommendedTools: [],
+      fallback: true,
+    });
+  });
+  it('embeds fresh purpose context instead of reusing a metadata-only vector', async () => {
+    const execute = vi.fn().mockResolvedValue(result([]));
+    const queryByRepoId = vi.fn();
+    const deps = dependencies(execute, { queryByRepoId });
+    await createProjectIntelligence(deps)(
+      project({
+        sourceContext: {
+          status: 'complete',
+          revision: 'a'.repeat(40),
+          files: ['README.md'],
+          readme: 'Track contact reminders for friends',
+        },
+      })
+    );
+    expect(queryByRepoId).not.toHaveBeenCalled();
+    expect(deps.embed).toHaveBeenCalledWith([
+      expect.stringContaining('Track contact reminders for friends'),
+    ]);
+    const statements = execute.mock.calls.map(
+      ([statement]) => statement as { sql: string; args: unknown[] }
+    );
+    const lexical = statements.find((statement) => statement.sql.includes('repos_fts MATCH'));
+    expect(lexical?.sql).not.toContain('stargazers_count >=');
+    expect(lexical?.args[0]).not.toContain('typescript');
+  });
   it('retrieves beyond a popularity prefix and reranks the evidence-rich peer first', async () => {
     const execute = vi.fn(async (statement: string | { sql: string; args?: unknown[] }) => {
       const sql = typeof statement === 'string' ? statement : statement.sql;

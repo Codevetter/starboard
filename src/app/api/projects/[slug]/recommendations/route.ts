@@ -4,7 +4,11 @@ import { loadOwnedProject } from '@/lib/project-route-helpers';
 import { retrieveProjectIntelligence } from '@/lib/project-intelligence';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const loaded = await loadOwnedProject((await params).slug);
+  const loaded = await loadOwnedProject(
+    (await params).slug,
+    true,
+    request.nextUrl.searchParams.get('path') ?? undefined
+  );
   if ('error' in loaded) return loaded.error;
   const { project } = loaded;
 

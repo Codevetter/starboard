@@ -120,9 +120,17 @@ const toolDefinitions: ToolDefinition[] = [
   def('uv', 'uv', 'package-manager', ['uv', 'uv.lock']),
   def('poetry', 'Poetry', 'package-manager', ['poetry', 'poetry.lock']),
   def('cargo', 'Cargo', 'package-manager', ['cargo', 'cargo.toml']),
+  def('swiftui', 'SwiftUI', 'framework', ['swiftui']),
+  def('appkit', 'AppKit', 'framework', ['appkit']),
+  def('xctest', 'XCTest', 'testing', ['xctest']),
+  def('sparkle', 'Sparkle', 'library', ['sparkle-project/sparkle', 'sparkle']),
 ];
 
 const toolUrls: Record<string, string> = {
+  swiftui: 'https://developer.apple.com/xcode/swiftui/',
+  appkit: 'https://developer.apple.com/documentation/appkit',
+  xctest: 'https://developer.apple.com/documentation/xctest',
+  sparkle: 'https://sparkle-project.org/',
   angular: 'https://angular.dev',
   anthropic: 'https://www.anthropic.com',
   astro: 'https://astro.build',
@@ -430,6 +438,9 @@ function detectFromComposer(content: string, ctx: ManifestDetectContext): void {
 function detectFromPackageSwift(content: string, ctx: ManifestDetectContext): void {
   ctx.addDirect('swift', 90);
   for (const match of content.matchAll(/package:\s*"([^"]+)"/g)) ctx.addKnown(match[1]!, 84);
+  for (const match of content.matchAll(/url:\s*"https:\/\/github\.com\/[^/]+\/([^"/]+)"/g)) {
+    ctx.addKnown(match[1].replace(/\.git$/, ''), 90);
+  }
 }
 
 const CMAKE_FIND_PACKAGE_RE = /find_package\s*\(\s*([A-Za-z0-9_+-]+)/gi;

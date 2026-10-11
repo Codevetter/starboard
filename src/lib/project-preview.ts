@@ -7,6 +7,7 @@ import {
   type PublicGitHubProject,
 } from '@/lib/github-projects';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
+import { enrichProjectContext } from '@/lib/project-context';
 
 export type ProjectPreviewResolution =
   | { status: 'invalid' }
@@ -17,11 +18,13 @@ export type ProjectPreviewResolution =
 export interface ProjectPreviewDependencies {
   database: Pick<DbClient, 'execute'>;
   fetchProject: typeof fetchPublicGitHubProject;
+  enrichProject?: typeof enrichProjectContext;
 }
 
 const defaultDependencies: ProjectPreviewDependencies = {
   database: db,
   fetchProject: fetchPublicGitHubProject,
+  enrichProject: enrichProjectContext,
 };
 
 function externalProject(project: PublicGitHubProject): ProjectRecommendationRepo {
@@ -85,7 +88,13 @@ export function createProjectPreviewResolver(
       return {
         status: 'resolved',
         source: 'catalog',
-        project: projectRecommendationFromRow(catalog.rows[0]),
+        project: dependencies.enrichProject
+          ? await dependencies.enrichProject(
+              projectRecommendationFromRow(catalog.rows[0]),
+              accessToken,
+              { input }
+            )
+          : projectRecommendationFromRow(catalog.rows[0]),
       };
     }
 
@@ -93,7 +102,13 @@ export function createProjectPreviewResolver(
 
     const project = await dependencies.fetchProject(slug, accessToken);
     return project
-      ? { status: 'resolved', source: 'github', project: externalProject(project) }
+      ? {
+          status: 'resolved',
+          source: 'github',
+          project: dependencies.enrichProject
+            ? await dependencies.enrichProject(externalProject(project), accessToken, { input })
+            : externalProject(project),
+        }
       : { status: 'unavailable' };
   };
 }

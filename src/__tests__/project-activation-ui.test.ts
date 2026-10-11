@@ -41,7 +41,8 @@ describe('project-first activation wiring', () => {
     expect(workspace).toContain("setSource('manual')");
     expect(workspace).toContain('initialRepository={initialRepository}');
     expect(workspace).toContain('Paste a URL instead');
-    expect(workspace).toContain('<TopBar title="Projects"');
+    expect(workspace).toContain('<WorkspaceLayout');
+    expect(workspace).toContain('title="Projects"');
     expect(workspace).not.toContain('function ProjectNav()');
     expect(projectsLayout).toContain('<AppShell>');
     expect(starsLayout).toContain('<AppShell>');
@@ -61,12 +62,13 @@ describe('project-first activation wiring', () => {
 
     expect(discoverLayout).toContain('<AppShell>');
     expect(toolsLayout).toContain('<AppShell>');
-    expect(tools).toContain('<TopBar');
-    expect(toolDetail).toContain('<TopBar');
+    expect(tools).toContain('<WorkspaceLayout');
+    expect(source('src/components/workspace-layout.tsx')).toContain('<TopBar');
+    expect(toolDetail).toContain('<WorkspaceLayout');
     expect(tools).toContain('<ToolIntelligenceGuide');
-    expect(tools).toContain('<ToolScopeSelector');
+    expect(tools).toContain('<ToolFiltersSidebar');
     expect(toolDetail).toContain('<ToolIntelligenceGuide');
-    expect(toolDetail).toContain('<ToolScopeSelector');
+    expect(toolDetail).toContain('<ToolFiltersSidebar');
     expect(tools).not.toContain('<header className=');
     expect(toolDetail).not.toContain('<header className=');
     expect(discover).toContain('repoCountDescription=');

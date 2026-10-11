@@ -80,6 +80,14 @@ export function parseGitHubProjectInput(input: string): GitHubProjectSlug | null
   return { owner, repo, fullName: `${owner}/${repo}` };
 }
 
+/** Preserve a branch/folder selection while normalizing the repository URL. */
+export function normalizeGitHubProjectLocation(input: string): string {
+  const slug = parseGitHubProjectInput(input);
+  if (!slug) return input.trim();
+  const tree = input.trim().split('/tree/')[1]?.split(/[?#]/, 1)[0].replace(/\/$/, '');
+  return tree ? `${slug.fullName}/tree/${tree}` : slug.fullName;
+}
+
 export async function fetchPublicGitHubProject(
   slug: GitHubProjectSlug,
   accessToken?: string

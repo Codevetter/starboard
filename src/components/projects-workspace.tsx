@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -384,7 +384,13 @@ function RecommendationsSection({
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-base font-semibold">Similar projects</h3>
             {recommendations && (
-              <Badge variant="outline">{retrievalLabel(recommendations.retrieval.mode)}</Badge>
+              <Badge variant="outline">
+                {recommendations.quality?.status === 'reviewed'
+                  ? recommendations.similarProjects.length
+                    ? 'Reviewed matches'
+                    : 'No relevant matches'
+                  : retrievalLabel(recommendations.retrieval.mode)}
+              </Badge>
             )}
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -401,8 +407,11 @@ function RecommendationsSection({
 
       {recommendations?.fallback && (
         <p className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-          This project has limited context, so these are broad catalog picks. No tool is presented
-          as a grounded recommendation in this state.
+          {recommendations.quality?.status === 'unavailable'
+            ? recommendations.quality.reason === 'insufficient-context'
+              ? 'There is not enough project context to review matches. Add a README describing the product, or choose a folder with its own README.'
+              : 'Relevance review is temporarily unavailable. Try again shortly; unreviewed matches are withheld.'
+            : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
         </p>
       )}
       {recommendationError && (
@@ -465,6 +474,50 @@ interface ProjectDetailPanelProps {
   disconnecting: boolean;
   disconnectError: string | null;
   onDisconnect: (project: ConnectedProject) => void;
+  scope: string;
+  onScopeChange: (scope: string) => void;
+}
+
+function ProjectFolderForm({
+  scope,
+  onScopeChange,
+  loading,
+}: {
+  scope: string;
+  onScopeChange: (scope: string) => void;
+  loading: boolean;
+}) {
+  const [folder, setFolder] = useState(scope);
+  return (
+    <form
+      className="max-w-xl space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onScopeChange(folder.trim());
+      }}
+    >
+      <label htmlFor="project-folder" className="text-sm font-medium">
+        Focus on a folder
+      </label>
+      <div className="flex gap-2">
+        <Input
+          id="project-folder"
+          value={folder}
+          onChange={(event) => setFolder(event.target.value)}
+          placeholder="Optional, e.g. apps/memory-map"
+          maxLength={180}
+          autoCapitalize="none"
+          spellCheck={false}
+        />
+        <Button type="submit" variant="outline" disabled={loading}>
+          {scope === folder.trim() ? 'Refresh' : 'Apply'}
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Use a subapp’s README and dependencies. Leave blank for the whole repository.
+      </p>
+    </form>
+  );
 }
 
 function ProjectDetailPanel(props: ProjectDetailPanelProps) {
@@ -479,32 +532,42 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
     disconnecting,
     disconnectError,
     onDisconnect,
+    scope,
+    onScopeChange,
   } = props;
+  const inspectedProject = recommendations?.project ?? selectedProject;
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-4 border-b pb-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="break-words text-xl font-semibold">{selectedProject.fullName}</h2>
-            {selectedProject.language && (
-              <Badge variant="secondary">{selectedProject.language}</Badge>
+            {inspectedProject.language && (
+              <Badge variant="secondary">{inspectedProject.language}</Badge>
             )}
           </div>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-            {selectedProject.description ?? 'No repository description is available.'}
+            {inspectedProject.description ?? 'No repository description is available.'}
           </p>
           <div className="mt-3 flex flex-wrap gap-1.5">
-            {selectedProject.topics.slice(0, 6).map((topic) => (
+            {inspectedProject.topics.slice(0, 6).map((topic) => (
               <Badge key={topic} variant="outline">
                 {topic}
               </Badge>
             ))}
-            {selectedProject.tools.slice(0, 5).map((tool) => (
+            {(recommendations?.context.tools ?? selectedProject.tools).slice(0, 8).map((tool) => (
               <Badge key={tool.key} variant="outline">
                 {tool.name}
               </Badge>
             ))}
           </div>
+          {recommendations?.context.sourceContext && (
+            <p className="mt-3 text-xs text-muted-foreground">
+              {recommendations.context.sourceContext.status === 'unavailable'
+                ? 'Project files could not be checked. Matches use catalog metadata; tool suggestions are withheld.'
+                : `Checked ${recommendations.context.sourceContext.files.length} public README and manifest files${recommendations.context.sourceContext.status === 'partial' ? ' (partial coverage)' : ''}.`}
+            </p>
+          )}
         </div>
         <div className="flex shrink-0 gap-2">
           <Button asChild variant="outline" size="sm">
@@ -528,6 +591,12 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
           </Button>
         </div>
       </div>
+      <ProjectFolderForm
+        key={`${selectedProject.id}:${scope}`}
+        scope={scope}
+        onScopeChange={onScopeChange}
+        loading={recommendationsLoading}
+      />
       <RecommendationsSection
         data={{ recommendations, recommendationError, recommendationsLoading }}
         ui={{ showAllPeers, setShowAllPeers }}
@@ -545,8 +614,8 @@ function ProjectDetailPanel(props: ProjectDetailPanelProps) {
           <div>
             <h3 className="text-base font-semibold">Tools to evaluate</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              Free recommendations derived only from detected tools in the grounded peers above,
-              with support and source confidence visible.
+              Tools used by related projects with a compatible runtime, excluding tools already
+              detected here. These are candidates to evaluate, not verified missing capabilities.
             </p>
           </div>
           {recommendations.recommendedTools.length === 0 ? (
@@ -709,6 +778,7 @@ async function executeDisconnect(
 function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepository: string) {
   const { status } = useSession();
   const router = useRouter();
+  const scope = useSearchParams().get('path') ?? '';
   const trackedSet = useRef<string | null>(null);
   const { data, error, isLoading, mutate } = useSWR<ProjectsResponse>(
     status === 'authenticated' ? '/api/projects' : null,
@@ -728,12 +798,13 @@ function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepo
   const [disconnectError, setDisconnectError] = useState<string | null>(null);
   const [showAllPeers, setShowAllPeers] = useState(false);
   const recommendationUrl = selectedProject
-    ? `/api/projects/${selectedProject.id}/recommendations?limit=24`
+    ? `/api/projects/${selectedProject.id}/recommendations?limit=24${scope ? `&path=${encodeURIComponent(scope)}` : ''}`
     : null;
   const {
     data: recommendations,
     error: recommendationError,
     isLoading: recommendationsLoading,
+    mutate: mutateRecommendations,
   } = useSWR<RecommendationsResponse>(recommendationUrl, jsonFetcher, {
     revalidateOnFocus: false,
   });
@@ -778,7 +849,7 @@ function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepo
       setDisconnecting,
       setDisconnectError,
     },
-    { projects, mutate, router }
+    { projects, mutate, router, scope }
   );
 
   return {
@@ -798,6 +869,17 @@ function useProjectsWorkspaceState(selectedSlug: string | undefined, initialRepo
     recommendationsLoading,
     disconnect,
     connected,
+    scope,
+    applyScope: (path: string) => {
+      if (path === scope) {
+        void mutateRecommendations();
+        return;
+      }
+      if (selectedProject)
+        router.replace(
+          `/projects/${selectedProject.id}${path ? `?path=${encodeURIComponent(path)}` : ''}`
+        );
+    },
   };
 }
 
@@ -807,6 +889,7 @@ function useProjectCallbacks(
     projects: ConnectedProject[];
     mutate: ReturnType<typeof useSWR<ProjectsResponse>>['mutate'];
     router: ReturnType<typeof useRouter>;
+    scope: string;
   }
 ) {
   const disconnect = (project: ConnectedProject) => executeDisconnect(project, state, ctx);
@@ -815,7 +898,9 @@ function useProjectCallbacks(
       { projects: [project, ...ctx.projects.filter((i) => i.id !== project.id)] },
       { revalidate: false }
     );
-    ctx.router.push(`/projects/${project.id}`);
+    ctx.router.push(
+      `/projects/${project.id}${ctx.scope ? `?path=${encodeURIComponent(ctx.scope)}` : ''}`
+    );
   };
   return { disconnect, connected };
 }
@@ -845,6 +930,8 @@ export function ProjectsWorkspace({
     recommendationsLoading,
     disconnect,
     connected,
+    scope,
+    applyScope,
   } = state;
 
   if (status === 'loading' || (status === 'authenticated' && isLoading && !data)) {
@@ -870,6 +957,8 @@ export function ProjectsWorkspace({
         ) : (
           <ProjectDetailPanel
             selectedProject={selectedProject}
+            scope={scope}
+            onScopeChange={applyScope}
             recommendations={recommendations}
             recommendationError={recommendationError}
             recommendationsLoading={recommendationsLoading}

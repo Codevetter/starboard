@@ -1,7 +1,7 @@
 import type { FormEvent, ReactElement } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ push: vi.fn(), swr: vi.fn() }));
+const mocks = vi.hoisted(() => ({ push: vi.fn(), swr: vi.fn(), mutate: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: mocks.push }) }));
 vi.mock('swr', () => ({ default: mocks.swr }));
 vi.mock('react', async (importOriginal) => ({
@@ -20,15 +20,17 @@ import { validGitHubProjectInputs } from './fixtures/github-project-inputs';
 describe('project preview workspace repository entry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.swr.mockReturnValue({});
+    mocks.swr.mockReturnValue({ mutate: mocks.mutate });
   });
 
   it.each(validGitHubProjectInputs)(
     'normalizes direct page input and resubmission of %s',
     (input) => {
       const tree = ProjectPreviewWorkspace({ initialRepository: input });
+      const folder = input.trim().split('/tree/')[1]?.split(/[?#]/, 1)[0].replace(/\/$/, '');
+      const repository = folder ? `openai/openai-node/tree/${folder}` : 'openai/openai-node';
       expect(mocks.swr).toHaveBeenCalledWith(
-        '/api/project-preview?repository=openai%2Fopenai-node',
+        `/api/project-preview?repository=${encodeURIComponent(repository)}`,
         expect.any(Function),
         expect.any(Object)
       );
@@ -41,7 +43,10 @@ describe('project preview workspace repository entry', () => {
         preventDefault,
       } as unknown as FormEvent<HTMLFormElement>);
       expect(preventDefault).toHaveBeenCalledOnce();
-      expect(mocks.push).toHaveBeenCalledWith('/project-preview?repository=openai%2Fopenai-node');
+      expect(mocks.push).toHaveBeenCalledWith(
+        `/project-preview?repository=${encodeURIComponent(repository)}`
+      );
+      expect(mocks.mutate).toHaveBeenCalledOnce();
     }
   );
 });

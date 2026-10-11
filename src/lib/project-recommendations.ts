@@ -1,3 +1,6 @@
+import type { ProjectSourceContext } from '@/lib/project-context';
+import { getToolDefinition } from '@/lib/repo-tools';
+
 export interface ProjectToolSignal {
   key: string;
   name: string;
@@ -19,6 +22,7 @@ export interface ProjectRecommendationRepo {
   aiCategory?: string | null;
   aiKeywords?: string[];
   tools: ProjectToolSignal[];
+  sourceContext?: ProjectSourceContext;
   /**
    * Normalized embedding similarity (0–1) when this repo arrived via vector
    * retrieval. Absent for candidates that only matched lexical or structured
@@ -30,6 +34,7 @@ export interface ProjectRecommendationRepo {
 export interface ProjectRecommendation extends ProjectRecommendationRepo {
   score: number;
   evidence: string[];
+  role?: 'reference' | 'integration';
 }
 
 interface ToolRecommendationSource {
@@ -53,6 +58,7 @@ export interface GroundedToolRecommendation {
   score: number;
   supportCount: number;
   sources: ToolRecommendationSource[];
+  reason: string;
 }
 
 export interface ProjectRecommendationResult {
@@ -63,6 +69,7 @@ export interface ProjectRecommendationResult {
     language: string | null;
     topics: string[];
     tools: ProjectToolSignal[];
+    sourceContext?: ProjectSourceContext;
   };
 }
 
@@ -88,15 +95,207 @@ const GENERIC_TOKENS = new Set([
   'use',
   'using',
   'with',
+  'are',
+  'can',
+  'has',
+  'have',
+  'its',
+  'not',
+  'our',
+  'your',
+  'you',
+  'all',
+  'also',
+  'more',
+  'new',
+  'one',
+  'out',
+  'run',
+  'get',
+  'into',
+  'been',
+  'only',
+  'will',
+  'user',
+  'users',
+  'support',
+  'supports',
+  'simple',
+  'fast',
+  'modern',
+  'powerful',
+  'local',
+  'native',
+  'desktop',
+  'mobile',
+  'web',
+  'api',
+  'apps',
+  'platform',
+  'macos',
+  'ios',
+  'windows',
+  'linux',
+  'swift',
+  'typescript',
+  'javascript',
+  'python',
+  'rust',
+  'golang',
+  'java',
+  'opensource',
+  'open-source',
+  'developer',
+  'development',
+  'developer-tools',
+  'framework',
+  'library',
+  'react',
+  'nextjs',
+  'next.js',
+  'node',
+  'nodejs',
+  'cloudflare',
+  'workers',
+  'swiftui',
+  'appkit',
+  'frontend',
+  'backend',
+  'server',
+  'client',
+  'built',
+  'based',
+  'features',
+  'provides',
+  'includes',
+  'available',
+  'data',
+  'ai',
+  'source',
+  'personal',
+  'manage',
+  'management',
+  'system',
+  'systems',
+  'service',
+  'services',
+  'content',
+  'workspace',
+  'workflow',
+  'workflows',
+  'across',
+  'designed',
+  'helps',
+  'help',
+  'built-in',
+  'integrated',
+  'integration',
+  'self-hosted',
+  'self',
+  'hosted',
+  'free',
+  'public',
+  'automatically',
+  'private',
+  'privacy',
+  'secure',
+  'security',
+  'phone',
+  'iphone',
+  'ipad',
+  'account',
+  'accounts',
+  'sync',
+  'synchronization',
+  'history',
+  'storage',
+  'browser',
+  'read-only',
+  'read',
+  'write',
+  'save',
+  'saved',
+  'optional',
+  'keep',
+  'close',
+  'works',
+  'work',
+  'without',
+  'first',
+  'when',
+  'each',
+  'then',
+  'than',
+  'their',
+  'they',
+  'which',
+  'what',
+  'does',
+  'how',
+  'product',
+  'issue',
+  'note',
+  'people',
+  'person',
+  'thing',
+  'someone',
+  'remain',
+  'own',
+  'over',
+  'via',
+  'cli',
+  'mcp',
+  'codex',
+  'claude',
+  'coding',
+  'agent',
+  'local-first',
+  'live',
+  'explicit',
+  'larger',
+  'smaller',
+  'next',
+  'still',
+  'doc',
+  'documentation',
+  'file',
+  'directory',
+  'runtime',
+  'deployment',
 ]);
 
 const MIN_SPECIFIC_PEER_SCORE = 12;
 const MIN_GROUNDED_TOOL_CONFIDENCE = 65;
 const MIN_GROUNDED_TOOL_SUPPORT = 2;
-// Embedding proximity is strong similarity evidence: a vector-nearest repo
-// with no shared literal topics/tools must still outrank a topical mismatch.
 const SEMANTIC_SCORE_WEIGHT = 24;
-const COMPETING_TOOL_CATEGORIES = new Set(['framework', 'package-manager']);
+const COMPETING_TOOL_CATEGORIES = new Set(['framework', 'package-manager', 'cloud', 'database']);
+const GENERIC_TOPICS = new Set([
+  'ai',
+  'llm',
+  'llms',
+  'ai-agents',
+  'agents',
+  'artificial-intelligence',
+  'machine-learning',
+  'generative-ai',
+  'local-first',
+  'privacy',
+  'productivity',
+  'saas',
+  'claude-code',
+  'codex',
+  'coding-agents',
+  'personal-data',
+  'cloudkit',
+  'd1',
+  'fleet',
+  'catalog',
+]);
+const ALTERNATIVE_TOOL_GROUPS = [
+  ['jest', 'vitest'],
+  ['eslint', 'biome'],
+  ['npm', 'pnpm', 'yarn'],
+];
 
 function normalizedSet(values: Array<string | null | undefined>): Set<string> {
   const result = new Set<string>();
@@ -113,8 +312,48 @@ function meaningfulTokens(...values: Array<string | null | undefined>): Set<stri
       .join(' ')
       .toLowerCase()
       .match(/[a-z0-9][a-z0-9+#.-]{2,}/g)
-      ?.filter((token) => !GENERIC_TOKENS.has(token)) ?? []
+      ?.map((token) => token.replace(/\.+$/, ''))
+      .filter((token) => !GENERIC_TOKENS.has(token) && !getToolDefinition(token))
+      .map((token) => token.replace(/ies$/, 'y').replace(/(?<!s)s$/, ''))
+      .filter((token) => !GENERIC_TOKENS.has(token)) ?? []
   );
+}
+
+/** Purpose terms come first in lexical retrieval; repository names and stack are weak evidence. */
+export function projectPurposeTerms(project: ProjectRecommendationRepo): string[] {
+  return [
+    ...meaningfulTokens(
+      project.description,
+      ...project.topics.filter((topic) => !GENERIC_TOPICS.has(topic)),
+      project.sourceContext?.readme,
+      project.aiSummary,
+      project.aiCategory,
+      ...(project.aiKeywords ?? [])
+    ),
+  ];
+}
+
+function runtimeFamilies(project: ProjectRecommendationRepo): Set<string> {
+  const families = new Set<string>();
+  const language = project.language?.toLowerCase();
+  const files = project.sourceContext?.files ?? [];
+  if (
+    ['typescript', 'javascript'].includes(language ?? '') ||
+    files.some((file) => file.endsWith('package.json'))
+  )
+    families.add('js');
+  if (language === 'swift' || files.some((file) => file.endsWith('Package.swift')))
+    families.add('swift');
+  if (
+    language === 'python' ||
+    files.some((file) => /(?:pyproject.toml|requirements.txt)$/.test(file))
+  )
+    families.add('python');
+  if (language === 'rust' || files.some((file) => file.endsWith('Cargo.toml')))
+    families.add('rust');
+  if (language === 'go' || files.some((file) => file.endsWith('go.mod'))) families.add('go');
+  if (language && families.size === 0) families.add(language);
+  return families;
 }
 
 function intersection<T>(left: Set<T>, right: Set<T>, limit = Number.POSITIVE_INFINITY): T[] {
@@ -182,19 +421,23 @@ function canRetainCandidate(
   );
 }
 
-function recommendToolsFromPeers(
+export function recommendToolsFromPeers(
   project: ProjectRecommendationRepo,
   peers: ProjectRecommendation[],
   fallback: boolean,
   limit = 12
 ): GroundedToolRecommendation[] {
-  if (fallback) return [];
+  if (fallback || project.sourceContext?.status === 'unavailable') return [];
 
   const existingToolKeys = normalizedSet(project.tools.map((tool) => tool.key));
   const existingToolCategories = normalizedSet(project.tools.map((tool) => tool.category));
   const recommendations = new Map<string, GroundedToolRecommendation>();
+  const projectRuntimes = runtimeFamilies(project);
 
   for (const peer of peers) {
+    // Cross-runtime repositories can be useful references without supplying
+    // compatible dependency recommendations for this project's implementation.
+    if (intersection(projectRuntimes, runtimeFamilies(peer)).length === 0) continue;
     for (const tool of peer.tools) {
       const key = tool.key.trim().toLowerCase();
       const category = tool.category.trim().toLowerCase();
@@ -203,6 +446,9 @@ function recommendToolsFromPeers(
         existingToolKeys.has(key) ||
         category === 'language' ||
         tool.confidence < MIN_GROUNDED_TOOL_CONFIDENCE ||
+        ALTERNATIVE_TOOL_GROUPS.some(
+          (group) => group.includes(key) && group.some((existing) => existingToolKeys.has(existing))
+        ) ||
         (COMPETING_TOOL_CATEGORIES.has(category) && existingToolCategories.has(category))
       ) {
         continue;
@@ -215,6 +461,7 @@ function recommendToolsFromPeers(
         score: 0,
         supportCount: 0,
         sources: [],
+        reason: `Not detected in this project; used by related ${project.language ?? 'compatible-runtime'} repositories. Evaluate compatibility before adoption.`,
       };
       if (current.sources.some((source) => source.repoId === peer.id)) continue;
 
@@ -255,6 +502,7 @@ interface ScoreCandidateContext {
   projectToolCategories: Set<string>;
   projectLanguage: string | null;
   projectTokens: Set<string>;
+  purposeTokens: Set<string>;
 }
 
 function extractCandidateTools(candidate: ProjectRecommendationRepo): {
@@ -291,9 +539,12 @@ function scoreLanguageAndTopics(
 
   const topicMatches = intersection(ctx.projectTopics, normalizedSet(candidate.topics), 3);
   if (topicMatches.length > 0) {
-    const value = topicMatches.length * 12;
-    score += value;
-    specificScore += value;
+    for (const topic of topicMatches) {
+      const specific =
+        !GENERIC_TOKENS.has(topic) && !GENERIC_TOPICS.has(topic) && !getToolDefinition(topic);
+      score += specific ? 12 : 2;
+      if (specific) specificScore += 12;
+    }
   }
 
   return { score, specificScore, languageMatch, topicMatches };
@@ -304,22 +555,20 @@ function scoreToolsAndCategories(
   candidateTools: { keys: Set<string>; categories: Set<string> }
 ): { score: number; specificScore: number; toolMatches: string[]; categoryMatches: string[] } {
   let score = 0;
-  let specificScore = 0;
+  const specificScore = 0;
 
   const toolMatches = intersection(ctx.projectToolKeys, candidateTools.keys, 2);
   if (toolMatches.length > 0) {
-    const value = toolMatches.length * 14;
+    const value = toolMatches.length * 6;
     score += value;
-    specificScore += value;
   }
 
   const categoryMatches = intersection(ctx.projectToolCategories, candidateTools.categories)
     .filter((category) => !toolMatches.includes(category))
     .slice(0, 2);
   if (categoryMatches.length > 0) {
-    const value = categoryMatches.length * 6;
+    const value = categoryMatches.length;
     score += value;
-    specificScore += value;
   }
 
   return { score, specificScore, toolMatches, categoryMatches };
@@ -348,9 +597,11 @@ function scoreCandidate(
   let tokenScore = 0;
   let tokenSpecific = 0;
   if (tokenMatches.length > 0) {
-    const value = tokenMatches.length * 3;
-    tokenScore = value;
-    tokenSpecific = value;
+    for (const token of tokenMatches) {
+      const isPurpose = ctx.purposeTokens.has(token);
+      tokenScore += isPurpose ? 10 : 2;
+      tokenSpecific += isPurpose ? 6 : 0;
+    }
   }
 
   const semanticScore = Math.round(
@@ -359,7 +610,12 @@ function scoreCandidate(
 
   return {
     score: langTopic.score + toolCat.score + tokenScore + semanticScore,
-    specificScore: langTopic.specificScore + toolCat.specificScore + tokenSpecific + semanticScore,
+    // Weak embedding proximity and shared infrastructure must not certify a
+    // topical mismatch. Allow strong semantic evidence for genuine synonyms.
+    specificScore:
+      langTopic.specificScore +
+      tokenSpecific +
+      ((candidate.semanticSimilarity ?? 0) >= 0.85 ? semanticScore : 0),
     languageMatch: langTopic.languageMatch,
     semanticScore,
     topicMatches: langTopic.topicMatches,
@@ -404,20 +660,26 @@ export function rankProjectRecommendations(
   const projectToolKeys = normalizedSet(project.tools.map((tool) => tool.key));
   const projectToolCategories = normalizedSet(project.tools.map((tool) => tool.category));
   const projectLanguage = project.language?.toLowerCase() ?? null;
-  const projectTokens = meaningfulTokens(
-    project.name,
+  const projectTokens = new Set(projectPurposeTerms(project));
+  const purposeTokens = meaningfulTokens(
     project.description,
-    project.aiSummary,
-    project.aiCategory,
-    ...(project.aiKeywords ?? [])
+    project.sourceContext?.readme.slice(0, 600),
+    project.aiSummary
   );
   const resultLimit = Math.max(1, Math.min(limit, 50));
 
   let hasSpecificMatches = false;
   const specificCandidates: ScoredProjectCandidate[] = [];
-  const fallbackCandidates: ScoredProjectCandidate[] = [];
   for (const candidate of candidates) {
-    if (candidate.id === project.id || candidate.archived) continue;
+    if (
+      candidate.id === project.id ||
+      candidate.fullName.toLowerCase() === project.fullName.toLowerCase() ||
+      candidate.archived ||
+      /no longer (?:works|working|maintained|supported)|is (?:deprecated|unmaintained)|discontinued project/i.test(
+        candidate.description ?? ''
+      )
+    )
+      continue;
 
     const scored = scoreCandidate(project, candidate, {
       projectTopics,
@@ -425,18 +687,16 @@ export function rankProjectRecommendations(
       projectToolCategories,
       projectLanguage,
       projectTokens,
+      purposeTokens,
     });
     const { score, specificScore } = scored;
 
     let target: ScoredProjectCandidate[] | null = null;
     if (specificScore >= MIN_SPECIFIC_PEER_SCORE) {
       if (!hasSpecificMatches) {
-        fallbackCandidates.length = 0;
         hasSpecificMatches = true;
       }
       target = specificCandidates;
-    } else if (!hasSpecificMatches) {
-      target = fallbackCandidates;
     }
     if (!target || !canRetainCandidate(target, candidate, score, resultLimit)) continue;
 
@@ -444,7 +704,7 @@ export function rankProjectRecommendations(
     retainBoundedCandidate(target, { candidate, score, specificScore, evidence }, resultLimit);
   }
 
-  const similarProjects = (hasSpecificMatches ? specificCandidates : fallbackCandidates)
+  const similarProjects = (hasSpecificMatches ? specificCandidates : [])
     .sort(compareScoredCandidates)
     .map(({ candidate, score, specificScore, evidence }) => {
       const recommendation = { ...candidate, score, specificScore, evidence };
@@ -461,6 +721,7 @@ export function rankProjectRecommendations(
       language: project.language,
       topics: project.topics,
       tools: project.tools,
+      ...(project.sourceContext ? { sourceContext: project.sourceContext } : {}),
     },
   };
 }
