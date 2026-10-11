@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import { notFound } from 'next/navigation';
+
+import { getPublicRepo, repositorySlug } from '@/lib/public-repo';
 
 type ExploreParams = { slug: string[] };
 
@@ -11,19 +14,18 @@ export async function generateMetadata({
   const { slug } = await params;
   // Match the owner/repository path used by the public detail lookup. Avoid
   // giving malformed catch-all paths an indexable repository identity.
-  if (
-    slug.length !== 2 ||
-    !/^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,38})$/.test(slug[0]) ||
-    !/^[a-zA-Z0-9_.-]{1,100}$/.test(slug[1]) ||
-    slug[1] === '.' ||
-    slug[1] === '..'
-  ) {
+  const repoSlug = repositorySlug(slug);
+  if (!repoSlug) {
     return { title: 'Invalid repository path', robots: { index: false } };
   }
-  const fullName = slug.join('/');
+  const repo = await getPublicRepo(repoSlug);
+  if (!repo) return { title: 'Repository not found', robots: { index: false } };
+  const fullName = repo.full_name;
   const canonical = `/explore/${slug.map(encodeURIComponent).join('/')}`;
   const title = `${fullName} — repository intelligence`;
-  const description = `Explore ${fullName} on Starboard: inspect repository details, related projects and detected tools, or open the source on GitHub.`;
+  const description = repo.description
+    ? `${fullName}: ${repo.description}`.slice(0, 300)
+    : `Explore ${fullName} on Starboard: inspect repository details, related projects and detected tools, or open the source on GitHub.`;
   return {
     title,
     description,
@@ -39,6 +41,15 @@ export async function generateMetadata({
   };
 }
 
-export default function RepositoryLayout({ children }: { children: ReactNode }) {
+export default async function RepositoryLayout({
+  children,
+  params,
+}: {
+  children: ReactNode;
+  params: Promise<ExploreParams>;
+}) {
+  const { slug } = await params;
+  const repoSlug = repositorySlug(slug);
+  if (!repoSlug || !(await getPublicRepo(repoSlug))) notFound();
   return children;
 }
