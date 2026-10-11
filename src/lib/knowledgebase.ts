@@ -8,6 +8,8 @@ type CloudflareEnv = {
   RAG_SERVICE?: ServiceBinding;
   RAG_SERVICE_KEY?: string;
   STARBOARD_RAG_INDEX_ID?: string;
+  STARBOARD_CATALOG_INDEX_ID?: string;
+  STARBOARD_KNOWLEDGE_PIPELINE?: string;
 };
 
 interface RagResult {
@@ -19,6 +21,7 @@ interface RagResult {
 }
 
 interface RagDocument {
+  external_id?: string;
   content: string;
   metadata: Record<string, unknown>;
 }
@@ -52,10 +55,11 @@ function serviceBinding(): ServiceBinding | null {
   return cloudflareEnv().RAG_SERVICE ?? null;
 }
 
-async function ragFetch(path: string, init: RequestInit): Promise<Response> {
+async function knowledgebaseFetch(path: string, init: RequestInit): Promise<Response> {
   const key = serviceKey();
   if (!key) throw new Error('RAG_SERVICE_KEY is not configured');
   const requestInit: RequestInit = {
+    signal: AbortSignal.timeout(60_000),
     ...init,
     headers: {
       'Content-Type': 'application/json',
@@ -75,13 +79,17 @@ async function searchStarboardRag(
   topK: number
 ): Promise<number[] | null> {
   const ragIndexId = indexId();
-  if (!serviceKey() || !ragIndexId) return null;
-  const res = await ragFetch(`/v1/indexes/${ragIndexId}/query`, {
+  if (!serviceKey() || !ragIndexId) {
+    if (knowledgePipelineEnabled())
+      throw new Error('The personal Knowledgebase index is not configured');
+    return null;
+  }
+  const res = await knowledgebaseFetch(`/v1/indexes/${encodeURIComponent(ragIndexId)}/query`, {
     method: 'POST',
     body: JSON.stringify({
       query,
       top_k: topK,
-      mode: 'semantic',
+      mode: knowledgePipelineEnabled() ? 'hybrid' : 'semantic',
       filter: { user_id: userId },
     }),
   });
@@ -101,6 +109,7 @@ export async function searchStarboardRagOrEmpty(
   try {
     return (await searchStarboardRag(userId, query, topK)) ?? [];
   } catch (error) {
+    if (knowledgePipelineEnabled()) throw error;
     console.warn('knowledgebase RAG search failed:', error);
     return [];
   }
@@ -111,7 +120,7 @@ export async function ingestStarboardRagDocuments(documents: RagDocument[]): Pro
   if (!serviceKey() || !ragIndexId || documents.length === 0) return 0;
   let ingested = 0;
   for (const batch of batchRagDocuments(documents)) {
-    const res = await ragFetch(`/v1/indexes/${ragIndexId}/ingest`, {
+    const res = await knowledgebaseFetch(`/v1/indexes/${encodeURIComponent(ragIndexId)}/ingest`, {
       method: 'POST',
       body: JSON.stringify({ documents: batch }),
     });
@@ -120,6 +129,62 @@ export async function ingestStarboardRagDocuments(documents: RagDocument[]): Pro
     ingested += body.documents?.length ?? 0;
   }
   return ingested;
+}
+
+/** Explicit cutover after source reconciliation; never silently select a partial index. */
+export function knowledgePipelineEnabled(): boolean {
+  return (
+    (process.env.STARBOARD_KNOWLEDGE_PIPELINE || cloudflareEnv().STARBOARD_KNOWLEDGE_PIPELINE) ===
+    'knowledgebase'
+  );
+}
+
+export function personalIndexPath(): string {
+  const id = indexId();
+  if (!id) throw new Error('STARBOARD_RAG_INDEX_ID is not configured');
+  return `/v1/indexes/${encodeURIComponent(id)}`;
+}
+
+export function catalogIndexPath(): string {
+  const id =
+    process.env.STARBOARD_CATALOG_INDEX_ID?.trim() ||
+    cloudflareEnv().STARBOARD_CATALOG_INDEX_ID?.trim();
+  if (!id) throw new Error('STARBOARD_CATALOG_INDEX_ID is not configured');
+  return `/v1/indexes/${encodeURIComponent(id)}`;
+}
+
+export async function knowledgebaseJson<T>(path: string, body?: unknown): Promise<T> {
+  const response = await knowledgebaseFetch(
+    path,
+    body === undefined ? { method: 'GET' } : { method: 'POST', body: JSON.stringify(body) }
+  );
+  if (!response.ok) throw new Error(`Knowledgebase request failed (${response.status})`);
+  return response.json() as Promise<T>;
+}
+
+export async function knowledgebaseEmbeddings(input: string[]): Promise<number[][]> {
+  const result = await knowledgebaseJson<{ data: number[][]; dimensions: number }>(
+    '/v1/embeddings',
+    {
+      input,
+      dimensions: 768,
+      model: '@cf/baai/bge-base-en-v1.5',
+    }
+  );
+  if (
+    result.dimensions !== 768 ||
+    !Array.isArray(result.data) ||
+    result.data.length !== input.length ||
+    result.data.some(
+      (row) =>
+        !Array.isArray(row) ||
+        row.length !== 768 ||
+        row.some((value) => typeof value !== 'number' || !Number.isFinite(value))
+    )
+  ) {
+    throw new Error('Knowledgebase embedding response violates the 768-dimensional contract');
+  }
+  return result.data;
 }
 
 export function batchRagDocuments(

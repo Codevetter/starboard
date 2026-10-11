@@ -1,4 +1,7 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
+import { db } from '@/db';
+import { createKnowledgebaseRepoVectorStore } from './knowledge-catalog';
+import { knowledgePipelineEnabled } from './knowledgebase';
 
 import {
   reserveVectorizeQuery,
@@ -15,6 +18,7 @@ export interface RepoVectorMatch {
 export interface RepoVectorInput {
   repoId: number;
   values: number[];
+  content?: string;
 }
 
 interface VectorizeMatchLike {
@@ -134,6 +138,7 @@ export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVec
 }
 
 export function repoVectors() {
+  if (knowledgePipelineEnabled()) return createKnowledgebaseRepoVectorStore(db);
   const { env } = getCloudflareContext();
   const index = (env as unknown as { REPO_VECTORS?: VectorizeIndexLike }).REPO_VECTORS;
   if (!index) throw new Error('Cloudflare Vectorize binding REPO_VECTORS is unavailable');

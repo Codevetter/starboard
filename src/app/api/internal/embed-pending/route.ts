@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { buildEmbeddingFromRow, generateEmbeddings } from '@/lib/embeddings';
 import { hasValidOperatorToken } from '@/lib/operator-auth';
+import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 import { repoVectors } from '@/lib/repo-vectors';
 import { SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
 
@@ -137,9 +138,15 @@ export async function POST(request: Request) {
       }
       throw error;
     }
-    const embeddings = await generateEmbeddings(batch.map((item) => item.text));
+    const embeddings = knowledgePipelineEnabled()
+      ? batch.map(() => [])
+      : await generateEmbeddings(batch.map((item) => item.text));
     await vectors.upsert(
-      batch.map((item, index) => ({ repoId: item.id, values: embeddings[index] })),
+      batch.map((item, index) => ({
+        repoId: item.id,
+        values: embeddings[index],
+        ...(knowledgePipelineEnabled() ? { content: item.text } : {}),
+      })),
       admission
     );
     const statements: InStatement[] = batch.map((item) => ({

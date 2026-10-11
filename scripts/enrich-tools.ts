@@ -14,6 +14,8 @@
  */
 
 import { createHash } from 'node:crypto';
+import { knowledgePipelineEnabled } from '../src/lib/knowledgebase';
+import { ingestKnowledgeDocuments } from '../src/lib/knowledge-catalog';
 
 import type { DbClient as Client, InStatement } from '../src/db/client';
 import { createD1RestClientFromEnv } from '../src/db/rest-client';
@@ -54,6 +56,7 @@ interface GitHubRepo {
 }
 
 interface GitHubTree {
+  sha?: string;
   truncated?: boolean;
   tree?: Array<{ path?: string; type?: string; size?: number }>;
 }
@@ -192,7 +195,7 @@ async function fetchSbomTools(repo: PendingRepo): Promise<ToolDetection[]> {
 
 async function fetchManifestFiles(
   repo: PendingRepo
-): Promise<Array<{ path: string; content: string }>> {
+): Promise<Array<{ path: string; content: string; revision: string }>> {
   const metadata = await fetchJson<GitHubRepo>(`https://api.github.com/repos/${repo.full_name}`);
   const branch = metadata?.default_branch || 'HEAD';
   const tree = await fetchJson<GitHubTree>(
@@ -206,14 +209,16 @@ async function fetchManifestFiles(
       .sort((a, b) => manifestPriority(a) - manifestPriority(b) || a.localeCompare(b))
       .slice(0, MAX_FILES_PER_REPO) ?? [];
 
-  const files: Array<{ path: string; content: string }> = [];
+  const files: Array<{ path: string; content: string; revision: string }> = [];
+  if (!tree?.sha) throw new Error('Pinned tool source revision unavailable');
   for (const path of paths) {
     const data = await fetchJson<GitHubContent>(
-      `https://api.github.com/repos/${repo.full_name}/contents/${encodePath(path)}?ref=${encodeURIComponent(branch)}`
+      `https://api.github.com/repos/${repo.full_name}/contents/${encodePath(path)}?ref=${encodeURIComponent(tree.sha)}`
     );
     if (!data?.content || data.encoding !== 'base64') continue;
     files.push({
       path,
+      revision: tree.sha,
       content: Buffer.from(data.content, 'base64').toString('utf-8'),
     });
   }
@@ -288,6 +293,39 @@ async function enrichRepo(db: Client, repo: PendingRepo) {
   const manifestTools = files.flatMap((file) => detectToolsFromManifest(file.path, file.content));
   const tools = mergeToolDetections([...sbomTools, ...manifestTools, ...signalTools]);
 
+  if (knowledgePipelineEnabled()) {
+    await ingestKnowledgeDocuments([
+      ...files.map((file) => ({
+        external_id: `repo:${repo.id}:manifest:${createHash('sha256').update(file.path).digest('hex')}`,
+        content: file.content,
+        metadata: {
+          kind: 'tool_source',
+          repo_id: repo.id,
+          visibility: 'public',
+          source_revision: file.revision,
+          source_path: file.path,
+          source_url: `https://github.com/${repo.full_name}/blob/${file.revision}/${file.path}`,
+          validation: 'source_observed',
+        },
+      })),
+      {
+        external_id: `repo:${repo.id}:tools`,
+        content: JSON.stringify(tools),
+        metadata: {
+          kind: 'tool_profile',
+          repo_id: repo.id,
+          visibility: 'public',
+          validation: 'extractor_observed_and_inferred',
+          extractor_version: 'starboard-tools-v1',
+          source_hash: baseHash,
+          source_paths: files.map((file) => file.path),
+          source_revision: files[0]?.revision,
+          sbom_revision: 'unreported',
+          human_validated: false,
+        },
+      },
+    ]);
+  }
   await saveTools({ db, repo, tools, sourceHash: baseHash, status: 'ok' });
   console.info(
     `[tools] ${repo.full_name}: ${tools.length} tools from ${files.length} files (${repo.stargazers_count} stars)`
@@ -313,6 +351,7 @@ async function main() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`[tools] ${repo.full_name} failed: ${message}`);
+      if (knowledgePipelineEnabled()) continue;
       await saveTools({
         db,
         repo,

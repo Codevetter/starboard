@@ -1,5 +1,6 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { embedMany } from 'ai';
+import { knowledgebaseEmbeddings, knowledgePipelineEnabled } from './knowledgebase';
 
 /**
  * Embedding dimension contract.
@@ -233,6 +234,7 @@ export function textHash(text: string): string {
  */
 export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   if (texts.length === 0) return [];
+  if (knowledgePipelineEnabled()) return knowledgebaseEmbeddings(texts);
 
   const gateway = await getFreeAiBinding();
   if (gateway) {

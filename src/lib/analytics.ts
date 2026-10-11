@@ -29,6 +29,7 @@ export type RecommendationRankBucket = '1-3' | '4-12' | '13+';
 export type RecommendationSupportBucket = 'one' | 'two' | 'three_plus' | 'none';
 export type RecommendationConfidenceBucket = 'high' | 'medium' | 'inferred' | 'none';
 export type RecommendationRetrievalMode =
+  | 'knowledgebase'
   | 'hybrid'
   | 'semantic'
   | 'lexical-structured'

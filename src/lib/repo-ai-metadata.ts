@@ -2,6 +2,9 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { generateText, type LanguageModel } from 'ai';
 
 import { createFleetGatewayFetch, getFreeAiBinding, textHash } from './embeddings';
+import { knowledgePipelineEnabled } from './knowledgebase';
+import { enrichKnowledgeRepository } from './knowledge-enrichment';
+import { REPO_AI_CATEGORIES } from './repo-ai-taxonomy';
 
 export const REPO_AI_METADATA_ROUTE = `free-ai:auto|direct:${process.env.AI_MODEL || 'unconfigured'}`;
 export const HEURISTIC_REPO_AI_METADATA_MODEL = 'heuristic-taxonomy-v1';
@@ -9,26 +12,9 @@ export const HEURISTIC_REPO_AI_METADATA_MODEL = 'heuristic-taxonomy-v1';
 const MAX_TEXT_LENGTH = 1800;
 const REQUEST_TIMEOUT_MS = parseInt(process.env.AI_TIMEOUT_MS || '30000', 10);
 const MAX_ATTEMPTS = parseInt(process.env.AI_MAX_ATTEMPTS || '2', 10);
-const CATEGORIES = [
-  'ai-agents',
-  'ai-evals',
-  'ai-infra',
-  'ai-observability',
-  'ai-rag',
-  'app-framework',
-  'cli-tooling',
-  'data',
-  'database',
-  'devtool',
-  'frontend',
-  'infra',
-  'library',
-  'security',
-  'testing',
-  'unknown',
-] as const;
 
 export interface RepoMetadataSource {
+  id?: number;
   full_name: string;
   description: string | null;
   language: string | null;
@@ -70,7 +56,7 @@ export function buildRepoAiMetadataPrompt(repo: RepoMetadataSource): string {
 
 Return only compact JSON with exactly these keys:
 summary: one sentence, under 120 characters
-category: one of ${CATEGORIES.join(', ')}
+category: one of ${REPO_AI_CATEGORIES.join(', ')}
 subcategories: 2-5 short lowercase tags
 use_cases: 2-5 short lowercase user intents
 keywords: 4-10 search aliases, frameworks, product names, or related terms
@@ -115,6 +101,7 @@ async function generateWithModel(
 export async function generateRepoAiMetadata(
   repo: RepoMetadataSource
 ): Promise<RepoAiMetadataResult> {
+  if (knowledgePipelineEnabled()) return enrichKnowledgeRepository(repo);
   const input = buildRepoAiGenerationInput(repo);
   const gateway = await getFreeAiBinding();
   if (gateway) {
@@ -244,7 +231,9 @@ export function normalizeRepoAiMetadata(value: unknown): RepoAiMetadata {
 function normalizeCategory(value: unknown): string {
   if (typeof value !== 'string') return 'unknown';
   const normalized = value.trim().toLowerCase();
-  return CATEGORIES.includes(normalized as (typeof CATEGORIES)[number]) ? normalized : 'unknown';
+  return REPO_AI_CATEGORIES.includes(normalized as (typeof REPO_AI_CATEGORIES)[number])
+    ? normalized
+    : 'unknown';
 }
 
 function cleanList(value: unknown, maxItems: number): string[] {

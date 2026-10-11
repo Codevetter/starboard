@@ -48,6 +48,7 @@ import {
   type CatalogSearchResult,
 } from '../src/lib/popular-catalog-reconciliation';
 import { recordStep } from '../src/lib/refresh-manifest';
+import { knowledgePipelineEnabled } from '../src/lib/knowledgebase';
 import { createVectorizeRestWriterFromEnv } from '../src/lib/repo-vectors-rest';
 import { runOnlyIfVectorizeStorageGrowthAllowed } from '../src/lib/shared-ai-budget';
 
@@ -298,10 +299,18 @@ async function embedPending(db: Client, limit: number): Promise<number> {
 
   for (let i = 0; i < toEmbed.length; i += BATCH_SIZE) {
     const batch = toEmbed.slice(i, i + BATCH_SIZE);
-    const embeddings = await runOnlyIfVectorizeStorageGrowthAllowed(() =>
-      generateEmbeddings(batch.map((r) => r.text))
+    const embeddings = knowledgePipelineEnabled()
+      ? batch.map(() => [])
+      : await runOnlyIfVectorizeStorageGrowthAllowed(() =>
+          generateEmbeddings(batch.map((r) => r.text))
+        );
+    await vectors.upsert(
+      batch.map((item, j) => ({
+        repoId: item.id,
+        values: embeddings[j],
+        ...(knowledgePipelineEnabled() ? { content: item.text } : {}),
+      }))
     );
-    await vectors.upsert(batch.map((item, j) => ({ repoId: item.id, values: embeddings[j] })));
     const stmts: InStatement[] = batch.map((item) => ({
       sql: `INSERT INTO repo_embeddings (repo_id, text_hash)
             VALUES (?, ?)

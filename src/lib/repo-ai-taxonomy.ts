@@ -1,0 +1,18 @@
+export const REPO_AI_CATEGORIES = [
+  'ai-agents',
+  'ai-evals',
+  'ai-infra',
+  'ai-observability',
+  'ai-rag',
+  'app-framework',
+  'cli-tooling',
+  'data',
+  'database',
+  'devtool',
+  'frontend',
+  'infra',
+  'library',
+  'security',
+  'testing',
+  'unknown',
+] as const;

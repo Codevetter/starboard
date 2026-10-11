@@ -1,3 +1,4 @@
+import { knowledgePipelineEnabled } from '../lib/knowledgebase';
 import type { InStatement } from './client';
 import { createD1RestClientFromEnv } from './rest-client';
 import { buildEmbeddingFromRow, generateEmbeddings } from '../lib/embeddings';
@@ -69,10 +70,16 @@ async function seed() {
       `Embedding batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(toEmbed.length / BATCH_SIZE)} (${batch.length} repos)...`
     );
 
-    const embeddings = await runOnlyIfVectorizeStorageGrowthAllowed(() =>
-      generateEmbeddings(texts)
+    const embeddings = knowledgePipelineEnabled()
+      ? batch.map(() => [])
+      : await runOnlyIfVectorizeStorageGrowthAllowed(() => generateEmbeddings(texts));
+    await vectors.upsert(
+      batch.map((item, j) => ({
+        repoId: item.id,
+        values: embeddings[j],
+        ...(knowledgePipelineEnabled() ? { content: item.text } : {}),
+      }))
     );
-    await vectors.upsert(batch.map((item, j) => ({ repoId: item.id, values: embeddings[j] })));
 
     const stmts: InStatement[] = batch.map((item) => ({
       sql: `INSERT INTO repo_embeddings (repo_id, text_hash)
