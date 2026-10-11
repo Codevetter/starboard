@@ -565,7 +565,7 @@ function DiscoverContent(props: DiscoverContentProps) {
         onViewModeChange={setViewMode}
         onMenuClick={() => setSidebarOpen(true)}
         repoCount={total}
-        repoCountDescription="This count shows repositories matching your current search and filters. Discover starts with public GitHub repositories at 5,000+ stars, added and refreshed by a bounded daily job."
+        repoCountDescription="This count shows repositories matching your current search and filters. Discover starts with public GitHub repositories at 5,000+ stars, added by a weekly catalog job."
         hasActiveFilters={hasActiveFilters}
         onClearFilters={clearFilters}
       />
