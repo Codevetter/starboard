@@ -33,30 +33,34 @@ export interface KnowledgeDecisionEngine {
   };
 }
 
-export async function projectKnowledgeDocuments(project: ProjectRecommendationRepo): Promise<KnowledgeDocument[]> {
+export async function projectKnowledgeDocuments(
+  project: ProjectRecommendationRepo
+): Promise<KnowledgeDocument[]> {
   const context = project.sourceContext;
   const documents = context?.documents?.length
     ? context.documents
     : context?.readme
       ? [{ path: 'README.md', text: context.readme }]
       : [];
-  return Promise.all(documents.slice(0, 3).map(async (document) => ({
-    external_id: `project:${project.id}:document:${await sourceKey(`${context?.scope || 'root'}\n${document.path}`)}`,
-    content: document.text,
-    metadata: {
-      schema_version: 1,
-      subject_id: `github:${project.id}`,
-      repo_id: project.id,
-      kind: 'project_context',
-      visibility: 'public',
-      source_revision: context?.revision,
-      source_path: document.path,
-      scope_path: context?.scope || '',
-      source_url: `https://github.com/${project.fullName}/blob/${context?.revision || 'HEAD'}/${document.path}`,
-      extractor_version: 'starboard-project-v1',
-      validation: 'source_observed',
-    },
-  })));
+  return Promise.all(
+    documents.slice(0, 3).map(async (document) => ({
+      external_id: `project:${project.id}:document:${await sourceKey(`${context?.scope || 'root'}\n${document.path}`)}`,
+      content: document.text,
+      metadata: {
+        schema_version: 1,
+        subject_id: `github:${project.id}`,
+        repo_id: project.id,
+        kind: 'project_context',
+        visibility: 'public',
+        source_revision: context?.revision,
+        source_path: document.path,
+        scope_path: context?.scope || '',
+        source_url: `https://github.com/${project.fullName}/blob/${context?.revision || 'HEAD'}/${document.path}`,
+        extractor_version: 'starboard-project-v1',
+        validation: 'source_observed',
+      },
+    }))
+  );
 }
 
 async function sourceKey(value: string): Promise<string> {

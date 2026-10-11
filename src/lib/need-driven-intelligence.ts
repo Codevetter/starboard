@@ -1459,6 +1459,9 @@ export async function loadLatestReviewedReport(
   if (!row) return null;
   try {
     const report = JSON.parse(String(row.report)) as DraftReport;
+    if (knowledgePipelineEnabled() && report.retrievalVersion !== 'knowledgebase-v1') {
+      return null;
+    }
     return {
       repoId,
       draftReportId: Number(row.draft_report_id),
