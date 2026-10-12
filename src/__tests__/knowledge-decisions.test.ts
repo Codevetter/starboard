@@ -76,6 +76,27 @@ beforeEach(() => {
 });
 
 describe('source-grounded recommendation decisions', () => {
+  it('retains all bounded product documents including later feature inventories', async () => {
+    const documents = [
+      'PRODUCT.md',
+      'PROJECT_STATUS.md',
+      'README.md',
+      'docs/product/features.md',
+      'docs/product/overview.md',
+    ].map((path) => ({ path, text: `Evidence for ${path}` }));
+    const result = await projectKnowledgeDocuments({
+      ...project,
+      sourceContext: { ...project.sourceContext!, documents },
+    });
+    expect(result).toHaveLength(5);
+    expect(result.map((document) => document.metadata.source_path)).toEqual(
+      documents.map((document) => document.path)
+    );
+    expect(
+      result.every((document) => document.metadata.extractor_version === 'starboard-project-v2')
+    ).toBe(true);
+  });
+
   it('uses stable bounded IDs and isolates folder scopes', async () => {
     const longPath = `${'a/'.repeat(150)}PRODUCT.md`;
     const scoped = {
