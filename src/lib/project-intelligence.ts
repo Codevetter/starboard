@@ -426,8 +426,7 @@ async function retrieveKnowledgeIntelligence(
   const { ranked, quality } = dependencies.reviewFeature
     ? await reviewKnowledgeFeatures(
         project,
-        features,
-        results,
+        { features, results },
         candidates,
         limit,
         dependencies.reviewFeature
@@ -448,12 +447,15 @@ async function retrieveKnowledgeIntelligence(
 
 async function reviewKnowledgeFeatures(
   project: ProjectRecommendationRepo,
-  features: KnowledgeProjectFeature[],
-  results: Array<Array<{ repoId: number; rankScore: number }>>,
+  retrieval: {
+    features: KnowledgeProjectFeature[];
+    results: Array<Array<{ repoId: number; rankScore: number }>>;
+  },
   candidates: ProjectRecommendationRepo[],
   limit: number,
   review: NonNullable<ProjectIntelligenceDependencies['reviewFeature']>
 ) {
+  const { features, results } = retrieval;
   const byId = new Map(
     candidates
       .filter((candidate) => isProjectCandidate(project, candidate))
