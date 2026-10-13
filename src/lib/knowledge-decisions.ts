@@ -157,9 +157,10 @@ async function decisionInput(
 
 export async function compareKnowledgeDecisions(
   project: ProjectRecommendationRepo,
-  candidates: ProjectRecommendationRepo[]
+  candidates: ProjectRecommendationRepo[],
+  feature?: KnowledgeProjectFeature
 ) {
-  const input = await decisionInput(project, candidates);
+  const input = await decisionInput(project, candidates, undefined, feature);
   return knowledgebaseJson<{
     comparison_id: string;
     input_hash: string;
@@ -196,6 +197,16 @@ export async function reviewKnowledgeProject(
         matches: [],
         reason: 'provider-error',
       };
+    if (
+      feature?.operation &&
+      engine.result.items.some(
+        (item) =>
+          !['high', 'medium', 'low', 'reject'].includes(item.utility || '') ||
+          (item.verdict === 'reference' &&
+            (!item.comparison?.action || !item.comparison.differences))
+      )
+    )
+      return { status: 'unavailable', matches: [], reason: 'invalid-response' };
     const allowed = new Set(input.candidates.map((candidate) => candidate.id));
     const matches = [...engine.result.items]
       .sort((a, b) => Number(b.utility === 'high') - Number(a.utility === 'high'))

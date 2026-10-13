@@ -196,4 +196,28 @@ describe('source-grounded recommendation decisions', () => {
     ).toBe('unavailable');
     expect(mocks.ingest).not.toHaveBeenCalled();
   });
+  it('refuses old combined judgments for an operation review', async () => {
+    const feature = {
+      id: 'feature',
+      description: 'Render widgets.',
+      operation: {
+        input: 'Widget definitions',
+        action: 'Render widgets',
+        output: 'Interactive widgets',
+        method: '',
+        constraints: [],
+        importance: 'core' as const,
+      },
+      evidence: [evidence],
+    };
+    expect(await reviewKnowledgeProject(project, [candidate], undefined, feature)).toEqual({
+      status: 'unavailable',
+      matches: [],
+      reason: 'invalid-response',
+    });
+    expect(mocks.json).toHaveBeenCalledWith(
+      '/v1/indexes/catalog/decide',
+      expect.objectContaining({ feature_operation: feature.operation })
+    );
+  });
 });

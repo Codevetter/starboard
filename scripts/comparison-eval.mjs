@@ -55,7 +55,7 @@ export function scoreComparisonRuns(fixture, records) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
-  const [fixturePath, directory] = process.argv.slice(2);
+  const [fixturePath, directory, prefix = 'paired-v35'] = process.argv.slice(2);
   if (!fixturePath || !directory)
     throw new Error('Usage: node scripts/comparison-eval.mjs <fixture.json> <run-directory>');
   const fixture = JSON.parse(await readFile(fixturePath, 'utf8'));
@@ -63,9 +63,7 @@ if (process.argv[1] && resolve(process.argv[1]) === import.meta.filename) {
   for (const testCase of fixture.cases) {
     try {
       records.push(
-        JSON.parse(
-          await readFile(resolve(directory, `paired-v32-${testCase.project}.json`), 'utf8')
-        )
+        JSON.parse(await readFile(resolve(directory, `${prefix}-${testCase.project}.json`), 'utf8'))
       );
     } catch (error) {
       if (error.code !== 'ENOENT') throw error;

@@ -439,7 +439,14 @@ async function retrieveKnowledgeIntelligence(
   limit: number,
   dependencies: ProjectIntelligenceDependencies
 ): Promise<ProjectIntelligenceResult> {
-  const { features, results, candidates } = await knowledgeFeatureCandidates(project, dependencies);
+  const retrieved = await knowledgeFeatureCandidates(project, dependencies);
+  const candidates = retrieved.candidates;
+  const hasOperations = retrieved.features.some((feature) => feature.operation);
+  const indexes = retrieved.features.flatMap((feature, index) =>
+    !hasOperations || feature.operation ? [index] : []
+  );
+  const features = indexes.map((index) => retrieved.features[index]);
+  const results = indexes.map((index) => retrieved.results[index]);
   const reviewedCandidates = dependencies.prepareKnowledgeCandidates
     ? await prepareFeatureCandidates(
         features,

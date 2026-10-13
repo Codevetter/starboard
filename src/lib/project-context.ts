@@ -47,8 +47,13 @@ const PRODUCT_DOCUMENT =
 const OPERATIONAL_SECTION =
   /^(?:install(?:ation)?|setup|getting started|quick start|prerequisites|requirements|development|develop|verify|build(?:ing)?|check the build|deployment|deploy|contributing|license|licence|task reconciliation|historical|timeline)\b/i;
 
+const FENCED_API_EXAMPLES = /```[^\n]*\n([\s\S]*?)```/g;
+const INSTALL_EXAMPLE =
+  /```(?:sh|shell|bash|console)?\s*\n\s*(?:\$\s*)?(?:npm (?:i|install)|pnpm (?:add|install)|pip install|brew install|git clone)\b/i;
+
 /** Keep product/features prose; install commands and dependency tables drown out purpose. */
-export function projectReadmeContext(markdown: string): string {
+export function projectReadmeContext(markdown: string, budget = MAX_PRODUCT_CONTEXT_CHARS): string {
+  const limit = Math.min(MAX_PRODUCT_CONTEXT_CHARS, Math.max(1000, budget));
   let skipLevel = 0;
   const sections: { heading: string; lines: string[] }[] = [{ heading: '', lines: [] }];
   let datedSections = 0;
@@ -79,16 +84,13 @@ export function projectReadmeContext(markdown: string): string {
   const full = cleaned
     .map(({ heading, text }) => [heading, text].filter(Boolean).join('\n'))
     .join('\n\n');
-  if (full.length <= MAX_PRODUCT_CONTEXT_CHARS) return full;
+  if (full.length <= limit) return full;
 
   // Reserve evidence from every section before spending remaining space on
   // long early sections. Keep headings so consumers can distinguish goals,
   // product editions and shipped behavior.
   const headings = cleaned.reduce((sum, section) => sum + section.heading.length + 3, 0);
-  const allowance = Math.max(
-    0,
-    Math.floor((MAX_PRODUCT_CONTEXT_CHARS - headings) / cleaned.length)
-  );
+  const allowance = Math.max(0, Math.floor((limit - headings) / cleaned.length));
   return cleaned
     .map(({ heading, text }) => {
       const excerpt = text.slice(0, allowance);
@@ -105,6 +107,37 @@ export function projectReadmeContext(markdown: string): string {
         .join('\n');
     })
     .join('\n\n')
+    .slice(0, limit);
+}
+
+/** Catalog API examples are evidence; retain their literal syntax separately from prose. */
+export function catalogReadmeContext(markdown: string): string {
+  const blocks = [...markdown.matchAll(FENCED_API_EXAMPLES)]
+    .map((match) => match[0])
+    .filter(
+      (block) =>
+        !/```(?:sh|shell|bash|console)?\s*\n\s*(?:\$\s*)?(?:npm (?:i|install)|pnpm (?:add|install)|pip install|brew install|git clone)\b/i.test(
+          block
+        )
+    );
+  const chosen =
+    blocks.length <= 6
+      ? blocks
+      : [
+          blocks[0]!,
+          blocks[1]!,
+          blocks[Math.floor(blocks.length / 2)]!,
+          blocks.at(-2)!,
+          blocks.at(-1)!,
+        ];
+  const examples = chosen
+    .map((block) => block.slice(0, 700))
+    .join('\n\n')
+    .slice(0, 4000);
+  const prose = projectReadmeContext(markdown, MAX_PRODUCT_CONTEXT_CHARS - examples.length - 40);
+  return [prose, examples ? `API and usage examples:\n${examples}` : '']
+    .filter(Boolean)
+    .join('\n\n')
     .slice(0, MAX_PRODUCT_CONTEXT_CHARS);
 }
 
@@ -120,6 +153,7 @@ interface SourceTree {
 interface ProjectLocation {
   input?: string;
   scope?: string;
+  includeExamples?: boolean;
 }
 type ProjectSlug = NonNullable<ReturnType<typeof parseGitHubProjectInput>>;
 
@@ -473,9 +507,11 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
   tree: SourceTree,
   source: ReturnType<typeof selectSource>,
   files: Awaited<ReturnType<typeof loadPublicFiles>>,
-  scope: string
+  location: ProjectLocation
 ): T {
-  const readme = projectReadmeContext(
+  const scope = location.scope || '';
+  const proseContext = location.includeExamples ? catalogReadmeContext : projectReadmeContext;
+  const readme = proseContext(
     files.loaded.find((file) => file.path === source.readme?.path)?.content ?? ''
   );
   const dependencies = manifestDependencies(files.loaded);
@@ -487,7 +523,7 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
     .map((file) => {
       const prose = PRODUCT_DOCUMENT.test(projectPath(file.path, scope));
       const text = prose
-        ? projectReadmeContext(file.content)
+        ? proseContext(file.content)
         : file.content.length <= 16_000
           ? file.content
           : `${file.content.slice(0, 8000)}\n\n${file.content.slice(-8000)}`;
@@ -593,7 +629,10 @@ export function createProjectContextLoader(fetcher: typeof fetch = fetch) {
       files.loaded.push(...implementation.loaded);
       files.loaded.sort((a, b) => a.path.localeCompare(b.path));
       files.failed ||= implementation.failed;
-      return inspectedProject(fallback, tree, source, files, scope);
+      return inspectedProject(fallback, tree, source, files, {
+        scope,
+        includeExamples: location.includeExamples,
+      });
     } catch {
       return { ...fallback, sourceContext: unavailable };
     }

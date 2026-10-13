@@ -423,4 +423,35 @@ describe('project intelligence retrieval', () => {
       ]),
     });
   });
+  it('uses purpose for retrieval while reviewing only structured operations', async () => {
+    pipeline.enabled = true;
+    const evidence = [{ document_id: 'p', chunk_id: 'c', excerpt: 'Extract article text.' }];
+    const purpose = { id: 'purpose', description: 'A saved-link reader.', evidence };
+    const feature = {
+      id: 'operation',
+      description: 'Extract article text.',
+      evidence,
+      operation: {
+        input: 'HTML',
+        action: 'Extract article text',
+        output: 'Article text',
+        method: '',
+        constraints: [],
+        importance: 'core' as const,
+      },
+    };
+    const review = vi.fn().mockResolvedValue({ status: 'reviewed', matches: [] });
+    const query = vi.fn().mockResolvedValue([{ repoId: 2, rankScore: 1 }]);
+    const execute = vi.fn().mockResolvedValue(result([row(2, 'oss/extractor')]));
+    const response = await createProjectIntelligence({
+      ...dependencies(execute),
+      projectFeatures: vi.fn().mockResolvedValue([purpose, feature]),
+      queryKnowledge: query,
+      reviewFeature: review,
+    })(project());
+    expect(query).toHaveBeenCalledWith(purpose.description, 50);
+    expect(review).toHaveBeenCalledOnce();
+    expect(review.mock.calls[0][2].id).toBe('operation');
+    expect(response.quality?.totalFeatures).toBe(1);
+  });
 });

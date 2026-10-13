@@ -140,8 +140,13 @@ export async function refreshKnowledgeRepository(
   const document = catalogDocument(row, sourceText);
   const previous = await findKnowledgeDocument(document.external_id);
   const context = inspectSource
-    ? (await enrichProjectContext(projectRecommendationFromRow({ ...row, tools: '[]' })))
-        .sourceContext
+    ? (
+        await enrichProjectContext(
+          projectRecommendationFromRow({ ...row, tools: '[]' }),
+          undefined,
+          { includeExamples: true }
+        )
+      ).sourceContext
     : undefined;
   if (
     context?.documents?.length &&

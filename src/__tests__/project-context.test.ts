@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   createProjectContextLoader,
   projectReadmeContext,
+  catalogReadmeContext,
   parseProjectFolder,
 } from '@/lib/project-context';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
@@ -344,5 +345,26 @@ describe('public project source context', () => {
       'src/main.ts',
       'src/projector.ts',
     ]);
+  });
+});
+
+describe('catalog API source examples', () => {
+  it('retains literal usage syntax while product prose keeps install commands out', () => {
+    const source =
+      '# JSON store\nReads and writes JSON.\n\n## Installation\n```sh\nnpm install lowdb\n```\n\n## Usage\n```ts\nconst db = await JSONFilePreset<Record<string, string>>(file, {});\nawait db.read();\nawait db.write();\n```';
+    expect(catalogReadmeContext(source)).toContain('JSONFilePreset<Record<string, string>>');
+    expect(catalogReadmeContext(source)).toContain('await db.read();');
+    expect(catalogReadmeContext(source)).not.toContain('npm install');
+    expect(projectReadmeContext(source)).not.toContain('await db.read();');
+  });
+  it('reserves prose coverage across late sections within the source budget', () => {
+    const source =
+      '# Tool\n' +
+      'Early prose. '.repeat(1500) +
+      '\n## Late workflow\nExports records.\n```ts\nexportRecords(rows);\n```';
+    const context = catalogReadmeContext(source);
+    expect(context.length).toBeLessThanOrEqual(12000);
+    expect(context).toContain('Exports records.');
+    expect(context).toContain('exportRecords(rows);');
   });
 });

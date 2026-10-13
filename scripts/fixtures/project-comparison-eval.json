@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "label_validation": "agent_provisional_not_owner_validated",
   "purpose": "Fixed diagnostic cases. Candidate names are supplied only to evaluation, never retrieval or extraction. This is not a held-out quality benchmark.",
   "catalog_digest": "18e66de6fe5a32b9e0736d6cd5c7dc6361fa08e9296c158ad921b205cf41f486",
@@ -106,7 +106,7 @@
     },
     {
       "project": "agent-inbox",
-      "target_pattern": "threads|thread|sessions|session",
+      "target_pattern": "Displays discovered conversations|Saved threads",
       "candidates": [
         {
           "repo_id": 1168978399,
