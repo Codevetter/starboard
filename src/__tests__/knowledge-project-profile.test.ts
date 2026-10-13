@@ -35,7 +35,16 @@ const project: ProjectRecommendationRepo = {
     scope: 'apps/tool',
   },
 };
+const operation = {
+  input: 'Images and caption text',
+  action: 'Edit captions',
+  output: 'Captioned images',
+  method: '',
+  constraints: [],
+  importance: 'core' as const,
+};
 const fact = {
+  operation,
   field: 'capabilities',
   value: 'Edit captions and export images.',
   evidence: [
@@ -59,14 +68,14 @@ describe('implemented project feature extraction', () => {
   it('requests implemented features for the connected scope and stores exact source references', async () => {
     const features = await knowledgeProjectFeatures(project);
     expect(features).toEqual([
-      { id: expect.any(String), description: fact.value, evidence: fact.evidence },
+      { id: expect.any(String), description: fact.value, evidence: fact.evidence, operation },
     ]);
     expect(mocks.json).toHaveBeenCalledWith('/v1/indexes/catalog/enrich', {
       document_ids: ['source'],
       subject_id: 'acme/tool',
       source_revision: 'sha',
       subject_scope: 'apps/tool',
-      profile_mode: 'capabilities',
+      profile_mode: 'operations',
     });
     expect(mocks.ingest.mock.calls[1][0][0]).toMatchObject({
       external_id: 'project:1:apps/tool:features',
@@ -82,7 +91,7 @@ describe('implemented project feature extraction', () => {
       document: {
         content: JSON.stringify(profile),
         metadata: {
-          enricher_version: 'knowledgebase-features-v4',
+          enricher_version: 'knowledgebase-features-v5',
           source_document_ids: ['source'],
         },
       },
@@ -93,7 +102,7 @@ describe('implemented project feature extraction', () => {
   });
   it.each([
     { enricher_version: 'old', source_document_ids: ['source'] },
-    { enricher_version: 'knowledgebase-features-v4', source_document_ids: ['old-source'] },
+    { enricher_version: 'knowledgebase-features-v5', source_document_ids: ['old-source'] },
   ])('refreshes stale profile metadata: %j', async (metadata) => {
     mocks.find.mockResolvedValue({ document: { content: 'stale', metadata } });
     await knowledgeProjectFeatures(project);
@@ -109,6 +118,14 @@ describe('implemented project feature extraction', () => {
       'Invalid source-grounded feature'
     );
     expect(mocks.ingest).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    undefined,
+    { ...operation, action: '' },
+    { ...operation, constraints: ['x'.repeat(101)] },
+  ])('rejects missing or malformed operation structure', async (invalid) => {
+    mocks.json.mockResolvedValue({ ...profile, facts: [{ ...fact, operation: invalid }] });
+    await expect(knowledgeProjectFeatures(project)).rejects.toThrow('Invalid feature operation');
   });
   it('does not infer a gap or accept an empty implementation profile', async () => {
     mocks.json.mockResolvedValue({ ...profile, facts: [{ ...fact, field: 'avoid_when' }] });
@@ -130,6 +147,7 @@ describe('implemented project feature extraction', () => {
         description: fact.value,
         searchQuery: 'Image caption editor',
         evidence: fact.evidence,
+        operation,
       },
     ]);
   });

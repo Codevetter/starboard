@@ -134,4 +134,32 @@ describe('canonical Knowledgebase catalog', () => {
     ).rejects.toThrow('catalog membership');
     expect(mocks.json).not.toHaveBeenCalled();
   });
+  it('searches public capability cards as an independent lane without losing the full catalog', async () => {
+    mocks.json.mockImplementation(async (_path: string, body: { filter: { kind: string } }) => ({
+      data:
+        body.filter.kind === 'catalog_repo'
+          ? [
+              { score: 0.5, metadata: { repo_id: 42 } },
+              { score: 0.4, metadata: { repo_id: 43 } },
+            ]
+          : [
+              { score: 0.9, metadata: { repo_id: 44 } },
+              { score: 0.8, metadata: { repo_id: 42 } },
+            ],
+    }));
+    expect(
+      (await queryKnowledgeCatalog('article extraction', 3, true)).map((row) => row.repoId)
+    ).toEqual([42, 44, 43]);
+    expect(mocks.json.mock.calls.map((call) => call[1].filter.kind)).toEqual([
+      'catalog_repo',
+      'catalog_capability_card',
+    ]);
+    mocks.json.mockImplementation(async (_path: string, body: { filter: { kind: string } }) => {
+      if (body.filter.kind === 'catalog_capability_card') throw new Error('Unavailable');
+      return { data: [{ score: 0.5, metadata: { repo_id: 42 } }] };
+    });
+    expect(await queryKnowledgeCatalog('article extraction', 3, true)).toEqual([
+      { repoId: 42, rankScore: 0.5 },
+    ]);
+  });
 });

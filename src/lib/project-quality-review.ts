@@ -11,6 +11,9 @@ interface ReviewedProjectMatch {
   role: 'reference' | 'integration';
   projectEvidence: string;
   candidateEvidence: string;
+  utility?: 'high' | 'medium' | 'low' | 'reject';
+  comparisonAction?: string;
+  differences?: string;
 }
 
 export interface ProjectQualityReview {

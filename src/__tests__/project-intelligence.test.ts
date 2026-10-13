@@ -359,4 +359,68 @@ describe('project intelligence retrieval', () => {
     expect(text).not.toContain('INTERNAL_IMPLEMENTATION_TOKEN');
     expect(text.length).toBeLessThan(8000);
   });
+  it('keeps successful query arms, prioritizes core operations and only reviews prepared catalog cards', async () => {
+    pipeline.enabled = true;
+    const core = {
+      id: 'core',
+      description: 'Extract article text with Readability.',
+      searchQuery: 'HTML article extraction',
+      operation: {
+        input: 'HTML',
+        action: 'Extract article text',
+        output: 'Article text',
+        method: 'Readability',
+        constraints: [],
+        importance: 'core' as const,
+      },
+      evidence: [{ document_id: 'p', chunk_id: 'c', excerpt: 'Extract article text.' }],
+    };
+    const supporting = {
+      ...core,
+      id: 'auth',
+      description: 'Authenticate users.',
+      operation: { ...core.operation, importance: 'supporting' as const },
+    };
+    const execute = vi
+      .fn()
+      .mockResolvedValue(result([row(2, 'oss/extractor'), row(3, 'oss/auth')]));
+    const queryKnowledge = vi.fn(async (query: string) => {
+      if (query === core.description) throw new Error('One query arm failed');
+      return [{ repoId: query === supporting.description ? 3 : 2, rankScore: 1 }];
+    });
+    const prepare = vi.fn().mockResolvedValue([2]);
+    const review = vi.fn().mockResolvedValue({
+      status: 'reviewed',
+      matches: [
+        {
+          repoId: 2,
+          role: 'reference',
+          projectEvidence: 'Extract article text.',
+          candidateEvidence: 'Rule-based main text extraction.',
+          utility: 'high',
+          comparisonAction: 'Compare extraction on the same HTML fixtures.',
+          differences: 'Python rules versus JavaScript Readability.',
+        },
+      ],
+    });
+    const response = await createProjectIntelligence({
+      ...dependencies(execute),
+      projectFeatures: vi.fn().mockResolvedValue([supporting, core]),
+      queryKnowledge,
+      prepareKnowledgeCandidates: prepare,
+      reviewFeature: review,
+    })(project());
+    expect(queryKnowledge.mock.calls[0][0]).toBe('HTML Extract article text Article text');
+    expect(prepare.mock.calls[0][0].map((candidate) => candidate.id)).toEqual([2, 3]);
+    expect(
+      review.mock.calls.every((call) => call[1].every((candidate) => candidate.id === 2))
+    ).toBe(true);
+    expect(response.similarProjects[0]).toMatchObject({
+      score: 2,
+      evidence: expect.arrayContaining([
+        'Compare: Compare extraction on the same HTML fixtures.',
+        'Limits: Python rules versus JavaScript Readability.',
+      ]),
+    });
+  });
 });

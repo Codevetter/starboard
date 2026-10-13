@@ -8,6 +8,7 @@ import { catalogIndexPath, knowledgebaseJson } from '@/lib/knowledgebase';
 import type { ProjectQualityReview } from '@/lib/project-quality-review';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
 import type { KnowledgeProjectFeature } from '@/lib/knowledge-project-profile';
+import { candidateCapabilityEvidence } from '@/lib/knowledge-catalog-capabilities';
 
 interface Evidence {
   document_id: string;
@@ -30,6 +31,8 @@ export interface KnowledgeDecisionEngine {
       verdict: 'integration' | 'reference' | 'reject';
       project_evidence: Evidence[];
       candidate_evidence: Evidence[];
+      utility?: 'high' | 'medium' | 'low' | 'reject';
+      comparison?: { action: string; differences: string };
     }>;
   };
 }
@@ -85,9 +88,22 @@ async function decisionInput(
     )
   );
   const storedCandidates = await Promise.all(
-    candidates.slice(0, 20).map(async (candidate) => {
+    candidates.slice(0, feature?.operation ? 8 : 20).map(async (candidate) => {
       const source = await findKnowledgeDocument(`repo:${candidate.id}`);
-      return source ? { id: String(candidate.id), document_ids: [source.document.id] } : null;
+      return source
+        ? {
+            id: String(candidate.id),
+            document_ids: [source.document.id],
+            ...(feature?.operation
+              ? {
+                  capability_evidence: await candidateCapabilityEvidence(
+                    candidate.id,
+                    feature.operation
+                  ),
+                }
+              : {}),
+          }
+        : null;
     })
   );
   const explicitGaps = feature
@@ -130,7 +146,11 @@ async function decisionInput(
     candidates: storedCandidates.filter((candidate) => candidate !== null),
     explicit_gaps: explicitGaps.slice(0, 3),
     ...(feature
-      ? { feature_evidence: feature.evidence, feature_description: feature.description }
+      ? {
+          feature_evidence: feature.evidence,
+          feature_description: feature.description,
+          ...(feature.operation ? { feature_operation: feature.operation } : {}),
+        }
       : {}),
   };
 }
@@ -177,7 +197,8 @@ export async function reviewKnowledgeProject(
         reason: 'provider-error',
       };
     const allowed = new Set(input.candidates.map((candidate) => candidate.id));
-    const matches = engine.result.items
+    const matches = [...engine.result.items]
+      .sort((a, b) => Number(b.utility === 'high') - Number(a.utility === 'high'))
       .flatMap((item) => {
         if (
           item.verdict === 'reject' ||
@@ -192,6 +213,13 @@ export async function reviewKnowledgeProject(
             role: item.verdict,
             projectEvidence: item.project_evidence[0].excerpt,
             candidateEvidence: item.candidate_evidence[0].excerpt,
+            ...(item.utility ? { utility: item.utility } : {}),
+            ...(item.comparison
+              ? {
+                  comparisonAction: item.comparison.action,
+                  differences: item.comparison.differences,
+                }
+              : {}),
           },
         ];
       })
