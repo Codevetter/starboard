@@ -50,6 +50,9 @@ pnpm test:coverage     # vitest run --coverage
   preview starts. The config omits Cloudflare AI, Vectorize, and service
   bindings, and the runner loads `/dev/null` instead of `.dev.vars`, so the
   suite needs no operator credentials and cannot call production resources.
+- The local public-repository fixture also includes the fictional repository
+  slugs used by browser mocks. Next.js server prefetches cannot use client-side
+  request mocks; these records keep public HTML lookup inside isolated D1.
 - Covered journeys: public project CTA, Discover search stability, bounded Tool
   Intelligence pagination, the shared repository-intelligence shell, and the
   uncataloged-preview sign-in boundary.

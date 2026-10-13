@@ -81,6 +81,17 @@ describe('project model comparison API', () => {
     expect(mocks.compare).toHaveBeenCalledWith(project, candidates.slice(0, 20));
   });
 
+  it('withholds comparison when candidate retrieval is unavailable', async () => {
+    mocks.candidates.mockRejectedValue(new Error('source service unavailable'));
+    const response = await invoke();
+    expect(response.status).toBe(503);
+    expect(mocks.compare).not.toHaveBeenCalled();
+    expect(await response.json()).toEqual({
+      error:
+        'Comparison could not complete. Source coverage or the decision service is unavailable.',
+    });
+  });
+
   it('withholds comparison when snapshots or the decision service are unavailable', async () => {
     mocks.compare.mockRejectedValue(new Error('stale source or provider failure'));
     const response = await invoke();

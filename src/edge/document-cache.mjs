@@ -22,9 +22,8 @@ export function isCacheableDocumentPath(pathname) {
   return false;
 }
 
-// Skip cache when ANY of these cookies are present — covers the better-auth
-// session in both prod (__Secure-) and dev variants so signed-in users
-// always see live SSR (e.g. redirect to /library).
+// Covers Auth.js / NextAuth session-token cookies, secure prefixes, chunk
+// suffixes, and legacy session_token cookies. Signed-in requests use live SSR.
 const AUTH_COOKIE_FRAGMENTS = ['session_token', 'session-token'];
 
 export function hasAuthCookie(request) {
