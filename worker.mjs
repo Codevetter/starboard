@@ -10,7 +10,7 @@
 // cacheable (s-maxage-only was getting marked DYNAMIC at the zone level;
 // using caches.default sidesteps the zone-level Cache Rules requirement).
 //
-// All non-GET, non-`/` requests pass straight through to OpenNext.
+// Only anonymous GETs to public document paths use the edge HTML cache.
 
 import openNext from './.open-next/worker.js';
 import { withTiming } from './timing.mjs';
@@ -48,8 +48,8 @@ const worker = {
       if (!isCacheableDocumentPath(url.pathname)) {
         return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
       }
-      // Auth-bearing requests pass straight through; the user is likely
-      // going to be redirected by middleware to /library or /dashboard.
+      // Session cookies (including chunked Auth.js cookies) and Authorization
+      // must bypass both the public HTML cache and the landing asset shortcut.
       if (hasAuthCookie(request) || request.headers.has('authorization')) {
         return openNext.fetch(request, env, ctx);
       }

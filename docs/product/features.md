@@ -49,6 +49,10 @@ reasons, see [../architecture/decisions/](../architecture/decisions/).
 
 ## Public discovery and tool intelligence
 
+- Discover includes public GitHub repositories at 5,000+ stars added by the
+  weekly catalog job, plus public repositories starred by Starboard users.
+  Catalog updates records weekly catalog additions, not all user-star imports
+  or the product changelog.
 - Discover is public and supports hybrid semantic-plus-lexical relevance
   search with lexical fallback, pagination, language facets, detected-tool
   facets, and stored 30-day growth ordering.

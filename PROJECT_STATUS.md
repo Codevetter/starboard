@@ -312,8 +312,9 @@ provenance. The workflow is free and has no billing or entitlement gate.
   recommendations. Read endpoints never trigger external-agent spend.
 
 ### Discovery and intelligence surfaces
-- Public Discover page and `/api/discover` for the seeded popular repository
-  corpus; relevance search fuses bounded semantic and lexical candidates and
+- Public Discover page and `/api/discover` for the public corpus described in
+  [Discovery scope](docs/product/features.md#public-discovery-and-tool-intelligence);
+  relevance search fuses bounded semantic and lexical candidates and
   falls back honestly to lexical search. Authentication adds saved state and
   collection controls but is not required to browse, search, sort, filter,
   paginate, or open repo details.

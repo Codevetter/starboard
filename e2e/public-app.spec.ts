@@ -95,8 +95,11 @@ test('Discover keeps the first search request alive and shows matching repositor
     });
     await repositoryCount.hover();
     await expect(
-      page.getByText(/discover starts with public github repositories at 5,000\+ stars/i)
+      page.getByText(/discover includes public github repositories at 5,000\+ stars/i)
     ).toBeVisible();
+    await expect(page.getByRole('tooltip')).toContainText(
+      'plus public repositories starred by Starboard users'
+    );
   }
 });
 
@@ -352,7 +355,7 @@ test('Discover constrains unusually long repository metadata inside each card', 
       await page.setViewportSize({ width, height: 900 });
       await page.waitForTimeout(150);
       await page.screenshot({
-        path: `.fleet/evidence/discovery-entry-clarity/after-discover-${width}.png`,
+        path: `.fleet-local/evidence/discovery-entry-clarity/after-discover-${width}.png`,
       });
     }
   }
@@ -513,7 +516,7 @@ test('repository intelligence reuses the app shell and omits discussion controls
         )
       ).toBe(false);
       await page.screenshot({
-        path: `.fleet/evidence/core-discovery-hardening/after-${width}.png`,
+        path: `.fleet-local/evidence/core-discovery-hardening/after-${width}.png`,
         fullPage: true,
       });
     }
