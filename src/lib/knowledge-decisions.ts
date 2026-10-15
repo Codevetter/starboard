@@ -213,6 +213,8 @@ export async function reviewKnowledgeProject(
       .flatMap((item) => {
         if (
           item.verdict === 'reject' ||
+          (feature && item.verdict !== 'reference') ||
+          (feature?.operation && !['high', 'medium'].includes(item.utility || '')) ||
           !allowed.has(item.candidate_id) ||
           !item.project_evidence?.[0]?.excerpt ||
           !item.candidate_evidence?.[0]?.excerpt

@@ -220,4 +220,48 @@ describe('source-grounded recommendation decisions', () => {
       expect.objectContaining({ feature_operation: feature.operation })
     );
   });
+
+  it('only surfaces useful references for an implemented feature', async () => {
+    const feature = {
+      id: 'feature',
+      description: 'Render widgets.',
+      operation: {
+        input: 'Widget definitions',
+        action: 'Render widgets',
+        output: 'Interactive widgets',
+        method: '',
+        constraints: [],
+        importance: 'core' as const,
+      },
+      evidence: [evidence],
+    };
+    const candidates = [42, 43, 44, 45].map((id) => ({ ...candidate, id }));
+    mocks.json.mockImplementation(async (path: string) => {
+      if (path === '/v1/documents/context')
+        return {
+          document: { id: 'context' },
+          chunks: [{ id: 'chunk', content: evidence.excerpt }],
+        };
+      return {
+        status: 'ok',
+        result: {
+          items: candidates.map((repo, index) => ({
+            candidate_id: String(repo.id),
+            verdict: index === 3 ? 'integration' : 'reference',
+            utility: ['high', 'medium', 'low', 'high'][index],
+            comparison: { action: 'Compare widget rendering.', differences: 'Different layouts.' },
+            project_evidence: [evidence],
+            candidate_evidence: [evidence],
+          })),
+        },
+      };
+    });
+
+    const result = await reviewKnowledgeProject(project, candidates, undefined, feature);
+    expect(result.status).toBe('reviewed');
+    expect(result.matches.map((match) => [match.repoId, match.utility])).toEqual([
+      [42, 'high'],
+      [43, 'medium'],
+    ]);
+  });
 });
