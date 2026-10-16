@@ -15,6 +15,12 @@ import { repoVectors, type RepoVectorMatch } from '@/lib/repo-vectors';
 import { ftsSearchQuery, rrfFuse } from '@/lib/search';
 import { queryKnowledgeCatalog } from '@/lib/knowledge-catalog';
 import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
+import {
+  knowledgeProjectFeatures,
+  type KnowledgeProjectFeature,
+} from '@/lib/knowledge-project-profile';
+import { reviewKnowledgeProject } from '@/lib/knowledge-decisions';
+import { prepareCatalogCapabilities } from '@/lib/knowledge-catalog-capabilities';
 
 const MIN_STARS_FLOOR = 5000;
 const VECTOR_TOP_K = 100;
@@ -48,6 +54,9 @@ export interface ProjectIntelligenceResult extends ProjectRecommendationResult {
   quality?: {
     status: 'reviewed' | 'unavailable' | 'evidence-only';
     reason?: ProjectQualityReview['reason'];
+    reviewedFeatures?: number;
+    totalFeatures?: number;
+    unavailableFeatures?: number;
   };
 }
 
@@ -64,6 +73,14 @@ export interface ProjectIntelligenceDependencies {
     project: ProjectRecommendationRepo,
     candidates: ProjectRecommendationRepo[]
   ) => Promise<ProjectQualityReview>;
+  projectFeatures?: (project: ProjectRecommendationRepo) => Promise<KnowledgeProjectFeature[]>;
+  queryKnowledge?: typeof queryKnowledgeCatalog;
+  prepareKnowledgeCandidates?: (candidates: ProjectRecommendationRepo[]) => Promise<number[]>;
+  reviewFeature?: (
+    project: ProjectRecommendationRepo,
+    candidates: ProjectRecommendationRepo[],
+    feature: KnowledgeProjectFeature
+  ) => Promise<ProjectQualityReview>;
 }
 
 const defaultDependencies: ProjectIntelligenceDependencies = {
@@ -71,6 +88,11 @@ const defaultDependencies: ProjectIntelligenceDependencies = {
   vectorStore: repoVectors,
   embed: generateEmbeddings,
   reviewCandidates: reviewProjectQuality,
+  projectFeatures: knowledgeProjectFeatures,
+  queryKnowledge: (query, limit) => queryKnowledgeCatalog(query, limit, true),
+  prepareKnowledgeCandidates: prepareCatalogCapabilities,
+  reviewFeature: (project, candidates, feature) =>
+    reviewKnowledgeProject(project, candidates, undefined, feature),
 };
 
 function projectText(project: ProjectRecommendationRepo): string {
@@ -85,8 +107,15 @@ function projectText(project: ProjectRecommendationRepo): string {
       keywords: project.aiKeywords,
     },
   });
-  const documents = project.sourceContext?.documents?.map((document) => document.text).join(' | ');
-  return [documents || project.sourceContext?.readme, metadata].filter(Boolean).join(' | ');
+  const documents = project.sourceContext?.documents?.filter((document) =>
+    /\.(?:md|markdown|rst|txt)$/i.test(document.path)
+  );
+  // Source code supports feature decisions; its identifiers must not dominate
+  // the existing whole-project embedding when the Knowledgebase path is off.
+  const prose = documents?.map((document) => document.text.slice(0, 1200)).join(' | ');
+  return [metadata, prose || project.sourceContext?.readme?.slice(0, 6000)]
+    .filter(Boolean)
+    .join(' | ');
 }
 
 async function semanticCandidates(
@@ -199,8 +228,9 @@ async function hydrateCandidates(
           LEFT JOIN repo_ai_metadata aim ON aim.repo_id = r.id
           WHERE r.id != ?
             AND r.archived = 0
-            AND r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))`,
-    args: [projectId, JSON.stringify(ids)],
+            AND r.id IN (SELECT CAST(value AS INTEGER) FROM json_each(?))
+            AND ${ELIGIBLE_REPO_SQL}`,
+    args: [projectId, JSON.stringify(ids), MIN_STARS_FLOOR],
   });
   const byId = new Map(
     result.rows.map((row) => {
@@ -335,9 +365,73 @@ export async function knowledgeProjectCandidates(
   project: ProjectRecommendationRepo,
   dependencies = defaultDependencies
 ): Promise<ProjectRecommendationRepo[]> {
-  const matches = await queryKnowledgeCatalog(projectText(project), 100);
-  const ids = matches.map((match) => match.repoId).filter((id) => id !== project.id);
-  return hydrateCandidates(ids, project.id, dependencies, new Map());
+  return (await knowledgeFeatureCandidates(project, dependencies)).candidates;
+}
+
+async function knowledgeFeatureCandidates(
+  project: ProjectRecommendationRepo,
+  dependencies: ProjectIntelligenceDependencies
+) {
+  const features = [
+    ...(await (dependencies.projectFeatures ?? knowledgeProjectFeatures)(project)),
+  ].sort(
+    (a, b) =>
+      Number(a.operation?.importance === 'supporting') -
+      Number(b.operation?.importance === 'supporting')
+  );
+  const results = await Promise.all(
+    features.map(async (feature) => {
+      const queries = [
+        ...new Set(
+          [
+            feature.operation
+              ? `${feature.operation.input} ${feature.operation.action} ${feature.operation.output}`
+              : feature.description,
+            feature.description,
+            feature.searchQuery,
+          ].filter((query): query is string => !!query)
+        ),
+      ];
+      const settledArms = await Promise.allSettled(
+        queries.map((query) => (dependencies.queryKnowledge ?? queryKnowledgeCatalog)(query, 50))
+      );
+      const arms = settledArms.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value] : []
+      );
+      const matches: Array<{ repoId: number; rankScore: number }> = [];
+      const seen = new Set<number>();
+      // Keep the documented object and operation. A compact abstraction can lose
+      // essential words (HTML extraction versus stylesheet extraction).
+      for (let rank = 0; rank < 50 && matches.length < 50; rank++)
+        for (const arm of arms) {
+          const match = arm[rank];
+          if (match && !seen.has(match.repoId)) {
+            seen.add(match.repoId);
+            matches.push(match);
+          }
+          if (matches.length === 50) break;
+        }
+      return matches;
+    })
+  );
+  // Reserve places for each implemented feature. A broad purpose query must
+  // not bury a good result for a smaller workflow after global rank fusion.
+  const ids: number[] = [];
+  const seen = new Set<number>([project.id]);
+  for (let rank = 0; rank < 50 && ids.length < HYDRATION_LIMIT; rank++)
+    for (const matches of results) {
+      const id = matches[rank]?.repoId;
+      if (id !== undefined && !seen.has(id)) {
+        seen.add(id);
+        ids.push(id);
+      }
+      if (ids.length === HYDRATION_LIMIT) break;
+    }
+  return {
+    features,
+    results,
+    candidates: await hydrateCandidates(ids, project.id, dependencies, new Map()),
+  };
 }
 
 async function retrieveKnowledgeIntelligence(
@@ -345,15 +439,32 @@ async function retrieveKnowledgeIntelligence(
   limit: number,
   dependencies: ProjectIntelligenceDependencies
 ): Promise<ProjectIntelligenceResult> {
-  const candidates = await knowledgeProjectCandidates(project, dependencies);
-  const ids = candidates.map((candidate) => candidate.id);
-  const { ranked, quality } = await reviewRanked(
-    project,
-    candidates,
-    ids,
-    limit,
-    dependencies.reviewCandidates
+  const retrieved = await knowledgeFeatureCandidates(project, dependencies);
+  const candidates = retrieved.candidates;
+  const hasOperations = retrieved.features.some((feature) => feature.operation);
+  const indexes = retrieved.features.flatMap((feature, index) =>
+    !hasOperations || feature.operation ? [index] : []
   );
+  const features = indexes.map((index) => retrieved.features[index]);
+  const results = indexes.map((index) => retrieved.results[index]);
+  const reviewedCandidates = dependencies.prepareKnowledgeCandidates
+    ? await prepareFeatureCandidates(
+        features,
+        results,
+        candidates,
+        dependencies.prepareKnowledgeCandidates
+      )
+    : candidates;
+  const ids = reviewedCandidates.map((candidate) => candidate.id);
+  const { ranked, quality } = dependencies.reviewFeature
+    ? await reviewKnowledgeFeatures(
+        project,
+        { features, results },
+        reviewedCandidates,
+        limit,
+        dependencies.reviewFeature
+      )
+    : await reviewRanked(project, candidates, ids, limit, dependencies.reviewCandidates);
   return {
     ...ranked,
     quality,
@@ -363,6 +474,119 @@ async function retrieveKnowledgeIntelligence(
       semanticCandidates: 0,
       lexicalCandidates: 0,
       structuredCandidates: 0,
+    },
+  };
+}
+
+async function prepareFeatureCandidates(
+  features: KnowledgeProjectFeature[],
+  results: Array<Array<{ repoId: number; rankScore: number }>>,
+  candidates: ProjectRecommendationRepo[],
+  prepare: NonNullable<ProjectIntelligenceDependencies['prepareKnowledgeCandidates']>
+) {
+  const byId = new Map(candidates.map((candidate) => [candidate.id, candidate]));
+  const ordered = new Map<number, ProjectRecommendationRepo>();
+  for (let rank = 0; rank < 8 && ordered.size < 24; rank++)
+    for (const [index] of features.entries()) {
+      const candidate = byId.get(results[index][rank]?.repoId);
+      if (candidate) ordered.set(candidate.id, candidate);
+      if (ordered.size === 24) break;
+    }
+  const prepared = new Set(await prepare([...ordered.values()]));
+  return candidates.filter((candidate) => prepared.has(candidate.id));
+}
+
+function featureRecommendation(
+  candidate: ProjectRecommendationRepo,
+  match: ProjectQualityReview['matches'][number],
+  feature: KnowledgeProjectFeature
+) {
+  return {
+    ...candidate,
+    role: 'reference' as const,
+    score: match.utility === 'high' ? 2 : 1,
+    evidence: [
+      ...(match.comparisonAction ? [`Compare: ${match.comparisonAction}`] : []),
+      ...(match.differences ? [`Limits: ${match.differences}`] : []),
+      `Feature: ${feature.description}`,
+      `Project: “${match.projectEvidence}”`,
+      `Candidate: “${match.candidateEvidence}”`,
+    ],
+  };
+}
+
+async function reviewKnowledgeFeatures(
+  project: ProjectRecommendationRepo,
+  retrieval: {
+    features: KnowledgeProjectFeature[];
+    results: Array<Array<{ repoId: number; rankScore: number }>>;
+  },
+  candidates: ProjectRecommendationRepo[],
+  limit: number,
+  review: NonNullable<ProjectIntelligenceDependencies['reviewFeature']>
+) {
+  const { features, results } = retrieval;
+  const byId = new Map(
+    candidates
+      .filter((candidate) => isProjectCandidate(project, candidate))
+      .map((candidate) => [candidate.id, candidate])
+  );
+  const reviews: ProjectQualityReview[] = [];
+  // Bound concurrency and preserve each feature's retrieved candidate set.
+  for (let offset = 0; offset < features.length; offset += 3)
+    reviews.push(
+      ...(await Promise.all(
+        features.slice(offset, offset + 3).map(async (feature, index) => {
+          const shortlist = results[offset + index]
+            .flatMap((match) => (byId.has(match.repoId) ? [byId.get(match.repoId)!] : []))
+            .slice(0, 8);
+          try {
+            if (!shortlist.length)
+              return {
+                status: 'unavailable' as const,
+                matches: [],
+                reason: 'insufficient-context' as const,
+              };
+            return await review(project, shortlist, feature);
+          } catch {
+            return {
+              status: 'unavailable' as const,
+              matches: [],
+              reason: 'provider-error' as const,
+            };
+          }
+        })
+      ))
+    );
+  const ranked = rankProjectRecommendations(project, candidates, limit);
+  const seen = new Set<number>();
+  ranked.similarProjects = [];
+  for (let rank = 0; rank < 4 && ranked.similarProjects.length < limit; rank++)
+    for (const [index, result] of reviews.entries()) {
+      const match = result.status === 'reviewed' ? result.matches[rank] : undefined;
+      const candidate = match && byId.get(match.repoId);
+      if (
+        !match ||
+        match.role !== 'reference' ||
+        !candidate ||
+        seen.has(candidate.id) ||
+        !results[index].some((row) => row.repoId === candidate.id)
+      )
+        continue;
+      seen.add(candidate.id);
+      ranked.similarProjects.push(featureRecommendation(candidate, match, features[index]));
+      if (ranked.similarProjects.length === limit) break;
+    }
+  ranked.fallback = ranked.similarProjects.length === 0;
+  ranked.recommendedTools = [];
+  const available = reviews.filter((result) => result.status === 'reviewed').length;
+  return {
+    ranked,
+    quality: {
+      status: available ? ('reviewed' as const) : ('unavailable' as const),
+      reviewedFeatures: available,
+      totalFeatures: features.length,
+      unavailableFeatures: features.length - available,
     },
   };
 }

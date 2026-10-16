@@ -101,16 +101,35 @@ function repositoryMatches(body: KnowledgeMatches): RepoVectorMatch[] {
 
 export async function queryKnowledgeCatalog(
   query: string,
-  topK = 100
+  topK = 100,
+  includeCapabilities = false
 ): Promise<Array<{ repoId: number; rankScore: number }>> {
-  return catalogMatches(
-    await knowledgebaseJson<KnowledgeMatches>(`${catalogIndexPath()}/query`, {
-      query: query.slice(0, 16_000),
-      top_k: Math.min(100, Math.max(1, topK)),
-      mode: 'hybrid',
-      filter: { kind: 'catalog_repo', visibility: 'public' },
-    })
+  const kinds = includeCapabilities
+    ? ['catalog_repo', 'catalog_capability_card']
+    : ['catalog_repo'];
+  const results = await Promise.allSettled(
+    kinds.map(async (kind) =>
+      catalogMatches(
+        await knowledgebaseJson<KnowledgeMatches>(`${catalogIndexPath()}/query`, {
+          query: query.slice(0, 16_000),
+          top_k: Math.min(100, Math.max(1, topK)),
+          mode: 'hybrid',
+          filter: { kind, visibility: 'public' },
+        })
+      )
+    )
   );
+  const arms = results.flatMap((result) => (result.status === 'fulfilled' ? [result.value] : []));
+  if (!arms.length) throw new Error('Knowledgebase catalog retrieval is unavailable');
+  const matches = new Map<number, { repoId: number; rankScore: number }>();
+  const limit = Math.min(100, Math.max(1, topK));
+  for (let rank = 0; rank < limit && matches.size < limit; rank++)
+    for (const arm of arms) {
+      const match = arm[rank];
+      if (match && !matches.has(match.repoId)) matches.set(match.repoId, match);
+      if (matches.size === limit) break;
+    }
+  return [...matches.values()];
 }
 
 export async function refreshKnowledgeRepository(
@@ -121,8 +140,13 @@ export async function refreshKnowledgeRepository(
   const document = catalogDocument(row, sourceText);
   const previous = await findKnowledgeDocument(document.external_id);
   const context = inspectSource
-    ? (await enrichProjectContext(projectRecommendationFromRow({ ...row, tools: '[]' })))
-        .sourceContext
+    ? (
+        await enrichProjectContext(
+          projectRecommendationFromRow({ ...row, tools: '[]' }),
+          undefined,
+          { includeExamples: true }
+        )
+      ).sourceContext
     : undefined;
   if (
     context?.documents?.length &&

@@ -102,6 +102,26 @@ describe('project capability relevance review', () => {
     expect(prompt).toContain('Do not invent missing features');
     expect(prompt).not.toContain('"repoId":42');
   });
+
+  it('keeps product prose in the review prompt when sampled implementation files are large', () => {
+    const prompt = buildProjectQualityPrompt(
+      {
+        ...project,
+        sourceContext: {
+          ...project.sourceContext!,
+          documents: [
+            { path: 'src/main.ts', text: 'INTERNAL_CODE_ONLY '.repeat(10000) },
+            { path: 'PRODUCT.md', text: 'Remind users to keep in touch with friends.' },
+            { path: 'README.md', text: 'Store relationship history and private notes.' },
+          ],
+        },
+      },
+      [candidate]
+    );
+    expect(prompt).toContain('Remind users to keep in touch');
+    expect(prompt).toContain('Store relationship history');
+    expect(prompt.length).toBeLessThan(15000);
+  });
   it('reports model outages and invalid JSON as unavailable', async () => {
     for (const generate of [
       vi.fn().mockRejectedValue(new Error('outage')),

@@ -11,6 +11,9 @@ interface ReviewedProjectMatch {
   role: 'reference' | 'integration';
   projectEvidence: string;
   candidateEvidence: string;
+  utility?: 'high' | 'medium' | 'low' | 'reject';
+  comparisonAction?: string;
+  differences?: string;
 }
 
 export interface ProjectQualityReview {
@@ -22,11 +25,18 @@ export interface ProjectQualityReview {
 function projectEvidenceText(project: ProjectRecommendationRepo): string {
   const documents = project.sourceContext?.documents ?? [];
   if (project.sourceContext && !documents.length && !project.sourceContext.readme) return '';
-  return (
-    documents.length
-      ? documents.map((document) => `${document.path}: ${document.text}`)
-      : [project.description, project.sourceContext?.readme]
-  )
+  if (documents.length) {
+    const prose = documents.filter((document) => /\.(?:md|markdown|rst|txt)$/i.test(document.path));
+    const code = documents.filter((document) => !prose.includes(document));
+    const perDocument = Math.floor(7000 / Math.max(1, prose.length));
+    return [
+      ...prose.map((document) => `${document.path}: ${document.text.slice(0, perDocument)}`),
+      ...code.map((document) => `${document.path}: ${document.text.slice(0, 1000)}`),
+    ]
+      .join('\n')
+      .slice(0, 8000);
+  }
+  return [project.description, project.sourceContext?.readme]
     .filter(Boolean)
     .join('\n')
     .slice(0, 8000);

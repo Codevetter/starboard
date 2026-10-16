@@ -1,0 +1,168 @@
+{
+  "schema_version": 2,
+  "label_validation": "agent_provisional_not_owner_validated",
+  "purpose": "Fixed diagnostic cases. Candidate names are supplied only to evaluation, never retrieval or extraction. This is not a held-out quality benchmark.",
+  "catalog_digest": "18e66de6fe5a32b9e0736d6cd5c7dc6361fa08e9296c158ad921b205cf41f486",
+  "cases": [
+    {
+      "project": "reader",
+      "target_pattern": "Readability|article|external web",
+      "candidates": [
+        {
+          "repo_id": 180136168,
+          "name": "adbar/trafilatura",
+          "expected": "reference",
+          "source_revision": "e2f85c965662c7df26b73290ef175b2c2a5fdca6",
+          "source_hash": "42962884fec6a66270f58a71f2b7494e294cf0b0881691eb79e50bbec55bc25a"
+        },
+        {
+          "repo_id": 6566489,
+          "name": "csstools/sanitize.css",
+          "expected": "reject",
+          "source_revision": "09f98b4c1e4f008805fb5947ff9bd1a9d8ab46ad",
+          "source_hash": "1b42e97dd665efb554f3067cfe3bbed7a4145e2b319e62c1284e86788923586f"
+        }
+      ]
+    },
+    {
+      "project": "meme-lab",
+      "target_pattern": "Ranks candidates|rank",
+      "candidates": [
+        {
+          "repo_id": 288792333,
+          "name": "metarank/metarank",
+          "expected": "reference",
+          "source_revision": "b9c719fedba67b762476ee719570915f4768b6b9",
+          "source_hash": "c03bc317ef9d05cdc6591fa2279d61231342ab5b70adf6308c0bf5418698cc13"
+        },
+        {
+          "repo_id": 4075232,
+          "name": "josdejong/jsoneditor",
+          "expected": "reject",
+          "source_revision": "85dfeee8129f2a47ca67d8475327f9e3716797d5",
+          "source_hash": "8416d192a2c38a2ee0e8f4be8cd955dc4e8dba8f23b4e9df75b1a15a390a0d68"
+        }
+      ]
+    },
+    {
+      "project": "chatgpt-memory-insights",
+      "target_pattern": "Redacts|redact|sensitive credentials",
+      "candidates": [
+        {
+          "repo_id": 132129752,
+          "name": "data-privacy-stack/presidio",
+          "expected": "reference",
+          "source_revision": "2523c7b74a469270c5c78bb253f140eafca21e31",
+          "source_hash": "b553970feb389eaa4cb4a09362ee1a5825e4844a63ea2a2d729c6fca18a140e0"
+        },
+        {
+          "repo_id": 39316027,
+          "name": "remix-run/history",
+          "expected": "reject",
+          "source_revision": "3e9dab413f4eda8d6bce565388c5ddb7aeff9f7e",
+          "source_hash": "399f946c0f0c1166b5ddbdbc5dddc6df6a510e197be1acfb508addb4fc950370"
+        }
+      ]
+    },
+    {
+      "project": "anime-list",
+      "target_pattern": "random selection|random",
+      "candidates": [
+        {
+          "repo_id": 212886104,
+          "name": "barrettotte/Anilist-RandExt",
+          "expected": "reference",
+          "source_revision": "2505e2c335310917afe42d1ef3927619bc7258a1",
+          "source_hash": "eda10acd313904fbadc8fe2cf66d77351615fe690754a82b3968f09ba5612114"
+        },
+        {
+          "repo_id": 190362519,
+          "name": "Prabhakar-Poudel/random-prime",
+          "expected": "reject",
+          "source_revision": "caa338c59f8d5ef50e647cb0896a59bb38d600ab",
+          "source_hash": "a51ce4245cddee48fb31d595a5c6b156f78a458e65b2eff5b89d0ede14162f55"
+        }
+      ]
+    },
+    {
+      "project": "techdata",
+      "target_pattern": "CSV|csv|tabular|JSONL|jsonl",
+      "candidates": [
+        {
+          "repo_id": 35003822,
+          "name": "johnkerl/miller",
+          "expected": "reference",
+          "source_revision": "3fa2b291fc7bd93f491c93c2453e7d50a18d645d",
+          "source_hash": "b384a2b36281dc3f62d8d26b798bb0337d96981b577b437569831bdb358c5e4e"
+        },
+        {
+          "repo_id": 77419377,
+          "name": "bcicen/ctop",
+          "expected": "reject",
+          "source_revision": "59f00dd6aaebf48f3bc501e174f75f815c2619f0",
+          "source_hash": "f10be604977037be4d61a9e200414e6755bd5c6a2325bef4767c6ea098d014ae"
+        }
+      ]
+    },
+    {
+      "project": "agent-inbox",
+      "target_pattern": "Displays discovered conversations|Saved threads",
+      "candidates": [
+        {
+          "repo_id": 1168978399,
+          "name": "chenhg5/cc-connect",
+          "expected": "reference",
+          "source_revision": "dfad19415a38b00b2c5c288610784d1a7eef337f",
+          "source_hash": "3f699ae5da3035c6f405e01aed007f9ef95bff6b2efd1ac45fe549c3691b7a48"
+        },
+        {
+          "repo_id": 676676006,
+          "name": "lllyasviel/Fooocus",
+          "expected": "reject",
+          "source_revision": "ae05379cc97bc4361ec8b4ec90193dab21be763f",
+          "source_hash": "89e1efb0ef1245a6b2abc4db41d5b76e3179656f875db99675900dc477e067bf"
+        }
+      ]
+    },
+    {
+      "project": "performancedaddy",
+      "target_pattern": "process|Process|PID|pid",
+      "candidates": [
+        {
+          "repo_id": 1120195677,
+          "name": "pranshuparmar/witr",
+          "expected": "reference",
+          "source_revision": "7e46fa68151fd7c59fb7a0cf4247a9a0ac0fbb6e",
+          "source_hash": "f925dc8b52cabf46fbb866554363bf31c029fd2de1d1b2e5e4abd38dca01452c"
+        },
+        {
+          "repo_id": 274782,
+          "name": "sparkle-project/Sparkle",
+          "expected": "reject",
+          "source_revision": "b41aa91142bb752324838a3c4e0cac2e5f942ff4",
+          "source_hash": "afab8a66be6ed0266c0d2946c09adb1a2920bf0b2a34c41821cc07ab8dedc728"
+        }
+      ]
+    },
+    {
+      "project": "language-comparison",
+      "target_pattern": "JSON|json",
+      "candidates": [
+        {
+          "repo_id": 18351848,
+          "name": "typicode/lowdb",
+          "expected": "reference",
+          "source_revision": "8a6fce9b72f769b22533f0979fbc2e73180f8112",
+          "source_hash": "8575923fca4f793e92b22496034105771e6e7fb113e34636ee75883284023521"
+        },
+        {
+          "repo_id": 20929025,
+          "name": "microsoft/TypeScript",
+          "expected": "reject",
+          "source_revision": "aa8149273b23401f0a79a5f0384c42de51888693",
+          "source_hash": "b43867a1a978a0a3d881b91e50e9807f1f56e3f1dd54d65cad43f471c84e0036"
+        }
+      ]
+    }
+  ]
+}

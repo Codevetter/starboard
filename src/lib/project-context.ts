@@ -13,7 +13,7 @@ export interface ProjectSourceContext {
   files: string[];
   scope?: string;
   dependencies?: string[];
-  documents?: { path: string; text: string }[];
+  documents?: { path: string; text: string; truncated?: boolean }[];
 }
 
 export function parseProjectFolder(path: string): string | null {
@@ -37,49 +37,108 @@ interface TreeEntry {
 const MANIFEST =
   /(?:^|\/)(?:package\.json|pyproject\.toml|requirements\.txt|Cargo\.toml|go\.mod|Package\.swift|Gemfile|composer\.json|pom\.xml|build\.gradle(?:\.kts)?|CMakeLists\.txt)$/i;
 const EXCLUDED =
-  /(?:^|\/)(?:node_modules|vendor|dist|build|target|coverage|\.next|\.git|\.claude|\.codex|examples?|fixtures?|tests?|docs)(?:\/|$)/i;
+  /(?:^|\/)(?:node_modules|vendor|dist|build|target|coverage|\.next|\.git|\.claude|\.codex|examples?|fixtures?|__tests__|tests?|docs|artifacts|designs?|original|benchmarks?|experiments?)(?:\/|$)/i;
 const MAX_FILES = 10;
 const MAX_FILE_BYTES = 100_000;
+const MAX_PRODUCT_CONTEXT_CHARS = 12_000;
 const PRODUCT_DOCUMENT =
-  /^(?:PRODUCT\.md|README(?:\.md|\.markdown|\.rst|\.txt)?|docs\/product\/(?:overview|features)\.md)$/i;
+  /^(?:PRODUCT\.md|PROJECT_STATUS\.md|README(?:\.md|\.markdown|\.rst|\.txt)?|docs\/product\/(?:overview|features)\.md)$/i;
+
+const OPERATIONAL_SECTION =
+  /^(?:install(?:ation)?|setup|getting started|quick start|prerequisites|requirements|development|develop|verify|build(?:ing)?|check the build|deployment|deploy|contributing|license|licence|task reconciliation|historical|timeline)\b/i;
+
+const FENCED_API_EXAMPLES = /```[^\n]*\n([\s\S]*?)```/g;
+const INSTALL_EXAMPLE =
+  /```(?:sh|shell|bash|console)?\s*\n\s*(?:\$\s*)?(?:npm (?:i|install)|pnpm (?:add|install)|pip install|brew install|git clone)\b/i;
 
 /** Keep product/features prose; install commands and dependency tables drown out purpose. */
-export function projectReadmeContext(markdown: string): string {
+export function projectReadmeContext(markdown: string, budget = MAX_PRODUCT_CONTEXT_CHARS): string {
+  const limit = Math.min(MAX_PRODUCT_CONTEXT_CHARS, Math.max(1000, budget));
   let skipLevel = 0;
-  const lines: string[] = [];
-  let introLength = 0;
-  let productSection = false;
+  const sections: { heading: string; lines: string[] }[] = [{ heading: '', lines: [] }];
+  let datedSections = 0;
   for (const line of markdown.replace(/```[\s\S]*?```/g, '').split('\n')) {
     const heading = line.match(/^(#{1,6})\s+(.+)/);
     if (heading) {
       if (skipLevel && heading[1].length <= skipLevel) skipLevel = 0;
-      if (heading[1].length <= 2 && heading[1].length > 1) {
-        productSection =
-          /^(?:what (?:it|this|you)|features|capabilities|overview|about|why|products?|use cases|how .*works|purpose|audience|users?|scope|non-goals|out of scope|constraints|boundaries|inputs?|outputs?|workflows?|current|pack your|supported|memory chat)\b/i.test(
-            heading[2]
-          );
-      }
-      if (heading[1].length >= 2 && !productSection) {
+      const historicalStatus = /^\d{4}-\d{2}-\d{2}\b/.test(heading[2]) && ++datedSections > 3;
+      if (OPERATIONAL_SECTION.test(heading[2]) || historicalStatus) {
         skipLevel = heading[1].length;
       }
+      if (!skipLevel) sections.push({ heading: line, lines: [] });
+      continue;
     }
-    if (!skipLevel && !/^\s*[|>]/.test(line)) {
-      // Long opening sections can contain dated operations receipts too.
-      if (!productSection && introLength >= 3000) continue;
-      const text = productSection ? line : line.slice(0, 3000 - introLength);
-      lines.push(text);
-      if (!productSection) introLength += text.length;
-    }
+    if (!skipLevel) sections.at(-1)!.lines.push(line);
   }
-  return lines
-    .join('\n')
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/https?:\/\/\S+/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
+  const cleaned = sections
+    .map(({ heading, lines }) => ({
+      heading,
+      text: lines
+        .join('\n')
+        .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+        .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+        .replace(/<[^>]+>/g, '')
+        .trim(),
+    }))
+    .filter((section) => section.heading || section.text);
+  const full = cleaned
+    .map(({ heading, text }) => [heading, text].filter(Boolean).join('\n'))
+    .join('\n\n');
+  if (full.length <= limit) return full;
+
+  // Reserve evidence from every section before spending remaining space on
+  // long early sections. Keep headings so consumers can distinguish goals,
+  // product editions and shipped behavior.
+  const headings = cleaned.reduce((sum, section) => sum + section.heading.length + 3, 0);
+  const allowance = Math.max(0, Math.floor((limit - headings) / cleaned.length));
+  return cleaned
+    .map(({ heading, text }) => {
+      const excerpt = text.slice(0, allowance);
+      const boundary = Math.max(excerpt.lastIndexOf('\n'), excerpt.lastIndexOf('. '));
+      return [
+        heading,
+        text.length <= allowance
+          ? text
+          : boundary > allowance / 2
+            ? excerpt.slice(0, boundary + 1)
+            : excerpt,
+      ]
+        .filter(Boolean)
+        .join('\n');
+    })
+    .join('\n\n')
+    .slice(0, limit);
+}
+
+/** Catalog API examples are evidence; retain their literal syntax separately from prose. */
+export function catalogReadmeContext(markdown: string): string {
+  const blocks = [...markdown.matchAll(FENCED_API_EXAMPLES)]
+    .map((match) => match[0])
+    .filter(
+      (block) =>
+        !/```(?:sh|shell|bash|console)?\s*\n\s*(?:\$\s*)?(?:npm (?:i|install)|pnpm (?:add|install)|pip install|brew install|git clone)\b/i.test(
+          block
+        )
+    );
+  const chosen =
+    blocks.length <= 6
+      ? blocks
+      : [
+          blocks[0]!,
+          blocks[1]!,
+          blocks[Math.floor(blocks.length / 2)]!,
+          blocks.at(-2)!,
+          blocks.at(-1)!,
+        ];
+  const examples = chosen
+    .map((block) => block.slice(0, 700))
+    .join('\n\n')
     .slice(0, 4000);
+  const prose = projectReadmeContext(markdown, MAX_PRODUCT_CONTEXT_CHARS - examples.length - 40);
+  return [prose, examples ? `API and usage examples:\n${examples}` : '']
+    .filter(Boolean)
+    .join('\n\n')
+    .slice(0, MAX_PRODUCT_CONTEXT_CHARS);
 }
 
 interface LoadedFile {
@@ -94,6 +153,7 @@ interface SourceTree {
 interface ProjectLocation {
   input?: string;
   scope?: string;
+  includeExamples?: boolean;
 }
 type ProjectSlug = NonNullable<ReturnType<typeof parseGitHubProjectInput>>;
 
@@ -218,6 +278,202 @@ function manifestDependencies(loaded: LoadedFile[]) {
   return { names: [...names].sort().slice(0, 200), failed };
 }
 
+const IMPLEMENTATION = /\.(?:ts|tsx|js|mjs|go|rs|swift|py)$/i;
+interface ImplementationHint {
+  entry: TreeEntry;
+  matches: string[];
+  entryPoint: boolean;
+  referenced: boolean;
+}
+
+function implementationProse(loaded: LoadedFile[], scope: string) {
+  const contract = loaded.find((file) => /(?:^|\/)PRODUCT\.md$/i.test(file.path));
+  const baseline = contract?.content.match(
+    /\b([A-Z][\w-]+) is the upstream implementation baseline\b/
+  )?.[1];
+  return loaded
+    .filter(
+      (file) =>
+        PRODUCT_DOCUMENT.test(projectPath(file.path, scope)) &&
+        !(baseline && /(?:^|\/)README\b/i.test(file.path) && file.content.includes(baseline))
+    )
+    .map((file) => projectReadmeContext(file.content))
+    .join('\n');
+}
+
+const SEPARATE_EDITION = /\b([A-Z][\w-]+) is a separate\b/g;
+const NAMED_EDITION = /\bThe ([A-Z][\w-]+) edition\b/g;
+const AUXILIARY_SECTION = /\b(?:additional|examples?|exercises?|historical|archived)\b/i;
+const OPERATOR_SCRIPT = /(?:^|\/)scripts\//i;
+const SUPPORT_FILE =
+  /(?:^|\/)(?:config|configuration|.*\.config)\.|(?:[._](?:test|spec)\.[^/]+$|\.d\.[^/]+$)/i;
+const SOURCE_REFERENCE =
+  /(?:[a-zA-Z0-9_.-]+\/)+[a-zA-Z0-9_.-]+\.(?:ts|tsx|js|mjs|go|rs|swift|py)\b/g;
+const SOURCE_WORDS = /[a-z]{4,}/g;
+
+function implementationBoundaries(prose: string, scope: string) {
+  const separateNames: string[] = [];
+  if (!scope) {
+    for (const match of prose.matchAll(SEPARATE_EDITION))
+      separateNames.push(match[1].toLowerCase());
+    for (const match of prose.matchAll(NAMED_EDITION)) separateNames.push(match[1].toLowerCase());
+  }
+  const auxiliaryPattern = AUXILIARY_SECTION;
+  const supplementary = new Set(
+    prose
+      .split('\n')
+      .filter((line) => auxiliaryPattern.test(line))
+      .flatMap((line) =>
+        line.split(String.fromCharCode(96)).filter((_part, index) => index % 2 === 1)
+      )
+      .filter((path) => path.includes('/'))
+      .map((path) => path.slice(0, path.lastIndexOf('/') + 1))
+      .filter((path) => parseProjectFolder(path.slice(0, -1)))
+  );
+  return { separateNames, supplementary };
+}
+
+function manifestEntryPoints(loaded: LoadedFile[]) {
+  const entryPoints = new Set<string>();
+  for (const file of loaded.filter((item) => item.path.endsWith('package.json'))) {
+    try {
+      const manifest = JSON.parse(file.content) as {
+        main?: unknown;
+        module?: unknown;
+        bin?: unknown;
+      };
+      const bins =
+        typeof manifest.bin === 'string'
+          ? [manifest.bin]
+          : manifest.bin && typeof manifest.bin === 'object'
+            ? Object.values(manifest.bin)
+            : [];
+      const directory = file.path.slice(0, -'package.json'.length);
+      for (const value of [manifest.main, manifest.module, ...bins]) {
+        if (typeof value !== 'string') continue;
+        const path = `${directory}${value.replace(/^\.\//, '')}`;
+        if (parseProjectFolder(path)) entryPoints.add(path);
+      }
+    } catch {
+      /* Malformed manifests are disclosed by inspectedProject. */
+    }
+  }
+  return entryPoints;
+}
+
+function availableImplementation(
+  entries: TreeEntry[],
+  scope: string,
+  boundaries: ReturnType<typeof implementationBoundaries>
+) {
+  const { separateNames, supplementary } = boundaries;
+  return entries.filter(
+    (entry) =>
+      inProject(entry, scope) &&
+      IMPLEMENTATION.test(entry.path) &&
+      (entry.size ?? MAX_FILE_BYTES + 1) <= MAX_FILE_BYTES &&
+      !OPERATOR_SCRIPT.test(projectPath(entry.path, scope)) &&
+      !SUPPORT_FILE.test(entry.path) &&
+      !entry.path
+        .toLowerCase()
+        .split('/')
+        .some((part) => separateNames.includes(part)) &&
+      ![...supplementary].some((prefix) => projectPath(entry.path, scope).startsWith(prefix))
+  );
+}
+
+function implementationTerms(prose: string) {
+  const workflowProse = prose.replace(SOURCE_REFERENCE, '');
+  const terms = new Set(
+    (workflowProse.toLowerCase().match(SOURCE_WORDS) ?? []).filter(
+      (term) =>
+        ![
+          'source',
+          'files',
+          'file',
+          'project',
+          'typescript',
+          'javascript',
+          'public',
+          'current',
+          'status',
+          'implementation',
+        ].includes(term)
+    )
+  );
+  const referenced = new Set([...prose.matchAll(SOURCE_REFERENCE)].map((match) => match[0]));
+  return { terms, referenced };
+}
+
+function rankImplementation(
+  available: TreeEntry[],
+  scope: string,
+  hints: { terms: Set<string>; referenced: Set<string>; entryPoints: Set<string> }
+): ImplementationHint[] {
+  const { terms, referenced, entryPoints } = hints;
+  return available
+    .map((entry) => {
+      const relative = projectPath(entry.path, scope);
+      const words: string[] =
+        relative
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          .toLowerCase()
+          .match(SOURCE_WORDS) ?? [];
+      const matches = [
+        ...new Set(
+          words.filter((word) => {
+            const stem = word.length >= 5;
+            return [...terms].some((term) => term === word || (stem && term.startsWith(word)));
+          })
+        ),
+      ];
+      return {
+        entry,
+        matches,
+        entryPoint: entryPoints.has(entry.path),
+        referenced: referenced.has(entry.path) || referenced.has(relative),
+      };
+    })
+    .filter(({ matches, referenced, entryPoint }) => entryPoint || referenced || matches.length);
+}
+
+function chooseImplementation(ranked: ImplementationHint[], budget: number) {
+  const selected: TreeEntry[] = [];
+  const covered = new Set<string>();
+  // Preserve one explicitly referenced implementation, then spread the bounded
+  // sample across product workflows instead of repeatedly selecting one subsystem.
+  while (selected.length < budget && ranked.length) {
+    ranked.sort((a, b) => {
+      const score = (item: typeof a) =>
+        (item.entryPoint ? 150 : 0) +
+        item.matches.filter((term) => !covered.has(term)).length * 20 +
+        item.matches.length +
+        (item.referenced ? 60 : 0) -
+        item.entry.path.length / 1000;
+      return score(b) - score(a) || a.entry.path.localeCompare(b.entry.path);
+    });
+    const item = ranked.shift()!;
+    selected.push(item.entry);
+    for (const term of item.matches) covered.add(term);
+  }
+  return selected;
+}
+
+function implementationSource(tree: SourceTree, scope: string, loaded: LoadedFile[]) {
+  const prose = implementationProse(loaded, scope);
+  const available = availableImplementation(
+    tree.tree,
+    scope,
+    implementationBoundaries(prose, scope)
+  );
+  const hints = { ...implementationTerms(prose), entryPoints: manifestEntryPoints(loaded) };
+  const ranked = rankImplementation(available, scope, hints);
+  const documents = loaded.filter((file) =>
+    PRODUCT_DOCUMENT.test(projectPath(file.path, scope))
+  ).length;
+  return chooseImplementation(ranked, Math.max(1, 10 - documents));
+}
+
 function sourceTools(project: ProjectRecommendationRepo, loaded: LoadedFile[], readme: string) {
   const detections = mergeToolDetections([
     ...loaded
@@ -251,15 +507,34 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
   tree: SourceTree,
   source: ReturnType<typeof selectSource>,
   files: Awaited<ReturnType<typeof loadPublicFiles>>,
-  scope: string
+  location: ProjectLocation
 ): T {
-  const readme = projectReadmeContext(
+  const scope = location.scope || '';
+  const proseContext = location.includeExamples ? catalogReadmeContext : projectReadmeContext;
+  const readme = proseContext(
     files.loaded.find((file) => file.path === source.readme?.path)?.content ?? ''
   );
   const dependencies = manifestDependencies(files.loaded);
   const documents = files.loaded
-    .filter((file) => PRODUCT_DOCUMENT.test(projectPath(file.path, scope)))
-    .map((file) => ({ path: file.path, text: projectReadmeContext(file.content) }))
+    .filter(
+      (file) =>
+        PRODUCT_DOCUMENT.test(projectPath(file.path, scope)) || IMPLEMENTATION.test(file.path)
+    )
+    .map((file) => {
+      const prose = PRODUCT_DOCUMENT.test(projectPath(file.path, scope));
+      const text = prose
+        ? proseContext(file.content)
+        : file.content.length <= 16_000
+          ? file.content
+          : `${file.content.slice(0, 8000)}\n\n${file.content.slice(-8000)}`;
+      return {
+        path: file.path,
+        text,
+        truncated: prose
+          ? file.content.length > MAX_PRODUCT_CONTEXT_CHARS
+          : file.content.length > 16_000,
+      };
+    })
     .filter((document) => document.text);
   const purpose =
     documents.find((document) => /^PRODUCT\.md$/i.test(projectPath(document.path, scope)))?.text ||
@@ -270,7 +545,7 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
     files.failed ||
     dependencies.failed ||
     !documents.length ||
-    documents.some((document) => document.text.length >= 4000);
+    documents.some((document) => document.truncated);
   return {
     ...project,
     ...(purpose
@@ -344,7 +619,20 @@ export function createProjectContextLoader(fetcher: typeof fetch = fetch) {
       if (!/^[a-f0-9]{40}$/i.test(tree.sha)) return { ...fallback, sourceContext: unavailable };
       const source = selectSource(tree, scope);
       const files = await loadPublicFiles(fetcher, slug, tree.sha, source.selected, signal);
-      return inspectedProject(fallback, tree, source, files, scope);
+      const implementation = await loadPublicFiles(
+        fetcher,
+        slug,
+        tree.sha,
+        implementationSource(tree, scope, files.loaded),
+        signal
+      );
+      files.loaded.push(...implementation.loaded);
+      files.loaded.sort((a, b) => a.path.localeCompare(b.path));
+      files.failed ||= implementation.failed;
+      return inspectedProject(fallback, tree, source, files, {
+        scope,
+        includeExamples: location.includeExamples,
+      });
     } catch {
       return { ...fallback, sourceContext: unavailable };
     }

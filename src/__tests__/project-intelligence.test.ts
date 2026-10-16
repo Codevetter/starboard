@@ -1,4 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+const pipeline = vi.hoisted(() => ({ enabled: false }));
+vi.mock('@/lib/knowledgebase', async (original) => ({
+  ...(await original<typeof import('@/lib/knowledgebase')>()),
+  knowledgePipelineEnabled: () => pipeline.enabled,
+}));
+beforeEach(() => {
+  pipeline.enabled = false;
+});
 
 import type { DbResult } from '@/db/client';
 import {
@@ -213,5 +221,237 @@ describe('project intelligence retrieval', () => {
     expect(response.retrieval).toMatchObject({ mode: 'fallback', candidateCount: 1 });
     expect(response.fallback).toBe(true);
     expect(response.recommendedTools).toEqual([]);
+  });
+  it('keeps retrieval and proofs tied to each feature and gates catalog membership', async () => {
+    pipeline.enabled = true;
+    const features = [
+      {
+        id: 'editor',
+        description: 'Edit captions and export PNG.',
+        searchQuery: 'Image caption editor',
+        evidence: [{ document_id: 'project', chunk_id: 'editor', excerpt: 'Edit captions.' }],
+      },
+      {
+        id: 'search',
+        description: 'Search saved links.',
+        evidence: [{ document_id: 'project', chunk_id: 'search', excerpt: 'Search saved links.' }],
+      },
+    ];
+    const execute = vi
+      .fn()
+      .mockResolvedValue(result([row(2, 'oss/editor'), row(3, 'oss/bookmarks')]));
+    const queryKnowledge = vi.fn(async (query: string) =>
+      ['Image caption editor', 'Edit captions and export PNG.'].includes(query)
+        ? [
+            { repoId: 2, rankScore: 1 },
+            { repoId: 99, rankScore: 0.5 },
+          ]
+        : [{ repoId: 3, rankScore: 1 }]
+    );
+    const reviewFeature = vi.fn(async (_project, _candidates, feature) => ({
+      status: 'reviewed' as const,
+      matches: [
+        {
+          repoId: feature.id === 'editor' ? 2 : 3,
+          role: 'reference' as const,
+          projectEvidence: feature.evidence[0].excerpt,
+          candidateEvidence: 'A matching implementation.',
+        },
+        {
+          repoId: feature.id === 'editor' ? 3 : 2,
+          role: 'reference' as const,
+          projectEvidence: 'Wrong feature pool',
+          candidateEvidence: 'Wrong candidate',
+        },
+        {
+          repoId: 99,
+          role: 'reference' as const,
+          projectEvidence: 'Not in catalog',
+          candidateEvidence: 'Not in catalog',
+        },
+      ],
+    }));
+    const retrieve = createProjectIntelligence({
+      ...dependencies(execute),
+      projectFeatures: vi.fn().mockResolvedValue(features),
+      queryKnowledge,
+      reviewFeature,
+    });
+    const response = await retrieve(project());
+    expect(queryKnowledge.mock.calls).toEqual([
+      ['Edit captions and export PNG.', 50],
+      ['Image caption editor', 50],
+      ['Search saved links.', 50],
+    ]);
+    expect(
+      reviewFeature.mock.calls.map((call) => call[1].map((candidate) => candidate.id))
+    ).toEqual([[2], [3]]);
+    expect(response.similarProjects.map((candidate) => candidate.id)).toEqual([2, 3]);
+    expect(response.similarProjects[0].evidence[0]).toBe('Feature: Edit captions and export PNG.');
+    expect(response.recommendedTools).toEqual([]);
+    expect(response.quality).toMatchObject({
+      reviewedFeatures: 2,
+      totalFeatures: 2,
+      unavailableFeatures: 0,
+    });
+    expect(execute.mock.calls[0][0]).toMatchObject({
+      sql: expect.stringContaining('community_ur.is_starred = 1'),
+      args: [1, '[2,3,99]', 5000],
+    });
+  });
+
+  it('reports partial review coverage and refuses an unsupported integration', async () => {
+    pipeline.enabled = true;
+    const feature = {
+      id: 'feature',
+      description: 'Export captions.',
+      evidence: [{ document_id: 'project', chunk_id: 'c', excerpt: 'Export captions.' }],
+    };
+    const execute = vi.fn().mockResolvedValue(result([row(2, 'oss/editor')]));
+    const reviewFeature = vi
+      .fn()
+      .mockResolvedValueOnce({
+        status: 'reviewed',
+        matches: [
+          {
+            repoId: 2,
+            role: 'integration',
+            projectEvidence: 'Export captions.',
+            candidateEvidence: 'An editor.',
+          },
+        ],
+      })
+      .mockRejectedValueOnce(new Error('Unavailable'));
+    const retrieve = createProjectIntelligence({
+      ...dependencies(execute),
+      projectFeatures: vi.fn().mockResolvedValue([feature, { ...feature, id: 'other' }]),
+      queryKnowledge: vi.fn().mockResolvedValue([{ repoId: 2, rankScore: 1 }]),
+      reviewFeature,
+    });
+    const response = await retrieve(project());
+    expect(response.similarProjects).toEqual([]);
+    expect(response.recommendedTools).toEqual([]);
+    expect(response.quality).toEqual({
+      status: 'reviewed',
+      reviewedFeatures: 1,
+      totalFeatures: 2,
+      unavailableFeatures: 1,
+    });
+  });
+  it('keeps sampled source identifiers out of the existing whole-project embedding', async () => {
+    const deps = dependencies(vi.fn().mockResolvedValue(result([])));
+    await createProjectIntelligence(deps)(
+      project({
+        sourceContext: {
+          status: 'partial',
+          revision: 'sha',
+          readme: '',
+          files: ['README.md', 'src/main.ts'],
+          documents: [
+            { path: 'README.md', text: 'Save and retrieve web bookmarks.' },
+            { path: 'src/main.ts', text: 'INTERNAL_IMPLEMENTATION_TOKEN '.repeat(10000) },
+          ],
+        },
+      })
+    );
+    const text = (deps.embed as ReturnType<typeof vi.fn>).mock.calls[0][0][0];
+    expect(text).toContain('Save and retrieve web bookmarks.');
+    expect(text).not.toContain('INTERNAL_IMPLEMENTATION_TOKEN');
+    expect(text.length).toBeLessThan(8000);
+  });
+  it('keeps successful query arms, prioritizes core operations and only reviews prepared catalog cards', async () => {
+    pipeline.enabled = true;
+    const core = {
+      id: 'core',
+      description: 'Extract article text with Readability.',
+      searchQuery: 'HTML article extraction',
+      operation: {
+        input: 'HTML',
+        action: 'Extract article text',
+        output: 'Article text',
+        method: 'Readability',
+        constraints: [],
+        importance: 'core' as const,
+      },
+      evidence: [{ document_id: 'p', chunk_id: 'c', excerpt: 'Extract article text.' }],
+    };
+    const supporting = {
+      ...core,
+      id: 'auth',
+      description: 'Authenticate users.',
+      operation: { ...core.operation, importance: 'supporting' as const },
+    };
+    const execute = vi
+      .fn()
+      .mockResolvedValue(result([row(2, 'oss/extractor'), row(3, 'oss/auth')]));
+    const queryKnowledge = vi.fn(async (query: string) => {
+      if (query === core.description) throw new Error('One query arm failed');
+      return [{ repoId: query === supporting.description ? 3 : 2, rankScore: 1 }];
+    });
+    const prepare = vi.fn().mockResolvedValue([2]);
+    const review = vi.fn().mockResolvedValue({
+      status: 'reviewed',
+      matches: [
+        {
+          repoId: 2,
+          role: 'reference',
+          projectEvidence: 'Extract article text.',
+          candidateEvidence: 'Rule-based main text extraction.',
+          utility: 'high',
+          comparisonAction: 'Compare extraction on the same HTML fixtures.',
+          differences: 'Python rules versus JavaScript Readability.',
+        },
+      ],
+    });
+    const response = await createProjectIntelligence({
+      ...dependencies(execute),
+      projectFeatures: vi.fn().mockResolvedValue([supporting, core]),
+      queryKnowledge,
+      prepareKnowledgeCandidates: prepare,
+      reviewFeature: review,
+    })(project());
+    expect(queryKnowledge.mock.calls[0][0]).toBe('HTML Extract article text Article text');
+    expect(prepare.mock.calls[0][0].map((candidate) => candidate.id)).toEqual([2, 3]);
+    expect(
+      review.mock.calls.every((call) => call[1].every((candidate) => candidate.id === 2))
+    ).toBe(true);
+    expect(response.similarProjects[0]).toMatchObject({
+      score: 2,
+      evidence: expect.arrayContaining([
+        'Compare: Compare extraction on the same HTML fixtures.',
+        'Limits: Python rules versus JavaScript Readability.',
+      ]),
+    });
+  });
+  it('uses purpose for retrieval while reviewing only structured operations', async () => {
+    pipeline.enabled = true;
+    const evidence = [{ document_id: 'p', chunk_id: 'c', excerpt: 'Extract article text.' }];
+    const purpose = { id: 'purpose', description: 'A saved-link reader.', evidence };
+    const feature = {
+      id: 'operation',
+      description: 'Extract article text.',
+      evidence,
+      operation: {
+        input: 'HTML',
+        action: 'Extract article text',
+        output: 'Article text',
+        method: '',
+        constraints: [],
+        importance: 'core' as const,
+      },
+    };
+    const review = vi.fn().mockResolvedValue({ status: 'reviewed', matches: [] });
+    const query = vi.fn().mockResolvedValue([{ repoId: 2, rankScore: 1 }]);
+    const execute = vi.fn().mockResolvedValue(result([row(2, 'oss/extractor')]));
+    const response = await createProjectIntelligence({
+      ...dependencies(execute),
+      projectFeatures: vi.fn().mockResolvedValue([purpose, feature]),
+      queryKnowledge: query,
+      reviewFeature: review,
+    })(project());
+    expect(query).toHaveBeenCalledWith(purpose.description, 50);
+    expect(review).toHaveBeenCalledOnce();
+    expect(review.mock.calls[0][2].id).toBe('operation');
+    expect(response.quality?.totalFeatures).toBe(1);
   });
 });
