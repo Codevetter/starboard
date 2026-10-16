@@ -4,7 +4,11 @@ import {
   type KnowledgeStoredDocument,
 } from '@/lib/knowledge-catalog';
 import { catalogIndexPath, knowledgebaseJson } from '@/lib/knowledgebase';
-import { knowledgeOperation, type KnowledgeOperation } from '@/lib/knowledge-operations';
+import {
+  contradictsOperationDirection,
+  knowledgeOperation,
+  type KnowledgeOperation,
+} from '@/lib/knowledge-operations';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
 
 const VERSION = 'catalog-operations-v1';
@@ -141,7 +145,15 @@ export async function candidateCapabilityEvidence(repoId: number, operation: Kno
       .toLowerCase()
       .match(/[a-z0-9]{3,}/g) ?? [];
   const sorted = capabilities
-    ?.map((capability) => ({
+    ?.filter(
+      (capability) =>
+        !contradictsOperationDirection(operation.action, capability.operation.action) &&
+        !contradictsOperationDirection(
+          operation.action,
+          capability.evidence.map((ref) => ref.excerpt).join('\n')
+        )
+    )
+    .map((capability) => ({
       capability,
       score: new Set(
         terms.filter((term) =>

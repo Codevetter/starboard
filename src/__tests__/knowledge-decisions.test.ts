@@ -47,11 +47,15 @@ const evidence = {
   chunk_id: 'chunk',
   excerpt: 'We need to add accessible keyboard controls.',
 };
+const candidateEvidence = { ...evidence, document_id: 'candidate', chunk_id: 'candidate-chunk' };
 
 beforeEach(() => {
   vi.resetAllMocks();
   mocks.ingest.mockResolvedValue(['context']);
-  mocks.find.mockResolvedValue({ document: { id: 'candidate' } });
+  mocks.find.mockResolvedValue({
+    document: { id: 'candidate' },
+    chunks: [{ id: 'candidate-chunk', content: candidateEvidence.excerpt }],
+  });
   mocks.json.mockImplementation(async (path: string) => {
     if (path === '/v1/documents/context')
       return {
@@ -67,7 +71,7 @@ beforeEach(() => {
             candidate_id: '42',
             verdict: 'reference',
             project_evidence: [evidence],
-            candidate_evidence: [evidence],
+            candidate_evidence: [candidateEvidence],
           },
         ],
       },
@@ -158,13 +162,13 @@ describe('source-grounded recommendation decisions', () => {
               candidate_id: '999',
               verdict: 'reference',
               project_evidence: [evidence],
-              candidate_evidence: [evidence],
+              candidate_evidence: [candidateEvidence],
             },
             {
               candidate_id: '42',
               verdict: 'integration',
               project_evidence: [],
-              candidate_evidence: [evidence],
+              candidate_evidence: [candidateEvidence],
             },
           ],
         },
@@ -251,7 +255,7 @@ describe('source-grounded recommendation decisions', () => {
             utility: ['high', 'medium', 'low', 'high'][index],
             comparison: { action: 'Compare widget rendering.', differences: 'Different layouts.' },
             project_evidence: [evidence],
-            candidate_evidence: [evidence],
+            candidate_evidence: [candidateEvidence],
           })),
         },
       };
@@ -263,5 +267,82 @@ describe('source-grounded recommendation decisions', () => {
       [42, 'high'],
       [43, 'medium'],
     ]);
+  });
+
+  it.each([
+    { ...candidateEvidence, document_id: 'context', chunk_id: 'chunk' },
+    { ...candidateEvidence, chunk_id: 'unknown' },
+    { ...candidateEvidence, excerpt: 'An invented candidate capability.' },
+  ])('withholds a recommendation with foreign or invented candidate proof: %j', async (ref) => {
+    mocks.json
+      .mockResolvedValueOnce({
+        document: { id: 'context' },
+        chunks: [{ id: 'chunk', content: evidence.excerpt }],
+      })
+      .mockResolvedValueOnce({
+        status: 'ok',
+        result: {
+          items: [
+            {
+              candidate_id: '42',
+              verdict: 'reference',
+              project_evidence: [evidence],
+              candidate_evidence: [ref],
+            },
+          ],
+        },
+      });
+    expect(await reviewKnowledgeProject(project, [candidate])).toEqual({
+      status: 'reviewed',
+      matches: [],
+    });
+  });
+
+  it('rejects the retained JSON serialization-as-deserialization false positive despite high utility', async () => {
+    const projectQuote = 'Deserialize a JSON configuration file into an in-memory data structure.';
+    // typicode/lowdb README, retained immutable source 8a6fce9b72f769b22533f0979fbc2e73180f8112.
+    const candidateQuote =
+      'This is because whenever you call `db.write`, the whole `db.data` is serialized using `JSON.stringify` and written to storage.';
+    mocks.find.mockResolvedValue({
+      document: { id: 'candidate' },
+      chunks: [{ id: 'candidate-chunk', content: candidateQuote }],
+    });
+    mocks.json
+      .mockResolvedValueOnce({
+        document: { id: 'context' },
+        chunks: [{ id: 'chunk', content: projectQuote }],
+      })
+      .mockResolvedValueOnce({
+        status: 'ok',
+        result: {
+          items: [
+            {
+              candidate_id: '42',
+              verdict: 'reference',
+              utility: 'high',
+              comparison: {
+                action: 'Compare JSON deserialization.',
+                differences: 'Different languages.',
+              },
+              project_evidence: [{ ...evidence, excerpt: projectQuote }],
+              candidate_evidence: [{ ...candidateEvidence, excerpt: candidateQuote }],
+            },
+          ],
+        },
+      });
+    const result = await reviewKnowledgeProject(project, [candidate], undefined, {
+      id: 'json',
+      description: projectQuote,
+      evidence: [{ ...evidence, excerpt: projectQuote }],
+      operation: {
+        input: 'JSON file',
+        action: 'Deserialize JSON',
+        output: 'In-memory object',
+        method: '',
+        constraints: [],
+        importance: 'core',
+      },
+    });
+    expect(result).toEqual({ status: 'reviewed', matches: [] });
   });
 });

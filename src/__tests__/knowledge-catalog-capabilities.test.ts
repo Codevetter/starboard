@@ -126,4 +126,34 @@ describe('shared catalog capability cards', () => {
     expect(mocks.json).toHaveBeenCalledTimes(24);
     error.mockRestore();
   });
+
+  it('does not retrieve an opposite-only JSON quote even when its generated operation claims parsing', async () => {
+    const quote = 'The whole db.data is serialized using JSON.stringify and written to storage.';
+    const parsing = { ...operation, input: 'JSON', action: 'Deserialize JSON', output: 'Object' };
+    const jsonSource = {
+      ...source,
+      chunks: [{ id: 'chunk', content: quote }],
+      document: { ...source.document, content: quote },
+    };
+    const cached = {
+      document: {
+        metadata: { enricher_version: 'catalog-operations-v1', source_document_id: 'source' },
+        content: JSON.stringify({
+          schema_version: 1,
+          facts: [
+            {
+              field: 'capabilities',
+              value: 'Deserialize JSON',
+              operation: parsing,
+              evidence: [{ ...evidence, excerpt: quote }],
+            },
+          ],
+        }),
+      },
+    };
+    mocks.find.mockImplementation(async (id: string) =>
+      id.endsWith(':operations') ? cached : jsonSource
+    );
+    expect(await candidateCapabilityEvidence(42, parsing)).toEqual([]);
+  });
 });

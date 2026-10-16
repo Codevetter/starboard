@@ -9,6 +9,7 @@ import type { ProjectQualityReview } from '@/lib/project-quality-review';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
 import type { KnowledgeProjectFeature } from '@/lib/knowledge-project-profile';
 import { candidateCapabilityEvidence } from '@/lib/knowledge-catalog-capabilities';
+import { contradictsOperationDirection } from '@/lib/knowledge-operations';
 
 interface Evidence {
   document_id: string;
@@ -87,9 +88,11 @@ async function decisionInput(
       knowledgebaseJson<KnowledgeStoredDocument>(`/v1/documents/${encodeURIComponent(id)}`)
     )
   );
+  const sources = new Map(contexts.map((source) => [source.document.id, source]));
   const storedCandidates = await Promise.all(
     candidates.slice(0, feature?.operation ? 8 : 20).map(async (candidate) => {
       const source = await findKnowledgeDocument(`repo:${candidate.id}`);
+      if (source) sources.set(source.document.id, source);
       return source
         ? {
             id: String(candidate.id),
@@ -133,7 +136,7 @@ async function decisionInput(
       );
   const missing = storedCandidates.filter((candidate) => candidate === null).length;
   if (missing) throw new Error(`${missing} candidate source documents are unavailable`);
-  return {
+  const request = {
     question:
       (feature
         ? `Find a concrete implementation, API, algorithm or conformance-test comparison for this existing feature: ${feature.description}. An implemented feature is not an unmet gap. `
@@ -153,6 +156,7 @@ async function decisionInput(
         }
       : {}),
   };
+  return { request, sources };
 }
 
 export async function compareKnowledgeDecisions(
@@ -173,7 +177,7 @@ export async function compareKnowledgeDecisions(
       excerpt_character_limit: number;
       evidence_truncated: boolean;
     };
-  }>(`${catalogIndexPath()}/compare`, input);
+  }>(`${catalogIndexPath()}/compare`, input.request);
 }
 
 export async function reviewKnowledgeProject(
@@ -187,7 +191,7 @@ export async function reviewKnowledgeProject(
     const engine = await knowledgebaseJson<KnowledgeDecisionEngine>(
       `${catalogIndexPath()}/decide`,
       {
-        ...input,
+        ...input.request,
         engine: 'free_ai',
       }
     );
@@ -198,26 +202,48 @@ export async function reviewKnowledgeProject(
         reason: 'provider-error',
       };
     if (
-      feature?.operation &&
-      engine.result.items.some(
-        (item) =>
-          !['high', 'medium', 'low', 'reject'].includes(item.utility || '') ||
-          (item.verdict === 'reference' &&
-            (!item.comparison?.action || !item.comparison.differences))
-      )
+      !Array.isArray(engine.result.items) ||
+      new Set(engine.result.items.map((item) => item.candidate_id)).size !==
+        engine.result.items.length ||
+      (feature?.operation &&
+        engine.result.items.some(
+          (item) =>
+            !['high', 'medium', 'low', 'reject'].includes(item.utility || '') ||
+            (item.verdict === 'reference' &&
+              (!item.comparison?.action || !item.comparison.differences))
+        ))
     )
       return { status: 'unavailable', matches: [], reason: 'invalid-response' };
-    const allowed = new Set(input.candidates.map((candidate) => candidate.id));
+    const quotesBelongTo = (refs: Evidence[], documentIds: string[]) =>
+      Array.isArray(refs) &&
+      refs.length > 0 &&
+      refs.every(
+        (ref) =>
+          documentIds.includes(ref.document_id) &&
+          typeof ref.excerpt === 'string' &&
+          !!ref.excerpt.trim() &&
+          input.sources
+            .get(ref.document_id)
+            ?.chunks.some(
+              (chunk) => chunk.id === ref.chunk_id && chunk.content.includes(ref.excerpt)
+            )
+      );
     const matches = [...engine.result.items]
       .sort((a, b) => Number(b.utility === 'high') - Number(a.utility === 'high'))
       .flatMap((item) => {
+        const candidate = input.request.candidates.find((row) => row.id === item.candidate_id);
         if (
           item.verdict === 'reject' ||
           (feature && item.verdict !== 'reference') ||
           (feature?.operation && !['high', 'medium'].includes(item.utility || '')) ||
-          !allowed.has(item.candidate_id) ||
-          !item.project_evidence?.[0]?.excerpt ||
-          !item.candidate_evidence?.[0]?.excerpt
+          !candidate ||
+          !quotesBelongTo(item.project_evidence, input.request.context_document_ids) ||
+          !quotesBelongTo(item.candidate_evidence, candidate.document_ids) ||
+          (feature?.operation &&
+            contradictsOperationDirection(
+              feature.operation.action,
+              item.candidate_evidence.map((ref) => ref.excerpt).join('\n')
+            ))
         )
           return [];
         return [
