@@ -591,7 +591,7 @@ test('repository HTML includes public content without JavaScript and malformed p
 
 test('shared identity, local fonts and keyboard controls survive theme changes', async ({
   page,
-}) => {
+}, testInfo) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.route('**/discover/data**', async (route) => {
@@ -633,13 +633,14 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
     await page.keyboard.type('shared-ui');
     await expect(search).toBeFocused();
     await expect(page.getByRole('link', { name: /codevetter\/starboard/i })).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath(`discover-${theme}.png`), fullPage: true });
   }
   expect(errors).toEqual([]);
 });
 
 test('login preserves project context and theme identity through a recoverable error', async ({
   page,
-}) => {
+}, testInfo) => {
   await page.goto('/login');
   for (const theme of ['light', 'dark']) {
     await page.evaluate((value) => localStorage.setItem('theme', value), theme);
@@ -658,5 +659,7 @@ test('login preserves project context and theme identity through a recoverable e
       foreground: theme === 'light' ? 'rgb(18, 59, 74)' : 'rgb(244, 239, 228)',
       overflow: false,
     });
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: testInfo.outputPath(`login-${theme}.png`), fullPage: true });
   }
 });

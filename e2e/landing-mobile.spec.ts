@@ -38,6 +38,9 @@ test.describe('production Astro landing page', () => {
     );
     expect(overflow).toBe(false);
 
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: testInfo.outputPath('landing.png'), fullPage: true });
+
     if (!process.env.CI && testInfo.project.name === 'landing-desktop') {
       for (const width of [390, 768, 1440]) {
         await page.setViewportSize({ width, height: 900 });
