@@ -1,14 +1,14 @@
 import { resolve } from 'node:path';
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
     testTimeout: 30000,
     // Playwright e2e specs live in ./e2e and run via `pnpm test:e2e`, not Vitest.
     exclude: [
-      'node_modules',
-      'dist',
-      '.next',
+      ...configDefaults.exclude,
+      '**/dist/**',
+      '**/.next/**',
       'e2e/**',
       '.fleet-local/**',
       '.agents/**',
