@@ -48,63 +48,34 @@ function resolveError(error: string | undefined) {
 
 function LoginAtmosphere() {
   return (
-    <>
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `
-            radial-gradient(ellipse 75% 42% at 35% -12%, oklch(0.72 0.07 82 / 0.14), transparent 62%),
-            linear-gradient(180deg, oklch(0.18 0.008 70 / 0.42), transparent 38%)
-          `,
-        }}
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage: `
-            linear-gradient(oklch(1 0 0 / 0.03) 1px, transparent 1px),
-            linear-gradient(90deg, oklch(1 0 0 / 0.03) 1px, transparent 1px)
-          `,
-          backgroundSize: '48px 48px',
-          maskImage: 'linear-gradient(to bottom, black, transparent 72%)',
-        }}
-      />
-    </>
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_35%_0%,var(--brand-soft),transparent_60%)]"
+    />
   );
 }
 
 function BrandPanel() {
   return (
-    <aside className="relative hidden flex-col justify-between border-r border-white/[0.07] p-10 lg:flex xl:p-14">
+    <aside className="relative hidden flex-col justify-between border-r border-border p-10 lg:flex xl:p-14">
       <Link href="/" className="inline-flex items-center gap-2.5 self-start">
-        <span
-          className="inline-flex size-9 items-center justify-center rounded-xl text-base font-bold"
-          style={{
-            background: 'linear-gradient(145deg, oklch(0.94 0.025 90), oklch(0.78 0.05 72))',
-            color: 'oklch(0.16 0.02 260)',
-            boxShadow: '0 0 0 1px oklch(1 0 0 / 0.12), inset 0 1px 0 oklch(1 0 0 / 0.35)',
-          }}
-        >
-          ★
-        </span>
+        <img src="/favicon.svg" alt="" width="36" height="36" className="size-9" />
         <span className="flex flex-col leading-none">
           <span className="text-sm font-semibold tracking-tight">Starboard</span>
-          <span className="mt-1 text-[10px] font-medium tracking-wide text-white/45">
+          <span className="mt-1 text-[10px] font-medium tracking-wide text-muted-foreground">
             project-aware tool discovery
           </span>
         </span>
       </Link>
 
       <div className="max-w-md space-y-6">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-200/80">
+        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground">
           Project-aware tool intelligence
         </p>
-        <h1 className="text-balance text-3xl font-bold tracking-tight xl:text-4xl">
+        <h1 className="font-display text-balance text-3xl xl:text-4xl">
           Stars that stay useful after you close the tab.
         </h1>
-        <p className="text-pretty text-sm leading-relaxed text-white/55">
+        <p className="text-pretty text-sm leading-relaxed text-muted-foreground">
           Sync GitHub stars, connect public projects, find similar repositories, and discover tools
           grounded in what those peers actually use.
         </p>
@@ -117,20 +88,20 @@ function BrandPanel() {
           ].map((item) => (
             <div
               key={item.label}
-              className="flex items-start gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3"
+              className="flex items-start gap-3 rounded-xl border border-border bg-surface px-3.5 py-3"
             >
-              <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-amber-300" />
+              <span className="mt-0.5 size-1.5 shrink-0 rounded-full bg-brand" />
               <div>
-                <p className="text-sm font-medium text-white/90">{item.label}</p>
-                <p className="text-xs text-white/45">{item.body}</p>
+                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                <p className="text-xs text-muted-foreground">{item.body}</p>
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      <p className="text-xs text-white/55">
-        Live at <span className="font-mono text-white/55">starboard.codevetter.com</span>
+      <p className="text-xs text-muted-foreground">
+        Live at <span className="font-mono text-muted-foreground">starboard.codevetter.com</span>
       </p>
     </aside>
   );
@@ -147,20 +118,20 @@ function FormPanelHeader({ continuedRepository }: { continuedRepository: string 
     <div className="mb-8 flex flex-col items-center gap-3 text-center lg:items-start lg:text-left">
       <Link
         href="/"
-        className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-white/55 backdrop-blur transition-colors hover:text-white/85 lg:hidden"
+        className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-muted-foreground backdrop-blur transition-colors hover:text-foreground lg:hidden"
       >
-        <span className="inline-block size-1.5 rounded-full bg-amber-300" />
+        <span className="inline-block size-1.5 rounded-full bg-brand" />
         Starboard · tool intelligence
       </Link>
-      <h2 className="text-balance text-3xl font-bold tracking-tight">
+      <h2 className="font-display text-balance text-3xl">
         {continuedRepository ? `Connect ${continuedRepository}` : 'Continue to Starboard'}
       </h2>
-      <p className="max-w-sm text-pretty text-sm leading-relaxed text-white/50">
+      <p className="max-w-sm text-pretty text-sm leading-relaxed text-muted-foreground">
         {continuedRepository
           ? `Your preview stays attached to ${continuedRepository}. Sign in to confirm the connection and keep its recommendations. `
           : 'Sign in with GitHub to connect public projects and keep your recommendations. '}
         We only request{' '}
-        <code className="rounded bg-white/10 px-1 py-0.5 font-mono text-[11px] text-white/70">
+        <code className="rounded bg-surface px-1 py-0.5 font-mono text-[11px] text-foreground">
           read:user
         </code>{' '}
         — public profile and stars. No write access.
@@ -171,30 +142,22 @@ function FormPanelHeader({ continuedRepository }: { continuedRepository: string 
 
 function SignInCard({ continuedRepository, errorInfo, callbackUrl }: FormPanelProps) {
   return (
-    <div
-      className="rounded-2xl border border-white/[0.09] p-6 sm:p-8"
-      style={{
-        background: 'oklch(0.17 0.012 260 / 0.85)',
-        boxShadow:
-          '0 0 0 1px oklch(1 0 0 / 0.04), 0 24px 80px -28px oklch(0.45 0.06 80 / 0.28), 0 8px 24px -12px oklch(0 0 0 / 0.5)',
-        backdropFilter: 'blur(12px)',
-      }}
-    >
+    <div className="rounded-2xl border border-border bg-card p-6 shadow-sm sm:p-8">
       {errorInfo && (
         <div
           role="alert"
-          className="mb-5 rounded-xl border border-amber-400/25 bg-amber-400/10 px-4 py-3 text-left"
+          className="mb-5 rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-left"
         >
-          <p className="text-sm font-semibold text-amber-100">{errorInfo.title}</p>
-          <p className="mt-1 text-xs leading-relaxed text-amber-100/75">{errorInfo.body}</p>
+          <p className="text-sm font-semibold text-destructive">{errorInfo.title}</p>
+          <p className="mt-1 text-xs leading-relaxed text-destructive">{errorInfo.body}</p>
         </div>
       )}
 
       {continuedRepository && !errorInfo && (
-        <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-left">
-          <p className="text-xs font-medium text-white/80">Continuing your preview</p>
-          <p className="mt-1 truncate text-sm text-white/85">{continuedRepository}</p>
-          <p className="mt-1 text-xs text-white/60">
+        <div className="mb-5 rounded-xl border border-border bg-surface px-4 py-3 text-left">
+          <p className="text-xs font-medium text-foreground">Continuing your preview</p>
+          <p className="mt-1 truncate text-sm text-foreground">{continuedRepository}</p>
+          <p className="mt-1 text-xs text-muted-foreground">
             Nothing is connected until you confirm it on Projects.
           </p>
         </div>
@@ -204,23 +167,23 @@ function SignInCard({ continuedRepository, errorInfo, callbackUrl }: FormPanelPr
         <SignInButton label="Continue with GitHub" callbackUrl={callbackUrl} fullWidth />
 
         <div className="relative">
-          <div className="absolute inset-x-0 top-1/2 h-px bg-white/[0.08]" />
-          <p className="relative mx-auto w-fit bg-[oklch(0.17_0.012_260)] px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-white/35">
+          <div className="absolute inset-x-0 top-1/2 h-px bg-border" />
+          <p className="relative mx-auto w-fit bg-card px-3 text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
             After you sign in
           </p>
         </div>
 
-        <ul className="space-y-2.5 text-xs text-white/50">
+        <ul className="space-y-2.5 text-xs text-muted-foreground">
           <li className="flex gap-2.5">
-            <span className="text-amber-300">✓</span>
+            <span className="text-brand-ink">✓</span>
             Choose a public repository from GitHub or paste its URL
           </li>
           <li className="flex gap-2.5">
-            <span className="text-amber-300">✓</span>
+            <span className="text-brand-ink">✓</span>
             Compare it with similar projects across the public catalog
           </li>
           <li className="flex gap-2.5">
-            <span className="text-amber-300">✓</span>
+            <span className="text-brand-ink">✓</span>
             Inspect repository-sourced tool evidence and save the project
           </li>
         </ul>
@@ -240,17 +203,20 @@ function FormPanel(props: FormPanelProps) {
           errorInfo={errorInfo}
           callbackUrl={callbackUrl}
         />
-        <div className="mt-8 space-y-3 text-center text-xs text-white/55 lg:text-left">
+        <div className="mt-8 space-y-3 text-center text-xs text-muted-foreground lg:text-left">
           <p>
             Prefer to look first?{' '}
             <Link
               href="/discover"
-              className="font-medium text-white/75 underline-offset-4 hover:underline"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
             >
               Browse Discover
             </Link>
             {' · '}
-            <Link href="/" className="font-medium text-white/75 underline-offset-4 hover:underline">
+            <Link
+              href="/"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
               Home
             </Link>
           </p>
@@ -277,7 +243,7 @@ export default async function LoginPage({
   const errorInfo = resolveError(params.error);
 
   return (
-    <div className="relative flex min-h-svh w-full overflow-hidden bg-[oklch(0.115_0.006_70)] text-[oklch(0.97_0.005_90)]">
+    <div className="relative flex min-h-svh w-full overflow-hidden bg-background text-foreground">
       <LoginAtmosphere />
       <div className="relative mx-auto grid w-full max-w-6xl flex-1 lg:grid-cols-2">
         <BrandPanel />

@@ -636,3 +636,27 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
   }
   expect(errors).toEqual([]);
 });
+
+test('login preserves project context and theme identity through a recoverable error', async ({
+  page,
+}) => {
+  await page.goto('/login');
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => localStorage.setItem('theme', value), theme);
+    await page.goto(
+      '/login?callbackUrl=%2Fprojects%3Frepository%3Dvercel%2Fnext.js&error=OAuthCallback'
+    );
+    await expect(page.getByRole('heading', { name: 'Connect vercel/next.js' })).toBeVisible();
+    await expect(page.getByRole('alert')).toContainText('GitHub callback failed');
+    await expect(page.getByRole('button', { name: 'Continue with GitHub' })).toBeEnabled();
+    expect(
+      await page.evaluate(() => {
+        const foreground = getComputedStyle(document.querySelector('h2')!).color;
+        return { foreground, overflow: document.documentElement.scrollWidth > innerWidth };
+      })
+    ).toEqual({
+      foreground: theme === 'light' ? 'rgb(18, 59, 74)' : 'rgb(244, 239, 228)',
+      overflow: false,
+    });
+  }
+});

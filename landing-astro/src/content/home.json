@@ -51,7 +51,8 @@
     },
     "surface": {
       "backdrop": "grid"
-    }
+    },
+    "mode": "light"
   },
   "product": "Starboard",
   "url": "https://starboard.codevetter.com",

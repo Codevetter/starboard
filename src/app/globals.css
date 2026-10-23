@@ -14,6 +14,8 @@
 /* Same paper, ink and coral identity as the Astro landing. The shared
    library supplies geometry, state transitions and locally hosted fonts. */
 :root {
+  --font-display: "Newsreader Display", "Iowan Old Style", Georgia, serif;
+  --display-weight: 420;
   --font-text: var(--font-sans);
   --radius: 0.625rem;
   --background: #f4efe4;
