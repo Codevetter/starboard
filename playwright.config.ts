@@ -23,6 +23,24 @@ export default defineConfig({
     timeout: 240_000,
   },
   projects: [
+    ...(['firefox', 'webkit'] as const).flatMap((browserName) => [
+      {
+        name: `${browserName}-desktop`,
+        testMatch: /(?:public-app|landing-mobile)\.spec\.ts/,
+        use: { browserName, viewport: { width: 1440, height: 900 }, baseURL: appURL },
+      },
+      {
+        name: `${browserName}-phone`,
+        testMatch: /(?:public-app|landing-mobile)\.spec\.ts/,
+        use: {
+          browserName,
+          viewport: { width: 390, height: 844 },
+          hasTouch: true,
+          ...(browserName === 'webkit' ? { isMobile: true } : {}),
+          baseURL: appURL,
+        },
+      },
+    ]),
     {
       name: 'desktop',
       testMatch: /public-app\.spec\.ts/,

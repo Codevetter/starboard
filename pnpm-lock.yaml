@@ -41,8 +41,8 @@ importers:
         specifier: ^0.4.0
         version: 0.4.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@saas-maker/ui':
-        specifier: github:sass-maker/ui-library#v0.1.14&path:/packages/ui
-        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89#path:/packages/ui(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)
+        specifier: github:sass-maker/ui-library#v0.1.23&path:/packages/ui
+        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui(@date-fns/tz@1.5.0)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)
       '@tanstack/react-virtual':
         specifier: 3.14.8
         version: 3.14.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -162,14 +162,14 @@ importers:
         specifier: ^5.2.8
         version: 5.2.8
       '@saas-maker/motion':
-        specifier: github:sass-maker/ui-library#v0.1.13&path:/packages/motion
-        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+        specifier: github:sass-maker/ui-library#v0.1.23&path:/packages/motion
+        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       '@saas-maker/templates':
-        specifier: github:sass-maker/ui-library#v0.1.13&path:/packages/templates
-        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/templates(@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/ui(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3))(astro@7.2.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.6.0)(@vercel/functions@3.9.1(@aws-sdk/credential-provider-web-identity@3.972.67)(ws@8.21.1))(aws4fetch@1.0.20)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))(react@19.3.0)
+        specifier: github:sass-maker/ui-library#v0.1.23&path:/packages/templates
+        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/templates(@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3))(astro@7.2.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.6.0)(@vercel/functions@3.9.1(@aws-sdk/credential-provider-web-identity@3.972.67)(ws@8.21.1))(aws4fetch@1.0.20)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))(react@19.3.0)
       '@saas-maker/ui':
-        specifier: github:sass-maker/ui-library#v0.1.13&path:/packages/ui
-        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/ui(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
+        specifier: github:sass-maker/ui-library#v0.1.23&path:/packages/ui
+        version: https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
       '@tailwindcss/vite':
         specifier: 4.3.3
         version: 4.3.3(vite@8.3.4(@types/node@25.6.0)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))
@@ -607,6 +607,9 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  '@babel/runtime@8.0.8':
+    resolution: {integrity: sha512-dEu8nGlRqjsJsvviUUoSMfcRHpwomCiRlXsc2mPfJ79+ffTpDm+JtfUtTMzUrqCApHQnCsVPD3gT1ZT8RgBRCQ==}
+
   '@babel/types@7.29.0':
     resolution: {integrity: sha512-LwdZHpScM4Qz8Xw2iKSzS+cfglZzJGvofQICy7W7v4caru4EaAmyUuO6BGrbyQ2mYV11W0U8j5mBhd14dd3B0A==}
     engines: {node: '>=6.9.0'}
@@ -614,6 +617,33 @@ packages:
   '@babel/types@7.29.8':
     resolution: {integrity: sha512-Vj1jF3cPfxg7OAfoI7QnVKLoILlm2JF9pnVHrX8qx7AHMiYWT+NDAA7jChlNgRS4WTLc/fD1lXLmPixluj+3Gg==}
     engines: {node: '>=6.9.0'}
+
+  '@base-ui/react@1.9.0':
+    resolution: {integrity: sha512-S8CSYosASBKtpL8SWUfS78rFElfLijiCgA7oHOK22jCJ95FULsYyKwBNFOgudt0RA+/7yNc7F81bOvQnRgbBiQ==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      '@date-fns/tz': ^1.2.0
+      '@types/react': ^17 || ^18 || ^19
+      date-fns: ^4.0.0
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+    peerDependenciesMeta:
+      '@date-fns/tz':
+        optional: true
+      '@types/react':
+        optional: true
+      date-fns:
+        optional: true
+
+  '@base-ui/utils@0.5.0':
+    resolution: {integrity: sha512-dYGGcEttjkYiMoa5nHm8vLaJ2UcuTWxo3BFAwOYXeRg/q7UVVvA6cacEIXEs3FgBfK1CGtW1ptElqs7wsx+t9A==}
+    peerDependencies:
+      '@types/react': ^17 || ^18 || ^19
+      react: ^17 || ^18 || ^19
+      react-dom: ^17 || ^18 || ^19
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
 
   '@bcoe/v8-coverage@1.0.2':
     resolution: {integrity: sha512-6zABk/ECA/QYSCQ1NGiVwwbQerUCZ+TQbp64Q3AgmfNvurHH0j8TtXa1qbShXA6qqkpAj4V5W8pP6mLe1mcMqA==}
@@ -783,6 +813,9 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@date-fns/tz@1.5.0':
+    resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
 
   '@dotenvx/dotenvx@1.31.0':
     resolution: {integrity: sha512-GeDxvtjiRuoyWVU9nQneId879zIyNdL05bS7RKiqMkfBSKpHMWHLoRyRqjYWLaXmX/llKO1hTlqHDmatkQAjPA==}
@@ -2660,30 +2693,22 @@ packages:
       react: '>=18 <20'
       react-dom: '>=18 <20'
 
-  '@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/motion':
-    resolution: {path: /packages/motion, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b}
-    version: 0.1.13
+  '@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/motion':
+    resolution: {path: /packages/motion, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a}
+    version: 0.1.23
 
-  '@saas-maker/templates@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/templates':
-    resolution: {path: /packages/templates, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b}
-    version: 0.1.13
+  '@saas-maker/templates@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/templates':
+    resolution: {path: /packages/templates, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a}
+    version: 0.1.23
     peerDependencies:
       '@saas-maker/motion': 0.x
       '@saas-maker/ui': 0.x
       astro: '>=7'
       react: '>=19'
 
-  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/ui':
-    resolution: {path: /packages/ui, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b}
-    version: 0.1.13
-    peerDependencies:
-      react: '>=19'
-      react-dom: '>=19'
-      tailwindcss: '>=4.3'
-
-  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89#path:/packages/ui':
-    resolution: {path: /packages/ui, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89}
-    version: 0.1.14
+  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui':
+    resolution: {path: /packages/ui, tarball: https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a}
+    version: 0.1.23
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
@@ -3369,6 +3394,9 @@ packages:
       react: ^18 || ^19 || ^19.0.0-rc
       react-dom: ^18 || ^19 || ^19.0.0-rc
 
+  cobe@2.0.1:
+    resolution: {integrity: sha512-aaa6vcIlaC8C1SF50LDH0Anybo/EAXnrxqe+bwvr4+YUtZydqjeBjTTD7ziCCkbRrRGSns3I3F6cZsf3W+L+ag==}
+
   color-convert@2.0.1:
     resolution: {integrity: sha512-RRECPsj7iu/xb5oKYcsFHSppFNnsj/52OVTRKb4zP5onXwVF3zVmmToNcOfGC+CRDpfK/U584fMg38ZHCaElKQ==}
     engines: {node: '>=7.0.0'}
@@ -3467,6 +3495,9 @@ packages:
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
+  date-fns@4.4.0:
+    resolution: {integrity: sha512-+1UMbeh68lH1SegH83CGWwpb6OHHbpSgr3+s5Eww5M4CAgswBpoWS0AjTOfEJ33HiYKz1hdj/KTFprzXHmq/6w==}
 
   debug@4.4.3:
     resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
@@ -3895,6 +3926,12 @@ packages:
 
   inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+
+  input-otp@1.5.0:
+    resolution: {integrity: sha512-3AcfdW1sNG0FmSA5hHMBXG7jNW5CdcdKs8ln8JOmn6S2SRkoXoJx+2UwC+ZvjflfnOdHJx0SfQ9/YjlxVYLtGQ==}
+    peerDependencies:
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
 
   ipaddr.js@1.9.1:
     resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
@@ -4659,6 +4696,16 @@ packages:
     resolution: {integrity: sha512-K5zQjDllxWkf7Z5xJdV0/B0WTNqx6vxG70zJE4N0kBs4LovmEYWJzQGxC9bS9RAKu3bgM40lrd5zoLJ12MQ5BA==}
     engines: {node: '>= 0.10'}
 
+  react-day-picker@10.0.2:
+    resolution: {integrity: sha512-QetiKtZWE9Uaw/pM/SYNv6WPYOTRnSJ2puL0GgwkmUFMIwiY0dtjH1W4B7DOVXVNQM0ZOClGpH/heOfBSzWeiA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@types/react': '>=16.8.0'
+      react: '>=16.8.0'
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+
   react-dom@19.2.8:
     resolution: {integrity: sha512-rVprimfGBG3DR+Tq0IQG2DT5PxKth1WIGDmj5yPmlzr4YBe7uyE+Du4oVqTDXZSHGGGXRtTJEGSSePyQCMBglQ==}
     peerDependencies:
@@ -4689,6 +4736,12 @@ packages:
       '@types/react':
         optional: true
 
+  react-resizable-panels@4.14.8:
+    resolution: {integrity: sha512-kVot7JCIZct85ZY87vww95R7tI25VSTjHpEAIIy2YcsOtbtwG6l1+vDD6TCYgmgE/JSp0ADqNooHn97Y6dMOFw==}
+    peerDependencies:
+      react: ^18.0.0 || ^19.0.0
+      react-dom: ^18.0.0 || ^19.0.0
+
   react-style-singleton@2.2.3:
     resolution: {integrity: sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ==}
     engines: {node: '>=10'}
@@ -4697,6 +4750,15 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
     peerDependenciesMeta:
       '@types/react':
+        optional: true
+
+  react-use-measure@2.1.7:
+    resolution: {integrity: sha512-KrvcAo13I/60HpwGO5jpW7E9DfusKyLPLvuHlUyP5zqnmAPhNc6qTRjUQrdTADl0lpPpDVU2/Gg51UlOGHXbdg==}
+    peerDependencies:
+      react: '>=16.13'
+      react-dom: '>=16.13'
+    peerDependenciesMeta:
+      react-dom:
         optional: true
 
   react@19.2.8:
@@ -4723,6 +4785,9 @@ packages:
   require-directory@2.1.1:
     resolution: {integrity: sha512-fGxEI7+wsG9xrvdjsrlmL22OMTTiHRwAMroiEeMgq8gzoLC/PQr7RsRDSTLUg/bZAZtF+TVIkHc6/4RIKrui+Q==}
     engines: {node: '>=0.10.0'}
+
+  reselect@5.3.0:
+    resolution: {integrity: sha512-XGoLeRAVzUTcJ1qkxPQhDJyIZ5d6zzZD9nT7AEZOaaU9UbWclhycElmhO+VD5bFeLuzhPBaOV2oXC8uG35ZSpg==}
 
   resolve-pkg-maps@1.0.0:
     resolution: {integrity: sha512-seS2Tj26TBVOC2NIc2rOe2y2ZO7efxITtLZcGSOnHHNOQ7CkiUBfw0Iw2ck6xkIhPwLhKNLS8BO+hEpngQlqzw==}
@@ -5190,9 +5255,20 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
+  use-sync-external-store@1.7.0:
+    resolution: {integrity: sha512-6L+EeigHMQhdaIPNIFUKwfWJSwWFQ8gJbJ2DLOs5sDIegTwR9fRxvnM3uciHKjIZhFz+KAv2emhWMRvDmMcY8A==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
     engines: {node: '>= 0.8'}
+
+  vaul@1.1.2:
+    resolution: {integrity: sha512-ZFkClGpWyI2WUQjdLJ/BaGuV6AVQiJ3uELGk3OYtP+B6yCO7Cmn9vPFXVJkRaGkOJu3m8bQMgtyzNHixULceQA==}
+    peerDependencies:
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0.0 || ^19.0.0-rc
 
   vfile-message@4.0.3:
     resolution: {integrity: sha512-QTHzsGd1EhbZs4AsQ20JX1rC3cOlt/IWJruk893DfLRr57lcnOeMaWG4K0JrRta4mIJZKth2Au3mM3u03/JWKw==}
@@ -6218,6 +6294,8 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.8
 
+  '@babel/runtime@8.0.8': {}
+
   '@babel/types@7.29.0':
     dependencies:
       '@babel/helper-string-parser': 7.27.1
@@ -6227,6 +6305,56 @@ snapshots:
     dependencies:
       '@babel/helper-string-parser': 7.29.7
       '@babel/helper-validator-identifier': 7.29.7
+
+  '@base-ui/react@1.9.0(@date-fns/tz@1.5.0)(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@babel/runtime': 8.0.8
+      '@base-ui/utils': 0.5.0(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@floating-ui/react-dom': 2.1.9(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@floating-ui/utils': 0.2.12
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      use-sync-external-store: 1.7.0(react@19.2.8)
+    optionalDependencies:
+      '@date-fns/tz': 1.5.0
+      '@types/react': 19.2.17
+      date-fns: 4.4.0
+
+  '@base-ui/react@1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@babel/runtime': 8.0.8
+      '@base-ui/utils': 0.5.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@floating-ui/react-dom': 2.1.9(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@floating-ui/utils': 0.2.12
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      use-sync-external-store: 1.7.0(react@19.3.0)
+    optionalDependencies:
+      '@date-fns/tz': 1.5.0
+      '@types/react': 19.3.0
+      date-fns: 4.4.0
+
+  '@base-ui/utils@0.5.0(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)':
+    dependencies:
+      '@babel/runtime': 8.0.8
+      '@floating-ui/utils': 0.2.12
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+      reselect: 5.3.0
+      use-sync-external-store: 1.7.0(react@19.2.8)
+    optionalDependencies:
+      '@types/react': 19.2.17
+
+  '@base-ui/utils@0.5.0(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+    dependencies:
+      '@babel/runtime': 8.0.8
+      '@floating-ui/utils': 0.2.12
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+      reselect: 5.3.0
+      use-sync-external-store: 1.7.0(react@19.3.0)
+    optionalDependencies:
+      '@types/react': 19.3.0
 
   '@bcoe/v8-coverage@1.0.2': {}
 
@@ -6338,6 +6466,8 @@ snapshots:
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
+
+  '@date-fns/tz@1.5.0': {}
 
   '@dotenvx/dotenvx@1.31.0':
     dependencies:
@@ -8623,56 +8753,76 @@ snapshots:
       react: 19.2.8
       react-dom: 19.2.8(react@19.2.8)
 
-  '@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
+  '@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0)':
     dependencies:
       motion: 13.4.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
     transitivePeerDependencies:
       - react
       - react-dom
 
-  '@saas-maker/templates@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/templates(@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/ui(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3))(astro@7.2.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.6.0)(@vercel/functions@3.9.1(@aws-sdk/credential-provider-web-identity@3.972.67)(ws@8.21.1))(aws4fetch@1.0.20)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))(react@19.3.0)':
+  '@saas-maker/templates@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/templates(@saas-maker/motion@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3))(astro@7.2.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.6.0)(@vercel/functions@3.9.1(@aws-sdk/credential-provider-web-identity@3.972.67)(ws@8.21.1))(aws4fetch@1.0.20)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0))(react@19.3.0)':
     dependencies:
-      '@saas-maker/motion': https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      '@saas-maker/ui': https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/ui(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
+      '@saas-maker/motion': https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/motion(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@saas-maker/ui': https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)
       astro: 7.2.8(@emnapi/core@1.11.2)(@emnapi/runtime@1.11.3)(@types/node@25.6.0)(@vercel/functions@3.9.1(@aws-sdk/credential-provider-web-identity@3.972.67)(ws@8.21.1))(aws4fetch@1.0.20)(jiti@2.7.0)(terser@5.16.9)(tsx@4.23.1)(yaml@2.9.0)
       lucide-react: 1.48.0(react@19.3.0)
       react: 19.3.0
 
-  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/18dfffb42f3774ce6cf788d10210a1da4e339f5b#path:/packages/ui(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
+  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui(@date-fns/tz@1.5.0)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)':
     dependencies:
-      '@tanstack/react-table': 9.2.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      class-variance-authority: 0.7.1
-      clsx: 2.1.1
-      cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      lucide-react: 1.48.0(react@19.3.0)
-      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      react: 19.3.0
-      react-dom: 19.3.0(react@19.3.0)
-      sonner: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
-      tailwind-merge: 3.7.0
-      tailwindcss: 4.3.3
-      tw-animate-css: 1.4.0
-    transitivePeerDependencies:
-      - '@types/react'
-      - '@types/react-dom'
-
-  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/404a34ef1b1f0ecebe76015d73bd8133bd255c89#path:/packages/ui(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(tailwindcss@4.3.3)':
-    dependencies:
+      '@base-ui/react': 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.2.17)(date-fns@4.4.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       '@tanstack/react-table': 9.2.4(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       cmdk: 1.1.1(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      cobe: 2.0.1
+      input-otp: 1.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       lucide-react: 1.48.0(react@19.2.8)
+      motion: 13.4.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       radix-ui: 1.6.7(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       react: 19.2.8
+      react-day-picker: 10.0.2(@types/react@19.2.17)(react@19.2.8)
       react-dom: 19.2.8(react@19.2.8)
+      react-resizable-panels: 4.14.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react-use-measure: 2.1.7(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       sonner: 2.0.8(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
       tailwind-merge: 3.7.0
       tailwindcss: 4.3.3
       tw-animate-css: 1.4.0
+      vaul: 1.1.2(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
     transitivePeerDependencies:
+      - '@date-fns/tz'
       - '@types/react'
       - '@types/react-dom'
+      - date-fns
+
+  '@saas-maker/ui@https://codeload.github.com/sass-maker/ui-library/tar.gz/8af7708a2199a2b812a3b2764845c448e09ee10a#path:/packages/ui(@date-fns/tz@1.5.0)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(tailwindcss@4.3.3)':
+    dependencies:
+      '@base-ui/react': 1.9.0(@date-fns/tz@1.5.0)(@types/react@19.3.0)(date-fns@4.4.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tanstack/react-table': 9.2.4(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      class-variance-authority: 0.7.1
+      clsx: 2.1.1
+      cmdk: 1.1.1(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      cobe: 2.0.1
+      input-otp: 1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      lucide-react: 1.48.0(react@19.3.0)
+      motion: 13.4.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      radix-ui: 1.6.7(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-day-picker: 10.0.2(@types/react@19.3.0)(react@19.3.0)
+      react-dom: 19.3.0(react@19.3.0)
+      react-resizable-panels: 4.14.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-use-measure: 2.1.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      sonner: 2.0.8(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      tailwind-merge: 3.7.0
+      tailwindcss: 4.3.3
+      tw-animate-css: 1.4.0
+      vaul: 1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+    transitivePeerDependencies:
+      - '@date-fns/tz'
+      - '@types/react'
+      - '@types/react-dom'
+      - date-fns
 
   '@shikijs/core@4.4.2':
     dependencies:
@@ -9510,6 +9660,8 @@ snapshots:
       - '@types/react'
       - '@types/react-dom'
 
+  cobe@2.0.1: {}
+
   color-convert@2.0.1:
     dependencies:
       color-name: 1.1.4
@@ -9592,6 +9744,8 @@ snapshots:
       css-tree: 2.2.1
 
   csstype@3.2.3: {}
+
+  date-fns@4.4.0: {}
 
   debug@4.4.3:
     dependencies:
@@ -9897,6 +10051,15 @@ snapshots:
 
   forwarded@0.2.0: {}
 
+  framer-motion@13.5.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      motion-dom: 13.5.1
+      motion-utils: 13.5.0
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
   framer-motion@13.5.1(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
       motion-dom: 13.5.1
@@ -10078,6 +10241,16 @@ snapshots:
   ignore@5.3.2: {}
 
   inherits@2.0.4: {}
+
+  input-otp@1.5.0(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  input-otp@1.5.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
 
   ipaddr.js@1.9.1: {}
 
@@ -10407,6 +10580,14 @@ snapshots:
       motion-utils: 13.5.0
 
   motion-utils@13.5.0: {}
+
+  motion@13.4.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      framer-motion: 13.5.1(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      tslib: 2.8.1
+    optionalDependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
 
   motion@13.4.3(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
     dependencies:
@@ -10881,6 +11062,22 @@ snapshots:
       iconv-lite: 0.7.3
       unpipe: 1.0.0
 
+  react-day-picker@10.0.2(@types/react@19.2.17)(react@19.2.8):
+    dependencies:
+      '@date-fns/tz': 1.5.0
+      date-fns: 4.4.0
+      react: 19.2.8
+    optionalDependencies:
+      '@types/react': 19.2.17
+
+  react-day-picker@10.0.2(@types/react@19.3.0)(react@19.3.0):
+    dependencies:
+      '@date-fns/tz': 1.5.0
+      date-fns: 4.4.0
+      react: 19.3.0
+    optionalDependencies:
+      '@types/react': 19.3.0
+
   react-dom@19.2.8(react@19.2.8):
     dependencies:
       react: 19.2.8
@@ -10929,6 +11126,16 @@ snapshots:
     optionalDependencies:
       '@types/react': 19.3.0
 
+  react-resizable-panels@4.14.8(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+
+  react-resizable-panels@4.14.8(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+
   react-style-singleton@2.2.3(@types/react@19.2.17)(react@19.2.8):
     dependencies:
       get-nonce: 1.0.1
@@ -10944,6 +11151,18 @@ snapshots:
       tslib: 2.8.1
     optionalDependencies:
       '@types/react': 19.3.0
+
+  react-use-measure@2.1.7(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      react: 19.2.8
+    optionalDependencies:
+      react-dom: 19.2.8(react@19.2.8)
+
+  react-use-measure@2.1.7(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+    optionalDependencies:
+      react-dom: 19.3.0(react@19.3.0)
 
   react@19.2.8: {}
 
@@ -10963,6 +11182,8 @@ snapshots:
 
   require-directory@2.1.1:
     optional: true
+
+  reselect@5.3.0: {}
 
   resolve-pkg-maps@1.0.0: {}
 
@@ -11476,7 +11697,33 @@ snapshots:
     dependencies:
       react: 19.3.0
 
+  use-sync-external-store@1.7.0(react@19.2.8):
+    dependencies:
+      react: 19.2.8
+
+  use-sync-external-store@1.7.0(react@19.3.0):
+    dependencies:
+      react: 19.3.0
+
   vary@1.1.2: {}
+
+  vaul@1.1.2(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8):
+    dependencies:
+      '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react: 19.2.8
+      react-dom: 19.2.8(react@19.2.8)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
+
+  vaul@1.1.2(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0):
+    dependencies:
+      '@radix-ui/react-dialog': 1.1.23(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react: 19.3.0
+      react-dom: 19.3.0(react@19.3.0)
+    transitivePeerDependencies:
+      - '@types/react'
+      - '@types/react-dom'
 
   vfile-message@4.0.3:
     dependencies:

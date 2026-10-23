@@ -588,3 +588,39 @@ test('repository HTML includes public content without JavaScript and malformed p
   expect(malformed.status()).toBe(404);
   expect(await malformed.text()).toMatch(/name="robots"[^>]*content="noindex"/);
 });
+
+
+test('shared identity, local fonts and keyboard controls survive theme changes', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.route('**/discover/data**', async (route) => {
+    // Keep navigation usable while a result request is pending.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await route.fulfill({ json: { repos: [repo], total: 1, facets: { languages: [], lists: [], tags: [], tools: [] }, minStars: 5000 } });
+  });
+  await page.goto('/discover');
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => localStorage.setItem('theme', value), theme);
+    await page.reload();
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/);
+    const identity = await page.evaluate(() => {
+      const style = getComputedStyle(document.body);
+      const sample = document.createElement('span');
+      sample.style.color = 'var(--brand)';
+      document.body.append(sample);
+      const brand = getComputedStyle(sample).color;
+      sample.remove();
+      return { font: style.fontFamily, brand, overflow: document.documentElement.scrollWidth > innerWidth };
+    });
+    expect(identity.font).toContain('Figtree');
+    expect(identity.brand).toBe(theme === 'light' ? 'rgb(217, 78, 48)' : 'rgb(241, 140, 112)');
+    expect(identity.overflow).toBe(false);
+    const search = page.getByPlaceholder('Search repos...');
+    await search.focus();
+    await page.keyboard.type('shared-ui');
+    await expect(search).toBeFocused();
+    await expect(page.getByRole('link', { name: /codevetter\/starboard/i })).toBeVisible();
+  }
+  expect(errors).toEqual([]);
+});
