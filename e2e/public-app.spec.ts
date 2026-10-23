@@ -589,14 +589,22 @@ test('repository HTML includes public content without JavaScript and malformed p
   expect(await malformed.text()).toMatch(/name="robots"[^>]*content="noindex"/);
 });
 
-
-test('shared identity, local fonts and keyboard controls survive theme changes', async ({ page }) => {
+test('shared identity, local fonts and keyboard controls survive theme changes', async ({
+  page,
+}) => {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(error.message));
   await page.route('**/discover/data**', async (route) => {
     // Keep navigation usable while a result request is pending.
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await route.fulfill({ json: { repos: [repo], total: 1, facets: { languages: [], lists: [], tags: [], tools: [] }, minStars: 5000 } });
+    await route.fulfill({
+      json: {
+        repos: [repo],
+        total: 1,
+        facets: { languages: [], lists: [], tags: [], tools: [] },
+        minStars: 5000,
+      },
+    });
   });
   await page.goto('/discover');
   for (const theme of ['light', 'dark']) {
@@ -611,7 +619,11 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
       document.body.append(sample);
       const brand = getComputedStyle(sample).color;
       sample.remove();
-      return { font: style.fontFamily, brand, overflow: document.documentElement.scrollWidth > innerWidth };
+      return {
+        font: style.fontFamily,
+        brand,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      };
     });
     expect(identity.font).toContain('Figtree');
     expect(identity.brand).toBe(theme === 'light' ? 'rgb(217, 78, 48)' : 'rgb(241, 140, 112)');
