@@ -1,20 +1,9 @@
 import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
 
 import { Providers } from '@/components/providers';
 import { SaaSMakerFeedback } from '@/components/saasmaker-feedback';
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
-
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
 
 const SITE_URL = 'https://starboard.codevetter.com';
 const SITE_DESCRIPTION =
@@ -91,7 +80,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className="antialiased">
         <Providers>
           {children}
           <SaaSMakerFeedback />

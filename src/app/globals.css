@@ -4,83 +4,106 @@
 @custom-variant dark (&:is(.dark *, [data-mode="dark"] *, [data-mode="dark"]));
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
 }
 
-/* Keep Starboard's neutral palette; the shared theme owns token mappings. */
+/* Same paper, ink and coral identity as the Astro landing. The shared
+   library supplies geometry, state transitions and locally hosted fonts. */
 :root {
-  --brand: var(--primary);
-  --brand-foreground: var(--primary-foreground);
-  --brand-soft: var(--accent);
-  --brand-ink: var(--primary);
+  --font-display: "Newsreader Display", "Iowan Old Style", Georgia, serif;
+  --display-weight: 420;
+  --font-text: var(--font-sans);
   --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: #f4efe4;
+  --foreground: #123b4a;
+  --surface: #e8e0d1;
+  --card: #fbf7ee;
+  --card-foreground: #123b4a;
+  --popover: #fbf7ee;
+  --popover-foreground: #123b4a;
+  --primary: #123b4a;
+  --primary-foreground: #f4efe4;
+  --secondary: #e8e0d1;
+  --secondary-foreground: #123b4a;
+  --muted: #e8e0d1;
+  --muted-foreground: #5f6863;
+  --accent: #f1ddd3;
+  --accent-foreground: #123b4a;
+  --brand: #d94e30;
+  --brand-foreground: #fbf7ee;
+  --brand-soft: #f1ddd3;
+  --brand-ink: #a73520;
+  --border: #17201f2e;
+  --input: #17201f50;
+  --ring: #d94e30;
+  --sidebar: #ece5d7;
+  --sidebar-foreground: #123b4a;
+  --sidebar-primary: #123b4a;
+  --sidebar-primary-foreground: #f4efe4;
+  --sidebar-accent: #f1ddd3;
+  --sidebar-accent-foreground: #123b4a;
+  --sidebar-border: #17201f2e;
+  --sidebar-ring: #d94e30;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #172124;
+  --foreground: #f4efe4;
+  --surface: #202d31;
+  --card: #202d31;
+  --card-foreground: #f4efe4;
+  --popover: #253337;
+  --popover-foreground: #f4efe4;
+  --primary: #f4efe4;
+  --primary-foreground: #172124;
+  --secondary: #2d3c40;
+  --secondary-foreground: #f4efe4;
+  --muted: #2d3c40;
+  --muted-foreground: #b4c0bd;
+  --accent: #44302b;
+  --accent-foreground: #f4efe4;
+  --brand: #f18c70;
+  --brand-foreground: #172124;
+  --brand-soft: #44302b;
+  --brand-ink: #f18c70;
+  --destructive: #ffb4a5;
+  --success: #a4d4b1;
+  --warning: #e8c584;
+  --border: #d9e2d929;
+  --input: #d9e2d94d;
+  --ring: #f18c70;
+  --sidebar: #1c282c;
+  --sidebar-foreground: #f4efe4;
+  --sidebar-primary: #f4efe4;
+  --sidebar-primary-foreground: #172124;
+  --sidebar-accent: #44302b;
+  --sidebar-accent-foreground: #f4efe4;
+  --sidebar-border: #d9e2d929;
+  --sidebar-ring: #f18c70;
+}
+
+/* The shared feedback widget follows the same product palette and font. */
+[data-feedback-widget].smw-root.smw-root {
+  --smw-bg: var(--card);
+  --smw-bg-secondary: var(--secondary);
+  --smw-bg-hover: var(--accent);
+  --smw-text: var(--foreground);
+  --smw-text-secondary: var(--muted-foreground);
+  --smw-text-muted: var(--muted-foreground);
+  --smw-border: var(--border);
+  --smw-input-bg: var(--background);
+  --smw-input-border: var(--input);
+  font-family: var(--font-sans);
+}
+
+[data-feedback-widget].smw-root .smw-trigger,
+[data-feedback-widget].smw-root .smw-btn--primary,
+[data-feedback-widget].smw-root .smw-filter-pill--active {
+  color: var(--brand-foreground);
 }
 
 @media (max-width: 639px) {

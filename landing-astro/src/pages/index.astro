@@ -6,7 +6,7 @@ import { workbenchContent } from '@saas-maker/templates/schema';
 import home from '../content/home.json';
 
 const content = workbenchContent.parse(home);
-// v0.1.13 validates absolute form URLs; keep the original same-origin GET route.
+// Keep the content-defined form on the original same-origin GET route.
 if (content.hero.form) content.hero.form.action = new URL(content.hero.form.action).pathname;
 // The template spreads card attributes; add delivery hints after schema validation.
 // Match the shared hero's 48rem breakpoint, padding, gap, and 80rem maximum.

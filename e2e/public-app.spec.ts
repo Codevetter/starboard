@@ -34,8 +34,20 @@ async function mockGuestSession(page: Page) {
   );
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
   await mockGuestSession(page);
+  // Browser fixtures must not send analytics or depend on third-party availability.
+  await page.route(/^https:\/\/[^/]*\.posthog\.com\//, (route) =>
+    route.fulfill({
+      contentType:
+        route.request().resourceType() === 'script' ? 'text/javascript' : 'application/json',
+      body: route.request().resourceType() === 'script' ? '' : '{}',
+      headers: {
+        'access-control-allow-origin': new URL(testInfo.project.use.baseURL as string).origin,
+        'access-control-allow-credentials': 'true',
+      },
+    })
+  );
 });
 
 test('protected HTML is private and contains no serialized session credentials', async ({
@@ -587,4 +599,95 @@ test('repository HTML includes public content without JavaScript and malformed p
   });
   expect(malformed.status()).toBe(404);
   expect(await malformed.text()).toMatch(/name="robots"[^>]*content="noindex"/);
+});
+
+test('shared identity, local fonts and keyboard controls survive theme changes', async ({
+  page,
+}, testInfo) => {
+  const errors: string[] = [];
+  page.on('pageerror', (error) => errors.push(error.stack ?? error.message));
+  await page.route('**/discover/data**', async (route) => {
+    // Keep navigation usable while a result request is pending.
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    await route.fulfill({
+      json: {
+        repos: [repo],
+        total: 1,
+        facets: { languages: [], lists: [], tags: [], tools: [] },
+        minStars: 5000,
+      },
+    });
+  });
+  const firstSession = page.waitForResponse('**/api/auth/session');
+  await page.goto('/discover');
+  await (await firstSession).finished();
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => localStorage.setItem('theme', value), theme);
+    // Let automatic RSC prefetches finish before replacing the document.
+    // WebKit reports their navigation cancellation as pageerror (Playwright #43120).
+    await page.waitForLoadState('networkidle');
+    const session = page.waitForResponse('**/api/auth/session');
+    await page.reload();
+    await (await session).finished();
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/);
+    const identity = await page.evaluate(() => {
+      const style = getComputedStyle(document.body);
+      const sample = document.createElement('span');
+      sample.style.color = 'var(--brand)';
+      document.body.append(sample);
+      const brand = getComputedStyle(sample).color;
+      sample.remove();
+      return {
+        font: style.fontFamily,
+        brand,
+        overflow: document.documentElement.scrollWidth > innerWidth,
+      };
+    });
+    expect(identity.font).toContain('Figtree');
+    expect(identity.brand).toBe(theme === 'light' ? 'rgb(217, 78, 48)' : 'rgb(241, 140, 112)');
+    expect(identity.overflow).toBe(false);
+    const search = page.getByPlaceholder('Search repos...');
+    const query = `shared-ui-${theme}`;
+    await search.focus();
+    await search.press('ControlOrMeta+A');
+    await page.keyboard.type(query);
+    await expect(search).toBeFocused();
+    await expect(page.getByRole('link', { name: /codevetter\/starboard/i })).toBeVisible();
+    await expect.poll(() => new URL(page.url()).searchParams.get('q')).toBe(query);
+    await expect(page.getByRole('region', { name: 'Repository results' })).toHaveAttribute(
+      'aria-busy',
+      'false'
+    );
+    await page.screenshot({ path: testInfo.outputPath(`discover-${theme}.png`), fullPage: true });
+  }
+  expect(errors).toEqual([]);
+});
+
+test('login preserves project context and theme identity through a recoverable error', async ({
+  page,
+}, testInfo) => {
+  await page.goto('/login');
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((value) => localStorage.setItem('theme', value), theme);
+    await page.goto(
+      '/login?callbackUrl=%2Fprojects%3Frepository%3Dvercel%2Fnext.js&error=OAuthCallback'
+    );
+    await expect(page.getByRole('heading', { name: 'Connect vercel/next.js' })).toBeVisible();
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'GitHub callback failed' })
+    ).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Continue with GitHub' })).toBeEnabled();
+    expect(
+      await page.evaluate(() => {
+        const foreground = getComputedStyle(document.querySelector('h2')!).color;
+        return { foreground, overflow: document.documentElement.scrollWidth > innerWidth };
+      })
+    ).toEqual({
+      foreground: theme === 'light' ? 'rgb(18, 59, 74)' : 'rgb(244, 239, 228)',
+      overflow: false,
+    });
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: testInfo.outputPath(`login-${theme}.png`), fullPage: true });
+  }
 });

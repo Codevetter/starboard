@@ -13,7 +13,8 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 1 : 0,
+  maxFailures: process.env.CI ? 3 : undefined,
   reporter: 'list',
   use: { trace: 'on-first-retry' },
   webServer: {
@@ -23,6 +24,35 @@ export default defineConfig({
     timeout: 240_000,
   },
   projects: [
+    {
+      name: 'tablet',
+      testMatch: /(?:public-app|landing-mobile)\.spec\.ts/,
+      use: {
+        ...devices['Desktop Chrome'],
+        browserName: 'chromium',
+        viewport: { width: 820, height: 1180 },
+        hasTouch: true,
+        baseURL: appURL,
+      },
+    },
+    ...(['firefox', 'webkit'] as const).flatMap((browserName) => [
+      {
+        name: `${browserName}-desktop`,
+        testMatch: /(?:public-app|landing-mobile)\.spec\.ts/,
+        use: { browserName, viewport: { width: 1440, height: 900 }, baseURL: appURL },
+      },
+      {
+        name: `${browserName}-phone`,
+        testMatch: /(?:public-app|landing-mobile)\.spec\.ts/,
+        use: {
+          browserName,
+          viewport: { width: 390, height: 844 },
+          hasTouch: true,
+          ...(browserName === 'webkit' ? { isMobile: true } : {}),
+          baseURL: appURL,
+        },
+      },
+    ]),
     {
       name: 'desktop',
       testMatch: /public-app\.spec\.ts/,
