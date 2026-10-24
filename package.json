@@ -102,7 +102,7 @@
       "js-yaml@>=4.0.0 <4.3.2": "4.3.2",
       "svgo@>=4.0.0 <4.1.0": "4.1.0",
       "devalue": "5.9.3",
-      "undici@>=7.0.0 <8.0.0": "7.29.1",
+      "undici@>=7.0.0 <8.0.0": "7.30.1",
       "http-cache-semantics": "4.3.0",
       "source-map-js@^1.2.1": "1.2.2",
       "proxy-addr@^2.0.7": "2.0.8",
@@ -111,7 +111,9 @@
       "dompurify@<3.4.17": "3.4.17",
       "astro@7.2.8>vite": "8.2.4",
       "zod@>=4.0.0 <4.6.6": "4.6.6",
-      "body-parser@>=2.0.0 <2.4.0": "2.4.0"
+      "body-parser@>=2.0.0 <2.4.0": "2.4.0",
+      "undici@>=8.0.0 <8.12.2": "8.12.2",
+      "glob@>=10.2.0 <10.5.0": "10.5.0"
     },
     "patchedDependencies": {
       "http-cache-semantics@4.3.0": "patches/http-cache-semantics@4.3.0.patch"
