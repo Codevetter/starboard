@@ -28,6 +28,7 @@ export default defineConfig({
       name: 'tablet',
       testMatch: /(?:public-app|landing-mobile)\.spec\.ts/,
       use: {
+        ...devices['Desktop Chrome'],
         browserName: 'chromium',
         viewport: { width: 820, height: 1180 },
         hasTouch: true,
