@@ -24,6 +24,16 @@ export default defineConfig({
     timeout: 240_000,
   },
   projects: [
+    {
+      name: 'tablet',
+      testMatch: /(?:public-app|landing-mobile)\.spec\.ts/,
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 820, height: 1180 },
+        hasTouch: true,
+        baseURL: appURL,
+      },
+    },
     ...(['firefox', 'webkit'] as const).flatMap((browserName) => [
       {
         name: `${browserName}-desktop`,
