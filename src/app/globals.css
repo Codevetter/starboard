@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *, [data-mode="dark"] *, [data-mode="dark"]));
 
 @theme inline {
-  --font-sans: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-text);
   --font-mono: "Geist Mono Variable", ui-monospace, monospace;
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
@@ -16,7 +16,8 @@
 :root {
   --font-display: "Newsreader Display", "Iowan Old Style", Georgia, serif;
   --display-weight: 420;
-  --font-text: var(--font-sans);
+  --font-text: "Figtree Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-text);
   --radius: 0.625rem;
   --background: #f4efe4;
   --foreground: #123b4a;
@@ -97,7 +98,7 @@
   --smw-border: var(--border);
   --smw-input-bg: var(--background);
   --smw-input-border: var(--input);
-  font-family: var(--font-sans);
+  font-family: inherit;
 }
 
 [data-feedback-widget].smw-root .smw-trigger,

@@ -645,6 +645,11 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
       };
     });
     expect(identity.font).toContain('Figtree');
+    expect(
+      await page
+        .locator('[data-feedback-widget].smw-root')
+        .evaluate((root) => getComputedStyle(root).fontFamily)
+    ).toBe(identity.font);
     expect(identity.brand).toBe(theme === 'light' ? 'rgb(217, 78, 48)' : 'rgb(241, 140, 112)');
     expect(identity.overflow).toBe(false);
     const search = page.getByPlaceholder('Search repos...');
