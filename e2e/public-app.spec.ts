@@ -34,8 +34,20 @@ async function mockGuestSession(page: Page) {
   );
 }
 
-test.beforeEach(async ({ page }) => {
+test.beforeEach(async ({ page }, testInfo) => {
   await mockGuestSession(page);
+  // Browser fixtures must not send analytics or depend on third-party availability.
+  await page.route(/^https:\/\/[^/]*\.posthog\.com\//, (route) =>
+    route.fulfill({
+      contentType:
+        route.request().resourceType() === 'script' ? 'text/javascript' : 'application/json',
+      body: route.request().resourceType() === 'script' ? '' : '{}',
+      headers: {
+        'access-control-allow-origin': new URL(testInfo.project.use.baseURL as string).origin,
+        'access-control-allow-credentials': 'true',
+      },
+    })
+  );
 });
 
 test('protected HTML is private and contains no serialized session credentials', async ({
@@ -593,7 +605,7 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
   page,
 }, testInfo) => {
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('pageerror', (error) => errors.push(error.stack ?? error.message));
   await page.route('**/discover/data**', async (route) => {
     // Keep navigation usable while a result request is pending.
     await new Promise((resolve) => setTimeout(resolve, 250));
@@ -606,10 +618,14 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
       },
     });
   });
+  const firstSession = page.waitForResponse('**/api/auth/session');
   await page.goto('/discover');
+  await (await firstSession).finished();
   for (const theme of ['light', 'dark']) {
     await page.evaluate((value) => localStorage.setItem('theme', value), theme);
+    const session = page.waitForResponse('**/api/auth/session');
     await page.reload();
+    await (await session).finished();
     await page.evaluate(() => document.fonts.ready);
     await expect(page.locator('html')).toHaveClass(theme === 'dark' ? /dark/ : /light/);
     const identity = await page.evaluate(() => {
@@ -648,7 +664,9 @@ test('login preserves project context and theme identity through a recoverable e
       '/login?callbackUrl=%2Fprojects%3Frepository%3Dvercel%2Fnext.js&error=OAuthCallback'
     );
     await expect(page.getByRole('heading', { name: 'Connect vercel/next.js' })).toBeVisible();
-    await expect(page.getByRole('alert')).toContainText('GitHub callback failed');
+    await expect(
+      page.getByRole('alert').filter({ hasText: 'GitHub callback failed' })
+    ).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continue with GitHub' })).toBeEnabled();
     expect(
       await page.evaluate(() => {
