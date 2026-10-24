@@ -86,6 +86,26 @@
   --sidebar-ring: #f18c70;
 }
 
+/* The shared feedback widget follows the same product palette and font. */
+[data-feedback-widget].smw-root.smw-root {
+  --smw-bg: var(--card);
+  --smw-bg-secondary: var(--secondary);
+  --smw-bg-hover: var(--accent);
+  --smw-text: var(--foreground);
+  --smw-text-secondary: var(--muted-foreground);
+  --smw-text-muted: var(--muted-foreground);
+  --smw-border: var(--border);
+  --smw-input-bg: var(--background);
+  --smw-input-border: var(--input);
+  font-family: var(--font-sans);
+}
+
+[data-feedback-widget].smw-root .smw-trigger,
+[data-feedback-widget].smw-root .smw-btn--primary,
+[data-feedback-widget].smw-root .smw-filter-pill--active {
+  color: var(--brand-foreground);
+}
+
 @media (max-width: 639px) {
   [data-feedback-widget] .smw-trigger {
     right: 12px;

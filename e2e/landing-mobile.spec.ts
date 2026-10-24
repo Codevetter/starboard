@@ -4,6 +4,7 @@ test.describe('production Astro landing page', () => {
   test('renders the hero and key sections with no horizontal scroll', async ({
     page,
   }, testInfo) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
 
     await expect(

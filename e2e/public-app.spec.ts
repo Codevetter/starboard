@@ -646,9 +646,15 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
     expect(identity.overflow).toBe(false);
     const search = page.getByPlaceholder('Search repos...');
     await search.focus();
+    await search.press('ControlOrMeta+A');
     await page.keyboard.type('shared-ui');
     await expect(search).toBeFocused();
     await expect(page.getByRole('link', { name: /codevetter\/starboard/i })).toBeVisible();
+    await expect(page).toHaveURL(/q=shared-ui/);
+    await expect(page.getByRole('region', { name: 'Repository results' })).toHaveAttribute(
+      'aria-busy',
+      'false'
+    );
     await page.screenshot({ path: testInfo.outputPath(`discover-${theme}.png`), fullPage: true });
   }
   expect(errors).toEqual([]);
