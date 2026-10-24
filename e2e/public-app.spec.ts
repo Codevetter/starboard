@@ -623,6 +623,9 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
   await (await firstSession).finished();
   for (const theme of ['light', 'dark']) {
     await page.evaluate((value) => localStorage.setItem('theme', value), theme);
+    // Let automatic RSC prefetches finish before replacing the document.
+    // WebKit reports their navigation cancellation as pageerror (Playwright #43120).
+    await page.waitForLoadState('networkidle');
     const session = page.waitForResponse('**/api/auth/session');
     await page.reload();
     await (await session).finished();
