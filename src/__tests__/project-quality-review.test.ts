@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { createProjectContextLoader } from '@/lib/project-context';
 import {
   buildProjectQualityPrompt,
   createCachedProjectQualityReviewer,
@@ -121,6 +122,82 @@ describe('project capability relevance review', () => {
     expect(prompt).toContain('Remind users to keep in touch');
     expect(prompt).toContain('Store relationship history');
     expect(prompt.length).toBeLessThan(15000);
+  });
+  it('grounds a native project review in its public PRODUCT.md and rejects an invented capability', async () => {
+    const revision = 'b'.repeat(40);
+    const files = new Map([
+      ['README.md', '# Kith\nSee PRODUCT.md for the shipped product contract.'],
+      [
+        'PRODUCT.md',
+        '# Product\n\n## Capability\nLog reminders for calls and birthdays to keep close relationships alive.',
+      ],
+      ['Package.swift', '// Swift package manifest\n'],
+      [
+        'Sources/Kith/ContactReminders.swift',
+        'struct ContactReminders { func scheduleBirthday() {} }',
+      ],
+    ]);
+    const fetcher = vi.fn<typeof fetch>().mockImplementation(async (url) => {
+      const address = String(url);
+      if (address.endsWith('/repos/Significant-Hobbies/kith'))
+        return Response.json({ private: false, visibility: 'public', default_branch: 'main' });
+      if (address.includes('/git/trees/'))
+        return Response.json({
+          sha: revision,
+          tree: [...files].map(([path, content]) => ({ path, type: 'blob', size: content.length })),
+        });
+      const path = decodeURIComponent(address.split(`/${revision}/`)[1] ?? '');
+      const content = files.get(path);
+      return content === undefined ? new Response('', { status: 404 }) : new Response(content);
+    });
+    const nativeProject = await createProjectContextLoader(fetcher)({
+      ...project,
+      fullName: 'Significant-Hobbies/kith',
+      htmlUrl: 'https://github.com/Significant-Hobbies/kith',
+    });
+    expect(nativeProject.sourceContext).toMatchObject({
+      status: 'complete',
+      revision,
+      files: expect.arrayContaining([
+        'README.md',
+        'PRODUCT.md',
+        'Package.swift',
+        'Sources/Kith/ContactReminders.swift',
+      ]),
+    });
+    const contract = nativeProject.sourceContext?.documents?.find(
+      (document) => document.path === 'PRODUCT.md'
+    );
+    expect(contract?.text).toContain('Log reminders for calls and birthdays');
+    expect(
+      nativeProject.sourceContext?.documents?.find(
+        (document) => document.path === 'Sources/Kith/ContactReminders.swift'
+      )?.text
+    ).toContain('scheduleBirthday');
+
+    const grounded = {
+      ...match,
+      projectEvidence: 'Log reminders for calls and birthdays to keep close relationships alive.',
+    };
+    expect(
+      validateProjectQualityReview(JSON.stringify({ matches: [grounded] }), nativeProject, [
+        candidate,
+      ])
+    ).toMatchObject({ status: 'reviewed', matches: [grounded] });
+    expect(() =>
+      validateProjectQualityReview(
+        JSON.stringify({
+          matches: [
+            {
+              ...grounded,
+              projectEvidence: 'Provides end-to-end encrypted contact sync across Apple devices.',
+            },
+          ],
+        }),
+        nativeProject,
+        [candidate]
+      )
+    ).toThrow('Project quality review contains unsupported evidence');
   });
   it('reports model outages and invalid JSON as unavailable', async () => {
     for (const generate of [
