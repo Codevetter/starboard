@@ -9,11 +9,12 @@ import {
 export interface ProjectSourceContext {
   status: 'complete' | 'partial' | 'unavailable';
   revision: string | null;
+  inspectionFailed?: boolean;
   readme: string;
   files: string[];
   scope?: string;
   dependencies?: string[];
-  documents?: { path: string; text: string; truncated?: boolean }[];
+  documents?: { path: string; text: string; requirementText?: string; truncated?: boolean }[];
 }
 
 export function parseProjectFolder(path: string): string | null {
@@ -502,6 +503,12 @@ function sourceTools(project: ProjectRecommendationRepo, loaded: LoadedFile[], r
   );
 }
 
+function completeSourceLines(content: string): string {
+  if (content.length <= MAX_PRODUCT_CONTEXT_CHARS) return content;
+  const excerpt = content.slice(0, MAX_PRODUCT_CONTEXT_CHARS);
+  return excerpt.slice(0, Math.max(0, excerpt.lastIndexOf('\n')));
+}
+
 function inspectedProject<T extends ProjectRecommendationRepo>(
   project: T,
   tree: SourceTree,
@@ -530,12 +537,13 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
       return {
         path: file.path,
         text,
+        ...(prose ? { requirementText: completeSourceLines(file.content) } : {}),
         truncated: prose
           ? file.content.length > MAX_PRODUCT_CONTEXT_CHARS
           : file.content.length > 16_000,
       };
     })
-    .filter((document) => document.text);
+    .filter((document) => document.text || document.requirementText);
   const purpose =
     documents.find((document) => /^PRODUCT\.md$/i.test(projectPath(document.path, scope)))?.text ||
     readme ||
@@ -560,6 +568,7 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
     tools: sourceTools(project, files.loaded, readme),
     sourceContext: {
       status: files.loaded.length === 0 ? 'unavailable' : partial ? 'partial' : 'complete',
+      inspectionFailed: files.failed,
       revision: tree.sha,
       readme,
       files: files.loaded.map((file) => file.path),

@@ -9,7 +9,6 @@ import {
 import { loadOwnedProject } from '@/lib/project-route-helpers';
 import { repoVectors } from '@/lib/repo-vectors';
 import { generateEmbeddings } from '@/lib/embeddings';
-import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 
 /**
  * GET /api/projects/[slug]/intelligence
@@ -20,12 +19,10 @@ import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
  * deterministic pipeline once.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const loaded = await loadOwnedProject(
-    (await params).slug,
-    knowledgePipelineEnabled() && request.nextUrl.searchParams.get('run') === '1'
-  );
+  const slug = (await params).slug;
+  const loaded = await loadOwnedProject(slug);
   if ('error' in loaded) return loaded.error;
-  const { repoId, project } = loaded;
+  const { repoId } = loaded;
 
   const dependencies = {
     database: db,
@@ -41,9 +38,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // If no report exists and the user requests a run, generate one
   const shouldRun = request.nextUrl.searchParams.get('run') === '1';
   if (!draft && shouldRun) {
+    const inspected = await loadOwnedProject(slug, true);
+    if ('error' in inspected) return inspected.error;
     const run = createNeedDrivenIntelligence(dependencies);
-    const newDraft = await run(project);
-    return NextResponse.json({ draft: newDraft, reviewed: null });
+    try {
+      const newDraft = await run(inspected.project);
+      return NextResponse.json({ draft: newDraft, reviewed: null });
+    } catch (error) {
+      const invalidEvidence =
+        error instanceof Error && error.message === 'Invalid source-grounded need';
+      return NextResponse.json(
+        {
+          error: invalidEvidence
+            ? 'The generated needs did not match the project source. No report was saved.'
+            : 'Project intelligence is unavailable. Source inspection or review could not complete.',
+          code: invalidEvidence ? 'invalid_need_evidence' : 'intelligence_unavailable',
+        },
+        { status: invalidEvidence ? 422 : 503 }
+      );
+    }
   }
 
   return NextResponse.json({ draft, reviewed });

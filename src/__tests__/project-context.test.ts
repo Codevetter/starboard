@@ -1,3 +1,4 @@
+import { extractNeeds, createNeedDrivenIntelligence } from '@/lib/need-driven-intelligence';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -367,4 +368,53 @@ describe('catalog API source examples', () => {
     expect(context).toContain('Exports records.');
     expect(context).toContain('exportRecords(rows);');
   });
+});
+
+it('preserves Requirements evidence through GitHub source loading without accepting cut-off tasks', async () => {
+  const content =
+    '# Product\nA payment app.\n## Requirements\n- [ ] Add offline payment reconciliation.\n## Examples\n- [ ] Add imaginary feature.\n## Development\n' +
+    'x'.repeat(11830) +
+    '\n- [ ] Add a partially captured requirement ' +
+    'x'.repeat(200);
+  const fetcher = vi.fn<typeof fetch>().mockImplementation(async (url) => {
+    const address = String(url);
+    if (address.endsWith('/repos/acme/contacts')) return Response.json(metadata);
+    if (address.includes('/git/trees/'))
+      return Response.json({
+        sha: revision,
+        tree: [{ path: 'PRODUCT.md', type: 'blob', size: content.length }],
+      });
+    return new Response(content);
+  });
+  const enriched = await createProjectContextLoader(fetcher)(project);
+  expect(extractNeeds(enriched).map((need) => need.title)).toEqual([
+    'Add offline payment reconciliation.',
+  ]);
+  const report = await createNeedDrivenIntelligence({
+    database: {
+      execute: vi.fn().mockResolvedValue({ rows: [] }),
+      batch: vi.fn().mockResolvedValue([]),
+    },
+    vectorStore: () => ({ query: async () => [], queryByRepoId: async () => [] }),
+    embed: async () => [],
+  })(enriched);
+  expect(report.needs[0].need.title).toBe('Add offline payment reconciliation.');
+  expect(report.status).toBe('degraded');
+});
+
+it('keeps requirement-only product files available to extraction', async () => {
+  const fetcher = vi.fn<typeof fetch>().mockImplementation(async (url) => {
+    const address = String(url);
+    if (address.endsWith('/repos/acme/contacts')) return Response.json(metadata);
+    if (address.includes('/git/trees/'))
+      return Response.json({
+        sha: revision,
+        tree: [{ path: 'PRODUCT.md', type: 'blob', size: 100 }],
+      });
+    return new Response('## Requirements\n- [ ] Add offline payment reconciliation.');
+  });
+  const enriched = await createProjectContextLoader(fetcher)(project);
+  expect(extractNeeds(enriched).map((need) => need.title)).toEqual([
+    'Add offline payment reconciliation.',
+  ]);
 });

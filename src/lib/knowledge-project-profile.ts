@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+import { explicitRequirements, requirementDocuments } from '@/lib/project-requirements';
 import { projectKnowledgeDocuments } from '@/lib/knowledge-decisions';
 import { catalogIndexPath, knowledgebaseJson } from '@/lib/knowledgebase';
 import { findKnowledgeDocument, ingestKnowledgeDocuments } from '@/lib/knowledge-catalog';
@@ -108,17 +110,60 @@ export async function knowledgeProjectFeatures(
   return features;
 }
 
+function boundedText(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.length <= 240;
+}
+
+function validNeed(
+  need: Profile['needs'][number],
+  ids: string[],
+  documents: { content: string }[]
+): boolean {
+  if (!need || !boundedText(need.title) || !boundedText(need.desired_outcome)) return false;
+  if (
+    !Array.isArray(need.constraints) ||
+    need.constraints.length > 10 ||
+    !need.constraints.every(boundedText)
+  )
+    return false;
+  if (!Array.isArray(need.evidence) || !need.evidence.length || need.evidence.length > 3)
+    return false;
+  return need.evidence.every((ref) => {
+    if (!ref || !boundedText(ref.chunk_id) || !boundedText(ref.excerpt)) return false;
+    const source = documents[ids.indexOf(ref.document_id)];
+    return (
+      !!source &&
+      explicitRequirements(source.content).some(
+        ({ quote, statement }) => ref.excerpt === quote || ref.excerpt === statement
+      )
+    );
+  });
+}
+
 export async function knowledgeProjectNeeds(
   project: ProjectRecommendationRepo
 ): Promise<ProjectNeed[]> {
-  const documents = await projectKnowledgeDocuments(project);
+  const sourceDocuments = requirementDocuments(project);
+  const documents = (
+    await projectKnowledgeDocuments({
+      ...project,
+      sourceContext: { ...project.sourceContext!, documents: sourceDocuments },
+    })
+  ).map((document) => ({ ...document, external_id: `${document.external_id}:requirements` }));
   if (!documents.length) throw new Error('Project source coverage is unavailable');
+  if (!documents.some((document) => explicitRequirements(document.content).length)) return [];
+  const sourceHash = createHash('sha256')
+    .update(JSON.stringify(documents.map((document) => [document.external_id, document.content])))
+    .digest('hex');
   const ids = await ingestKnowledgeDocuments(documents);
   const externalId = `project:${project.id}:${project.sourceContext?.scope || 'root'}:needs`;
   const previous = await findKnowledgeDocument(externalId);
   const previousIds = previous?.document.metadata.source_document_ids;
   const enriched =
-    Array.isArray(previousIds) && JSON.stringify(previousIds) === JSON.stringify(ids)
+    previous?.document.metadata.enricher_version === 'explicit-needs-v2' &&
+    previous.document.metadata.source_hash === sourceHash &&
+    Array.isArray(previousIds) &&
+    JSON.stringify(previousIds) === JSON.stringify(ids)
       ? (JSON.parse(previous!.document.content) as Profile)
       : await knowledgebaseJson<Profile>(`${catalogIndexPath()}/enrich`, {
           document_ids: ids,
@@ -127,6 +172,8 @@ export async function knowledgeProjectNeeds(
         });
   if (enriched.schema_version !== 1 || !Array.isArray(enriched.needs))
     throw new Error('Knowledgebase need extraction is unavailable');
+  if (enriched.needs.length > 10 || enriched.needs.some((need) => !validNeed(need, ids, documents)))
+    throw new Error('Invalid source-grounded need');
   const needs = enriched.needs.map((need) => ({
     id: textHash(need.title),
     title: need.title,
@@ -149,7 +196,9 @@ export async function knowledgeProjectNeeds(
         repo_id: project.id,
         visibility: 'public',
         source_document_ids: ids,
-        validation: 'model_evidence_checked',
+        enricher_version: 'explicit-needs-v2',
+        source_hash: sourceHash,
+        validation: 'explicit_requirement_quotes_checked',
         human_validated: false,
       },
     },

@@ -6,7 +6,6 @@ import { createNeedDrivenIntelligence } from '@/lib/need-driven-intelligence';
 import { hasValidOperatorToken } from '@/lib/operator-auth';
 import { repoVectors } from '@/lib/repo-vectors';
 import { generateEmbeddings } from '@/lib/embeddings';
-import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 import { enrichProjectContext } from '@/lib/project-context';
 
 async function isAuthorized(request: Request): Promise<boolean> {
@@ -51,9 +50,7 @@ export async function POST(request: Request) {
   }
 
   const storedProject = projectFromRow(projectResult.rows[0]);
-  const project = knowledgePipelineEnabled()
-    ? await enrichProjectContext(storedProject)
-    : storedProject;
+  const project = await enrichProjectContext(storedProject);
   const catalogGeneration =
     typeof body.catalogGeneration === 'string'
       ? body.catalogGeneration
