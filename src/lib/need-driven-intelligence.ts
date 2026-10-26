@@ -1,4 +1,4 @@
-import { knowledgeProjectNeeds, knowledgeCapabilityCard } from '@/lib/knowledge-project-profile';
+import { knowledgeCapabilityCard } from '@/lib/knowledge-project-profile';
 import { ingestKnowledgeDocuments } from '@/lib/knowledge-catalog';
 /**
  * Need-driven project intelligence pipeline.
@@ -35,7 +35,8 @@ import { ftsSearchQuery, rrfFuse } from '@/lib/search';
 // Constants and bounds
 // ---------------------------------------------------------------------------
 
-const RETRIEVAL_VERSION = 'v1';
+const RETRIEVAL_VERSION = 'explicit-needs-v2';
+const KNOWLEDGE_RETRIEVAL_VERSION = 'knowledgebase-explicit-needs-v2';
 const MAX_NEEDS = 10;
 const MIN_NEED_EVIDENCE = 1;
 const VECTOR_TOP_K = 80;
@@ -499,9 +500,10 @@ export async function computeProjectFingerprint(
   dependencies: NeedDrivenIntelligenceDependencies
 ): Promise<ProjectFingerprint> {
   const evidence: string[] = [
-    `knowledge-pipeline:${knowledgePipelineEnabled() ? 'knowledgebase-v1' : 'local'}`,
+    `knowledge-pipeline:${knowledgePipelineEnabled() ? KNOWLEDGE_RETRIEVAL_VERSION : RETRIEVAL_VERSION}`,
     `source:${project.sourceContext?.revision || ''}:${project.sourceContext?.scope || ''}`,
     JSON.stringify(project.sourceContext?.documents || []),
+    project.sourceContext?.readme || '',
     `repo:${project.fullName}`,
     `desc:${project.description ?? ''}`,
     `lang:${project.language ?? ''}`,
@@ -540,259 +542,77 @@ async function loadStoredFingerprint(
 // Need extraction (Stage 3)
 // ---------------------------------------------------------------------------
 
-interface NeedRule {
-  id: string;
-  title: string;
-  triggers: RegExp[];
-  currentState: string;
-  desiredOutcome: string;
-  priority: NeedPriority;
-  searchIntents: string[];
-  constraints: string[];
+function requirementDocuments(project: ProjectRecommendationRepo) {
+  const context = project.sourceContext;
+  if (!context) return [{ path: 'description', text: project.description ?? '' }];
+  const documents = context.documents?.length
+    ? context.documents.filter(
+        (document) =>
+          /(?:^|\/)(?:PRODUCT|PROJECT_STATUS|README)(?:\.(?:md|markdown|rst|txt))?$/i.test(
+            document.path
+          ) || /(?:^|\/)docs\/product\/.*\.md$/i.test(document.path)
+      )
+    : context.readme
+      ? [{ path: 'README.md', text: context.readme }]
+      : [];
+  const contract = documents.find((document) => /(?:^|\/)PRODUCT\.md$/i.test(document.path));
+  return contract ? [contract] : documents;
 }
 
-const NEED_RULES: NeedRule[] = [
-  {
-    id: 'ai-inference-runtime',
-    title: 'Local or cost-efficient inference runtime',
-    triggers: [/\bai\b/, /\bllm\b/, /\bmodel\b/, /\binference\b/, /\bembedding\b/],
-    currentState: 'Project depends on remote or expensive inference',
-    desiredOutcome:
-      'Run models locally, at the edge, or through a managed gateway with predictable cost',
-    priority: 'high',
-    searchIntents: ['local LLM inference engine', 'edge AI runtime', 'MLX llama.cpp ollama'],
-    constraints: ['must support the project primary language'],
-  },
-  {
-    id: 'edge-serverless-primitives',
-    title: 'Serverless edge persistence and compute primitives',
-    triggers: [/\bcloudflare\b/, /\bworker\b/, /\bd1\b/, /\bpages\b/, /\bserverless\b/],
-    currentState:
-      'Uses edge/serverless platforms but may lack reusable patterns for migrations, bindings, or local dev',
-    desiredOutcome:
-      'Adopt proven patterns for D1 migrations, wrangler config, and Worker observability',
-    priority: 'high',
-    searchIntents: [
-      'Cloudflare D1 migration patterns',
-      'wrangler best practices',
-      'edge Worker observability',
-    ],
-    constraints: ['must be compatible with Cloudflare Workers runtime'],
-  },
-  {
-    id: 'native-macos-distribution',
-    title: 'Native macOS app packaging and distribution',
-    triggers: [/\bmacos\b/, /\bswift\b/, /\bapple\b/, /\btauri\b/],
-    currentState:
-      'Native app build exists but distribution, notarization, or auto-update may be manual',
-    desiredOutcome: 'Automate signed builds, notarization, and Sparkle/Updater release pipeline',
-    priority: 'medium',
-    searchIntents: [
-      'macOS app notarization github actions',
-      'Sparkle auto update swift',
-      'Tauri updater',
-    ],
-    constraints: ['must support macOS deployment'],
-  },
-  {
-    id: 'semantic-retrieval-pipeline',
-    title: 'Embedding and semantic retrieval pipeline',
-    triggers: [/\bembed\b/, /\bvector\b/, /\bsemantic\b/, /\bvectorize\b/, /\brag\b/],
-    currentState: 'Needs vector search or semantic matching',
-    desiredOutcome:
-      'Use a stable embedding model, vector store, and reranking strategy with versioning',
-    priority: 'high',
-    searchIntents: [
-      'open source embedding model',
-      'local vector database',
-      'semantic search reranking',
-    ],
-    constraints: ['embedding dimension must be stable and versioned'],
-  },
-  {
-    id: 'evaluation-harness',
-    title: 'Reproducible evaluation and benchmark harness',
-    triggers: [/\beval\b/, /\bevaluation\b/, /\bbenchmark\b/, /\btest\b/],
-    currentState: 'Evaluations are ad-hoc or not automated',
-    desiredOutcome: 'Run deterministic benchmarks with regression detection and fixture versioning',
-    priority: 'medium',
-    searchIntents: [
-      'open source benchmark harness',
-      'regression testing tools',
-      'deterministic eval framework',
-    ],
-    constraints: ['must produce reproducible results'],
-  },
-  {
-    id: 'auth-session-management',
-    title: 'Authentication and session management',
-    triggers: [/\bauth\b/, /\boauth\b/, /\bsign[- ]?in\b/, /\bsession\b/],
-    currentState: 'Has sign-in flow but may need OAuth providers, session isolation, or RBAC',
-    desiredOutcome: 'Use a maintained auth library with minimal scope and secure session handling',
-    priority: 'medium',
-    searchIntents: [
-      'next auth v5 github oauth',
-      'oauth2 pkce library',
-      'session management patterns',
-    ],
-    constraints: ['must not broaden OAuth scope unnecessarily'],
-  },
-  {
-    id: 'marketing-content-pipeline',
-    title: 'Marketing site and content publishing pipeline',
-    triggers: [/\blanding\b/, /\bmarketing\b/, /\bseo\b/, /\bastro\b/],
-    currentState:
-      'Landing/marketing content is hand-maintained or not integrated with the product build',
-    desiredOutcome:
-      'Adopt a static-site generator with automated sitemap, OG images, and publishing checks',
-    priority: 'low',
-    searchIntents: [
-      'Astro static site generator',
-      'marketing site automation',
-      'SEO sitemap generator',
-    ],
-    constraints: ['must not change primary navigation or routes'],
-  },
-  {
-    id: 'observability-logging',
-    title: 'Application observability and structured logging',
-    triggers: [/\blog\b/, /\bobservability\b/, /\bmonitoring\b/, /\bsentry\b/, /\btelemetry\b/],
-    currentState: 'Logging is ad-hoc or lacks structured error tracking',
-    desiredOutcome:
-      'Adopt structured logging, error tracking, and performance monitoring with low overhead',
-    priority: 'medium',
-    searchIntents: [
-      'structured logging library',
-      'error tracking sentry',
-      'application performance monitoring',
-    ],
-    constraints: ['must not leak secrets or PII'],
-  },
-  {
-    id: 'ci-cd-automation',
-    title: 'CI/CD pipeline automation',
-    triggers: [/\bci\b/, /\bcd\b/, /\bgithub actions\b/, /\bpipeline\b/, /\bdeploy\b/],
-    currentState: 'Builds or deploys are manual or partially automated',
-    desiredOutcome:
-      'Automate build, test, and deploy with SHA-tagged releases and green-main policy',
-    priority: 'medium',
-    searchIntents: [
-      'github actions ci cd pipeline',
-      'automated deployment pipeline',
-      'sha tagged release',
-    ],
-    constraints: ['production deploys remain manual'],
-  },
-  {
-    id: 'data-migration-management',
-    title: 'Database schema migration management',
-    triggers: [/\bmigration\b/, /\bschema\b/, /\bd1\b/, /\bsqlite\b/, /\bturso\b/],
-    currentState: 'Schema changes are manual or lack ordered versioning',
-    desiredOutcome: 'Use ordered, additive SQL migrations with local and remote apply paths',
-    priority: 'medium',
-    searchIntents: [
-      'database schema migration tool',
-      'ordered sql migrations',
-      'sqlite migration patterns',
-    ],
-    constraints: ['migrations must be additive and reversible'],
-  },
-];
-
-/**
- * Extract evidence-backed needs from a project. Returns 1-10 needs; fewer when
- * evidence is insufficient. Never invents needs to fill a quota.
- */
-export function extractNeeds(project: ProjectRecommendationRepo): ProjectNeed[] {
-  const source = [
-    project.name,
-    project.description,
-    project.language,
-    ...project.topics,
-    project.aiSummary,
-    project.aiCategory,
-    ...(project.aiKeywords ?? []),
-    ...project.tools.map((t) => `${t.key} ${t.name} ${t.category}`),
-  ]
-    .filter(Boolean)
-    .join('\n')
-    .toLowerCase();
-
-  if (!source.trim()) {
-    // Insufficient evidence — return a single conservative need.
-    const fallback: ProjectNeed = {
-      id: `${project.id}-health`,
-      title: 'Project health and dependency maintenance',
-      currentState: 'No specific needs were extracted from available evidence',
-      desiredOutcome:
-        'Keep dependencies current, remove dead code, and monitor security advisories',
-      priority: 'low',
-      constraints: ['must not break existing behavior'],
-      evidence: ['Limited evidence available for targeted need extraction'],
-      searchIntents: ['dependency health tool', 'dead code detector', 'security audit automation'],
-      signature: '',
-    };
-    fallback.signature = needSignature(fallback);
-    return [fallback];
+function explicitRequirements(text: string): Array<{ statement: string; quote: string }> {
+  const requirements: Array<{ statement: string; quote: string }> = [];
+  let fence = '';
+  for (const raw of text.split('\n')) {
+    const line = raw.trim();
+    const delimiter = line.match(/^(`{3,}|~{3,})/);
+    if (delimiter) {
+      if (!fence) fence = delimiter[1];
+      else if (delimiter[1][0] === fence[0] && delimiter[1].length >= fence.length) fence = '';
+      continue;
+    }
+    if (fence || /^>|^[-*]\s+\[[xX]\]/.test(line)) continue;
+    const unchecked = line.match(/^[-*]\s+\[ \]\s+(.+)$/);
+    const statement = unchecked?.[1] ?? line.replace(/^[-*]\s+/, '');
+    if (
+      !unchecked &&
+      !/^(?:TODO\s*:|missing\b|lacks?\b|cannot\b|not yet\b|needs? to\b)/i.test(statement)
+    )
+      continue;
+    if (
+      statement.length < 12 ||
+      statement.length > 240 ||
+      /^(?:do not|never|keep|preserve|must not|no need|not required)\b/i.test(statement)
+    )
+      continue;
+    requirements.push({ statement, quote: line });
   }
+  return requirements;
+}
 
+export function extractNeeds(project: ProjectRecommendationRepo): ProjectNeed[] {
   const needs: ProjectNeed[] = [];
   const seen = new Set<string>();
-
-  for (const rule of NEED_RULES) {
-    if (needs.length >= MAX_NEEDS) break;
-    if (seen.has(rule.id)) continue;
-
-    const matched = rule.triggers.some((re) => re.test(source));
-    if (!matched) continue;
-
-    const evidence: string[] = [];
-    for (const re of rule.triggers) {
-      const match = source.match(re);
-      if (match) evidence.push(`Evidence keyword: "${match[0]}"`);
+  for (const document of requirementDocuments(project)) {
+    for (const { statement, quote } of explicitRequirements(document.text)) {
+      const need: ProjectNeed = {
+        id: `${project.id}-${fingerprintTexts([document.path, statement]).slice(0, 16)}`,
+        title: statement,
+        currentState: statement,
+        desiredOutcome: statement,
+        priority: 'medium',
+        constraints: [],
+        evidence: [`${document.path}: ${quote}`],
+        searchIntents: [statement],
+        signature: '',
+      };
+      need.signature = needSignature(need);
+      if (seen.has(need.signature)) continue;
+      seen.add(need.signature);
+      needs.push(need);
+      if (needs.length === MAX_NEEDS) return needs;
     }
-    if (project.aiCategory) evidence.push(`AI category: ${project.aiCategory}`);
-    if (project.topics.length > 0)
-      evidence.push(`Topics: ${project.topics.slice(0, 5).join(', ')}`);
-
-    if (evidence.length < MIN_NEED_EVIDENCE) continue;
-
-    const need: ProjectNeed = {
-      id: `${project.id}-${rule.id}`,
-      title: rule.title,
-      currentState: rule.currentState,
-      desiredOutcome: rule.desiredOutcome,
-      priority: rule.priority,
-      constraints: rule.constraints,
-      evidence,
-      searchIntents: rule.searchIntents,
-      signature: '',
-    };
-    need.signature = needSignature(need);
-    seen.add(rule.id);
-    needs.push(need);
   }
-
-  // If no rules matched despite having some source text, return a single
-  // conservative need rather than an empty list.
-  if (needs.length === 0) {
-    const fallback: ProjectNeed = {
-      id: `${project.id}-health`,
-      title: 'Project health and dependency maintenance',
-      currentState: 'No specific needs were extracted from available evidence',
-      desiredOutcome:
-        'Keep dependencies current, remove dead code, and monitor security advisories',
-      priority: 'low',
-      constraints: ['must not break existing behavior'],
-      evidence: ['Available evidence did not match any specific need rule'],
-      searchIntents: ['dependency health tool', 'dead code detector', 'security audit automation'],
-      signature: '',
-    };
-    fallback.signature = needSignature(fallback);
-    return [fallback];
-  }
-
-  return needs.slice(0, MAX_NEEDS);
+  return needs;
 }
 
 /**
@@ -1052,40 +872,12 @@ function classifyCandidate(
     evidence.push(`High adoption: ${candidate.stargazersCount} stars`);
   }
 
-  // Classification logic
-  let classification: CandidateClassification;
-  let confidence: Confidence;
-
-  const projectFullNameLower = project.fullName.toLowerCase();
-  const candidateDescLower = (candidate.description ?? '').toLowerCase();
-  const projectNameLower = project.name.toLowerCase();
-
-  // Competing product: solves the same end-user problem
-  if (
-    candidate.fullName.toLowerCase().includes(projectNameLower) ||
-    (projectNameLower.length > 3 && candidateDescLower.includes(projectNameLower))
-  ) {
-    classification = 'competing_product_to_monitor';
-    confidence = score >= 20 ? 'high' : 'medium';
-    evidence.push('Name/description overlap with project — likely a competing product');
-  } else if (candidate.archived || score < 0) {
-    classification = 'unsuitable_negative_example';
-    confidence = 'high';
-    if (!candidate.archived) evidence.push('Low relevance score');
-  } else if (score >= 25 && toolMatches.length > 0) {
-    classification = 'adopt_or_integrate';
-    confidence = score >= 35 ? 'high' : 'medium';
-  } else if (score >= 15) {
-    classification = 'reference_implementation';
-    confidence = score >= 25 ? 'high' : 'medium';
-  } else if (score >= 8) {
-    classification = 'architectural_pattern';
-    confidence = 'low';
-  } else {
-    classification = 'reference_implementation';
-    confidence = 'low';
-    evidence.push('Weak signal — retained as a reference only');
-  }
+  const classification: CandidateClassification = candidate.archived
+    ? 'unsuitable_negative_example'
+    : 'reference_implementation';
+  const confidence: Confidence = candidate.archived ? 'high' : 'low';
+  if (!candidate.archived)
+    evidence.push('Unreviewed retrieval match; integration suitability is unverified');
 
   return { classification, confidence, evidence, score };
 }
@@ -1223,12 +1015,16 @@ export async function loadLatestDraftReport(
     sql: `SELECT report FROM project_draft_reports
           WHERE repo_id = ? AND is_latest = 1 AND retrieval_version = ?
           ORDER BY created_at DESC LIMIT 1`,
-    args: [repoId, knowledgePipelineEnabled() ? 'knowledgebase-v1' : RETRIEVAL_VERSION],
+    args: [repoId, knowledgePipelineEnabled() ? KNOWLEDGE_RETRIEVAL_VERSION : RETRIEVAL_VERSION],
   });
   const raw = result.rows[0]?.report;
   if (typeof raw !== 'string') return null;
   try {
-    return JSON.parse(raw) as DraftReport;
+    const report = JSON.parse(raw) as DraftReport;
+    return report.retrievalVersion ===
+      (knowledgePipelineEnabled() ? KNOWLEDGE_RETRIEVAL_VERSION : RETRIEVAL_VERSION)
+      ? report
+      : null;
   } catch {
     return null;
   }
@@ -1459,7 +1255,10 @@ export async function loadLatestReviewedReport(
   if (!row) return null;
   try {
     const report = JSON.parse(String(row.report)) as DraftReport;
-    if (knowledgePipelineEnabled() && report.retrievalVersion !== 'knowledgebase-v1') {
+    if (
+      report.retrievalVersion !==
+      (knowledgePipelineEnabled() ? KNOWLEDGE_RETRIEVAL_VERSION : RETRIEVAL_VERSION)
+    ) {
       return null;
     }
     return {
@@ -1516,11 +1315,6 @@ async function resolveNeeds(
   storedFingerprint: string | null,
   deps: NeedDrivenIntelligenceDependencies
 ): Promise<ProjectNeed[]> {
-  if (knowledgePipelineEnabled()) {
-    const needs = await knowledgeProjectNeeds(project);
-    await persistNeeds(project.id, fingerprint, needs, deps);
-    return needs;
-  }
   let needs = extractNeeds(project);
   const merged = mergeNeeds(needs);
   const { retained } = rejectUnsupportedNeeds(merged);
@@ -1777,7 +1571,9 @@ export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenc
       repoId: project.id,
       fingerprint: fingerprint.fingerprint,
       catalogGeneration,
-      retrievalVersion: knowledgePipelineEnabled() ? 'knowledgebase-v1' : RETRIEVAL_VERSION,
+      retrievalVersion: knowledgePipelineEnabled()
+        ? KNOWLEDGE_RETRIEVAL_VERSION
+        : RETRIEVAL_VERSION,
       status,
       needs: needReports,
       needsCount: needReports.length,

@@ -9,7 +9,6 @@ import {
 import { loadOwnedProject } from '@/lib/project-route-helpers';
 import { repoVectors } from '@/lib/repo-vectors';
 import { generateEmbeddings } from '@/lib/embeddings';
-import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 
 /**
  * GET /api/projects/[slug]/intelligence
@@ -22,7 +21,7 @@ import { knowledgePipelineEnabled } from '@/lib/knowledgebase';
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
   const loaded = await loadOwnedProject(
     (await params).slug,
-    knowledgePipelineEnabled() && request.nextUrl.searchParams.get('run') === '1'
+    request.nextUrl.searchParams.get('run') === '1'
   );
   if ('error' in loaded) return loaded.error;
   const { repoId, project } = loaded;

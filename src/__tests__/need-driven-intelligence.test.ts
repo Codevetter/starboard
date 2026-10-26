@@ -59,6 +59,12 @@ function project(overrides: Partial<ProjectRecommendationRepo> = {}): ProjectRec
       { key: 'next', name: 'Next.js', category: 'framework', confidence: 90 },
       { key: 'cloudflare', name: 'Cloudflare', category: 'cloud', confidence: 85 },
     ],
+    sourceContext: {
+      status: 'complete',
+      revision: 'sha',
+      files: ['PRODUCT.md'],
+      readme: 'Missing offline payment reconciliation.',
+    },
     ...overrides,
   };
 }
@@ -189,57 +195,122 @@ describe('needSignature', () => {
 // ---------------------------------------------------------------------------
 
 describe('extractNeeds', () => {
-  it('extracts multiple evidence-backed needs from a project with rich metadata', () => {
-    const needs = extractNeeds(project());
-    expect(needs.length).toBeGreaterThanOrEqual(3);
-    expect(needs.length).toBeLessThanOrEqual(10);
-    for (const need of needs) {
-      expect(need.evidence.length).toBeGreaterThanOrEqual(1);
-      expect(need.signature).toMatch(/^[0-9a-f]{64}$/);
-      expect(need.id).toContain('1-');
-    }
+  it('does not invent missing features from topics, tools, names or generated summaries', () => {
+    expect(extractNeeds(project({ sourceContext: undefined }))).toEqual([]);
   });
 
-  it('returns a single fallback need when evidence is insufficient', () => {
+  it('does not retrieve candidates for an implemented product without explicit gaps', async () => {
+    const deps = makeDependencies(vi.fn(async () => dbResult()));
+    const report = await createNeedDrivenIntelligence(deps)(project({ sourceContext: undefined }));
+    expect(report.needs).toEqual([]);
+    expect(report.candidatesCount).toBe(0);
+    expect(deps.embed).not.toHaveBeenCalled();
+  });
+
+  it('returns no needs when source evidence is unavailable', () => {
+    expect(
+      extractNeeds(
+        project({
+          description: null,
+          sourceContext: { status: 'unavailable', revision: null, files: [], readme: '' },
+        })
+      )
+    ).toEqual([]);
+  });
+
+  it('retains explicit unfinished product tasks with their original source and wording', () => {
+    const text =
+      '- [ ] Add offline payment reconciliation.\n- [x] Add OAuth sign-in.\nMissing invoice export.\nSupports Cloudflare Workers.';
     const needs = extractNeeds(
       project({
-        description: null,
-        topics: [],
-        aiSummary: null,
-        aiCategory: null,
-        aiKeywords: [],
-        tools: [],
-        language: null,
+        sourceContext: {
+          status: 'complete',
+          revision: 'sha',
+          files: ['PRODUCT.md'],
+          readme: '',
+          documents: [{ path: 'PRODUCT.md', text }],
+        },
       })
     );
-    expect(needs).toHaveLength(1);
-    expect(needs[0].priority).toBe('low');
-    expect(needs[0].evidence.length).toBeGreaterThanOrEqual(1);
+    expect(needs.map((need) => need.title)).toEqual([
+      'Add offline payment reconciliation.',
+      'Missing invoice export.',
+    ]);
+    expect(needs[0].currentState).toBe('Add offline payment reconciliation.');
+    expect(needs[0].evidence).toEqual(['PRODUCT.md: - [ ] Add offline payment reconciliation.']);
+    expect(needs[0].signature).toMatch(/^[0-9a-f]{64}$/);
   });
 
-  it('extracts the AI inference need when AI/LLM keywords are present', () => {
-    const needs = extractNeeds(project({ topics: ['ai', 'llm'] }));
-    const aiNeed = needs.find((n) => n.id.includes('ai-inference-runtime'));
-    expect(aiNeed).toBeDefined();
-    expect(aiNeed?.priority).toBe('high');
+  it('does not promote fenced examples, quotes, completed tasks or implementation TODOs', () => {
+    const docs = [
+      {
+        path: 'PRODUCT.md',
+        text: '```md\n- [ ] Add example authentication.\n```\n> Missing quoted context.\n- [x] Add encrypted storage.\nNo missing features.\nDoes not need an auth provider.',
+      },
+      { path: 'src/main.ts', text: '// TODO: replace the auth provider.' },
+    ];
+    expect(
+      extractNeeds(
+        project({
+          sourceContext: {
+            status: 'complete',
+            revision: 'sha',
+            files: docs.map((doc) => doc.path),
+            readme: '',
+            documents: docs,
+          },
+        })
+      )
+    ).toEqual([]);
   });
 
-  it('extracts the edge/serverless need when Cloudflare is present', () => {
-    const needs = extractNeeds(project({ topics: ['cloudflare', 'workers'] }));
-    const edgeNeed = needs.find((n) => n.id.includes('edge-serverless-primitives'));
-    expect(edgeNeed).toBeDefined();
+  it('uses source documents rather than stale repository descriptions', () => {
+    expect(
+      extractNeeds(
+        project({
+          description: 'Missing login support.',
+          sourceContext: {
+            status: 'complete',
+            revision: 'sha',
+            files: ['PRODUCT.md'],
+            readme: '',
+            documents: [
+              { path: 'PRODUCT.md', text: 'Login and permission management are implemented.' },
+            ],
+          },
+        })
+      )
+    ).toEqual([]);
   });
 
-  it('does not exceed MAX_NEEDS', () => {
+  it('keeps explicit description-only requirements without inferring additional gaps', () => {
+    expect(
+      extractNeeds(
+        project({
+          description: 'Missing offline payment reconciliation.',
+          sourceContext: undefined,
+        })
+      ).map((need) => need.title)
+    ).toEqual(['Missing offline payment reconciliation.']);
+  });
+
+  it('bounds and deduplicates requirements without truncating their meaning', () => {
+    const text = Array.from(
+      { length: 15 },
+      (_, index) => `- [ ] Add payment capability ${index}.`
+    ).join('\n');
     const needs = extractNeeds(
       project({
-        description:
-          'ai llm model cloudflare worker d1 pages embed vector semantic eval benchmark auth oauth sign-in landing marketing seo log observability sentry ci cd pipeline migration schema',
-        topics: ['ai', 'cloudflare', 'embed', 'eval', 'auth', 'seo', 'log', 'ci', 'migration'],
-        aiKeywords: ['llm', 'vector', 'benchmark', 'oauth', 'observability', 'pipeline', 'schema'],
+        sourceContext: {
+          status: 'complete',
+          revision: 'sha',
+          files: ['README.md'],
+          readme: `${text}\n${text}`,
+        },
       })
     );
-    expect(needs.length).toBeLessThanOrEqual(10);
+    expect(needs).toHaveLength(10);
+    expect(new Set(needs.map((need) => need.id)).size).toBe(10);
   });
 });
 
@@ -311,7 +382,7 @@ describe('rejectUnsupportedNeeds', () => {
 // ---------------------------------------------------------------------------
 
 describe('need-driven pipeline classification', () => {
-  it('classifies a strong matching candidate as adopt_or_integrate', async () => {
+  it('keeps unreviewed keyword matches as tentative references', async () => {
     const execute = vi.fn(async (statement: string | { sql: string; args?: unknown[] }) => {
       const sql = typeof statement === 'string' ? statement : statement.sql;
       if (sql.includes('repos_fts MATCH')) return dbResult([{ id: 10 }]);
@@ -353,9 +424,9 @@ describe('need-driven pipeline classification', () => {
     const firstNeed = report.needs[0];
     expect(firstNeed.candidates.length).toBeGreaterThan(0);
     const adoptCandidate = firstNeed.candidates.find(
-      (c) => c.classification === 'adopt_or_integrate'
+      (c) => c.classification === 'reference_implementation'
     );
-    expect(adoptCandidate).toBeDefined();
+    expect(adoptCandidate).toMatchObject({ confidence: 'low' });
   });
 
   it('classifies an archived candidate as unsuitable_negative_example', async () => {
@@ -711,6 +782,15 @@ describe('evaluateNewCatalogAdditions', () => {
 // ---------------------------------------------------------------------------
 
 describe('readProjectIntelligence', () => {
+  it('does not expose old derived reports after need extraction changes', async () => {
+    const execute = vi.fn(async () =>
+      dbResult([{ report: JSON.stringify({ retrievalVersion: 'v1' }) }])
+    );
+    const deps = makeDependencies(execute);
+    expect(await loadLatestDraftReport(1, deps)).toBeNull();
+    expect(await loadLatestReviewedReport(1, deps)).toBeNull();
+  });
+
   it('returns null draft and reviewed when no reports exist', async () => {
     const execute = vi.fn(async () => dbResult());
     const deps = makeDependencies(execute);
