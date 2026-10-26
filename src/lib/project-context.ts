@@ -9,6 +9,7 @@ import {
 export interface ProjectSourceContext {
   status: 'complete' | 'partial' | 'unavailable';
   revision: string | null;
+  inspectionFailed?: boolean;
   readme: string;
   files: string[];
   scope?: string;
@@ -542,7 +543,7 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
           : file.content.length > 16_000,
       };
     })
-    .filter((document) => document.text);
+    .filter((document) => document.text || document.requirementText);
   const purpose =
     documents.find((document) => /^PRODUCT\.md$/i.test(projectPath(document.path, scope)))?.text ||
     readme ||
@@ -567,6 +568,7 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
     tools: sourceTools(project, files.loaded, readme),
     sourceContext: {
       status: files.loaded.length === 0 ? 'unavailable' : partial ? 'partial' : 'complete',
+      inspectionFailed: files.failed,
       revision: tree.sha,
       readme,
       files: files.loaded.map((file) => file.path),

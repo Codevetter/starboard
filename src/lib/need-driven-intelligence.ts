@@ -1458,7 +1458,7 @@ async function refreshReportCapabilities(
 }
 
 function requireCompleteSource(project: ProjectRecommendationRepo) {
-  if (project.sourceContext && project.sourceContext.status !== 'complete')
+  if (project.sourceContext?.status === 'unavailable' || project.sourceContext?.inspectionFailed)
     throw new Error('Project source coverage is unavailable; previous report retained');
 }
 
@@ -1494,7 +1494,7 @@ export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenc
       `catalog:${catalogGeneration}`,
       `retrieval:${RETRIEVAL_VERSION}`,
     ];
-    let hasDegradation = false;
+    let hasDegradation = project.sourceContext?.status === 'partial';
 
     for (const need of needs) {
       if (totalCandidates >= maxTotalCandidates) break;

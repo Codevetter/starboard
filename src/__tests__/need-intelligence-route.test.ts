@@ -100,3 +100,20 @@ describe('need intelligence API', () => {
     }
   );
 });
+
+it.each([
+  { status: 'unavailable', inspectionFailed: false },
+  { status: 'partial', inspectionFailed: true },
+])('returns retryable JSON without overwriting state on source failure: %j', async (context) => {
+  mocks.load.mockResolvedValue({
+    repoId: 1,
+    project: { ...project, sourceContext: { ...project.sourceContext, ...context } },
+  });
+  const response = await GET(request(), params);
+  expect(response.status).toBe(503);
+  expect((await response.json()).error).toContain('unavailable');
+  expect(mocks.execute.mock.calls.every(([statement]) => statement.sql.startsWith('SELECT'))).toBe(
+    true
+  );
+  expect(mocks.batch).not.toHaveBeenCalled();
+});

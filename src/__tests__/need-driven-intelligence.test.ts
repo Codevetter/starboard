@@ -247,7 +247,7 @@ describe('extractNeeds', () => {
         path: 'PRODUCT.md',
         text: '```md\n- [ ] Add example authentication.\n```\n> Missing quoted context.\n- [x] Add encrypted storage.\nNo missing features.\nDoes not need an auth provider.',
       },
-      { path: 'src/main.ts', text: '// TODO: replace the auth provider.' },
+      { path: 'src/main.ts', text: '// todo: replace the auth provider.' },
     ];
     expect(
       extractNeeds(
@@ -821,7 +821,7 @@ describe('computeProjectFingerprint', () => {
   });
 });
 
-it.each(['unavailable', 'partial'] as const)(
+it.each(['unavailable'] as const)(
   'retains persisted state when source inspection is %s',
   async (status) => {
     const execute = vi.fn().mockResolvedValue(dbResult());
@@ -843,3 +843,18 @@ it.each(['unavailable', 'partial'] as const)(
     expect(batch).not.toHaveBeenCalled();
   }
 );
+
+it('keeps nested example subsections excluded until the outer example section ends', () => {
+  const needs = extractNeeds(
+    project({
+      sourceContext: {
+        status: 'complete',
+        revision: 'sha',
+        files: [],
+        readme:
+          '## Examples\n### Sample\n- [ ] Add demo feature A.\n### Another section\n- [ ] Add demo feature B.\n## Requirements\n- [ ] Add offline payment reconciliation.',
+      },
+    })
+  );
+  expect(needs.map((need) => need.title)).toEqual(['Add offline payment reconciliation.']);
+});

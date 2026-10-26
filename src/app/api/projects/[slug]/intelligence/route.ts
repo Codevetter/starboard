@@ -41,8 +41,18 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const inspected = await loadOwnedProject(slug, true);
     if ('error' in inspected) return inspected.error;
     const run = createNeedDrivenIntelligence(dependencies);
-    const newDraft = await run(inspected.project);
-    return NextResponse.json({ draft: newDraft, reviewed: null });
+    try {
+      const newDraft = await run(inspected.project);
+      return NextResponse.json({ draft: newDraft, reviewed: null });
+    } catch {
+      return NextResponse.json(
+        {
+          error:
+            'Project intelligence is unavailable. Please retry when source and review services are available.',
+        },
+        { status: 503 }
+      );
+    }
   }
 
   return NextResponse.json({ draft, reviewed });

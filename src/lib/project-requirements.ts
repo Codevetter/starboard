@@ -35,7 +35,10 @@ export function explicitRequirements(text: string): Array<{ statement: string; q
     const heading = line.match(/^(#{1,6})\s+(.+)/);
     if (!fence && heading) {
       if (excludedLevel && heading[1].length <= excludedLevel) excludedLevel = 0;
-      if (/example|sample|tutorial|non-goal|out.of.scope|deferred|historical/i.test(heading[2]))
+      if (
+        !excludedLevel &&
+        /example|sample|tutorial|non-goal|out.of.scope|deferred|historical/i.test(heading[2])
+      )
         excludedLevel = heading[1].length;
       continue;
     }
@@ -52,7 +55,7 @@ function requirementStatement(line: string): string | null {
   const statement = unchecked?.[1] ?? line.replace(/^[-*]\s+/, '');
   if (
     !unchecked &&
-    !/^(?:TODO\s*:|missing\b|lacks?\b|cannot\b|not yet\b|needs? to\b)/i.test(statement)
+    !/^(?:todo\s*:|missing\b|lacks?\b|cannot\b|not yet\b|needs? to\b)/i.test(statement)
   )
     return null;
   if (
