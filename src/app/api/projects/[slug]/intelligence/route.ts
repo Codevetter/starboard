@@ -19,12 +19,10 @@ import { generateEmbeddings } from '@/lib/embeddings';
  * deterministic pipeline once.
  */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ slug: string }> }) {
-  const loaded = await loadOwnedProject(
-    (await params).slug,
-    request.nextUrl.searchParams.get('run') === '1'
-  );
+  const slug = (await params).slug;
+  const loaded = await loadOwnedProject(slug);
   if ('error' in loaded) return loaded.error;
-  const { repoId, project } = loaded;
+  const { repoId } = loaded;
 
   const dependencies = {
     database: db,
@@ -40,8 +38,10 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   // If no report exists and the user requests a run, generate one
   const shouldRun = request.nextUrl.searchParams.get('run') === '1';
   if (!draft && shouldRun) {
+    const inspected = await loadOwnedProject(slug, true);
+    if ('error' in inspected) return inspected.error;
     const run = createNeedDrivenIntelligence(dependencies);
-    const newDraft = await run(project);
+    const newDraft = await run(inspected.project);
     return NextResponse.json({ draft: newDraft, reviewed: null });
   }
 

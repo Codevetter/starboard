@@ -13,7 +13,7 @@ export interface ProjectSourceContext {
   files: string[];
   scope?: string;
   dependencies?: string[];
-  documents?: { path: string; text: string; truncated?: boolean }[];
+  documents?: { path: string; text: string; requirementText?: string; truncated?: boolean }[];
 }
 
 export function parseProjectFolder(path: string): string | null {
@@ -502,6 +502,12 @@ function sourceTools(project: ProjectRecommendationRepo, loaded: LoadedFile[], r
   );
 }
 
+function completeSourceLines(content: string): string {
+  if (content.length <= MAX_PRODUCT_CONTEXT_CHARS) return content;
+  const excerpt = content.slice(0, MAX_PRODUCT_CONTEXT_CHARS);
+  return excerpt.slice(0, Math.max(0, excerpt.lastIndexOf('\n')));
+}
+
 function inspectedProject<T extends ProjectRecommendationRepo>(
   project: T,
   tree: SourceTree,
@@ -530,6 +536,7 @@ function inspectedProject<T extends ProjectRecommendationRepo>(
       return {
         path: file.path,
         text,
+        ...(prose ? { requirementText: completeSourceLines(file.content) } : {}),
         truncated: prose
           ? file.content.length > MAX_PRODUCT_CONTEXT_CHARS
           : file.content.length > 16_000,

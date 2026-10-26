@@ -1,4 +1,5 @@
-import { knowledgeCapabilityCard } from '@/lib/knowledge-project-profile';
+import { explicitRequirements, requirementDocuments } from '@/lib/project-requirements';
+import { knowledgeCapabilityCard, knowledgeProjectNeeds } from '@/lib/knowledge-project-profile';
 import { ingestKnowledgeDocuments } from '@/lib/knowledge-catalog';
 /**
  * Need-driven project intelligence pipeline.
@@ -541,53 +542,6 @@ async function loadStoredFingerprint(
 // ---------------------------------------------------------------------------
 // Need extraction (Stage 3)
 // ---------------------------------------------------------------------------
-
-function requirementDocuments(project: ProjectRecommendationRepo) {
-  const context = project.sourceContext;
-  if (!context) return [{ path: 'description', text: project.description ?? '' }];
-  const documents = context.documents?.length
-    ? context.documents.filter(
-        (document) =>
-          /(?:^|\/)(?:PRODUCT|PROJECT_STATUS|README)(?:\.(?:md|markdown|rst|txt))?$/i.test(
-            document.path
-          ) || /(?:^|\/)docs\/product\/.*\.md$/i.test(document.path)
-      )
-    : context.readme
-      ? [{ path: 'README.md', text: context.readme }]
-      : [];
-  const contract = documents.find((document) => /(?:^|\/)PRODUCT\.md$/i.test(document.path));
-  return contract ? [contract] : documents;
-}
-
-function explicitRequirements(text: string): Array<{ statement: string; quote: string }> {
-  const requirements: Array<{ statement: string; quote: string }> = [];
-  let fence = '';
-  for (const raw of text.split('\n')) {
-    const line = raw.trim();
-    const delimiter = line.match(/^(`{3,}|~{3,})/);
-    if (delimiter) {
-      if (!fence) fence = delimiter[1];
-      else if (delimiter[1][0] === fence[0] && delimiter[1].length >= fence.length) fence = '';
-      continue;
-    }
-    if (fence || /^>|^[-*]\s+\[[xX]\]/.test(line)) continue;
-    const unchecked = line.match(/^[-*]\s+\[ \]\s+(.+)$/);
-    const statement = unchecked?.[1] ?? line.replace(/^[-*]\s+/, '');
-    if (
-      !unchecked &&
-      !/^(?:TODO\s*:|missing\b|lacks?\b|cannot\b|not yet\b|needs? to\b)/i.test(statement)
-    )
-      continue;
-    if (
-      statement.length < 12 ||
-      statement.length > 240 ||
-      /^(?:do not|never|keep|preserve|must not|no need|not required)\b/i.test(statement)
-    )
-      continue;
-    requirements.push({ statement, quote: line });
-  }
-  return requirements;
-}
 
 export function extractNeeds(project: ProjectRecommendationRepo): ProjectNeed[] {
   const needs: ProjectNeed[] = [];
@@ -1315,7 +1269,9 @@ async function resolveNeeds(
   storedFingerprint: string | null,
   deps: NeedDrivenIntelligenceDependencies
 ): Promise<ProjectNeed[]> {
-  let needs = extractNeeds(project);
+  let needs = knowledgePipelineEnabled()
+    ? await knowledgeProjectNeeds(project)
+    : extractNeeds(project);
   const merged = mergeNeeds(needs);
   const { retained } = rejectUnsupportedNeeds(merged);
   needs = retained;
@@ -1501,11 +1457,17 @@ async function refreshReportCapabilities(
   }
 }
 
+function requireCompleteSource(project: ProjectRecommendationRepo) {
+  if (project.sourceContext && project.sourceContext.status !== 'complete')
+    throw new Error('Project source coverage is unavailable; previous report retained');
+}
+
 export function createNeedDrivenIntelligence(dependencies: NeedDrivenIntelligenceDependencies) {
   return async function runNeedDrivenIntelligence(
     project: ProjectRecommendationRepo,
     options: NeedDrivenPipelineOptions = {}
   ): Promise<DraftReport> {
+    requireCompleteSource(project);
     const catalogGeneration = options.catalogGeneration ?? new Date().toISOString().slice(0, 10);
     const candidatesPerNeed = options.candidatesPerNeed ?? CANDIDATES_PER_NEED;
     const maxTotalCandidates = options.maxTotalCandidates ?? MAX_TOTAL_CANDIDATES;

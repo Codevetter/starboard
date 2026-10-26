@@ -820,3 +820,26 @@ describe('computeProjectFingerprint', () => {
     expect(execute).toHaveBeenCalled();
   });
 });
+
+it.each(['unavailable', 'partial'] as const)(
+  'retains persisted state when source inspection is %s',
+  async (status) => {
+    const execute = vi.fn().mockResolvedValue(dbResult());
+    const batch = vi.fn();
+    const deps = makeDependencies(execute, batch);
+    await expect(
+      createNeedDrivenIntelligence(deps)(
+        project({
+          sourceContext: {
+            status,
+            revision: null,
+            files: [],
+            readme: '',
+          },
+        })
+      )
+    ).rejects.toThrow('previous report retained');
+    expect(execute).not.toHaveBeenCalled();
+    expect(batch).not.toHaveBeenCalled();
+  }
+);
