@@ -111,7 +111,7 @@ it.each([
   });
   const response = await GET(request(), params);
   expect(response.status).toBe(503);
-  expect((await response.json()).error).toContain('unavailable');
+  expect((await response.json()).error).toContain('could not be generated');
   expect(mocks.execute.mock.calls.every(([statement]) => statement.sql.startsWith('SELECT'))).toBe(
     true
   );

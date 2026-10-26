@@ -48,7 +48,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json(
         {
           error:
-            'Project intelligence is unavailable. Please retry when source and review services are available.',
+            'Project intelligence could not be generated from the current source and review evidence.',
         },
         { status: 503 }
       );

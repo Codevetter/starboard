@@ -150,12 +150,15 @@ export async function knowledgeProjectNeeds(
     })
   ).map((document) => ({ ...document, external_id: `${document.external_id}:requirements` }));
   if (!documents.length) throw new Error('Project source coverage is unavailable');
+  if (!documents.some((document) => explicitRequirements(document.content).length)) return [];
+  const sourceHash = textHash(JSON.stringify(documents));
   const ids = await ingestKnowledgeDocuments(documents);
   const externalId = `project:${project.id}:${project.sourceContext?.scope || 'root'}:needs`;
   const previous = await findKnowledgeDocument(externalId);
   const previousIds = previous?.document.metadata.source_document_ids;
   const enriched =
     previous?.document.metadata.enricher_version === 'explicit-needs-v2' &&
+    previous.document.metadata.source_hash === sourceHash &&
     Array.isArray(previousIds) &&
     JSON.stringify(previousIds) === JSON.stringify(ids)
       ? (JSON.parse(previous!.document.content) as Profile)
@@ -191,6 +194,7 @@ export async function knowledgeProjectNeeds(
         visibility: 'public',
         source_document_ids: ids,
         enricher_version: 'explicit-needs-v2',
+        source_hash: sourceHash,
         validation: 'explicit_requirement_quotes_checked',
         human_validated: false,
       },

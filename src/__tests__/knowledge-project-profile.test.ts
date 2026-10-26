@@ -1,3 +1,4 @@
+import { textHash } from '@/lib/embeddings';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   json: vi.fn(),
@@ -208,7 +209,9 @@ describe('source-grounded project needs', () => {
     'Edit captions and export images.',
     '- [ ] Not needed for this product.',
   ])('rejects unsupported needs without caching: %s', async (excerpt) => {
-    mocks.documents.mockResolvedValue([{ external_id: 'source', content: excerpt, metadata: {} }]);
+    mocks.documents.mockResolvedValue([
+      { external_id: 'source', content: `${quote}\n${excerpt}`, metadata: {} },
+    ]);
     mocks.json.mockResolvedValue({
       ...profile,
       needs: [{ ...need, evidence: [{ ...need.evidence[0], excerpt }] }],
@@ -227,7 +230,13 @@ describe('source-grounded project needs', () => {
     mocks.find.mockResolvedValue({
       document: {
         content: JSON.stringify({ ...profile, needs: [need] }),
-        metadata: { source_document_ids: ['source'], enricher_version: 'explicit-needs-v2' },
+        metadata: {
+          source_document_ids: ['source'],
+          enricher_version: 'explicit-needs-v2',
+          source_hash: textHash(
+            JSON.stringify([{ external_id: 'source:requirements', content: quote, metadata: {} }])
+          ),
+        },
       },
     });
     expect(await knowledgeProjectNeeds(project)).toHaveLength(1);
@@ -235,6 +244,26 @@ describe('source-grounded project needs', () => {
     mocks.documents.mockResolvedValue([
       { external_id: 'source', content: 'Implemented offline payments.', metadata: {} },
     ]);
-    await expect(knowledgeProjectNeeds(project)).rejects.toThrow('Invalid source-grounded need');
+    expect(await knowledgeProjectNeeds(project)).toEqual([]);
+    expect(mocks.json).not.toHaveBeenCalled();
+  });
+  it('refreshes content changes even when the ingestion IDs are stable', async () => {
+    await knowledgeProjectNeeds(project);
+    const cached = mocks.ingest.mock.calls[1][0][0];
+    mocks.find.mockResolvedValue({ document: cached });
+    mocks.json.mockClear();
+    mocks.documents.mockResolvedValue([
+      { external_id: 'source', content: `${quote}\nNew product constraint.`, metadata: {} },
+    ]);
+    await knowledgeProjectNeeds(project);
+    expect(mocks.json).toHaveBeenCalledOnce();
+  });
+  it('does not invoke enrichment or ingest when no explicit requirements are present', async () => {
+    mocks.documents.mockResolvedValue([
+      { external_id: 'source', content: 'A native AI payment app.', metadata: {} },
+    ]);
+    expect(await knowledgeProjectNeeds(project)).toEqual([]);
+    expect(mocks.json).not.toHaveBeenCalled();
+    expect(mocks.ingest).not.toHaveBeenCalled();
   });
 });
