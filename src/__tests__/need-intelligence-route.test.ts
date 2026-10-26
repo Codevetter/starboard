@@ -111,9 +111,31 @@ it.each([
   });
   const response = await GET(request(), params);
   expect(response.status).toBe(503);
-  expect((await response.json()).error).toContain('could not be generated');
+  expect((await response.json()).error).toContain('unavailable');
   expect(mocks.execute.mock.calls.every(([statement]) => statement.sql.startsWith('SELECT'))).toBe(
     true
   );
   expect(mocks.batch).not.toHaveBeenCalled();
+});
+
+it('distinguishes invalid model evidence from source or provider unavailability', async () => {
+  mocks.json.mockResolvedValue({
+    schema_version: 1,
+    needs: [
+      {
+        title: 'Invented need',
+        desired_outcome: 'Invented outcome',
+        constraints: [],
+        evidence: [{ document_id: 'source', chunk_id: 'chunk', excerpt: 'Fabricated gap' }],
+      },
+    ],
+  });
+  const response = await GET(request(), params);
+  expect(response.status).toBe(422);
+  expect((await response.json()).code).toBe('invalid_need_evidence');
+  expect(
+    mocks.execute.mock.calls.some(([statement]) =>
+      statement.sql.includes('INSERT INTO project_draft_reports')
+    )
+  ).toBe(false);
 });

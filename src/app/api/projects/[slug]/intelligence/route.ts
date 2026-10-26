@@ -44,13 +44,17 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     try {
       const newDraft = await run(inspected.project);
       return NextResponse.json({ draft: newDraft, reviewed: null });
-    } catch {
+    } catch (error) {
+      const invalidEvidence =
+        error instanceof Error && error.message === 'Invalid source-grounded need';
       return NextResponse.json(
         {
-          error:
-            'Project intelligence could not be generated from the current source and review evidence.',
+          error: invalidEvidence
+            ? 'The generated needs did not match the project source. No report was saved.'
+            : 'Project intelligence is unavailable. Source inspection or review could not complete.',
+          code: invalidEvidence ? 'invalid_need_evidence' : 'intelligence_unavailable',
         },
-        { status: 503 }
+        { status: invalidEvidence ? 422 : 503 }
       );
     }
   }

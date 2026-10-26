@@ -1,4 +1,4 @@
-import { textHash } from '@/lib/embeddings';
+import { createHash } from 'node:crypto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   json: vi.fn(),
@@ -233,9 +233,9 @@ describe('source-grounded project needs', () => {
         metadata: {
           source_document_ids: ['source'],
           enricher_version: 'explicit-needs-v2',
-          source_hash: textHash(
-            JSON.stringify([{ external_id: 'source:requirements', content: quote, metadata: {} }])
-          ),
+          source_hash: createHash('sha256')
+            .update(JSON.stringify([['source:requirements', quote]]))
+            .digest('hex'),
         },
       },
     });
@@ -257,6 +257,23 @@ describe('source-grounded project needs', () => {
     ]);
     await knowledgeProjectNeeds(project);
     expect(mocks.json).toHaveBeenCalledOnce();
+  });
+  it('reuses validated needs when only source revision metadata changes', async () => {
+    await knowledgeProjectNeeds(project);
+    mocks.find.mockResolvedValue({ document: mocks.ingest.mock.calls[1][0][0] });
+    mocks.json.mockClear();
+    mocks.documents.mockResolvedValue([
+      {
+        external_id: 'source',
+        content: quote,
+        metadata: {
+          source_revision: 'new-commit',
+          source_url: 'https://github.com/acme/tool/blob/new-commit/PRODUCT.md',
+        },
+      },
+    ]);
+    expect(await knowledgeProjectNeeds(project)).toHaveLength(1);
+    expect(mocks.json).not.toHaveBeenCalled();
   });
   it('does not invoke enrichment or ingest when no explicit requirements are present', async () => {
     mocks.documents.mockResolvedValue([

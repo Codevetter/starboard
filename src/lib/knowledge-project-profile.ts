@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { explicitRequirements, requirementDocuments } from '@/lib/project-requirements';
 import { projectKnowledgeDocuments } from '@/lib/knowledge-decisions';
 import { catalogIndexPath, knowledgebaseJson } from '@/lib/knowledgebase';
@@ -151,7 +152,9 @@ export async function knowledgeProjectNeeds(
   ).map((document) => ({ ...document, external_id: `${document.external_id}:requirements` }));
   if (!documents.length) throw new Error('Project source coverage is unavailable');
   if (!documents.some((document) => explicitRequirements(document.content).length)) return [];
-  const sourceHash = textHash(JSON.stringify(documents));
+  const sourceHash = createHash('sha256')
+    .update(JSON.stringify(documents.map((document) => [document.external_id, document.content])))
+    .digest('hex');
   const ids = await ingestKnowledgeDocuments(documents);
   const externalId = `project:${project.id}:${project.sourceContext?.scope || 'root'}:needs`;
   const previous = await findKnowledgeDocument(externalId);
