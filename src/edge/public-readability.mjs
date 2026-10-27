@@ -12,6 +12,9 @@ export const isPublicPage = (path) =>
   /^\/tools\/[^/]+$/.test(path) ||
   /^\/explore\/[a-zA-Z0-9-]+\/[a-zA-Z0-9_.-]+$/.test(path) ||
   /^\/lists\/[a-zA-Z0-9_-]+$/.test(path);
+const markdownURL = (path) =>
+  origin +
+  (path.startsWith('/explore/') ? `/api/md${path}` : path === '/' ? '/index.md' : `${path}.md`);
 const documents = new Set(['/llms.txt', '/llms-full.txt', '/ai.txt', '/api/md/_catalog']);
 export async function handlePublicReadability(request, render) {
   const url = new URL(request.url),
@@ -54,9 +57,7 @@ export async function handlePublicReadability(request, render) {
   // GitHub repository names may themselves end in .md; preserve browser/RSC documents.
   if (
     /^\/explore\/[^/]+\/[^/]+\.md$/.test(path) &&
-    (request.headers.has('rsc') ||
-      request.headers.has('next-router-state-tree') ||
-      (request.headers.get('accept')?.includes('text/html') && !wantsMarkdown(request)))
+    (request.headers.has('rsc') || request.headers.has('next-router-state-tree'))
   )
     return null;
   const suffix = path.endsWith('.md');
@@ -66,7 +67,7 @@ export async function handlePublicReadability(request, render) {
   )
     return null;
   if (!direct && !suffix && !documents.has(path) && !wantsMarkdown(request)) return null;
-  const target = direct
+  let target = direct
     ? `/${path.replace(/^\/api\/md\/?/, '')}`
     : suffix
       ? htmlPathFromMarkdown(path)
@@ -92,6 +93,17 @@ export async function handlePublicReadability(request, render) {
     return data;
   };
   try {
+    const prefetched = new Map();
+    // Literal repository names win negotiation; suffix URLs remain available when
+    // no literal public repository exists. Direct URLs are always unambiguous.
+    if (!direct && /^\/explore\/[^/]+\/[^/]+\.md$/.test(path) && request.method !== 'OPTIONS') {
+      const literal = await fetchSource(`/api/public-markdown${path}`);
+      if (literal) {
+        if (!wantsMarkdown(request)) return null;
+        target = path;
+        prefetched.set(path, literal);
+      }
+    }
     const rows = [...STATIC_ROUTES, ...sourceRoutes];
     if (path === '/api/md/_catalog') {
       if ([...url.searchParams.keys()].some((key) => key !== 'offset'))
@@ -103,7 +115,7 @@ export async function handlePublicReadability(request, render) {
       const routes = [...(offset === '0' ? STATIC_ROUTES : []), ...data.routes].map((route) => ({
         ...route,
         url: origin + route.path,
-        md: origin + (route.path === '/' ? '/index.md' : `${route.path}.md`),
+        md: markdownURL(route.path),
       }));
       const headers = {
         'Content-Type': 'application/json; charset=utf-8',
@@ -125,10 +137,13 @@ export async function handlePublicReadability(request, render) {
         { headers }
       );
     }
-    const prefetched = new Map();
     if (isPublicPage(target) && !rows.some((route) => route.path === target)) {
       const data =
-        request.method === 'OPTIONS' ? null : await fetchSource(`/api/public-markdown${target}`);
+        request.method === 'OPTIONS'
+          ? null
+          : prefetched.has(target)
+            ? prefetched.get(target)
+            : await fetchSource(`/api/public-markdown${target}`);
       const canonical = data?.path ?? target;
       if (!isPublicPage(canonical) || canonical.split('/')[1] !== target.split('/')[1])
         throw new Error('Invalid public canonical');
@@ -267,7 +282,7 @@ export function publicDiscoveryHeaders(request, response) {
     .on('head', {
       element(e) {
         e.append(
-          `<meta name="ai-summary" content="${escape(summary)}"><link rel="alternate" type="text/markdown" href="${origin + (path === '/' ? '/index.md' : `${path}.md`)}">`,
+          `<meta name="ai-summary" content="${escape(summary)}"><link rel="alternate" type="text/markdown" href="${markdownURL(path)}">`,
           { html: true }
         );
       },

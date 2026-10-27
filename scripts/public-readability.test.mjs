@@ -41,10 +41,12 @@ test('dynamic source receives no credentials or query, private source remains un
   let calls = 0;
   const render = async (request) => {
     calls++;
-    assert.equal(new URL(request.url).pathname, '/api/public-markdown/explore/acme/example');
     assert.equal(new URL(request.url).search, '');
     for (const header of ['cookie', 'authorization'])
       assert.equal(request.headers.get(header), null);
+    if (new URL(request.url).pathname === '/api/public-markdown/explore/acme/example.md')
+      return new Response('missing', { status: 404 });
+    assert.equal(new URL(request.url).pathname, '/api/public-markdown/explore/acme/example');
     return Response.json({
       path: '/explore/acme/example',
       markdown: `# Example\n\nCanonical: ${origin}/explore/acme/example\n`,
@@ -57,12 +59,12 @@ test('dynamic source receives no credentials or query, private source remains un
     render
   );
   assert.equal(r.status, 200);
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
   for (const path of ['/api/md/projects', '/api/md/stars', '/api/md/admin', '/missing.md']) {
     const r = await handlePublicReadability(publicRequest(origin + path), render);
     assert.equal(r.status, 404, path);
   }
-  assert.equal(calls, 1);
+  assert.equal(calls, 2);
   assert.equal(
     await handlePublicReadability(
       publicRequest(`${origin}/api/tools`, { headers: { Accept: 'text/markdown' } }),
@@ -190,7 +192,7 @@ test('public Markdown preserves the existing explore scraper guard and browser .
   for (const headers of [{ Accept: 'text/html' }, { RSC: '1' }]) {
     const response = await handlePublicReadability(
       publicRequest(`${origin}/explore/acme/notes.md`, { headers }),
-      load
+      async () => Response.json({ path: '/explore/acme/notes.md' })
     );
     assert.equal(response, null);
   }
@@ -198,4 +200,34 @@ test('public Markdown preserves the existing explore scraper guard and browser .
     await handlePublicReadability(publicRequest(`${origin}/robots.txt`), load)
   ).text();
   assert.equal(robots.match(/Allow: \/api\/ai/g).length, 7);
+});
+
+test('literal .md repository negotiation and advertised direct URLs are unambiguous', async () => {
+  const load = async (request) => {
+    const path = new URL(request.url).pathname.replace('/api/public-markdown', '');
+    if (path === '/explore/acme/ordinary.md') return new Response('missing', { status: 404 });
+    return Response.json({
+      path,
+      title: path,
+      description: 'Public repo',
+      markdown: `# ${path}\n\nCanonical: ${origin}${path}\n`,
+    });
+  };
+  for (const [path, accept, canonical] of [
+    [
+      '/explore/acme/ordinary.md',
+      'text/html,application/xhtml+xml,*/*;q=0.8',
+      '/explore/acme/ordinary',
+    ],
+    ['/explore/acme/ordinary.md', 'text/markdown, text/html', '/explore/acme/ordinary'],
+    ['/explore/acme/notes.md', 'text/markdown', '/explore/acme/notes.md'],
+    ['/api/md/explore/acme/notes.md', 'text/html', '/explore/acme/notes.md'],
+  ]) {
+    const response = await handlePublicReadability(
+      publicRequest(`${origin}${path}`, { headers: { Accept: accept } }),
+      load
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get('Content-Location'), `${origin}${canonical}`);
+  }
 });

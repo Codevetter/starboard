@@ -53,3 +53,8 @@ static content is generated from `landing-astro/src/` by
 components through `src/lib/public-markdown.tsx`. The paginated `/api/md/_catalog`
 lists public counterparts; private lists, stars and connected projects are excluded.
 Legacy files under `public/` are not the runtime discovery authority.
+
+Repository counterparts are advertised as `/api/md/explore/<owner>/<repo>` to
+avoid collisions with real repository names ending in `.md`. An existing literal
+repository wins browser navigation and explicit Markdown negotiation; the suffix
+form otherwise resolves the repository without that suffix.
