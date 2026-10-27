@@ -1,3 +1,4 @@
+/** biome-ignore-all lint/style/useTemplate: Preserve canonical generated toolkit expressions. */
 // Generated from sass-maker/saas-maker tooling/lib/agent-surfaces; use sync-agent-readability.mjs.
 /** Paths that must never fall through to an SPA HTML shell. */
 const AGENT_PATHS = new Set([
@@ -62,14 +63,24 @@ export function wantsMarkdown(request) {
       ? headers.get('accept') || ''
       : headers?.accept || headers?.Accept || '';
   if (!accept) return false;
-  const ranges = accept.toLowerCase().split(',').map((part) => {
-    const [type, ...parameters] = part.trim().split(';');
-    const weights = parameters.map((value) => value.trim()).filter((value) => /^q\s*=/.test(value));
-    const raw = weights[0]?.split('=')[1]?.trim();
-    const q = weights.length > 1 || (raw !== undefined && !/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(raw))
-      ? 0 : raw === undefined ? 1 : Number(raw);
-    return { type: type.trim(), q };
-  });
+  const ranges = accept
+    .toLowerCase()
+    .split(',')
+    .map((part) => {
+      const [type, ...parameters] = part.trim().split(';');
+      const weights = parameters
+        .map((value) => value.trim())
+        .filter((value) => /^q\s*=/.test(value));
+      const raw = weights[0]?.split('=')[1]?.trim();
+      const q =
+        weights.length > 1 ||
+        (raw !== undefined && !/^(?:0(?:\.\d{0,3})?|1(?:\.0{0,3})?)$/.test(raw))
+          ? 0
+          : raw === undefined
+            ? 1
+            : Number(raw);
+      return { type: type.trim(), q };
+    });
   // Wildcards never opt into Markdown. Specific media ranges override them.
   const markdown = ranges.filter(({ type }) => type === 'text/markdown');
   if (!markdown.length) return false;

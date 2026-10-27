@@ -91,6 +91,6 @@ add(
 );
 fs.writeFileSync(
   'src/edge/public-static.mjs',
-  `// Generated from authored home.json, changelog data, and article Markdown.\nexport const STATIC_PAGES = ${JSON.stringify(pages)};\nexport const STATIC_ROUTES = ${JSON.stringify(routes)};\n`
+  `// biome-ignore-all format: Generated content is owned by scripts/generate-public-markdown.mjs.\n// Generated from authored home.json, changelog data, and article Markdown.\nexport const STATIC_PAGES = ${JSON.stringify(pages)};\nexport const STATIC_ROUTES = ${JSON.stringify(routes)};\n`
 );
 console.log(`Generated ${routes.length} source-based static Markdown pages.`);
