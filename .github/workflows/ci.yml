@@ -9,8 +9,17 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Matches the locked Playwright 1.62.0; includes all three browsers and OS libraries.
+    container:
+      image: mcr.microsoft.com/playwright:v1.62.0-noble@sha256:baed2032d533817f3dbe6425de795788430ba345e819a1201337009ba17c9d07
+      options: --ipc=host
     steps:
       - uses: actions/checkout@v6
+
+      - name: Trust the checked-out workspace in the job container
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git rev-parse --is-inside-work-tree
 
       - uses: pnpm/action-setup@v6
         with:
@@ -31,9 +40,10 @@ jobs:
 
       - run: pnpm build:e2e
 
-      - run: pnpm exec playwright install --with-deps chromium firefox webkit
-
-      - run: pnpm test:e2e
+      - name: Run browser tests with a correctly owned container home
+        run: |
+          chown "$(id -u):$(id -g)" "$HOME"
+          pnpm test:e2e
 
       - uses: actions/upload-artifact@v4
         if: always()
