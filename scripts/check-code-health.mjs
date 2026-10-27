@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { boundTypedFunctionLength } from './lizard-typed-spans.mjs';
 
 import { spawnSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync } from 'node:fs';
@@ -110,14 +111,23 @@ function complexity() {
     'scripts/check-code-health.mjs',
     '-x',
     '**/*.d.ts',
+    // Shared vendored helpers are independently qualified upstream.
+    '-x',
+    'src/edge/agent-surfaces/**',
     '--csv',
   ]);
   const rows = result.stdout
     .trim()
     .split('\n')
-    .map((line) => line.match(/^(\d+),(\d+),(\d+),(\d+),(\d+),/u))
-    .filter(Boolean)
-    .map((match) => match.slice(1).map(Number));
+    .map((line) => {
+      const match = line.match(/^(\d+),(\d+),(\d+),(\d+),(\d+),/u);
+      return match
+        ? boundTypedFunctionLength(line, match.slice(1).map(Number), (file) =>
+            readFileSync(join(root, file), 'utf8')
+          )
+        : null;
+    })
+    .filter(Boolean);
   const observed = {
     functions: rows.length,
     nloc: rows.reduce((sum, row) => sum + row[0], 0),
@@ -145,7 +155,7 @@ function duplication() {
     '--mode',
     'strict',
     '--ignore',
-    '**/*.test.*,**/__tests__/**,**/*.d.ts,**/node_modules/**,**/dist/**,**/coverage/**,scripts/check-code-health.mjs',
+    '**/*.test.*,**/__tests__/**,**/*.d.ts,**/node_modules/**,**/dist/**,**/coverage/**,src/edge/agent-surfaces/**,scripts/check-code-health.mjs',
     '--reporters',
     'json',
     '--output',

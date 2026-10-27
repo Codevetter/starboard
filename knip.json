@@ -1,6 +1,9 @@
 {
   "$schema": "https://unpkg.com/knip@latest/schema.json",
-  "entry": ["open-next.config.ts", "agent-edge.mjs"],
+  "entry": [
+    "open-next.config.ts",
+    "agent-edge.mjs"
+  ],
   "workspaces": {
     "landing-astro": {
       "entry": [
@@ -10,7 +13,9 @@
       ]
     }
   },
-  "project": ["**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"],
+  "project": [
+    "**/*.{ts,tsx,js,jsx,mjs,cjs,mts}"
+  ],
   "ignore": [
     "**/dist/**",
     "**/build/**",
@@ -77,16 +82,56 @@
     "prettier"
   ],
   "ignoreIssues": {
-    "src/app/api/**/route.ts": ["exports", "types"],
-    "src/lib/actions/**": ["exports", "types"],
-    "lib/actions/**": ["exports", "types"],
-    "**/schema.ts": ["exports", "types"],
-    "**/db/schema*.ts": ["exports", "types"],
-    "**/commands/**": ["exports", "types"],
-    "**/agent-edge.*": ["exports", "types"],
-    "**/foundry-monitoring.ts": ["exports", "types"],
-    "**/analytics.ts": ["exports", "types"],
-    "**/api-timing.ts": ["exports", "types"],
-    "src/components/ui/**": ["exports", "types"]
+    "src/app/api/**/route.ts": [
+      "exports",
+      "types"
+    ],
+    "src/lib/actions/**": [
+      "exports",
+      "types"
+    ],
+    "lib/actions/**": [
+      "exports",
+      "types"
+    ],
+    "**/schema.ts": [
+      "exports",
+      "types"
+    ],
+    "**/db/schema*.ts": [
+      "exports",
+      "types"
+    ],
+    "**/commands/**": [
+      "exports",
+      "types"
+    ],
+    "**/agent-edge.*": [
+      "exports",
+      "types"
+    ],
+    "**/foundry-monitoring.ts": [
+      "exports",
+      "types"
+    ],
+    "**/analytics.ts": [
+      "exports",
+      "types"
+    ],
+    "**/api-timing.ts": [
+      "exports",
+      "types"
+    ],
+    "src/components/ui/**": [
+      "exports",
+      "types"
+    ],
+    "src/edge/agent-surfaces/**/*.mjs": [
+      "exports"
+    ],
+    "src/edge/agent-surfaces/adapters/static-assets.mjs": [
+      "files",
+      "exports"
+    ]
   }
 }

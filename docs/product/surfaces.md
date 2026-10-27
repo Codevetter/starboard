@@ -45,3 +45,20 @@ ownership checks remain user-scoped regardless of URL knowledge.
 Public machine-readable surfaces are `llms.txt`, `llms-full.txt`, `index.md`,
 `api/ai`, `api-ai.json`, `robots.txt`, and `sitemap.xml`. Generated edge files
 remain governed by the repository conventions and must not be hand-edited.
+
+Markdown and discovery are served by `src/edge/public-readability.mjs`. Authored
+static content is generated from `landing-astro/src/` by
+`scripts/generate-public-markdown.mjs`; default catalog metadata is shared in
+`src/data/public-page-routes.json`. Dynamic public views reuse their visible source
+components through `src/lib/public-markdown.tsx`. The paginated `/api/md/_catalog`
+lists public counterparts; private lists, stars and connected projects are excluded.
+Legacy files under `public/` are not the runtime discovery authority.
+
+Repository counterparts are advertised as `/api/md/explore/<owner>/<repo>` to
+avoid collisions with real repository names ending in `.md`. Browser/RSC requests
+keep literal HTML navigation. Explicit Markdown negotiation prefers a literal
+cataloged repository using a D1-only existence check; otherwise the suffix wins.
+Off-catalog literal `.md` names use the direct form or a double suffix. A collision
+between two actual repository names is resolved deterministically; direct URLs
+always identify the requested repository without an extra disambiguation probe.
+The requested off-catalog repository may still use the existing GitHub fallback.

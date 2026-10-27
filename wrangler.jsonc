@@ -8,7 +8,8 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "binding": "ASSETS",
-    "directory": ".open-next/assets"
+    "directory": ".open-next/assets",
+    "run_worker_first": ["/*", "!/_next/static/*", "!/_astro/*", "!/images/*"]
   },
   "observability": {
     "enabled": true,

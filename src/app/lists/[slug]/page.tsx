@@ -84,6 +84,7 @@ export async function generateMetadata({
 
   return {
     title: `${data.list.name} - Starboard`,
+    alternates: { canonical: `/lists/${slug}` },
     description:
       data.list.description ||
       `A curated list of ${data.repos.length} GitHub repos by @${data.owner.username}`,

@@ -55,7 +55,7 @@ describe('project-first activation wiring', () => {
   it('reuses the shared shell and navigation across discovery surfaces', () => {
     const discover = source('src/app/discover/discover-client.tsx');
     const discoverLayout = source('src/app/discover/layout.tsx');
-    const tools = source('src/app/tools/page.tsx');
+    const tools = source('src/components/public-source/tools-view.tsx');
     const toolDetail = source('src/app/tools/[toolKey]/page.tsx');
     const toolsLayout = source('src/app/tools/layout.tsx');
     const topBar = source('src/components/top-bar.tsx');
@@ -79,7 +79,9 @@ describe('project-first activation wiring', () => {
   });
 
   it('carries a successful preview through sign-in without auto-connecting it', () => {
-    const preview = source('src/components/project-preview-workspace.tsx');
+    const preview =
+      source('src/components/project-preview-workspace.tsx') +
+      source('src/components/public-source/project-preview.tsx');
     const login = source('src/app/login/page.tsx');
     const authNavigation = source('src/lib/auth-navigation.ts');
     const projectsPage = source('src/app/projects/page.tsx');

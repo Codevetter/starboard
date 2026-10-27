@@ -41,7 +41,8 @@ export interface HeaderReader {
 }
 
 export function isGuardedPath(pathname: string): boolean {
-  return GUARDED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+  const publicPath = pathname.replace(/^\/api\/(?:public-markdown|md)(?=\/|$)/, '');
+  return GUARDED_PREFIXES.some((prefix) => publicPath.startsWith(prefix));
 }
 
 export function isAutomationUserAgent(userAgent: string | null | undefined): boolean {

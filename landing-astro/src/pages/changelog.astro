@@ -1,6 +1,7 @@
 ---
 import ProductFooter from '@/components/ProductFooter.astro';
 import Layout from '@/layouts/Layout.astro';
+import copy from '../content/changelog-copy.json';
 
 const entries = [
   {
@@ -55,13 +56,11 @@ const entries = [
       <header class="mt-8 border-b pb-10">
         <p class="font-mono text-xs uppercase tracking-[0.16em] text-primary">Product changelog</p>
         <h1 class="mt-3 text-balance text-4xl font-bold tracking-tight sm:text-6xl">
-          What changed
+          {copy.heading}
         </h1>
         <p class="mt-5 max-w-2xl text-pretty text-base leading-7 text-muted-foreground sm:text-lg">
-          Verified product improvements to organizing and rediscovering GitHub stars,
-          newest first. For repositories newly added to the shared Discover corpus, see
-          <a href="/catalog-updates" class="font-medium text-foreground underline-offset-4 hover:underline">Catalog updates</a>.
-          Future work stays in GitHub Issues.
+          {copy.intro}
+          <a href="/catalog-updates" class="font-medium text-foreground underline-offset-4 hover:underline">{copy.link}</a>{copy.after}
         </p>
       </header>
 
