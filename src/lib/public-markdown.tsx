@@ -2,7 +2,7 @@ import { createElement, type ReactNode } from 'react';
 import Link from 'next/link';
 import * as icons from 'lucide-react';
 import { NextRequest } from 'next/server';
-import { publicSourceTree } from './public-source-tree';
+import { publicSourceTree, escapeMarkdownText } from './public-source-tree';
 import { SITE_IDENTITY } from './site-identity';
 import About from '@/app/about/page';
 import Privacy from '@/app/privacy/page';
@@ -44,39 +44,8 @@ import { GET as history } from '@/app/api/repos/[repoId]/star-history/route';
 import { GET as similar } from '@/app/api/repos/[repoId]/similar/route';
 
 const noop = () => {};
-export const STATIC_PUBLIC_ROUTES = [
-  {
-    path: '/about',
-    title: 'How to organize and semantically search GitHub stars',
-    description: 'Native GitHub tools, semantic search, and the Starboard workflow.',
-  },
-  {
-    path: '/privacy',
-    title: 'Privacy policy',
-    description: 'Starboard data handling and privacy.',
-  },
-  { path: '/terms', title: 'Terms of use', description: 'Terms for using Starboard.' },
-  {
-    path: '/discover',
-    title: 'Discover open-source projects',
-    description: 'Search and compare public GitHub projects and the tools they use.',
-  },
-  {
-    path: '/tools',
-    title: 'Developer tool intelligence',
-    description: 'Compare developer tools using evidence from public GitHub repositories.',
-  },
-  {
-    path: '/catalog-updates',
-    title: 'Catalog updates',
-    description: 'Recently added repositories in the shared Discover corpus.',
-  },
-  {
-    path: '/project-preview',
-    title: 'Preview a GitHub project',
-    description: 'Inspect a public GitHub project and find grounded tool recommendations.',
-  },
-];
+export { default as STATIC_PUBLIC_ROUTES } from '@/data/public-page-routes.json';
+import STATIC_PUBLIC_ROUTES from '@/data/public-page-routes.json';
 const request = (path: string) => new NextRequest(new URL(path, SITE_IDENTITY.origin));
 async function json(response: Response) {
   if (!response.ok) throw new Error(`Public source unavailable: ${response.status}`);
@@ -210,7 +179,7 @@ export async function publicMarkdown(path: string) {
     [Badge, children],
     [Input, () => ''],
     [Skeleton, () => ''],
-    [TopBar, (p) => `## ${p.title ?? ''}\n\n${p.description ?? ''}\n`],
+    [TopBar, (p) => `## ${escapeMarkdownText(p.title)}\n\n${escapeMarkdownText(p.description)}\n`],
     [ClientGuide, (p) => render(createElement(ToolIntelligenceGuide, p))],
     [ToolFiltersSidebar, () => ''],
   ]);
@@ -220,6 +189,6 @@ export async function publicMarkdown(path: string) {
     path,
     title,
     description,
-    markdown: `# ${title}\n\n> ${description}\n\nCanonical: ${canonical}\n\n${body}`,
+    markdown: `# ${escapeMarkdownText(title)}\n\n> ${escapeMarkdownText(description)}\n\nCanonical: ${canonical}\n\n${body}`,
   };
 }

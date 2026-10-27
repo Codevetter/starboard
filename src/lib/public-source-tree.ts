@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
 
+/** Keep third-party visible text literal; Markdown syntax comes from the renderer. */
+export function escapeMarkdownText(value: unknown): string {
+  return String(value ?? '').replace(/[\\`*_{}[\]()<>#+.!|~-]/g, '\\$&');
+}
+
 /** Project the authored React content tree directly; never serialize or scrape HTML. */
 export interface SourceTreeOptions {
   canonical: string;
@@ -48,23 +53,24 @@ export async function publicSourceTree(
     if (typeof value !== 'string') throw new Error('Source link requires a string href');
     const url = new URL(value, options.canonical);
     if (!['http:', 'https:', 'mailto:', 'tel:'].includes(url.protocol)) return '';
-    return url.href.replaceAll(' ', '%20');
+    return url.href.replaceAll(' ', '%20').replaceAll('(', '%28').replaceAll(')', '%29');
   };
-  async function visit(input: unknown, depth = 0): Promise<string> {
+  async function visit(input: unknown, depth = 0, rawText = false): Promise<string> {
     if (depth > 100) throw new Error('Public source component nesting limit');
     const value = await input;
     if (value == null || typeof value === 'boolean') return '';
-    if (typeof value === 'string' || typeof value === 'number') return String(value);
+    if (typeof value === 'string' || typeof value === 'number')
+      return rawText ? String(value) : escapeMarkdownText(value);
     if (Array.isArray(value))
-      return (await Promise.all(value.map((child) => visit(child, depth + 1)))).join('');
+      return (await Promise.all(value.map((child) => visit(child, depth + 1, rawText)))).join('');
     if (typeof value !== 'object' || !('type' in value) || !('props' in value))
       throw new Error('Unsupported public source node');
     const { type, props } = value as Element;
     const adapter = options.adapters?.get(type);
     if (adapter) return preserve(await adapter(props));
-    if (typeof type === 'function') return visit(await type(props), depth + 1);
+    if (typeof type === 'function') return visit(await type(props), depth + 1, rawText);
     if (type === Symbol.for('react.fragment') || type === Symbol.for('react.suspense'))
-      return visit(props.children, depth + 1);
+      return visit(props.children, depth + 1, rawText);
     if (
       typeof type === 'object' &&
       type &&
@@ -105,7 +111,11 @@ export async function publicSourceTree(
       );
       return selected ? visit(selected, depth + 1) : '';
     }
-    const body = await visit(props.children, depth + 1);
+    const body = await visit(
+      props.children,
+      depth + 1,
+      rawText || type === 'code' || type === 'pre'
+    );
     if (/^h[1-6]$/.test(type)) return `\n\n${'#'.repeat(Number(type[1]))} ${body.trim()}\n\n`;
     if (type === 'p' || block.has(type)) return `\n\n${body.trim()}\n\n`;
     if (type === 'br') return '\n';
@@ -129,15 +139,20 @@ export async function publicSourceTree(
       return target ? `[${body.trim() || target}](${target})` : body;
     }
     if (type === 'img')
-      return props.alt && props.src ? `![${String(props.alt)}](${href(props.src)})` : '';
+      return props.alt && props.src
+        ? `![${escapeMarkdownText(props.alt)}](${href(props.src)})`
+        : '';
     if (type === 'li') return `\n- ${body.trim().replaceAll('\n', '\n  ')}\n`;
     if (type === 'ul' || type === 'ol') return `\n\n${body.trim()}\n\n`;
     if (type === 'td' || type === 'th')
-      return ` ${body.trim().replaceAll('|', '\\|').replaceAll('\n', ' ')} |`;
+      return ` ${body
+        .trim()
+        .replace(/(?<!\\)\|/g, '\\|')
+        .replaceAll('\n', ' ')} |`;
     if (type === 'tr') return `|${body}\n`;
     if (type === 'thead') {
       const lines = body.trim().split('\n');
-      const columns = (lines[0]?.match(/\|/g)?.length ?? 1) - 1;
+      const columns = (lines[0]?.match(/(?<!\\)\|/g)?.length ?? 1) - 1;
       return `${body}|${' --- |'.repeat(columns)}\n`;
     }
     if (type === 'table') return `\n\n${body.trim()}\n\n`;

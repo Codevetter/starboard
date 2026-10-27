@@ -10,6 +10,7 @@ export default defineConfig({
       '**/dist/**',
       '**/.next/**',
       'e2e/**',
+      'scripts/**/*.test.mjs',
       '.fleet-local/**',
       '.agents/**',
       '.codex/**',

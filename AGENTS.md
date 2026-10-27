@@ -94,8 +94,8 @@ Full command map: [docs/development/commands.md](docs/development/commands.md).
 - **[GitHub Issues](https://github.com/Codevetter/starboard/issues)** —
   proposals, design notes, requirements, and task checklists for non-trivial
   changes. See [docs/archive/openspec.md](docs/archive/openspec.md).
-- **[public/](public/)** — runtime agent-indexing surfaces (`llms.txt`,
-  `index.md`, `api-ai.json`, `robots.txt`, `sitemap.xml`). See
+- **[src/edge/public-readability.mjs](src/edge/public-readability.mjs)** — runtime
+  Markdown and agent discovery; `public/` retains legacy/static assets. See
   [docs/product/surfaces.md](docs/product/surfaces.md).
 
 ## Documentation-maintenance rules
@@ -131,7 +131,7 @@ src/
 docs/                     # Canonical documentation (source of truth)
 scripts/                  # seed-popular, enrich-repos, enrich-tools, check-docs, ...
 landing-astro/            # Astro landing page (overlaid into OpenNext assets during build:cf)
-public/                   # Agent-indexing surfaces (llms.txt, index.md, api-ai.json, robots.txt, sitemap.xml)
+public/                   # Static assets and legacy discovery files; runtime discovery lives in src/edge/
 wrangler.jsonc            # Worker config: ASSETS + AI + DB + REPO_VECTORS + RAG_SERVICE
 worker.mjs / agent-edge.mjs         # OpenNext-generated (do not hand-edit)
 ```

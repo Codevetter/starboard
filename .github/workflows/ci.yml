@@ -27,6 +27,8 @@ jobs:
 
       - run: pnpm quality
 
+      - run: node --test scripts/public-readability.test.mjs scripts/markdown-canonical-boundary.test.mjs
+
       - run: pnpm build:e2e
 
       - run: pnpm exec playwright install --with-deps chromium firefox webkit

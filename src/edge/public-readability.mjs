@@ -1,22 +1,11 @@
 import { createAgentSurfaceHandler, discoveryLinkHeader } from './agent-surfaces/handler.mjs';
 import { wantsMarkdown, htmlPathFromMarkdown } from './agent-surfaces/http.mjs';
+import { shouldBlockScraper } from '../lib/bot-guard.ts';
+import sourceRoutes from '../data/public-page-routes.json' with { type: 'json' };
 import { STATIC_PAGES, STATIC_ROUTES } from './public-static.mjs';
 import { AGENT_SURFACE } from '../../agent-edge.mjs';
 const origin = 'https://starboard.codevetter.com';
-const sourcePaths = [
-  '/about',
-  '/privacy',
-  '/terms',
-  '/discover',
-  '/tools',
-  '/catalog-updates',
-  '/project-preview',
-];
-const sourceRoutes = sourcePaths.map((path) => ({
-  path,
-  title: path.slice(1).replaceAll('-', ' '),
-  description: `Public Starboard ${path.slice(1)}`,
-}));
+const sourcePaths = sourceRoutes.map((route) => route.path);
 export const isPublicPage = (path) =>
   Object.hasOwn(STATIC_PAGES, path) ||
   sourcePaths.includes(path) ||
@@ -45,13 +34,31 @@ export async function handlePublicReadability(request, render) {
         },
       }
     );
+  if (
+    (path.startsWith('/api/public-markdown/') ||
+      !path.startsWith('/api/') ||
+      path.startsWith('/api/md/')) &&
+    shouldBlockScraper(path, request.headers.get('user-agent'), request.headers)
+  )
+    return new Response('Automated clients are not permitted on this route.', {
+      status: 403,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' },
+    });
   if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return null;
   if (path === '/robots.txt')
     return new Response(
-      `# Keep in sync with llms.txt and ai.txt.\nUser-agent: *\nAllow: /\nDisallow: /api/\nAllow: /api/md\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n\n${['GPTBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'CCBot', 'Bytespider'].map((name) => `User-agent: ${name}\nAllow: /\nDisallow: /api/\nAllow: /api/md\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n`).join('\n')}\nSitemap: ${origin}/sitemap.xml\n`,
+      `# Keep in sync with llms.txt and ai.txt.\nUser-agent: *\nAllow: /\nDisallow: /api/\nAllow: /api/md\nAllow: /api/ai\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n\n${['GPTBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'CCBot', 'Bytespider'].map((name) => `User-agent: ${name}\nAllow: /\nDisallow: /api/\nAllow: /api/md\nAllow: /api/ai\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n`).join('\n')}\nSitemap: ${origin}/sitemap.xml\n`,
       { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
     );
   const direct = path === '/api/md' || path.startsWith('/api/md/');
+  // GitHub repository names may themselves end in .md; preserve browser/RSC documents.
+  if (
+    /^\/explore\/[^/]+\/[^/]+\.md$/.test(path) &&
+    (request.headers.has('rsc') ||
+      request.headers.has('next-router-state-tree') ||
+      (request.headers.get('accept')?.includes('text/html') && !wantsMarkdown(request)))
+  )
+    return null;
   const suffix = path.endsWith('.md');
   if (
     !direct &&
@@ -67,7 +74,17 @@ export async function handlePublicReadability(request, render) {
   if (!direct && !suffix && !documents.has(path) && !isPublicPage(target)) return null;
   const fetchSource = async (sourcePath) => {
     const r = await render(
-      new Request(origin + sourcePath, { headers: { Accept: 'application/json' } })
+      new Request(origin + sourcePath, {
+        headers: {
+          Accept: 'application/json',
+          ...(request.headers.has('user-agent')
+            ? { 'User-Agent': request.headers.get('user-agent') }
+            : {}),
+          ...(request.headers.has('sec-ch-ua')
+            ? { 'sec-ch-ua': request.headers.get('sec-ch-ua') }
+            : {}),
+        },
+      })
     );
     if (r.status === 404) return null;
     if (!r.ok) throw new Error('Source unavailable');

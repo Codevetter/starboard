@@ -45,3 +45,11 @@ ownership checks remain user-scoped regardless of URL knowledge.
 Public machine-readable surfaces are `llms.txt`, `llms-full.txt`, `index.md`,
 `api/ai`, `api-ai.json`, `robots.txt`, and `sitemap.xml`. Generated edge files
 remain governed by the repository conventions and must not be hand-edited.
+
+Markdown and discovery are served by `src/edge/public-readability.mjs`. Authored
+static content is generated from `landing-astro/src/` by
+`scripts/generate-public-markdown.mjs`; default catalog metadata is shared in
+`src/data/public-page-routes.json`. Dynamic public views reuse their visible source
+components through `src/lib/public-markdown.tsx`. The paginated `/api/md/_catalog`
+lists public counterparts; private lists, stars and connected projects are excluded.
+Legacy files under `public/` are not the runtime discovery authority.

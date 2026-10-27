@@ -22,6 +22,18 @@ beforeEach(() => {
   match.mockClear();
   put.mockClear();
   openNextStub.reset();
+  // This suite verifies cache/auth boundaries; real Workers tests cover HTML rewriting.
+  vi.stubGlobal(
+    'HTMLRewriter',
+    class {
+      on() {
+        return this;
+      }
+      transform(response: Response) {
+        return response;
+      }
+    }
+  );
   vi.stubGlobal('caches', { default: { match, put } });
 });
 afterEach(() => vi.unstubAllGlobals());

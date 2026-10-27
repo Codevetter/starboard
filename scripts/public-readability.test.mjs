@@ -6,6 +6,11 @@ import {
 } from '../src/edge/public-readability.mjs';
 import { STATIC_PAGES, STATIC_ROUTES } from '../src/edge/public-static.mjs';
 const origin = 'https://starboard.codevetter.com';
+const publicRequest = (url, init = {}) =>
+  new Request(url, {
+    ...init,
+    headers: { 'User-Agent': 'GPTBot', ...Object.fromEntries(new Headers(init.headers)) },
+  });
 test('all authored static sources provide equivalent forms and protocol headers', async () => {
   for (const route of STATIC_ROUTES) {
     const bodies = [];
@@ -15,7 +20,7 @@ test('all authored static sources provide equivalent forms and protocol headers'
       [route.path, { Accept: 'text/markdown' }],
     ]) {
       const response = await handlePublicReadability(
-        new Request(origin + path, { headers }),
+        publicRequest(origin + path, { headers }),
         () => {
           throw new Error('Static source unexpectedly fetched');
         }
@@ -46,7 +51,7 @@ test('dynamic source receives no credentials or query, private source remains un
     });
   };
   const r = await handlePublicReadability(
-    new Request(`${origin}/explore/acme/example.md?private=secret`, {
+    publicRequest(`${origin}/explore/acme/example.md?private=secret`, {
       headers: { Cookie: 'private=secret', Authorization: 'Bearer secret' },
     }),
     render
@@ -54,13 +59,13 @@ test('dynamic source receives no credentials or query, private source remains un
   assert.equal(r.status, 200);
   assert.equal(calls, 1);
   for (const path of ['/api/md/projects', '/api/md/stars', '/api/md/admin', '/missing.md']) {
-    const r = await handlePublicReadability(new Request(origin + path), render);
+    const r = await handlePublicReadability(publicRequest(origin + path), render);
     assert.equal(r.status, 404, path);
   }
   assert.equal(calls, 1);
   assert.equal(
     await handlePublicReadability(
-      new Request(`${origin}/api/tools`, { headers: { Accept: 'text/markdown' } }),
+      publicRequest(`${origin}/api/tools`, { headers: { Accept: 'text/markdown' } }),
       render
     ),
     null
@@ -68,19 +73,19 @@ test('dynamic source receives no credentials or query, private source remains un
 });
 test('HEAD, OPTIONS, quality negotiation and missing source behavior', async () => {
   const head = await handlePublicReadability(
-    new Request(`${origin}/index.md`, { method: 'HEAD' }),
+    publicRequest(`${origin}/index.md`, { method: 'HEAD' }),
     () => {}
   );
   assert.equal(head.status, 200);
   assert.equal(await head.text(), '');
   const options = await handlePublicReadability(
-    new Request(`${origin}/api/md/about`, { method: 'OPTIONS' }),
+    publicRequest(`${origin}/api/md/about`, { method: 'OPTIONS' }),
     () => {}
   );
   assert.equal(options.status, 204);
   assert.equal(
     await handlePublicReadability(
-      new Request(`${origin}/`, {
+      publicRequest(`${origin}/`, {
         headers: { Accept: 'text/html;q=1,text/markdown;q=0.5', 'User-Agent': 'GPTBot' },
       }),
       () => {}
@@ -88,12 +93,12 @@ test('HEAD, OPTIONS, quality negotiation and missing source behavior', async () 
     null
   );
   const missing = await handlePublicReadability(
-    new Request(`${origin}/about.md`),
+    publicRequest(`${origin}/about.md`),
     () => new Response('', { status: 404 })
   );
   assert.equal(missing.status, 404);
   const failed = await handlePublicReadability(
-    new Request(`${origin}/about.md`),
+    publicRequest(`${origin}/about.md`),
     () => new Response('', { status: 500 })
   );
   assert.equal(failed.status, 503);
@@ -102,14 +107,14 @@ test('HEAD, OPTIONS, quality negotiation and missing source behavior', async () 
 
 test('source bridge rejects RSC state before Next normalization and aliases retain canonical identity', async () => {
   const denied = await handlePublicReadability(
-    new Request(`${origin}/api/public-markdown/about`, { headers: { RSC: '1' } }),
+    publicRequest(`${origin}/api/public-markdown/about`, { headers: { RSC: '1' } }),
     () => {
       throw new Error('must not invoke source');
     }
   );
   assert.equal(denied.status, 404);
   const response = await handlePublicReadability(
-    new Request(`${origin}/api/md/explore/ACME/EXAMPLE`),
+    publicRequest(`${origin}/api/md/explore/ACME/EXAMPLE`),
     () =>
       Response.json({
         path: '/explore/acme/example',
@@ -146,7 +151,7 @@ test('landing head rewriting decodes manual gzip before automatic transport enco
     const html = '<!doctype html><html><head></head><body>Authored homepage</body></html>';
     const compressed = new Response(html).body.pipeThrough(new CompressionStream('gzip'));
     const result = publicDiscoveryHeaders(
-      new Request(`${origin}/`),
+      publicRequest(`${origin}/`),
       new Response(compressed, {
         headers: {
           'Content-Type': 'text/html',
@@ -162,4 +167,35 @@ test('landing head rewriting decodes manual gzip before automatic transport enco
     if (original) globalThis.HTMLRewriter = original;
     else delete globalThis.HTMLRewriter;
   }
+});
+
+test('public Markdown preserves the existing explore scraper guard and browser .md repository pages', async () => {
+  const load = () => {
+    throw new Error('Blocked source must not be read');
+  };
+  for (const path of [
+    '/explore/acme/repo.md',
+    '/api/md/explore/acme/repo',
+    '/explore/acme/repo',
+    '/api/public-markdown/explore/acme/repo',
+  ]) {
+    for (const agent of ['curl/8.0', 'Lightpanda/1.0']) {
+      const response = await handlePublicReadability(
+        new Request(origin + path, { headers: { 'User-Agent': agent, Accept: 'text/markdown' } }),
+        load
+      );
+      assert.equal(response.status, 403, path);
+    }
+  }
+  for (const headers of [{ Accept: 'text/html' }, { RSC: '1' }]) {
+    const response = await handlePublicReadability(
+      publicRequest(`${origin}/explore/acme/notes.md`, { headers }),
+      load
+    );
+    assert.equal(response, null);
+  }
+  const robots = await (
+    await handlePublicReadability(publicRequest(`${origin}/robots.txt`), load)
+  ).text();
+  assert.equal(robots.match(/Allow: \/api\/ai/g).length, 7);
 });

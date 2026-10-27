@@ -1,0 +1,37 @@
+[
+  {
+    "path": "/about",
+    "title": "How to organize and semantically search GitHub stars",
+    "description": "Native GitHub tools, semantic search, and the Starboard workflow."
+  },
+  {
+    "path": "/privacy",
+    "title": "Privacy policy",
+    "description": "Starboard data handling and privacy."
+  },
+  {
+    "path": "/terms",
+    "title": "Terms of use",
+    "description": "Terms for using Starboard."
+  },
+  {
+    "path": "/discover",
+    "title": "Discover open-source projects",
+    "description": "Search and compare public GitHub projects and the tools they use."
+  },
+  {
+    "path": "/tools",
+    "title": "Developer tool intelligence",
+    "description": "Compare developer tools using evidence from public GitHub repositories."
+  },
+  {
+    "path": "/catalog-updates",
+    "title": "Catalog updates",
+    "description": "Recently added repositories in the shared Discover corpus."
+  },
+  {
+    "path": "/project-preview",
+    "title": "Preview a GitHub project",
+    "description": "Inspect a public GitHub project and find grounded tool recommendations."
+  }
+]
