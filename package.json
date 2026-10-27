@@ -39,7 +39,7 @@
     "knip": "knip --no-exit-code --reporter symbols",
     "knip:strict": "knip --reporter symbols",
     "quality:unused": "node scripts/check-code-health.mjs unused",
-    "quality:complexity": "node scripts/check-code-health.mjs complexity",
+    "quality:complexity": "node --test scripts/lizard-typed-spans.test.mjs && node scripts/check-code-health.mjs complexity",
     "quality:duplication": "node scripts/check-code-health.mjs duplication",
     "quality:cycles": "node scripts/check-code-health.mjs cycles",
     "quality:dependencies": "node scripts/check-code-health.mjs dependencies",

@@ -14,20 +14,7 @@ export interface ToolsResponse {
   tools: ToolSummary[];
 }
 
-export function ToolsView({
-  data,
-  tools,
-  error,
-  isInitialLoading,
-  isValidating,
-  scope,
-  minConfidence,
-  query,
-  isAuthenticated,
-  setScope,
-  setMinConfidence,
-  setQuery,
-}: {
+interface ToolsViewProps {
   data: ToolsResponse | undefined;
   tools: ToolSummary[];
   error: unknown;
@@ -40,7 +27,23 @@ export function ToolsView({
   setScope: (scope: ToolScope) => void;
   setMinConfidence: (value: number | ((old: number) => number)) => void;
   setQuery: (query: string) => void;
-}) {
+}
+
+export function ToolsView(props: ToolsViewProps) {
+  const {
+    data,
+    tools,
+    error,
+    isInitialLoading,
+    isValidating,
+    scope,
+    minConfidence,
+    query,
+    isAuthenticated,
+    setScope,
+    setMinConfidence,
+    setQuery,
+  } = props;
   return (
     <WorkspaceLayout
       title="Tools"
