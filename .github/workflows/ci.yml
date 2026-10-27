@@ -16,6 +16,11 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Trust the checked-out workspace in the job container
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          git rev-parse --is-inside-work-tree
+
       - uses: pnpm/action-setup@v6
         with:
           run_install: false
