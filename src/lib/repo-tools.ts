@@ -621,3 +621,8 @@ export function isPotentialToolManifest(path: string): boolean {
   if (lower.includes('.github/workflows/')) return true;
   return MANIFEST_SUFFIXES.some((suffix) => lower.endsWith(suffix));
 }
+
+/** Public tool identities already used by catalog rendering. */
+export function listPublicToolDefinitions(): readonly ToolDefinition[] {
+  return toolDefinitions;
+}

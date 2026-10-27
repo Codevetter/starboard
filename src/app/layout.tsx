@@ -5,9 +5,9 @@ import type { Metadata, Viewport } from 'next';
 import { Providers } from '@/components/providers';
 import { SaaSMakerFeedback } from '@/components/saasmaker-feedback';
 
-const SITE_URL = 'https://starboard.codevetter.com';
-const SITE_DESCRIPTION =
-  'Connect a public GitHub project, find similar repositories, and trace suggested tools to the peers that actually use them.';
+import { SITE_IDENTITY } from '@/lib/site-identity';
+const SITE_URL = SITE_IDENTITY.origin;
+const SITE_DESCRIPTION = SITE_IDENTITY.summary;
 
 export const metadata: Metadata = {
   icons: {

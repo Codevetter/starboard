@@ -20,6 +20,11 @@ import {
   serveCachedDocument,
 } from './src/edge/document-cache.mjs';
 import { handleAgentEdge, withApiJsonNotFound } from './agent-edge.mjs';
+import {
+  handlePublicReadability,
+  publicDiscoveryHeaders,
+  isPublicPage,
+} from './src/edge/public-readability.mjs';
 
 // Durable Objects must be re-exported from the entry that wrangler.toml
 // points at, otherwise the bindings can't resolve them at deploy time.
@@ -34,7 +39,11 @@ const worker = {
     // Agent / LLM indexing surfaces (fleet GEO standard). This only answers
     // for paths the edge itself owns; everything else falls through below.
     {
-      const agent = handleAgentEdge(request);
+      const readable = await handlePublicReadability(request, (sourceRequest) =>
+        openNext.fetch(sourceRequest, env, ctx)
+      );
+      if (readable) return readable;
+      const agent = isPublicPage(new URL(request.url).pathname) ? null : handleAgentEdge(request);
       if (agent) return agent;
     }
     try {
@@ -42,11 +51,17 @@ const worker = {
       // route table, so only its 404 (not an edge guess) turns into a JSON
       // error body for `/api/*`.
       if (request.method !== 'GET') {
-        return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
+        return publicDiscoveryHeaders(
+          request,
+          withApiJsonNotFound(request, await openNext.fetch(request, env, ctx))
+        );
       }
       const url = new URL(request.url);
       if (!isCacheableDocumentPath(url.pathname)) {
-        return withApiJsonNotFound(request, await openNext.fetch(request, env, ctx));
+        return publicDiscoveryHeaders(
+          request,
+          withApiJsonNotFound(request, await openNext.fetch(request, env, ctx))
+        );
       }
       // Session cookies (including chunked Auth.js cookies) and Authorization
       // must bypass both the public HTML cache and the landing asset shortcut.
@@ -54,7 +69,10 @@ const worker = {
         return openNext.fetch(request, env, ctx);
       }
 
-      return serveCachedDocument(request, env, ctx, openNext);
+      return publicDiscoveryHeaders(
+        request,
+        await serveCachedDocument(request, env, ctx, openNext)
+      );
     } catch (err) {
       console.error(
         `[error] ${request.method} ${new URL(request.url).pathname}:`,

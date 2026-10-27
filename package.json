@@ -23,9 +23,9 @@
     "db:enrich-repos": "tsx scripts/enrich-repos.ts",
     "db:seed-popular": "tsx scripts/seed-popular.ts",
     "db:enrich-tools": "tsx scripts/enrich-tools.ts",
-    "cf:build": "node scripts/generate-worker.mjs && node scripts/clean-build-output.mjs && next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
-    "build:cf": "node scripts/generate-worker.mjs && node scripts/clean-build-output.mjs && next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
-    "build:e2e": "node scripts/generate-worker.mjs && node scripts/clean-build-output.mjs && next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
+    "cf:build": "node scripts/generate-public-markdown.mjs && node scripts/generate-worker.mjs && node scripts/clean-build-output.mjs && next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
+    "build:cf": "node scripts/generate-public-markdown.mjs && node scripts/generate-worker.mjs && node scripts/clean-build-output.mjs && next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
+    "build:e2e": "node scripts/generate-public-markdown.mjs && node scripts/generate-worker.mjs && node scripts/clean-build-output.mjs && next build --webpack && node scripts/run-inline-critical-css.mjs && opennextjs-cloudflare build --skipNextBuild && pnpm --filter ./landing-astro build && node scripts/run-overlay-astro-landing.mjs",
     "preview:cf": "pnpm build:cf && opennextjs-cloudflare preview",
     "deploy:cf": "pnpm build:cf && opennextjs-cloudflare deploy --tag \"$(git rev-parse HEAD)\"",
     "cf:typegen": "wrangler types --env-interface CloudflareEnv ./cloudflare-env.d.ts",
@@ -48,7 +48,8 @@
     "quality": "pnpm check && pnpm typecheck && pnpm test:coverage && pnpm docs:check && pnpm quality:unused && pnpm quality:complexity && pnpm quality:duplication && pnpm quality:cycles && pnpm test:dependency-security && pnpm quality:dependencies && pnpm quality:suppressions && pnpm quality:hygiene",
     "test:dependency-security": "node --test scripts/http-cache-security.mjs",
     "prepare": "husky",
-    "db:knowledge-migrate": "tsx scripts/migrate-knowledge-pipeline.ts"
+    "db:knowledge-migrate": "tsx scripts/migrate-knowledge-pipeline.ts",
+    "predev": "node scripts/generate-public-markdown.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "2.0.54",
