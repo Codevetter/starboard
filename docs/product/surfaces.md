@@ -55,6 +55,9 @@ lists public counterparts; private lists, stars and connected projects are exclu
 Legacy files under `public/` are not the runtime discovery authority.
 
 Repository counterparts are advertised as `/api/md/explore/<owner>/<repo>` to
-avoid collisions with real repository names ending in `.md`. An existing literal
-repository wins browser navigation and explicit Markdown negotiation; the suffix
-form otherwise resolves the repository without that suffix.
+avoid collisions with real repository names ending in `.md`. Browser/RSC requests
+keep literal HTML navigation. Explicit Markdown negotiation prefers a literal
+cataloged repository using a D1-only existence check; otherwise the suffix wins.
+Off-catalog literal `.md` names use the direct form or a double suffix. A collision
+between two actual repository names is resolved deterministically; direct URLs
+always identify the requested repository without a speculative GitHub probe.

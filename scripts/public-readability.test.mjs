@@ -59,12 +59,12 @@ test('dynamic source receives no credentials or query, private source remains un
     render
   );
   assert.equal(r.status, 200);
-  assert.equal(calls, 2);
+  assert.equal(calls, 1);
   for (const path of ['/api/md/projects', '/api/md/stars', '/api/md/admin', '/missing.md']) {
     const r = await handlePublicReadability(publicRequest(origin + path), render);
     assert.equal(r.status, 404, path);
   }
-  assert.equal(calls, 2);
+  assert.equal(calls, 1);
   assert.equal(
     await handlePublicReadability(
       publicRequest(`${origin}/api/tools`, { headers: { Accept: 'text/markdown' } }),
@@ -214,20 +214,42 @@ test('literal .md repository negotiation and advertised direct URLs are unambigu
     });
   };
   for (const [path, accept, canonical] of [
-    [
-      '/explore/acme/ordinary.md',
-      'text/html,application/xhtml+xml,*/*;q=0.8',
-      '/explore/acme/ordinary',
-    ],
-    ['/explore/acme/ordinary.md', 'text/markdown, text/html', '/explore/acme/ordinary'],
+    ['/explore/acme/ordinary.md', '*/*', '/explore/acme/ordinary'],
     ['/explore/acme/notes.md', 'text/markdown', '/explore/acme/notes.md'],
     ['/api/md/explore/acme/notes.md', 'text/html', '/explore/acme/notes.md'],
   ]) {
     const response = await handlePublicReadability(
       publicRequest(`${origin}${path}`, { headers: { Accept: accept } }),
-      load
+      load,
+      async (name) => name === 'acme/notes.md'
     );
     assert.equal(response.status, 200);
     assert.equal(response.headers.get('Content-Location'), `${origin}${canonical}`);
   }
+});
+
+test('browser .md navigation ignores source availability and catalog probe failures preserve suffix requests', async () => {
+  const unavailable = async () => {
+    throw new Error('unavailable');
+  };
+  assert.equal(
+    await handlePublicReadability(
+      publicRequest(`${origin}/explore/acme/notes.md`, { headers: { Accept: 'text/html' } }),
+      unavailable,
+      unavailable
+    ),
+    null
+  );
+  const response = await handlePublicReadability(
+    publicRequest(`${origin}/explore/acme/ordinary.md`, { headers: { Accept: 'text/markdown' } }),
+    async (request) => {
+      assert.equal(new URL(request.url).pathname, '/api/public-markdown/explore/acme/ordinary');
+      return Response.json({
+        path: '/explore/acme/ordinary',
+        markdown: `# Ordinary\n\nCanonical: ${origin}/explore/acme/ordinary\n`,
+      });
+    },
+    unavailable
+  );
+  assert.equal(response.status, 200);
 });

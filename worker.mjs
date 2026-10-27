@@ -39,8 +39,15 @@ const worker = {
     // Agent / LLM indexing surfaces (fleet GEO standard). This only answers
     // for paths the edge itself owns; everything else falls through below.
     {
-      const readable = await handlePublicReadability(request, (sourceRequest) =>
-        openNext.fetch(sourceRequest, env, ctx)
+      const readable = await handlePublicReadability(
+        request,
+        (sourceRequest) => openNext.fetch(sourceRequest, env, ctx),
+        async (fullName) =>
+          Boolean(
+            await env.DB.prepare('SELECT 1 FROM repos WHERE full_name = ? COLLATE NOCASE LIMIT 1')
+              .bind(fullName)
+              .first()
+          )
       );
       if (readable) return readable;
       const agent = isPublicPage(new URL(request.url).pathname) ? null : handleAgentEdge(request);

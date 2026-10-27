@@ -16,7 +16,11 @@ const markdownURL = (path) =>
   origin +
   (path.startsWith('/explore/') ? `/api/md${path}` : path === '/' ? '/index.md' : `${path}.md`);
 const documents = new Set(['/llms.txt', '/llms-full.txt', '/ai.txt', '/api/md/_catalog']);
-export async function handlePublicReadability(request, render) {
+export async function handlePublicReadability(
+  request,
+  render,
+  hasLiteralRepository = async () => false
+) {
   const url = new URL(request.url),
     path = url.pathname;
   // Reject request state before Next.js can normalize an RSC request into a redirect.
@@ -57,7 +61,9 @@ export async function handlePublicReadability(request, render) {
   // GitHub repository names may themselves end in .md; preserve browser/RSC documents.
   if (
     /^\/explore\/[^/]+\/[^/]+\.md$/.test(path) &&
-    (request.headers.has('rsc') || request.headers.has('next-router-state-tree'))
+    (request.headers.has('rsc') ||
+      request.headers.has('next-router-state-tree') ||
+      (request.headers.get('accept')?.includes('text/html') && !wantsMarkdown(request)))
   )
     return null;
   const suffix = path.endsWith('.md');
@@ -94,15 +100,13 @@ export async function handlePublicReadability(request, render) {
   };
   try {
     const prefetched = new Map();
-    // Literal repository names win negotiation; suffix URLs remain available when
-    // no literal public repository exists. Direct URLs are always unambiguous.
-    if (!direct && /^\/explore\/[^/]+\/[^/]+\.md$/.test(path) && request.method !== 'OPTIONS') {
-      const literal = await fetchSource(`/api/public-markdown${path}`);
-      if (literal) {
-        if (!wantsMarkdown(request)) return null;
-        target = path;
-        prefetched.set(path, literal);
-      }
+    // Resolve only known public catalog collisions; never render a speculative
+    // GitHub repository merely to choose a representation.
+    if (!direct && /^\/explore\/[^/]+\/[^/]+\.md$/.test(path) && wantsMarkdown(request)) {
+      const literal = await Promise.resolve()
+        .then(() => hasLiteralRepository(path.slice('/explore/'.length)))
+        .catch(() => false);
+      if (literal) target = path;
     }
     const rows = [...STATIC_ROUTES, ...sourceRoutes];
     if (path === '/api/md/_catalog') {
