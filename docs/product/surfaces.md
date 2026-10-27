@@ -60,4 +60,5 @@ keep literal HTML navigation. Explicit Markdown negotiation prefers a literal
 cataloged repository using a D1-only existence check; otherwise the suffix wins.
 Off-catalog literal `.md` names use the direct form or a double suffix. A collision
 between two actual repository names is resolved deterministically; direct URLs
-always identify the requested repository without a speculative GitHub probe.
+always identify the requested repository without an extra disambiguation probe.
+The requested off-catalog repository may still use the existing GitHub fallback.
