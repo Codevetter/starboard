@@ -38,6 +38,7 @@ import {
 import type { ConnectedProject } from '@/lib/connected-projects';
 import type { PublicGitHubProject } from '@/lib/github-projects';
 import type { ProjectIntelligenceResult } from '@/lib/project-intelligence';
+import { retrievalCoverageMessage, reviewedMatchesLabel } from '@/lib/retrieval-coverage';
 import { ProjectModelComparison } from '@/components/project-model-comparison';
 import { jsonFetcher } from '@/lib/swr-fetcher';
 
@@ -378,13 +379,20 @@ function RecommendationStatus({
   return (
     <>
       {' '}
+      {recommendations && retrievalCoverageMessage(recommendations.retrieval) && (
+        <p role="status" className="mt-4 text-sm text-muted-foreground">
+          {retrievalCoverageMessage(recommendations.retrieval)}
+        </p>
+      )}
       {recommendations?.fallback && (
         <p className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
           {recommendations.quality?.status === 'unavailable'
             ? recommendations.quality.reason === 'insufficient-context'
               ? 'There is not enough project context to review matches. Add a README describing the product, or choose a folder with its own README.'
               : 'Relevance review is temporarily unavailable. Try again shortly; unreviewed matches are withheld.'
-            : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
+            : recommendations.retrieval.unavailableSources?.length
+              ? 'No sufficiently relevant matches were found in the available sources. Retrieval coverage is incomplete.'
+              : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
         </p>
       )}
       {recommendationError && (
@@ -429,9 +437,10 @@ function RecommendationsSection({
             {recommendations && (
               <Badge variant="outline">
                 {recommendations.quality?.status === 'reviewed'
-                  ? recommendations.similarProjects.length
-                    ? 'Reviewed matches'
-                    : 'No relevant matches'
+                  ? reviewedMatchesLabel(
+                      recommendations.similarProjects.length,
+                      recommendations.retrieval
+                    )
                   : retrievalLabel(recommendations.retrieval.mode)}
               </Badge>
             )}

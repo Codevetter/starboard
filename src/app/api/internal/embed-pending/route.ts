@@ -92,7 +92,20 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'No embedding probe row is available' }, { status: 503 });
   }
 
-  await repoVectors().queryByRepoId(repoId, 1);
+  try {
+    await repoVectors().queryByRepoId(repoId, 1);
+  } catch (error) {
+    if (error instanceof SharedBudgetDeniedError) {
+      return NextResponse.json(
+        {
+          error: 'Shared AI budget is unavailable or exhausted.',
+          code: 'shared-budget-unavailable',
+        },
+        { status: 503, headers: { 'Cache-Control': 'no-store' } }
+      );
+    }
+    throw error;
+  }
   return NextResponse.json({ ok: true, bindings: { d1: 'ok', vectorize: 'ok' } });
 }
 

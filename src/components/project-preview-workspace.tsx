@@ -24,6 +24,7 @@ import { trackRecommendationSetViewed, type RecommendationRetrievalMode } from '
 import { normalizeGitHubProjectLocation } from '@/lib/github-projects';
 import type { ProjectIntelligenceResult } from '@/lib/project-intelligence';
 import type { ProjectRecommendationRepo } from '@/lib/project-recommendations';
+import { retrievalCoverageMessage, reviewedMatchesLabel } from '@/lib/retrieval-coverage';
 import { FetchHttpError, jsonFetcher } from '@/lib/swr-fetcher';
 
 function retrievalCopy(mode: RecommendationRetrievalMode): string {
@@ -83,9 +84,7 @@ function PreviewProjectHeader({
           {data.project.language && <Badge variant="secondary">{data.project.language}</Badge>}
           <Badge variant="outline">
             {data.quality?.status === 'reviewed'
-              ? data.similarProjects.length
-                ? 'Reviewed matches'
-                : 'No relevant matches'
+              ? reviewedMatchesLabel(data.similarProjects.length, data.retrieval)
               : retrievalCopy(data.retrieval.mode)}
           </Badge>
         </div>
@@ -117,13 +116,21 @@ function PreviewResults({ data, loginHref, showAllPeers, setShowAllPeers }: Prev
     <div className="space-y-10">
       <PreviewProjectHeader data={data} loginHref={loginHref} />
 
+      {retrievalCoverageMessage(data.retrieval) && (
+        <p role="status" className="text-sm text-muted-foreground">
+          {retrievalCoverageMessage(data.retrieval)}
+        </p>
+      )}
+
       {data.fallback && (
         <p className="rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
           {data.quality?.status === 'unavailable'
             ? data.quality.reason === 'insufficient-context'
               ? 'There is not enough project context to review matches. Add a README describing the product, or choose a folder with its own README.'
               : 'Relevance review is temporarily unavailable. Try again shortly; unreviewed matches are withheld.'
-            : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
+            : data.retrieval.unavailableSources?.length
+              ? 'No sufficiently relevant matches were found in the available sources. Retrieval coverage is incomplete.'
+              : 'No sufficiently relevant matches were found. Shared language or framework alone does not qualify a recommendation.'}
         </p>
       )}
 
