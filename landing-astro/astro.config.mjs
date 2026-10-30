@@ -5,8 +5,9 @@ import react from '@astrojs/react';
 
 // Static Astro landing for starboard.
 //
-// The overlay copies /_astro assets, so Astro's default stylesheet policy
-// keeps substantial CSS external and cacheable. Tailwind v4 runs through its Vite plugin; lightningcss
+// Keep the landing's styles in its document: the cold trace discovers the
+// body font only after the blocking stylesheet finishes. Tailwind v4 runs
+// through its Vite plugin; lightningcss
 // is the minifier (Tailwind v4 already uses lightningcss internally for
 // transform, so no extra `css.transformer` config — keep just the
 // minifier to avoid double-processing).
@@ -21,6 +22,7 @@ export default defineConfig({
   integrations: [react()],
   build: {
     format: 'file',
+    inlineStylesheets: 'always',
   },
   vite: {
     plugins: [tailwindcss()],

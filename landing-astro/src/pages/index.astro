@@ -4,6 +4,7 @@ import { WorkbenchPage } from '@saas-maker/templates/workbench-page';
 import { baseProps } from '@saas-maker/templates/page';
 import { workbenchContent } from '@saas-maker/templates/schema';
 import home from '../content/home.json';
+import bodyFont from '@saas-maker/ui/fonts/figtree-latin-normal.woff2?url';
 
 const content = workbenchContent.parse(home);
 // Keep the content-defined form on the original same-origin GET route.
@@ -21,6 +22,7 @@ if (content.hero.card) Object.assign(content.hero.card, {
 
 <Base {...baseProps(content)}>
   <Fragment slot="head">
+    <link rel="preload" href={bodyFont} as="font" type="font/woff2" crossorigin />
     <meta name="application-name" content="Starboard" />
     <meta name="theme-color" content="#f4efe4" />
     <meta
