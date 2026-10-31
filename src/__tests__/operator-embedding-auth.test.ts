@@ -10,6 +10,7 @@ vi.mock('@/lib/repo-vectors', () => ({ repoVectors: () => ({ queryByRepoId }) })
 vi.mock('@/lib/embeddings', () => ({ buildEmbeddingFromRow: vi.fn(), generateEmbeddings }));
 
 import { GET, POST } from '@/app/api/internal/embed-pending/route';
+import { SharedBudgetDeniedError } from '@/lib/shared-ai-budget';
 
 describe('embedding operator route credential boundary', () => {
   beforeEach(() => {
@@ -55,6 +56,23 @@ describe('embedding operator route credential boundary', () => {
     );
     expect(response.status).toBe(200);
     expect(queryByRepoId).toHaveBeenCalledWith(42, 1);
+    expect(generateEmbeddings).not.toHaveBeenCalled();
+  });
+
+  it('reports denied query admission without exposing an exception or performing embedding work', async () => {
+    execute.mockResolvedValue({ rows: [{ repo_id: 42 }] });
+    queryByRepoId.mockRejectedValue(new SharedBudgetDeniedError('private diagnostic detail'));
+    const response = await GET(
+      new Request('https://starboard.test/api/internal/embed-pending', {
+        headers: { Authorization: 'Bearer synthetic-operator' },
+      })
+    );
+    expect(response.status).toBe(503);
+    expect(response.headers.get('cache-control')).toBe('no-store');
+    expect(await response.json()).toEqual({
+      error: 'Shared AI budget is unavailable or exhausted.',
+      code: 'shared-budget-unavailable',
+    });
     expect(generateEmbeddings).not.toHaveBeenCalled();
   });
 });

@@ -200,6 +200,7 @@ describe('project intelligence retrieval', () => {
 
     expect(response.retrieval.mode).toBe('lexical-structured');
     expect(response.retrieval.semanticCandidates).toBe(0);
+    expect(response.retrieval.unavailableSources).toEqual(['semantic']);
     expect(response.similarProjects[0].fullName).toBe('oss/checkout-kit');
   });
 
@@ -219,8 +220,31 @@ describe('project intelligence retrieval', () => {
     );
 
     expect(response.retrieval).toMatchObject({ mode: 'fallback', candidateCount: 1 });
+    expect(response.retrieval.unavailableSources).toEqual([]);
     expect(response.fallback).toBe(true);
     expect(response.recommendedTools).toEqual([]);
+  });
+
+  it('keeps failed lexical and structured lanes distinct from successful empty retrieval', async () => {
+    const execute = vi.fn(async (statement: string | { sql: string }) => {
+      const sql = typeof statement === 'string' ? statement : statement.sql;
+      if (sql.includes('repos_fts MATCH') || sql.includes('r.language = ? COLLATE NOCASE')) {
+        throw new Error('Synthetic catalog query unavailable');
+      }
+      return result([]);
+    });
+    const response = await createProjectIntelligence(dependencies(execute))(project());
+    expect(response.retrieval.unavailableSources).toEqual(['lexical', 'structured']);
+    expect(response.retrieval.semanticCandidates).toBe(0);
+    expect(response.similarProjects).toEqual([]);
+  });
+
+  it('marks an absent generated embedding unavailable instead of claiming an empty semantic search', async () => {
+    const deps = dependencies(vi.fn().mockResolvedValue(result([])));
+    deps.embed = vi.fn().mockResolvedValue([]);
+    const response = await createProjectIntelligence(deps)(project());
+    expect(response.retrieval.unavailableSources).toEqual(['semantic']);
+    expect(response.retrieval.semanticCandidates).toBe(0);
   });
   it('keeps retrieval and proofs tied to each feature and gates catalog membership', async () => {
     pipeline.enabled = true;

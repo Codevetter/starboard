@@ -556,6 +556,82 @@ test('uncataloged public preview asks for sign-in without presenting a rate-limi
   await expect(page.getByText(/rate limit/i)).toHaveCount(0);
 });
 
+for (const surface of ['public-preview', 'connected-project'] as const) {
+  test(`${surface} discloses unavailable retrieval rather than a fully searched empty result`, async ({
+    page,
+    context,
+  }, testInfo) => {
+    const project = {
+      id: 152,
+      name: 'checkout',
+      fullName: 'acme/checkout',
+      ownerLogin: 'acme',
+      language: 'TypeScript',
+      topics: ['payments'],
+      tools: [],
+      description: 'Payments orchestration for services.',
+      htmlUrl: 'https://github.com/acme/checkout',
+    };
+    const response = {
+      project,
+      source: 'catalog',
+      context: { tools: [] },
+      similarProjects: [],
+      recommendedTools: [],
+      fallback: true,
+      quality: { status: 'reviewed' },
+      retrieval: {
+        mode: 'lexical-structured',
+        candidateCount: 0,
+        semanticCandidates: 0,
+        lexicalCandidates: 0,
+        structuredCandidates: 0,
+        unavailableSources: ['semantic'],
+      },
+    };
+    if (surface === 'connected-project') {
+      const token = await encode({
+        secret: 'starboard-browser-test-secret-at-least-32-characters',
+        salt: 'authjs.session-token',
+        token: { sub: 'fixture-user', githubId: 'fixture-user', name: 'Fixture user' },
+      });
+      await context.addCookies([
+        { name: 'authjs.session-token', value: token, url: testInfo.project.use.baseURL as string },
+      ]);
+      await page.route('**/api/auth/session', (route) =>
+        route.fulfill({
+          json: {
+            user: { name: 'Fixture user', githubId: 'fixture-user' },
+            expires: '2099-01-01T00:00:00Z',
+          },
+        })
+      );
+      await page.route('**/api/projects', (route) =>
+        route.fulfill({ json: { projects: [project] } })
+      );
+      await page.route('**/api/projects/152/recommendations?**', (route) =>
+        route.fulfill({ json: response })
+      );
+      await page.goto('/projects/152');
+    } else {
+      await page.route('**/api/project-preview?**', (route) => route.fulfill({ json: response }));
+      await page.goto('/project-preview?repository=acme%2Fcheckout');
+    }
+    await expect(
+      page
+        .getByRole('status')
+        .filter({ hasText: 'Meaning-based retrieval is temporarily unavailable' })
+    ).toBeVisible();
+    await expect(
+      page.getByText('No reviewed matches in available sources', { exact: true })
+    ).toBeVisible();
+    await expect(page.getByText('No relevant matches', { exact: true })).toHaveCount(0);
+    await expect(
+      page.getByText(/No sufficiently relevant matches were found in the available sources/)
+    ).toBeVisible();
+  });
+}
+
 test('public API routes are reachable through the Worker edge on GET', async ({ request }) => {
   // Regression guard for the `agent-edge.mjs` `/api/*` catch-all that 404'd
   // every real route handler before OpenNext ever saw the request. Statuses

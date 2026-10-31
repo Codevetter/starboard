@@ -47,6 +47,7 @@ interface ProjectRetrievalSummary {
   semanticCandidates: number;
   lexicalCandidates: number;
   structuredCandidates: number;
+  unavailableSources?: Array<'semantic' | 'lexical' | 'structured'>;
 }
 
 export interface ProjectIntelligenceResult extends ProjectRecommendationResult {
@@ -123,26 +124,21 @@ async function semanticCandidates(
   text: string,
   dependencies: ProjectIntelligenceDependencies
 ): Promise<RepoVectorMatch[]> {
-  try {
-    const store = dependencies.vectorStore();
-    // Stored vectors predate request-time README context. Embed the current
-    // purpose rather than silently reusing the metadata-only vector.
-    let matches =
-      project.sourceContext?.readme || project.sourceContext?.documents?.length
-        ? []
-        : await store.queryByRepoId(project.id, VECTOR_TOP_K);
-    if (matches.length === 0) {
-      const [embedding] = await dependencies.embed([text]);
-      if (!embedding) return [];
-      matches = await store.query(embedding, VECTOR_TOP_K);
-    }
-    return matches.filter(
-      (match) => match.repoId !== project.id && match.distance <= VECTOR_DISTANCE_MAX
-    );
-  } catch (error) {
-    console.warn('Project semantic retrieval unavailable; using catalog evidence only', error);
-    return [];
+  const store = dependencies.vectorStore();
+  // Stored vectors predate request-time README context. Embed the current
+  // purpose rather than silently reusing the metadata-only vector.
+  let matches =
+    project.sourceContext?.readme || project.sourceContext?.documents?.length
+      ? []
+      : await store.queryByRepoId(project.id, VECTOR_TOP_K);
+  if (matches.length === 0) {
+    const [embedding] = await dependencies.embed([text]);
+    if (!embedding) throw new Error('Project semantic embedding is unavailable');
+    matches = await store.query(embedding, VECTOR_TOP_K);
   }
+  return matches.filter(
+    (match) => match.repoId !== project.id && match.distance <= VECTOR_DISTANCE_MAX
+  );
 }
 
 async function lexicalCandidates(
@@ -648,6 +644,13 @@ export function createProjectIntelligence(
         semanticCandidates: semanticIds.length,
         lexicalCandidates: lexicalIds.length,
         structuredCandidates: structuredIds.length,
+        unavailableSources: (
+          [
+            ['semantic', semanticResult],
+            ['lexical', lexicalResult],
+            ['structured', structuredResult],
+          ] as const
+        ).flatMap(([source, result]) => (result.status === 'rejected' ? [source] : [])),
       },
     };
   };
