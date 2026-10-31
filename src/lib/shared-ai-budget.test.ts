@@ -90,6 +90,103 @@ describe('shared AI spend guard', () => {
     );
   });
 
+  it('classifies rejected Vectorize receipts without logging receipt fields', async () => {
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const marker = '[starboard-semantic-diagnostic]';
+    const privateReceiptFields = {
+      requestId: 'private-request-sentinel',
+      userId: 'private-user-sentinel',
+      prompt: 'private-prompt-sentinel',
+      vector: ['private-vector-sentinel'],
+      error: 'private-error-sentinel',
+    };
+    const valid = makeBudget({
+      allowed: true,
+      used: 35_000_768,
+      remaining: 9_999_232,
+      retryAfter: 0,
+      monthKey,
+      baselineVerified: true,
+    });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    try {
+      await expect(reserveVectorizeQuery(valid.namespace, 768)).resolves.toBeUndefined();
+      expect(warn).not.toHaveBeenCalled();
+
+      const receipts = [
+        {
+          reason: 'headroom_denied',
+          receipt: {
+            allowed: false,
+            used: 44_999_744,
+            remaining: 256,
+            retryAfter: 60,
+            monthKey,
+            baselineVerified: true,
+            ...privateReceiptFields,
+          },
+        },
+        {
+          reason: 'period_mismatch',
+          receipt: {
+            allowed: false,
+            used: 44_999_744,
+            remaining: 256,
+            retryAfter: 60,
+            monthKey: '2000-01',
+            baselineVerified: true,
+            ...privateReceiptFields,
+          },
+        },
+        {
+          reason: 'baseline_unverified',
+          receipt: {
+            allowed: false,
+            used: 44_999_744,
+            remaining: 256,
+            retryAfter: 60,
+            monthKey,
+            baselineVerified: false,
+            ...privateReceiptFields,
+          },
+        },
+        {
+          reason: 'receipt_invalid',
+          receipt: {
+            allowed: false,
+            used: 44_999_232,
+            remaining: 768,
+            retryAfter: 0,
+            monthKey,
+            baselineVerified: true,
+            ...privateReceiptFields,
+          },
+        },
+      ];
+
+      for (const { receipt } of receipts) {
+        await expect(
+          reserveVectorizeQuery(makeBudget(receipt).namespace, 768)
+        ).rejects.toMatchObject({
+          name: 'SharedBudgetDeniedError',
+          message: 'Shared AI budget is unavailable or exhausted.',
+        });
+      }
+
+      expect(warn.mock.calls).toEqual(
+        receipts.map(({ reason }) => [marker, { stage: 'vector_budget_reservation', reason }])
+      );
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('private-request-sentinel');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('private-user-sentinel');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('private-prompt-sentinel');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('private-vector-sentinel');
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('private-error-sentinel');
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it('blocks stored-vector growth without using the query reservation endpoint', () => {
     expect(denyVectorizeStorageGrowth).toThrowError(SharedBudgetDeniedError);
   });

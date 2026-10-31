@@ -10,6 +10,7 @@ export class SharedBudgetDeniedError extends Error {
   }
 }
 
+const SEMANTIC_DIAGNOSTIC_MARKER = '[starboard-semantic-diagnostic]';
 const NEURON_CAP = 9_500;
 const VECTORIZE_CAP = 45_000_000;
 const INPUT_NEURONS_PER_MILLION: Record<string, number> = {
@@ -87,7 +88,17 @@ export async function reserveVectorizeQuery(
   if (!Number.isSafeInteger(dimensions) || dimensions <= 0 || dimensions > VECTORIZE_CAP)
     return deny();
   const receipt = await reserve(namespace, 'try-debit-vectorize', { dimensions });
-  validateVectorizeReceipt(receipt, dimensions);
+  try {
+    validateVectorizeReceipt(receipt, dimensions);
+  } catch (error) {
+    if (error instanceof SharedBudgetDeniedError) {
+      console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+        stage: 'vector_budget_reservation',
+        reason: vectorizeReceiptDiagnosticReason(receipt, dimensions),
+      });
+    }
+    throw error;
+  }
 }
 
 function validateVectorizeReceipt(receipt: Record<string, unknown>, dimensions: number): void {
@@ -102,6 +113,27 @@ function validateVectorizeReceipt(receipt: Record<string, unknown>, dimensions: 
     receipt.used + receipt.remaining !== VECTORIZE_CAP
   )
     deny();
+}
+
+function vectorizeReceiptDiagnosticReason(
+  receipt: Record<string, unknown>,
+  dimensions: number
+): 'headroom_denied' | 'period_mismatch' | 'baseline_unverified' | 'receipt_invalid' {
+  if (receipt.monthKey !== new Date().toISOString().slice(0, 7)) return 'period_mismatch';
+  if (receipt.baselineVerified !== true) return 'baseline_unverified';
+  if (
+    receipt.allowed === false &&
+    safeInteger(receipt.used) &&
+    receipt.used >= dimensions &&
+    safeInteger(receipt.remaining) &&
+    receipt.remaining < dimensions &&
+    receipt.used + receipt.remaining === VECTORIZE_CAP &&
+    safeInteger(receipt.retryAfter) &&
+    receipt.retryAfter > 0
+  ) {
+    return 'headroom_denied';
+  }
+  return 'receipt_invalid';
 }
 
 export async function reserveVectorizeStorage(
