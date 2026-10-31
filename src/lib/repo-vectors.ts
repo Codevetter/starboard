@@ -10,6 +10,8 @@ import {
   type SharedBudgetNamespace,
 } from './shared-ai-budget';
 
+const SEMANTIC_DIAGNOSTIC_MARKER = '[starboard-semantic-diagnostic]';
+
 export interface RepoVectorMatch {
   repoId: number;
   distance: number;
@@ -67,6 +69,18 @@ export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVec
   const queryAdmission = Symbol('reserved-vectorize-query');
   const storageAdmissions = new Map<symbol, { count: number; monthKey: string }>();
   let reservationAvailable = false;
+  async function reserveQueryBudget(dimensions: number): Promise<void> {
+    try {
+      await budget.reserveQuery(dimensions);
+    } catch (error) {
+      console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+        stage: 'vector_budget_reservation',
+        reason: error instanceof SharedBudgetDeniedError ? 'denied' : 'rejected',
+      });
+      throw error;
+    }
+  }
+
   return {
     async reserveStorage(count: number): Promise<symbol> {
       if (!Number.isSafeInteger(count) || count < 1) throw new SharedBudgetDeniedError();
@@ -77,30 +91,46 @@ export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVec
     },
     async reserveQuery(dimensions = 768): Promise<symbol> {
       if (reservationAvailable) throw new Error('Vectorize query reservation is already pending.');
-      await budget.reserveQuery(dimensions);
+      await reserveQueryBudget(dimensions);
       reservationAvailable = true;
       return queryAdmission;
     },
     async query(vector: number[], topK: number, admitted?: symbol): Promise<RepoVectorMatch[]> {
       if (admitted === queryAdmission && reservationAvailable) reservationAvailable = false;
-      else await budget.reserveQuery(vector.length);
-      return normalizeMatches(
-        await index.query(vector, {
-          topK: boundedTopK(topK),
-          returnValues: false,
-          returnMetadata: 'none',
-        })
-      );
+      else await reserveQueryBudget(vector.length);
+      try {
+        return normalizeMatches(
+          await index.query(vector, {
+            topK: boundedTopK(topK),
+            returnValues: false,
+            returnMetadata: 'none',
+          })
+        );
+      } catch (error) {
+        console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+          stage: 'vectorize_query',
+          reason: 'rejected',
+        });
+        throw error;
+      }
     },
     async queryByRepoId(repoId: number, topK: number): Promise<RepoVectorMatch[]> {
-      await budget.reserveQuery(768);
-      return normalizeMatches(
-        await index.queryById(String(repoId), {
-          topK: boundedTopK(topK),
-          returnValues: false,
-          returnMetadata: 'none',
-        })
-      );
+      await reserveQueryBudget(768);
+      try {
+        return normalizeMatches(
+          await index.queryById(String(repoId), {
+            topK: boundedTopK(topK),
+            returnValues: false,
+            returnMetadata: 'none',
+          })
+        );
+      } catch (error) {
+        console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+          stage: 'vectorize_query',
+          reason: 'rejected',
+        });
+        throw error;
+      }
     },
     async upsert(vectors: RepoVectorInput[], admitted?: symbol): Promise<void> {
       if (vectors.length === 0) return;
@@ -139,11 +169,32 @@ export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVec
 
 export function repoVectors() {
   if (knowledgePipelineEnabled()) return createKnowledgebaseRepoVectorStore(db);
-  const { env } = getCloudflareContext();
+  let env: ReturnType<typeof getCloudflareContext>['env'];
+  try {
+    env = getCloudflareContext().env;
+  } catch (error) {
+    console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+      stage: 'vectorize_setup',
+      reason: 'context_unavailable',
+    });
+    throw error;
+  }
   const index = (env as unknown as { REPO_VECTORS?: VectorizeIndexLike }).REPO_VECTORS;
-  if (!index) throw new Error('Cloudflare Vectorize binding REPO_VECTORS is unavailable');
+  if (!index) {
+    console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+      stage: 'vectorize_setup',
+      reason: 'binding_unavailable',
+    });
+    throw new Error('Cloudflare Vectorize binding REPO_VECTORS is unavailable');
+  }
   const namespace = Reflect.get(env, 'NEURON_BUDGET') as SharedBudgetNamespace | undefined;
-  if (!namespace) throw new SharedBudgetDeniedError();
+  if (!namespace) {
+    console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+      stage: 'vectorize_setup',
+      reason: 'budget_binding_unavailable',
+    });
+    throw new SharedBudgetDeniedError();
+  }
   return createRepoVectorStore(index, {
     reserveQuery: (dimensions) => reserveVectorizeQuery(namespace, dimensions),
     reserveStorage: (dimensions) => reserveVectorizeStorage(namespace, dimensions),

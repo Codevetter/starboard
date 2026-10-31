@@ -29,6 +29,7 @@ const LEXICAL_LIMIT = 250;
 const STRUCTURED_LIMIT = 150;
 const HYDRATION_LIMIT = 300;
 const FALLBACK_LIMIT = 100;
+const SEMANTIC_DIAGNOSTIC_MARKER = '[starboard-semantic-diagnostic]';
 
 const ELIGIBLE_REPO_SQL =
   'r.id IN (SELECT r2.id FROM repos r2 WHERE r2.stargazers_count >= ? UNION SELECT community_ur.repo_id FROM user_repos community_ur WHERE community_ur.is_starred = 1)';
@@ -132,8 +133,17 @@ async function semanticCandidates(
       ? []
       : await store.queryByRepoId(project.id, VECTOR_TOP_K);
   if (matches.length === 0) {
-    const [embedding] = await dependencies.embed([text]);
-    if (!embedding) throw new Error('Project semantic embedding is unavailable');
+    let embedding: number[] | undefined;
+    try {
+      [embedding] = await dependencies.embed([text]);
+      if (!embedding) throw new Error('Project semantic embedding is unavailable');
+    } catch (error) {
+      console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+        stage: 'semantic_embedding',
+        reason: 'rejected',
+      });
+      throw error;
+    }
     matches = await store.query(embedding, VECTOR_TOP_K);
   }
   return matches.filter(

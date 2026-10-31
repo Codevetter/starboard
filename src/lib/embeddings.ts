@@ -15,6 +15,7 @@ import { knowledgebaseEmbeddings, knowledgePipelineEnabled } from './knowledgeba
 const EMBEDDING_MODEL = '@cf/baai/bge-base-en-v1.5';
 const EMBEDDING_DIM = 768;
 const BATCH_SIZE = 50;
+const SEMANTIC_DIAGNOSTIC_MARKER = '[starboard-semantic-diagnostic]';
 
 export interface FleetGatewayBinding {
   run(projectId: string, model: string, input: unknown): Promise<unknown>;
@@ -65,10 +66,18 @@ export async function embedViaGateway(
   for (let start = 0; start < texts.length; start += BATCH_SIZE) {
     if (start > 0) await delay(INTER_BATCH_DELAY_MS);
     const batch = texts.slice(start, start + BATCH_SIZE);
-    const result = (await gateway.run('starboard', EMBEDDING_MODEL, { text: batch })) as {
-      data?: unknown;
-    };
-    const rows = Array.isArray(result?.data) ? result.data : [];
+    let result: unknown;
+    try {
+      result = await gateway.run('starboard', EMBEDDING_MODEL, { text: batch });
+    } catch (error) {
+      console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+        stage: 'embedding_rpc',
+        reason: 'rejected',
+      });
+      throw error;
+    }
+    const payload = result as { data?: unknown } | null;
+    const rows = Array.isArray(payload?.data) ? payload.data : [];
     const rawVectors = rows.map((row) => (Array.isArray(row) ? (row as number[]) : null));
     if (
       rows.length !== batch.length ||
@@ -79,6 +88,10 @@ export async function embedViaGateway(
           vector.some((value) => typeof value !== 'number' || !Number.isFinite(value))
       )
     ) {
+      console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+        stage: 'embedding_validation',
+        reason: 'contract_mismatch',
+      });
       throw new Error(
         `Free AI returned embeddings that do not match the ${EMBEDDING_DIM}-dimension BGE contract`
       );
