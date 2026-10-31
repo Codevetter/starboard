@@ -12,9 +12,13 @@ describe('repo vector store', () => {
   it('logs only a fixed query category and rethrows the original Vectorize failure', async () => {
     const error = new Error('private vector payload project-1377518513');
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let queryReceiver: unknown;
     const index = {
       query: vi.fn(),
-      queryById: vi.fn().mockRejectedValue(error),
+      queryById: vi.fn(function (this: unknown) {
+        queryReceiver = this;
+        return Promise.reject(error);
+      }),
       upsert: vi.fn(),
     } as unknown as VectorizeIndexLike;
 
@@ -22,6 +26,7 @@ describe('repo vector store', () => {
       await expect(
         createRepoVectorStore(index, testBudget()).queryByRepoId(1377518513, 10)
       ).rejects.toBe(error);
+      expect(queryReceiver).toBe(index);
       expect(warning.mock.calls).toEqual([
         ['[starboard-semantic-diagnostic]', { stage: 'vectorize_query', reason: 'rejected' }],
       ]);

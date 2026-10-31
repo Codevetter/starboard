@@ -65,6 +65,20 @@ function normalizeMatches(result: VectorizeMatchesLike): RepoVectorMatch[] {
   });
 }
 
+async function queryWithDiagnostic(
+  query: () => Promise<VectorizeMatchesLike>
+): Promise<RepoVectorMatch[]> {
+  try {
+    return normalizeMatches(await query());
+  } catch (error) {
+    console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
+      stage: 'vectorize_query',
+      reason: 'rejected',
+    });
+    throw error;
+  }
+}
+
 export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVectorBudget) {
   const queryAdmission = Symbol('reserved-vectorize-query');
   const storageAdmissions = new Map<symbol, { count: number; monthKey: string }>();
@@ -98,39 +112,23 @@ export function createRepoVectorStore(index: VectorizeIndexLike, budget: RepoVec
     async query(vector: number[], topK: number, admitted?: symbol): Promise<RepoVectorMatch[]> {
       if (admitted === queryAdmission && reservationAvailable) reservationAvailable = false;
       else await reserveQueryBudget(vector.length);
-      try {
-        return normalizeMatches(
-          await index.query(vector, {
-            topK: boundedTopK(topK),
-            returnValues: false,
-            returnMetadata: 'none',
-          })
-        );
-      } catch (error) {
-        console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
-          stage: 'vectorize_query',
-          reason: 'rejected',
-        });
-        throw error;
-      }
+      return queryWithDiagnostic(() =>
+        index.query(vector, {
+          topK: boundedTopK(topK),
+          returnValues: false,
+          returnMetadata: 'none',
+        })
+      );
     },
     async queryByRepoId(repoId: number, topK: number): Promise<RepoVectorMatch[]> {
       await reserveQueryBudget(768);
-      try {
-        return normalizeMatches(
-          await index.queryById(String(repoId), {
-            topK: boundedTopK(topK),
-            returnValues: false,
-            returnMetadata: 'none',
-          })
-        );
-      } catch (error) {
-        console.warn(SEMANTIC_DIAGNOSTIC_MARKER, {
-          stage: 'vectorize_query',
-          reason: 'rejected',
-        });
-        throw error;
-      }
+      return queryWithDiagnostic(() =>
+        index.queryById(String(repoId), {
+          topK: boundedTopK(topK),
+          returnValues: false,
+          returnMetadata: 'none',
+        })
+      );
     },
     async upsert(vectors: RepoVectorInput[], admitted?: symbol): Promise<void> {
       if (vectors.length === 0) return;
