@@ -717,6 +717,7 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
       return {
         font: style.fontFamily,
         brand,
+        background: style.backgroundColor,
         overflow: document.documentElement.scrollWidth > innerWidth,
       };
     });
@@ -726,7 +727,8 @@ test('shared identity, local fonts and keyboard controls survive theme changes',
         .locator('[data-feedback-widget].smw-root')
         .evaluate((root) => getComputedStyle(root).fontFamily)
     ).toBe(identity.font);
-    expect(identity.brand).toBe(theme === 'light' ? 'rgb(217, 78, 48)' : 'rgb(241, 140, 112)');
+    expect(identity.brand).toBe(theme === 'light' ? 'oklch(0.205 0 0)' : 'oklch(0.922 0 0)');
+    expect(identity.background).toBe(theme === 'light' ? 'oklch(1 0 0)' : 'oklch(0.145 0 0)');
     expect(identity.overflow).toBe(false);
     const search = page.getByPlaceholder('Search repos...');
     const query = `shared-ui-${theme}`;
@@ -762,10 +764,16 @@ test('login preserves project context and theme identity through a recoverable e
     expect(
       await page.evaluate(() => {
         const foreground = getComputedStyle(document.querySelector('h2')!).color;
-        return { foreground, overflow: document.documentElement.scrollWidth > innerWidth };
+        const background = getComputedStyle(document.body).backgroundColor;
+        return {
+          foreground,
+          background,
+          overflow: document.documentElement.scrollWidth > innerWidth,
+        };
       })
     ).toEqual({
-      foreground: theme === 'light' ? 'rgb(18, 59, 74)' : 'rgb(244, 239, 228)',
+      foreground: theme === 'light' ? 'oklch(0.145 0 0)' : 'oklch(0.985 0 0)',
+      background: theme === 'light' ? 'oklch(1 0 0)' : 'oklch(0.145 0 0)',
       overflow: false,
     });
     await page.evaluate(() => document.fonts.ready);
