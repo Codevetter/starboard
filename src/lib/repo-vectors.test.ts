@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createRepoVectorStore, type VectorizeIndexLike } from './repo-vectors';
-import { denyVectorizeStorageGrowth } from './shared-ai-budget';
+import { denyVectorizeStorageGrowth, SharedBudgetDeniedError } from './shared-ai-budget';
 
 const testBudget = () => ({
   reserveQuery: vi.fn(async (_dimensions: number) => {}),
@@ -9,6 +9,93 @@ const testBudget = () => ({
 });
 
 describe('repo vector store', () => {
+  it('logs only a fixed query category and rethrows the original Vectorize failure', async () => {
+    const error = new Error('private vector payload project-1377518513');
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    let queryReceiver: unknown;
+    const index = {
+      query: vi.fn(),
+      queryById: vi.fn(function (this: unknown) {
+        queryReceiver = this;
+        return Promise.reject(error);
+      }),
+      upsert: vi.fn(),
+    } as unknown as VectorizeIndexLike;
+
+    try {
+      await expect(
+        createRepoVectorStore(index, testBudget()).queryByRepoId(1377518513, 10)
+      ).rejects.toBe(error);
+      expect(queryReceiver).toBe(index);
+      expect(warning.mock.calls).toEqual([
+        ['[starboard-semantic-diagnostic]', { stage: 'vectorize_query', reason: 'rejected' }],
+      ]);
+      expect(JSON.stringify(warning.mock.calls)).not.toMatch(/private|1377518513/);
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
+  it('labels a known query budget denial without logging its message or query dimensions', async () => {
+    const error = new SharedBudgetDeniedError('private quota state project-1377518513');
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const budget = {
+      ...testBudget(),
+      reserveQuery: vi.fn().mockRejectedValue(error),
+    };
+    const index = {
+      query: vi.fn(),
+      queryById: vi.fn(),
+      upsert: vi.fn(),
+    } as unknown as VectorizeIndexLike;
+
+    try {
+      await expect(createRepoVectorStore(index, budget).queryByRepoId(1377518513, 10)).rejects.toBe(
+        error
+      );
+      expect(warning.mock.calls).toEqual([
+        [
+          '[starboard-semantic-diagnostic]',
+          { stage: 'vector_budget_reservation', reason: 'denied' },
+        ],
+      ]);
+      expect(JSON.stringify(warning.mock.calls)).not.toMatch(/private|1377518513|768/);
+      expect(index.queryById).not.toHaveBeenCalled();
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
+  it('does not label an unknown budget failure as a denial', async () => {
+    const error = new Error('private reservation transport detail project-1377518513');
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const budget = {
+      ...testBudget(),
+      reserveQuery: vi.fn().mockRejectedValue(error),
+    };
+    const index = {
+      query: vi.fn(),
+      queryById: vi.fn(),
+      upsert: vi.fn(),
+    } as unknown as VectorizeIndexLike;
+
+    try {
+      await expect(createRepoVectorStore(index, budget).queryByRepoId(1377518513, 10)).rejects.toBe(
+        error
+      );
+      expect(warning.mock.calls).toEqual([
+        [
+          '[starboard-semantic-diagnostic]',
+          { stage: 'vector_budget_reservation', reason: 'rejected' },
+        ],
+      ]);
+      expect(JSON.stringify(warning.mock.calls)).not.toMatch(/private|1377518513|768/);
+      expect(index.queryById).not.toHaveBeenCalled();
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
   it('maps cosine scores to the existing distance contract', async () => {
     const index = {
       query: vi.fn().mockResolvedValue({

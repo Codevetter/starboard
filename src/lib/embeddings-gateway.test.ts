@@ -3,6 +3,29 @@ import { describe, expect, it, vi } from 'vitest';
 import { embedViaGateway, type FleetGatewayBinding } from './embeddings';
 
 describe('Starboard private Free AI embeddings', () => {
+  it('logs only a fixed RPC category and rethrows the original rejection', async () => {
+    const error = new Error('private prompt token project-1377518513');
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const gateway: FleetGatewayBinding = {
+      run: vi.fn().mockRejectedValue(error),
+      fetch: vi.fn(),
+    };
+
+    try {
+      await expect(
+        embedViaGateway(gateway, ['private input user-28417 prompt-token'])
+      ).rejects.toBe(error);
+      expect(warning.mock.calls).toEqual([
+        ['[starboard-semantic-diagnostic]', { stage: 'embedding_rpc', reason: 'rejected' }],
+      ]);
+      expect(JSON.stringify(warning.mock.calls)).not.toMatch(
+        /private prompt token|1377518513|28417/
+      );
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
   it('keeps the BGE model, batch order, 768 coordinates, and gateway receiver', async () => {
     const calls: Array<{ project: string; model: string; input: unknown; receiver: unknown }> = [];
     const gateway: FleetGatewayBinding = {
@@ -49,12 +72,26 @@ describe('Starboard private Free AI embeddings', () => {
       { data: [Array.from({ length: 768 }, (_, index) => (index === 0 ? Number.NaN : 1))] },
     ],
   ])('rejects %s from the private gateway', async (_case, result) => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const gateway: FleetGatewayBinding = {
       run: vi.fn(async () => result),
       fetch: vi.fn(),
     };
 
-    await expect(embedViaGateway(gateway, ['repo'])).rejects.toThrow(/768-dimension BGE contract/);
-    expect(gateway.run).toHaveBeenCalledTimes(1);
+    try {
+      await expect(
+        embedViaGateway(gateway, ['private input user-28417 prompt-token'])
+      ).rejects.toThrow(/768-dimension BGE contract/);
+      expect(gateway.run).toHaveBeenCalledTimes(1);
+      expect(warning.mock.calls).toEqual([
+        [
+          '[starboard-semantic-diagnostic]',
+          { stage: 'embedding_validation', reason: 'contract_mismatch' },
+        ],
+      ]);
+      expect(JSON.stringify(warning.mock.calls)).not.toMatch(/private|28417/);
+    } finally {
+      warning.mockRestore();
+    }
   });
 });

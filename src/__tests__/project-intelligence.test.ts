@@ -204,6 +204,38 @@ describe('project intelligence retrieval', () => {
     expect(response.similarProjects[0].fullName).toBe('oss/checkout-kit');
   });
 
+  it('logs a failed embedding dependency without changing the empty fallback response', async () => {
+    const execute = vi.fn().mockResolvedValue(result([]));
+    const error = new Error('private provider token prompt-token user-28417');
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const deps = dependencies(execute, {
+      queryByRepoId: vi.fn().mockResolvedValue([]),
+    });
+    deps.embed = vi.fn().mockRejectedValue(error);
+
+    try {
+      const response = await createProjectIntelligence(deps)(
+        project({
+          id: 1377518513,
+          description: 'private prompt-token for user-28417',
+        })
+      );
+
+      expect(response.retrieval).toMatchObject({ mode: 'fallback', candidateCount: 0 });
+      expect(response.retrieval.unavailableSources).toEqual(['semantic']);
+      expect(response.similarProjects).toEqual([]);
+      expect(response.recommendedTools).toEqual([]);
+      expect(warning.mock.calls).toEqual([
+        ['[starboard-semantic-diagnostic]', { stage: 'semantic_embedding', reason: 'rejected' }],
+      ]);
+      expect(JSON.stringify(warning.mock.calls)).not.toMatch(
+        /private|prompt-token|28417|1377518513/
+      );
+    } finally {
+      warning.mockRestore();
+    }
+  });
+
   it('labels a bounded catalog fallback when no project-specific lane returns candidates', async () => {
     const execute = vi.fn(async (statement: string | { sql: string }) => {
       const sql = typeof statement === 'string' ? statement : statement.sql;
