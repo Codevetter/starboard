@@ -53,6 +53,13 @@ function vectorBudgetState(payload: unknown, monthKey: string): VectorBudgetStat
   return remaining < VECTORIZE_QUERY_DIMENSIONS ? 'insufficient_headroom' : 'available';
 }
 
+function semanticSurfaceState(
+  knowledgebasePathEnabled: boolean,
+  budgetState: VectorBudgetState
+): 'unverified' | 'unavailable' {
+  return knowledgebasePathEnabled || budgetState === 'available' ? 'unverified' : 'unavailable';
+}
+
 async function readVectorBudgetState(): Promise<VectorBudgetState> {
   let timeout: ReturnType<typeof setTimeout> | undefined;
   const controller = new AbortController();
@@ -144,8 +151,7 @@ export async function GET() {
 
   const ragConfigured = Boolean(process.env.RAG_SERVICE_KEY && process.env.STARBOARD_RAG_INDEX_ID);
   const vectorBudget = await vectorBudgetPromise;
-  const semanticState =
-    knowledgePipelineEnabled() || vectorBudget === 'available' ? 'unverified' : 'unavailable';
+  const semanticState = semanticSurfaceState(knowledgePipelineEnabled(), vectorBudget);
 
   return NextResponse.json(
     {
