@@ -82,7 +82,8 @@ function projectText(project: ProjectRecommendationRepo): string {
       keywords: project.aiKeywords,
     },
   });
-  return [project.description, project.sourceContext?.readme, metadata].filter(Boolean).join(' | ');
+  const documents = project.sourceContext?.documents?.map((document) => document.text).join(' | ');
+  return [documents || project.sourceContext?.readme, metadata].filter(Boolean).join(' | ');
 }
 
 async function semanticCandidates(

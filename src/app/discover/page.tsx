@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import type { Metadata } from 'next';
 
-import { GET as getDiscoverRepos } from '@/app/api/discover/route';
+import fixture from './preview-fixture.json';
 import DiscoverClient from '@/app/discover/discover-client';
 import type { DiscoverResponse } from '@/hooks/use-discover-repos';
 import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
@@ -48,10 +48,7 @@ function discoverDataUrl(searchParams: Record<string, string | string[] | undefi
 export default async function DiscoverPage({ searchParams }: { searchParams: SearchParams }) {
   const resolvedSearchParams = await searchParams;
   const initialUrl = discoverDataUrl(resolvedSearchParams);
-  const response = await getDiscoverRepos(
-    new NextRequest(`https://starboard.codevetter.com${initialUrl}`)
-  );
-  const initialData = response.ok ? ((await response.json()) as DiscoverResponse) : null;
+  const initialData = fixture as unknown as DiscoverResponse;
 
   return <DiscoverClient initialData={initialData} initialUrl={initialUrl} />;
 }

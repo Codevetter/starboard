@@ -48,7 +48,7 @@ export default nextConfig;
 // Wire opennext-cloudflare for `next dev` so the AI binding (and any others)
 // are available in development the same way they are in deployed Workers.
 // No-op when not running under Next dev / opennext.
-if (process.env.NODE_ENV === 'development') {
+if (false) {
   import('@opennextjs/cloudflare')
     .then((m) => m.initOpenNextCloudflareForDev?.())
     .catch(() => {

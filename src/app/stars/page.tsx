@@ -488,6 +488,7 @@ function StarsContent() {
             onClearAll={clearFilters}
           />
           <RepoGrid
+            resetKey={requestKey}
             repos={repos}
             viewMode={viewMode}
             isLoading={reposLoading}

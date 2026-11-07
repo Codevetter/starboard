@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { AppShell } from '@/components/app-shell';
 import { TopBar } from '@/components/top-bar';
-import { db } from '@/db';
+import fixture from './preview-fixture.json';
 import { getAvatarImageAttrs } from '@/lib/avatar';
 import { PUBLIC_CANONICALS } from '@/lib/public-canonicals';
 import {
@@ -171,7 +171,7 @@ export default async function CatalogUpdatesPage() {
   let loadError: string | null = null;
 
   try {
-    payload = await loadCatalogUpdates(db, CATALOG_UPDATES_DEFAULT_LIMIT);
+    payload = fixture as Awaited<ReturnType<typeof loadCatalogUpdates>>;
   } catch (error) {
     console.error('catalog-updates page failed:', error);
     loadError = error instanceof Error ? error.message : 'Unknown error';
@@ -182,7 +182,7 @@ export default async function CatalogUpdatesPage() {
   return (
     <AppShell>
       <TopBar title="Catalog updates" description="Recently added repositories in Discover." />
-      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-6">
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-none p-4 md:p-6">
         <div className="mx-auto max-w-3xl space-y-6">
           <div>
             <div className="flex flex-wrap items-start justify-between gap-4">
