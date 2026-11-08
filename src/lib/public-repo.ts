@@ -39,7 +39,11 @@ export const getPublicRepo = cache(async (fullName: string): Promise<RepoDetail 
   });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`Public repository lookup failed: ${response.status}`);
-  const repo = (await response.json()) as GitHubRepoResponse;
+  const repo = (await response.json()) as GitHubRepoResponse & {
+    private?: boolean;
+    visibility?: string;
+  };
+  if (repo.private === true || (repo.visibility && repo.visibility !== 'public')) return null;
   return {
     id: repo.id,
     name: repo.name,

@@ -16,6 +16,7 @@
 export const PUBLIC_CANONICALS = {
   home: '/',
   discover: '/discover',
+  repositoryCatalog: '/explore',
   projectPreview: '/project-preview',
   tools: '/tools',
   catalogUpdates: '/catalog-updates',

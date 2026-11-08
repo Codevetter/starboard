@@ -20,6 +20,11 @@
     "description": "Search and compare public GitHub projects and the tools they use."
   },
   {
+    "path": "/explore",
+    "title": "Public repository catalog",
+    "description": "Browse popular public GitHub repositories with descriptions and source evidence."
+  },
+  {
     "path": "/tools",
     "title": "Developer tool intelligence",
     "description": "Compare developer tools using evidence from public GitHub repositories."

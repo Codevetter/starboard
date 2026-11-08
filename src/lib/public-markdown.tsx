@@ -8,6 +8,7 @@ import About from '@/app/about/page';
 import Privacy from '@/app/privacy/page';
 import Terms from '@/app/terms/page';
 import CatalogUpdates from '@/app/catalog-updates/page';
+import RepositoryCatalog from '@/app/explore/page';
 import PublicList, { generateMetadata as listMetadata } from '@/app/lists/[slug]/page';
 import { AppShell } from '@/components/app-shell';
 import { TopBar } from '@/components/top-bar';
@@ -60,6 +61,8 @@ export async function publicMarkdown(path: string) {
   else if (path === '/privacy') tree = <Privacy />;
   else if (path === '/terms') tree = <Terms />;
   else if (path === '/catalog-updates') tree = await CatalogUpdates();
+  else if (path === '/explore')
+    tree = await RepositoryCatalog({ searchParams: Promise.resolve({}) });
   else if (path === '/project-preview')
     tree = (
       <main>

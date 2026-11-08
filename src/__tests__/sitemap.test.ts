@@ -30,6 +30,7 @@ describe('sitemap / canonical contract', () => {
     expect(sitemap().map((entry) => entry.url)).toEqual([
       `${siteUrl}/`,
       `${siteUrl}/discover`,
+      `${siteUrl}/explore`,
       `${siteUrl}/project-preview`,
       `${siteUrl}/tools`,
       `${siteUrl}/catalog-updates`,

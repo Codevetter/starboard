@@ -378,6 +378,17 @@ function CatalogUpdatesButton({ pathname }: { pathname: string | null }) {
   );
 }
 
+function RepositoryCatalogButton({ pathname }: { pathname: string | null }) {
+  if (!pathname?.startsWith('/discover')) return null;
+  return (
+    <Button asChild variant="outline" size="sm" className="h-11 shrink-0 gap-2 sm:h-8">
+      <Link href="/explore" prefetch={false}>
+        Browse A–Z
+      </Link>
+    </Button>
+  );
+}
+
 export function TopBar(props: TopBarProps) {
   const {
     title,
@@ -437,6 +448,7 @@ export function TopBar(props: TopBarProps) {
       )}
 
       <CatalogUpdatesButton pathname={pathname} />
+      <RepositoryCatalogButton pathname={pathname} />
 
       {onSync && <SyncButton syncing={syncing} onSync={onSync} />}
 

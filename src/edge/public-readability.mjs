@@ -54,7 +54,7 @@ export async function handlePublicReadability(
   if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return null;
   if (path === '/robots.txt')
     return new Response(
-      `# Keep in sync with llms.txt and ai.txt.\nUser-agent: *\nAllow: /\nDisallow: /api/\nAllow: /api/md\nAllow: /api/ai\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n\n${['GPTBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'CCBot', 'Bytespider'].map((name) => `User-agent: ${name}\nAllow: /\nDisallow: /api/\nAllow: /api/md\nAllow: /api/ai\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n`).join('\n')}\nSitemap: ${origin}/sitemap.xml\n`,
+      `# Keep in sync with llms.txt and ai.txt.\nUser-agent: *\nAllow: /\nDisallow: /api/\nAllow: /api/md\nAllow: /api/ai\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n\n${['GPTBot', 'ClaudeBot', 'Google-Extended', 'Applebot-Extended', 'CCBot', 'Bytespider'].map((name) => `User-agent: ${name}\nAllow: /\nDisallow: /api/\nAllow: /api/md\nAllow: /api/ai\nDisallow: /stars\nDisallow: /projects\nDisallow: /login\n`).join('\n')}\nSitemap: ${origin}/sitemap.xml\nSitemap: ${origin}/repository-sitemap.xml\n`,
       { headers: { 'Content-Type': 'text/plain; charset=utf-8' } }
     );
   const direct = path === '/api/md' || path.startsWith('/api/md/');
