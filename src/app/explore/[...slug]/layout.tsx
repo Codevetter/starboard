@@ -24,7 +24,10 @@ export async function generateMetadata({
   const fullName = repo.full_name;
   const canonical = publicRepositoryPath(fullName);
   if (!canonical) return { title: 'Invalid repository identity', robots: { index: false } };
-  const title = `${fullName} — repository intelligence`;
+  const summary = repo.description?.replace(/\s+/g, ' ').trim();
+  const title = summary
+    ? `${fullName} — ${summary.length > 120 ? `${summary.slice(0, 119).trimEnd()}…` : summary}`
+    : `${fullName} — repository details and tools`;
   const description = repo.description
     ? `${fullName}: ${repo.description}`.slice(0, 300)
     : `Explore ${fullName} on Starboard: inspect repository details, related projects and detected tools, or open the source on GitHub.`;

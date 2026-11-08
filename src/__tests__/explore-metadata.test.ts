@@ -44,6 +44,7 @@ describe('public repository metadata', () => {
       params: Promise.resolve({ slug: ['prasanthrangan', 'hyprdots'] }),
     });
     expect(first.title).toContain('xlite-dev/LeetCUDA');
+    expect(first.title).toContain('A public repository with useful evidence.');
     expect(second.title).toContain('prasanthrangan/hyprdots');
     expect(first.alternates?.canonical).toBe('/explore/xlite-dev/LeetCUDA');
     expect(second.alternates?.canonical).toBe('/explore/prasanthrangan/hyprdots');
