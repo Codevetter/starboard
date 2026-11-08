@@ -123,7 +123,11 @@ function ErrorState({ error }: { error: Error | undefined }) {
   );
 }
 
-function useRepoPageData(repoSlug: string, initialRepo: RepoDetail) {
+function useRepoPageData(
+  repoSlug: string,
+  initialRepo: RepoDetail,
+  initialRepoTools?: RepoToolsResponse
+) {
   const { repo, isLoading, error } = useRepoDetail(repoSlug, initialRepo);
   const [secondaryReady, setSecondaryReady] = useState(false);
   useEffect(() => {
@@ -144,7 +148,7 @@ function useRepoPageData(repoSlug: string, initialRepo: RepoDetail) {
   const { data: repoTools } = useSWR<RepoToolsResponse>(
     secondaryReady && repo?.id ? `/api/repos/${repo.id}/tools` : null,
     jsonFetcher,
-    { revalidateOnFocus: false, dedupingInterval: 60_000 }
+    { revalidateOnFocus: false, dedupingInterval: 60_000, fallbackData: initialRepoTools }
   );
 
   return { repo, isLoading, error, similar, similarLoading, starHistory, repoTools };
@@ -153,15 +157,17 @@ function useRepoPageData(repoSlug: string, initialRepo: RepoDetail) {
 export default function RepositoryDetail({
   repoSlug,
   initialRepo,
+  initialRepoTools,
 }: {
   repoSlug: string;
   initialRepo: RepoDetail;
+  initialRepoTools?: RepoToolsResponse;
 }) {
   const { status } = useSession();
   const isAuthenticated = status === 'authenticated';
 
   const { repo, isLoading, error, similar, similarLoading, starHistory, repoTools } =
-    useRepoPageData(repoSlug, initialRepo);
+    useRepoPageData(repoSlug, initialRepo, initialRepoTools);
 
   if (isLoading) return <PageSkeleton />;
   if (!repo) return <ErrorState error={error} />;

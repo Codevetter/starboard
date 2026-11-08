@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 
 import { getPublicRepo, repositorySlug } from '@/lib/public-repo';
+import { publicRepositoryPath } from '@/lib/public-repository-admission';
 
 type ExploreParams = { slug: string[] };
 
@@ -21,7 +22,8 @@ export async function generateMetadata({
   const repo = await getPublicRepo(repoSlug);
   if (!repo) return { title: 'Repository not found', robots: { index: false } };
   const fullName = repo.full_name;
-  const canonical = `/explore/${slug.map(encodeURIComponent).join('/')}`;
+  const canonical = publicRepositoryPath(fullName);
+  if (!canonical) return { title: 'Invalid repository identity', robots: { index: false } };
   const title = `${fullName} — repository intelligence`;
   const description = repo.description
     ? `${fullName}: ${repo.description}`.slice(0, 300)

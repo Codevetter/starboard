@@ -33,6 +33,7 @@ export interface RepoTool {
   url: string;
   confidence: number;
   sources: string[];
+  detectedAt?: string;
 }
 
 export interface RepoToolsResponse {
@@ -262,6 +263,19 @@ export function RepoSecondaryData({ starHistory, repoTools }: RepoSecondaryDataP
               <Info className="mt-0.5 size-3.5 shrink-0" />
               <span>{repoTools.disclaimer}</span>
             </div>
+            <ul className="mt-3 space-y-2 border-t pt-3 text-xs leading-relaxed text-muted-foreground">
+              {repoTools.tools.slice(0, 12).map((tool) => (
+                <li key={tool.toolKey} className="break-words">
+                  <span className="font-medium text-foreground">{tool.toolName}</span>
+                  {' · '}
+                  {tool.confidence}% confidence
+                  {tool.sources.length > 0 && <> · Sources: {tool.sources.join(', ')}</>}
+                  {tool.detectedAt && Number.isFinite(Date.parse(tool.detectedAt)) && (
+                    <> · Detected {formatDate(tool.detectedAt)}</>
+                  )}
+                </li>
+              ))}
+            </ul>
           </>
         ) : (
           <p className="text-sm text-muted-foreground">No detected tools yet.</p>

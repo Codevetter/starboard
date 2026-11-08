@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Sitemap: https://starboard.codevetter.com/sitemap.xml
+Sitemap: https://starboard.codevetter.com/repository-sitemap.xml
 # Agent indexing
 Allow: /llms.txt
 Allow: /index.md

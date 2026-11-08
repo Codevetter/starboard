@@ -72,6 +72,15 @@ describe('public server repository lookup', () => {
     expect(await getPublicRepo('fleet/missing')).toBeNull();
   });
 
+  it.each([{ private: true }, { private: false, visibility: 'internal' }])(
+    'rejects non-public upstream records %j',
+    async (visibility) => {
+      execute.mockResolvedValue({ rows: [] });
+      vi.spyOn(globalThis, 'fetch').mockResolvedValue(Response.json({ ...row, ...visibility }));
+      expect(await getPublicRepo('fleet/private')).toBeNull();
+    }
+  );
+
   it.each([403, 429, 500, 502])(
     'does not turn provider status %s into a missing repository',
     async (status) => {

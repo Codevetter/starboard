@@ -50,6 +50,66 @@ test.beforeEach(async ({ page }, testInfo) => {
   );
 });
 
+test('public repository catalog links eligible source pages and matching sitemap URLs', async ({
+  page,
+  request,
+}, testInfo) => {
+  const catalog = await request.get('/explore');
+  expect(catalog.status()).toBe(200);
+  const html = await catalog.text();
+  expect(html).toContain('href="/explore/00-Evan/shattered-pixel-dungeon"');
+  expect(html).toContain('href="/explore?page=2"');
+  expect(html).not.toContain('href="/explore/acme/repo-0"');
+  const sitemap = await request.get('/sitemaps/repositories/0.xml');
+  expect(sitemap.status()).toBe(200);
+  expect(sitemap.headers()['content-type']).toContain('application/xml');
+  const xml = await sitemap.text();
+  expect(xml).toContain(
+    '<loc>https://starboard.codevetter.com/explore/00-Evan/shattered-pixel-dungeon</loc>'
+  );
+  expect(xml).not.toContain('acme/repo-0');
+  expect((await request.get('/sitemaps/repositories/99999.xml')).status()).toBe(404);
+  expect((await request.get('/explore?page=999999')).status()).toBe(404);
+  expect(await (await request.get('/robots.txt')).text()).toContain(
+    'Sitemap: https://starboard.codevetter.com/repository-sitemap.xml'
+  );
+  const markdown = await request.get('/explore.md');
+  expect(markdown.status()).toBe(200);
+  expect(await markdown.text()).toContain('00-Evan/shattered-pixel-dungeon');
+
+  await page.goto('/explore');
+  await expect(page.getByRole('heading', { name: 'Popular repositories, A–Z' })).toBeVisible();
+  await expect(
+    page.getByRole('link', { name: '00-Evan/shattered-pixel-dungeon', exact: true })
+  ).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.screenshot({ path: testInfo.outputPath('public-catalog.png'), fullPage: true });
+  await page.getByRole('link', { name: 'Next →', exact: true }).click();
+  await expect(page).toHaveURL(/\/explore\?page=2$/);
+  await expect(page.getByRole('link', { name: '← Previous', exact: true })).toBeVisible();
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
+    'href',
+    'https://starboard.codevetter.com/explore?page=2'
+  );
+
+  const entity = await request.get('/explore/react/react', {
+    headers: { 'User-Agent': 'Googlebot' },
+  });
+  expect(entity.status()).toBe(200);
+  const entityHtml = await entity.text();
+  expect(entityHtml).toContain('The library for web and native user interfaces.');
+  expect(entityHtml).toContain('package.json');
+  await page.goto('/explore/react/react');
+  await expect(page.getByRole('heading', { name: 'react', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Detected tools' })).toBeVisible();
+  await page.getByRole('heading', { name: 'Detected tools' }).scrollIntoViewIfNeeded();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
+  await page.screenshot({
+    path: testInfo.outputPath('public-repository-evidence.png'),
+    fullPage: true,
+  });
+});
+
 test('protected HTML is private and contains no serialized session credentials', async ({
   request,
   page,

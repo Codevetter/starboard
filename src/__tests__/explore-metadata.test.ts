@@ -51,6 +51,17 @@ describe('public repository metadata', () => {
     expect(first.description).toContain('xlite-dev/LeetCUDA');
   });
 
+  it('uses the stored source identity for case aliases', async () => {
+    getPublicRepo.mockResolvedValueOnce({
+      full_name: 'Fleet/Example',
+      description: 'Source description.',
+    });
+    const metadata = await generateMetadata({
+      params: Promise.resolve({ slug: ['fleet', 'example'] }),
+    });
+    expect(metadata.alternates?.canonical).toBe('/explore/Fleet/Example');
+  });
+
   it.each(
     [
       [],

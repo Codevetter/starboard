@@ -26,6 +26,20 @@ describe('repository initial HTML', () => {
           repo_created_at: null,
           repo_updated_at: null,
         },
+        initialRepoTools: {
+          disclaimer: 'Detected from retained public source evidence.',
+          tools: [
+            {
+              toolKey: 'vitest',
+              toolName: 'Vitest',
+              category: 'testing',
+              url: 'https://vitest.dev',
+              confidence: 92,
+              sources: ['package.json'],
+              detectedAt: '2026-10-01T00:00:00Z',
+            },
+          ],
+        },
       })
     );
     expect(html).toMatch(/<h1[^>]*>example<\/h1>/);
@@ -33,6 +47,9 @@ describe('repository initial HTML', () => {
     expect(html).toContain('regression-testing');
     expect(html).toContain('TypeScript');
     expect(html).toContain('github.com/fleet/example');
+    expect(html).toContain('Vitest');
+    expect(html).toContain('92');
+    expect(html).toContain('package.json');
     expect(html).not.toContain('Failed to load repository');
   });
 });

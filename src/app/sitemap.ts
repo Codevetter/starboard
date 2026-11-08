@@ -21,6 +21,7 @@ const routeMeta: {
 }[] = [
   { path: PUBLIC_CANONICALS.home, changeFrequency: 'weekly', priority: 1 },
   { path: PUBLIC_CANONICALS.discover, changeFrequency: 'daily', priority: 0.95 },
+  { path: PUBLIC_CANONICALS.repositoryCatalog, changeFrequency: 'weekly', priority: 0.8 },
   { path: PUBLIC_CANONICALS.projectPreview, changeFrequency: 'weekly', priority: 0.98 },
   { path: PUBLIC_CANONICALS.tools, changeFrequency: 'weekly', priority: 0.9 },
   { path: PUBLIC_CANONICALS.catalogUpdates, changeFrequency: 'daily', priority: 0.85 },
@@ -37,10 +38,8 @@ const routeMeta: {
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
   return routeMeta.map(({ path, changeFrequency, priority }) => ({
     url: `${siteUrl}${path}`,
-    lastModified: now,
     changeFrequency,
     priority,
   }));
