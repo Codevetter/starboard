@@ -6,7 +6,7 @@ export const XML_HEADERS = {
   'Content-Type': 'application/xml; charset=utf-8',
   'Cache-Control': 'public, max-age=300, s-maxage=3600',
 };
-export function xmlEscape(text: string): string {
+function xmlEscape(text: string): string {
   return text
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')

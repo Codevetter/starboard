@@ -1,7 +1,7 @@
 // Publication is a subset of the existing guest Discover catalog. Personal
 // starred membership is deliberately not an admission rule.
-export const PUBLIC_REPOSITORY_MIN_STARS = 5000;
-export const PUBLIC_REPOSITORY_DESCRIPTION_LENGTH = 30;
+const PUBLIC_REPOSITORY_MIN_STARS = 5000;
+const PUBLIC_REPOSITORY_DESCRIPTION_LENGTH = 30;
 
 export function publicRepositoryPath(fullName: string): string | null {
   const parts = fullName.split('/');

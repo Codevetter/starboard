@@ -32,16 +32,57 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   };
 }
 
+function CatalogPagination({ page }: { page: number }) {
+  const nearbyPages = Array.from(
+    { length: Math.min(7, REPOSITORY_PAGE_COUNT) },
+    (_, index) => Math.max(1, Math.min(page - 3, REPOSITORY_PAGE_COUNT - 6)) + index
+  );
+  return (
+    <nav
+      aria-label="Repository catalog pages"
+      className="flex flex-wrap items-center gap-2 border-t pt-5 text-sm"
+    >
+      {page > 1 && (
+        <Link
+          rel="prev"
+          href={repositoryCatalogPath(page - 1)}
+          className="inline-flex min-h-11 items-center rounded-md border px-3"
+        >
+          ← Previous
+        </Link>
+      )}
+      {nearbyPages.map((number) => (
+        <Link
+          key={number}
+          href={repositoryCatalogPath(number)}
+          aria-current={number === page ? 'page' : undefined}
+          className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border px-3 ${number === page ? 'bg-accent font-semibold' : ''}`}
+        >
+          {number}
+        </Link>
+      ))}
+      {page < REPOSITORY_PAGE_COUNT && (
+        <Link
+          rel="next"
+          href={repositoryCatalogPath(page + 1)}
+          className="inline-flex min-h-11 items-center rounded-md border px-3"
+        >
+          Next →
+        </Link>
+      )}
+      <span className="text-muted-foreground">
+        Page {page} of {REPOSITORY_PAGE_COUNT}
+      </span>
+    </nav>
+  );
+}
+
 export default async function RepositoryCatalog({ searchParams }: Props) {
   const page = pageFromParams(await searchParams);
   if (!page) notFound();
   const repos = await getPublicRepositorySlice(
     (page - 1) * REPOSITORY_PAGE_SIZE,
     REPOSITORY_PAGE_SIZE
-  );
-  const nearbyPages = Array.from(
-    { length: Math.min(7, REPOSITORY_PAGE_COUNT) },
-    (_, index) => Math.max(1, Math.min(page - 3, REPOSITORY_PAGE_COUNT - 6)) + index
   );
   return (
     <>
@@ -98,42 +139,7 @@ export default async function RepositoryCatalog({ searchParams }: Props) {
               No entries on this snapshot page currently meet catalog eligibility.
             </p>
           )}
-          <nav
-            aria-label="Repository catalog pages"
-            className="flex flex-wrap items-center gap-2 border-t pt-5 text-sm"
-          >
-            {page > 1 && (
-              <Link
-                rel="prev"
-                href={repositoryCatalogPath(page - 1)}
-                className="inline-flex min-h-11 items-center rounded-md border px-3"
-              >
-                ← Previous
-              </Link>
-            )}
-            {nearbyPages.map((number) => (
-              <Link
-                key={number}
-                href={repositoryCatalogPath(number)}
-                aria-current={number === page ? 'page' : undefined}
-                className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border px-3 ${number === page ? 'bg-accent font-semibold' : ''}`}
-              >
-                {number}
-              </Link>
-            ))}
-            {page < REPOSITORY_PAGE_COUNT && (
-              <Link
-                rel="next"
-                href={repositoryCatalogPath(page + 1)}
-                className="inline-flex min-h-11 items-center rounded-md border px-3"
-              >
-                Next →
-              </Link>
-            )}
-            <span className="text-muted-foreground">
-              Page {page} of {REPOSITORY_PAGE_COUNT}
-            </span>
-          </nav>
+          <CatalogPagination page={page} />
         </div>
       </main>
     </>
