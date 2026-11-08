@@ -50,6 +50,19 @@ test.beforeEach(async ({ page }, testInfo) => {
   );
 });
 
+test('uncataloged public repository HTML and Markdown return noindex 404', async ({ request }) => {
+  const headers = { 'User-Agent': 'Googlebot' };
+  const path = '/explore/starboard-publication-check/missing-20261108';
+  const html = await request.get(path, { headers });
+  expect(html.status()).toBe(404);
+  const body = await html.text();
+  expect(body).toContain('name="robots" content="noindex"');
+  expect(body).not.toContain('rel="canonical"');
+  const markdown = await request.get(`/api/md${path}`, { headers });
+  expect(markdown.status()).toBe(404);
+  expect(markdown.headers()['x-robots-tag']).toContain('noindex');
+});
+
 test('public repository catalog links eligible source pages and matching sitemap URLs', async ({
   page,
   request,
